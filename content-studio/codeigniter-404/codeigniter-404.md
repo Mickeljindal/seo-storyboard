@@ -77,6 +77,8 @@ RewriteRule ^(.*)$ index.php/$1 [L]
 
 The silent-failure shape here is worth naming, because it wastes a lot of time: with `AllowOverride None` nothing warns you. No error, no log line, no complaint. The file is simply not consulted, so every fix you make to it changes nothing, and it is very easy to conclude the rules are wrong when they were never read.
 
+This is the half of the problem that depends on who owns the web server. On a managed PHP server, Kloudbean's included, the stack comes with the front-controller rewrite already in place, so a fresh application answers pretty URLs without you writing a vhost. On a raw VPS this block is yours to write and yours to keep correct through every nginx upgrade.
+
 <!-- ADD IMAGE: side by side of a CodeIgniter styled 404 and a plain nginx 404, so the reader can recognise which one they have. -->
 
 ## The CodeIgniter 4 mistake that is also a security problem
@@ -97,6 +99,8 @@ curl -sI https://example.com/writable/logs/ | head -1
 ```
 
 Fix the document root to end in `/public`. Working around the layout by adding rewrite rules at the project root is a common suggestion and it is the wrong move, because it leaves the application directory reachable and you are then relying on rules to hide files that should never have been exposed. If you have been running that way, rotate the database credentials in `.env`, since you cannot know whether anyone fetched them.
+
+Rotation is the part worth doing properly. If the database is a managed Kloudbean one, change the credentials there and update the app, and while you are in that screen use IP allow-listing so only your application server's address can connect at all. A leaked password matters a great deal less when the only host permitted to use it is yours.
 
 ## Auto-routing is off by default in CodeIgniter 4
 
@@ -184,13 +188,23 @@ The `index_page` one produces a confusing half-broken state: the site works, and
 6. **Check filename case** against class names in `app/Controllers/`.
 7. **Read `writable/logs/`.** Empty during traffic means requests are not reaching the framework.
 
-## Where hosting fits
+## Which of these is your code, and which is your server?
 
-Most of this list is application configuration, and no host fixes your routes file. Two parts are genuinely infrastructure, and they are the two that produce the server-side 404: the rewrite configuration and the document root.
+Useful to separate, because it tells you who can actually fix each one and stops you filing a support ticket about a routes file.
 
-On Kloudbean you get managed PHP servers across seven clouds with the web server configured and maintained, free SSL issued and renewed, automatic backups, a Shorewall firewall and Fail2ban by default, and managed MySQL, MariaDB, PostgreSQL, Redis, Elasticsearch, or MongoDB alongside the application rather than bolted on. Cron jobs are configurable from the UI without SSH, which matters for the scheduled tasks most CodeIgniter applications end up needing.
+| The 404 you have | Who owns the fix |
+| --- | --- |
+| Route not defined, or defined with the wrong verb | Your code. Nobody else can guess your route table. |
+| Auto-routing expected but disabled | Your code, in `app/Config/Routes.php`. |
+| Controller filename case does not match the class | Your code, and it only appears on Linux. |
+| `uri_protocol` or `index_page` misconfigured (CI3) | Your config, though the server environment provoked it. |
+| Front-controller rewrite missing or `AllowOverride None` | The server. Managed on a managed platform, yours on a raw VPS. |
+| Document root not pointing at `public/` | The server, and it is a security incident until fixed. |
+| PHP-FPM socket path wrong after a PHP upgrade | The server, and it is the classic reason a working site 404s or 502s after patching. |
 
-One honest limitation while we are on the subject: one-click staging covers WordPress and Laravel, so on a CodeIgniter project you would set up your own staging copy. Worth knowing rather than discovering, and given how much of this article is about a rewrite change breaking a whole site, a place to test that change first is not a luxury.
+The bottom three are the reason people end up on a managed PHP host. Kloudbean's PHP servers run across seven clouds with the web server and PHP-FPM configured and patched, free SSL issued and renewed, automatic backups, Shorewall and Fail2ban on by default, and seven managed database engines (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB) sitting beside the application. Cron jobs are set from the UI without SSH, which most CodeIgniter projects need eventually.
+
+One honest gap, since this article is largely about a rewrite change breaking an entire site: one-click staging covers WordPress and Laravel, so on CodeIgniter you would roll your own staging copy. And the top four rows in that table stay yours on any platform on earth. No host reads your routes file, renames your controller, or knows which verb your form posts with. Managed hosting removes the server-shaped 404s. It has no opinion about your code.
 
 <!-- ADD IMAGE: the add-application screen, or your own nginx server block showing the public docroot and try_files line. -->
 
@@ -202,7 +216,7 @@ For the same case-sensitivity trap in Node, [Cannot find module](https://www.klo
 
 Managed PHP servers across seven clouds, managed databases and Redis, free SSL, automatic backups, cron from the UI, and a firewall with intrusion prevention by default. From $8/mo, with free migration assistance. Start at [kloudbean.com](https://www.kloudbean.com/).
 
-7 clouds · 6 managed databases · Free SSL · Automatic backups · Flat from $8/mo
+7 clouds · 7 managed databases · Free SSL · Automatic backups · Flat from $8/mo
 
 ## FAQ
 

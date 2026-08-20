@@ -164,6 +164,10 @@ The instinct is to raise `max_connections`. Resist it. More connections means mo
 
 Your framework probably already pools: Prisma, the `pg` Pool in Node, SQLAlchemy, and ActiveRecord all keep one. Set a sane pool size per app instance rather than a connection per request. Running many app servers or anything serverless? Put a dedicated pooler in front (PgBouncer in transaction mode is the usual pick), so thousands of clients funnel down to a handful of real connections. A classic start is roughly two times your CPU cores; most apps need far fewer than they reach for. More in [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/).
 
+Both of those settings, the connection string and the pool size, belong in environment variables rather than in your code, because the right pool size differs between your laptop and production. On Kloudbean they live in the console's runtime config, so you change the pool ceiling and restart without touching the repo or opening an SSH session.
+
+![The Kloudbean console environment variables screen holding the PostgreSQL connection string safely out of code](../assets/console/env-vars.png)
+
 ## Memory settings, carefully
 
 These are the knobs people want to turn first and should turn last. On managed PostgreSQL the defaults already scale to your plan, so treat these as concepts you reach for when a query needs them, and a bigger plan raises the ceiling.
@@ -187,25 +191,35 @@ My honest take on **work_mem shared_buffers** and the rest: leave `shared_buffer
 
 Sometimes the answer really is more hardware. If CPU sits pinned near 100 percent, RAM is exhausted so the cache can't hold your working set, or you're I/O bound after the queries are already tuned, the box is the bottleneck. On managed PostgreSQL you resize for more CPU and RAM without rebuilding anything, and backups and patching keep running.
 
-But tune queries and indexes first. Bad SQL scales badly no matter the hardware. A missing index that scans five million rows scans them faster on a bigger box, then falls over again at ten million. Doubling your server to hide an N+1 loop is the most expensive way to not fix a bug. For read-heavy workloads, a [managed Redis cache](https://www.kloudbean.com/blog/redis-caching-guide/) in front of your hottest reads often buys more headroom than a bigger database.
-
-## Put it into practice on managed PostgreSQL
-
-The tuning above is plain Postgres; it works anywhere. What a managed platform changes is the ops around it. Provisioning, IP allow-listing, patching, and backups are handled, so your time goes to schema, queries, and indexes.
-
-**1. Launch a managed PostgreSQL.** Postgres is one of seven managed database engines here. In the DBS section, pick Postgres, name it, and it's provisioned with automatic backups on and locked to your app server's IP. You own the schema, queries, and data; the platform handles provisioning, patching, and backups.
-
-![The Kloudbean console launching a managed PostgreSQL database with automatic backups and IP allow-listing](../assets/console/launch-database.png)
-
-**2. Connect and lock it down.** Put the connection string in an environment variable, set your pool size there, then whitelist your app server's IP so only it can reach the database, keeping it off the public internet. Your Node or Python app reads the variable and connects internally. Wiring up an app? [Deploying a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) walks the path.
-
-![The Kloudbean console environment variables screen holding the PostgreSQL connection string safely out of code](../assets/console/env-vars.png)
-
-**3. Watch CPU and RAM while you measure.** Keep the server health view open next to your `pg_stat_statements` results; together they tell you which fix you need. Slow while CPU sits idle means a query or index problem, so fix that. Pinned at 100 percent after you've already tuned means it's time to resize.
+You need two views side by side to make that call honestly: your `pg_stat_statements` output and the actual CPU and RAM on the box. Slow queries while CPU sits idle is a query or index problem, and a bigger server will not help. Pinned CPU after the queries are already tuned is the real signal to resize. Kloudbean's server health view is what I'd keep open next to the query stats, and vertical resize up is self-serve when the numbers say so. One caveat before you jump: scaling disk down again isn't supported, so grow deliberately rather than in a panic.
 
 ![The Kloudbean console server health view showing CPU and RAM usage to decide between tuning and resizing](../assets/console/server-health.png)
 
-Backups run automatically, but a backup you've never restored is a hope. Do a test restore before you need one. Here's how [server backups](https://www.kloudbean.com/blog/server-backups-guide/) work.
+But tune queries and indexes first. Bad SQL scales badly no matter the hardware. A missing index that scans five million rows scans them faster on a bigger box, then falls over again at ten million. Doubling your server to hide an N+1 loop is the most expensive way to not fix a bug. For read-heavy workloads, a [managed Redis cache](https://www.kloudbean.com/blog/redis-caching-guide/) in front of your hottest reads often buys more headroom than a bigger database.
+
+## Who owns each of these levers, you or your host?
+
+Half the wasted time in a performance investigation comes from working the wrong side of this line. Someone opens a ticket about a slow query, or spends a week hand-rolling something the platform already does. So here's the split for the levers above, and it's a useful sanity check whoever you host with.
+
+| The lever | Who owns it | What that means |
+| --- | --- | --- |
+| A missing index | You | Nobody else can see your query patterns. This is the highest-payoff row in the article and it's entirely yours |
+| N+1 query loops | You | An ORM decision inside your code. Invisible from outside the app |
+| `work_mem` for a heavy query | You | Set it per session around the query that needs it, then reset |
+| Pool size | You | A number in your app config. The database can only refuse connections, not batch them for you |
+| `shared_buffers` baseline | Your host | Scaled to the plan and needs a restart. Practical lever is plan size, not the knob |
+| Postgres and OS patching | Your host | On managed PostgreSQL this happens without you scheduling a maintenance window |
+| Autovacuum running at all | Your host | On by default. Per-table scale factors for a write-heavy table are still yours |
+| Backups existing | Your host | Automatic, plus on-demand when you want a point before a risky migration |
+| Backups actually restoring | Shared | The platform takes them. Only you can run the test restore that proves they work |
+| Provisioning and access control | Your host | Launch Postgres in the DBS section, one of seven managed engines, and whitelist your app server's IP so nothing else can connect |
+| Deciding you need a bigger box | Shared | You read the numbers, the resize is a self-serve click, and the disk can't shrink afterwards |
+
+![The Kloudbean console launching a managed PostgreSQL database with automatic backups and IP allow-listing](../assets/console/launch-database.png)
+
+Look at where the biggest wins landed. The two levers that fix most slow Postgres, the missing index and the N+1 loop, sit firmly in your column, and no host on earth fixes them for you. Kloudbean can't, and any platform that implies it can is selling you something. What managed hosting genuinely buys you is that the bottom half of that table stops consuming your attention, so the time you'd have spent on patching windows and backup scripts goes into `EXPLAIN` output instead.
+
+One row deserves a nudge. Backups run automatically, but a backup you've never restored is a hope, not a plan. Take an on-demand backup before your next risky migration and restore it somewhere harmless once, so you know the mechanism works before you need it at 3am. Here's how [server backups](https://www.kloudbean.com/blog/server-backups-guide/) work. And if you're still wiring the app up, [deploying a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) walks that path.
 
 ---
 

@@ -216,7 +216,7 @@ Because it's not one price. An RDS bill combines instance hours, allocated stora
 No, and this is where RDS genuinely wins. Kloudbean does not offer RDS-style one-click Multi-AZ automatic failover or one-click read replicas. Replication and high availability are database-level concepts you would architect yourself, not a toggle in the dashboard. If your workload requires automatic failover or managed read scaling out of the box, RDS is the right choice.
 
 **What about Aurora?**
-Kloudbean runs standard PostgreSQL and MySQL, not an Aurora equivalent. Aurora is Amazon's own engine with a custom storage layer, and there's no drop-in substitute for it. If you've tested Aurora and it solves a real problem for you, stay on RDS. If you're running ordinary Postgres or MySQL, which most apps are, you won't miss it.
+Kloudbean runs standard PostgreSQL and MySQL, not an Aurora equivalent. Aurora is Amazon's own engine with a custom storage layer, and there's no drop-in substitute for it. So if you've tested Aurora and it solves a measured problem for you, that's a real boundary and this comparison doesn't reach past it. If you're running ordinary Postgres or MySQL, which most apps are, you won't miss it.
 
 **What's the simplest alternative to RDS for a small app?**
 A managed Postgres or MySQL that lives on the same server as your app, in one dashboard. You launch it, copy the connection string into an environment variable, and your app connects internally. No VPC, no security groups, no separate database console to learn.

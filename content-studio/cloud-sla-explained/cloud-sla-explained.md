@@ -11,7 +11,7 @@ secondary_keywords:
   - how many nines do i need
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 10 — Enterprise & compliance
+cluster: 10 - Enterprise & compliance
 ---
 
 ![Cloud SLA explained: what 99.9% uptime actually buys you](images/hero.png)
@@ -91,6 +91,8 @@ Here's the shift in thinking that matters most, and the one the sales page will 
 
 I'll say it plainly: most outages I've watched teams live through weren't the provider missing its SLA. They were a single server with no plan B. The way you actually raise real-world uptime is architecture. Run more than one server behind a [load balancer](https://www.kloudbean.com/blog/cloud-load-balancer-explained/), so when one node dies, traffic keeps flowing to the others. Keep [tested backups](https://www.kloudbean.com/blog/server-backups-guide/) so a bad day is a restore, not a rebuild.
 
+Whether you get round to that depends mostly on how much work it is. On Kloudbean the Flexible Load Balancer sits in every account, off until you enable it, so a second node behind a balancer is a thing you switch on in the same dashboard as the servers rather than a week of wiring. Cheap redundancy is redundancy that actually gets built.
+
 ![The Kloudbean console: a load balancer spreading traffic across multiple servers for redundancy](../assets/console/flb-load-balancer.png)
 
 So a headline SLA number and your app's actual availability are two different measurements. The provider promises a floor for one layer. Redundancy is how you build a reliable app on top of it. If you're weighing whether to run this yourself, that tradeoff is the whole story in [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/). And if a shaky SLA is what's pushing you to shop around, switching hosts is a logistics job, not a trap: see [how to migrate with zero downtime](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/) and the [managed cloud hosting myths](https://www.kloudbean.com/blog/managed-cloud-hosting-myths/) that keep people stuck.
@@ -102,6 +104,8 @@ So a headline SLA number and your app's actual availability are two different me
 People search "EC2 SLA" for a reason. They've learned to read the document, not the ad. As AWS commonly documents it, the EC2 service targets around **99.99% at the region level** when you run across multiple availability zones. And notice the condition: the strong commitment assumes *you* spread your workload for redundancy. Run everything in one zone and the promise you actually qualify for is lower.
 
 That's the whole lesson in one example. The best uptime numbers are earned jointly. The provider offers a strong SLA *if* you architect for it. (Always read the current SLA document for exact terms. These figures shift and carry conditions.)
+
+Spreading a workload is easier than it sounds now. A Kloudbean app can run compute in more than one data centre, and across more than one of the seven clouds, wired together through the load balancer from a single dashboard. One honest limit while you plan: the primary database is single-region. Read replicas can sit elsewhere, but the primary doesn't float, so your failover story has to account for that rather than assume it away.
 
 ## How many nines do you actually need?
 
@@ -122,11 +126,17 @@ Four mistakes come up again and again. They're all avoidable once you've read th
 - **Trusting a single server under a great SLA.** The provider can hit 99.99% while *your* box reboots. The SLA covers their layer, not your architecture.
 - **Never claiming the credit.** No monitoring, no proof, no claim, no refund. The SLA only protects the people paying attention.
 
-## Where Kloudbean fits
+## So what do you do with the number once you've read it?
 
-Kloudbean's uptime foundation is straightforward, and I want to be careful not to oversell it. Your servers run on tier-1 cloud infrastructure across **seven providers**: AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud. That's the same hardware and network the biggest names on the internet run on, which is a strong floor to build from.
+Work it in this order. Each step is cheap and each one changes what happens on a bad day, which is more than the percentage does.
 
-But the floor was never the whole point of this article. The reliability you actually feel comes from what you build on top. On Kloudbean that means the **Flexible Load Balancer is built into every account**, so running redundant servers is a feature you switch on, not a project you assemble. It means automatic backups you can restore. It means one dashboard for the servers, the databases, and the balancer, so the redundancy is easy enough that you'll actually set it up. We won't quote you a magic number on a banner. We'd rather give you the parts that make a good SLA turn into an app that's genuinely, dependably up.
+1. **Read the definitions before the percentage.** Find how the provider measures "unavailable", what the exclusions are (maintenance windows, your own misconfiguration, network outside their edge), and whether the measurement is per-minute or per-month. The exclusions tell you what the number is really worth.
+2. **Price an hour of your own downtime.** Roughly is fine. That figure, not the marketing tier, decides how much redundancy is rational for you.
+3. **Remove your single points of failure, cheapest first.** A second app node behind a load balancer usually buys more real availability than any SLA upgrade. On Kloudbean the balancer is already in the account, tier-1 infrastructure sits under all seven clouds, and automatic backups are on, so this step is mostly configuration rather than procurement.
+4. **Monitor from outside, and keep the evidence.** No independent record means no credit claim, and no honest idea of your own uptime. This one is yours to own; a host's status page is not your monitoring.
+5. **Rehearse the restore.** Pick a quiet afternoon and actually do one. Teams discover their backup gaps during incidents, which is the worst possible classroom.
+
+The part no provider closes, us included: a bad deploy at 4pm Friday, a migration that locks a table, an expired third-party API key, an unindexed query under load. None of those are SLA events, and none of them get better because you moved to a provider with an extra nine on the banner. We deliberately don't put a percentage on a banner. What we can hand you is the infrastructure floor and the redundancy parts. The architecture decision, and the deploy discipline, stay yours.
 
 ---
 

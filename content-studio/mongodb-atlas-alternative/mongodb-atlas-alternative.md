@@ -2,7 +2,7 @@
 
 You built on MongoDB, shipped on Atlas, and it worked fine. Then the bill did something you didn't plan for, or you noticed the database lives on a different vendor than your app and talks to it across the public internet. If you want a **MongoDB Atlas alternative** that keeps managed Mongo right next to your code, in the same account, at a price you can actually predict, this one is for you. Atlas is genuinely good. It's also a lot more platform than most apps ever use.
 
-> **The honest version:** If you need global multi-region clusters, Atlas Search, or serverless scale-to-zero, stay on Atlas. Kloudbean does not match those, and I'm not going to pretend it does. But if you want managed MongoDB sitting in the same dashboard as your app, at a flat monthly server price with no per-operation surprises, that's the alternative here. You own the schema and the data. Kloudbean handles provisioning, patching, and backups.
+> **The honest version:** Three things rule this out before you read further: global multi-region clusters, Atlas Search, and serverless scale-to-zero. Kloudbean does not match those and I'm not going to pretend it does. Everything else is fair game. If you want managed MongoDB sitting in the same dashboard as your app, at a flat monthly server price with no per-operation surprises, that's the alternative here. You own the schema and the data. Kloudbean handles provisioning, patching, and backups.
 
 ## Why teams start looking for a MongoDB Atlas alternative
 
@@ -24,7 +24,7 @@ Credit where it's due. Atlas is the official managed MongoDB, built by the compa
 - **Serverless and auto-scaling.** A cluster can scale with load, and the serverless tier can scale down toward zero when idle. For spiky or unpredictable traffic, that elasticity has genuine value.
 - **First-party tooling.** Compass, Charts, Data Federation, triggers, the whole official ecosystem, all wired together.
 
-So here's a clean test. If your product leans on global write distribution, Atlas Search, or scale-to-zero economics, stay on Atlas. Kloudbean does not offer any of those, and I would rather say so plainly than sell you a quiet downgrade. If you don't need them, and honestly most single-region apps don't, the rest of this guide is the better path.
+So here's a clean test. If your product leans on global write distribution, Atlas Search, or scale-to-zero economics, those three rule this out before you read further. Kloudbean does not offer any of them, and I would rather say so plainly than sell you a quiet downgrade. If you don't need them, and honestly most single-region apps don't, the rest of this guide is the better path.
 
 ## Two ways to run managed MongoDB
 

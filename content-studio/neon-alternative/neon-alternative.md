@@ -24,7 +24,7 @@ None of this makes Neon bad. It makes it serverless. For an always-on production
 
 ## What Neon genuinely does better
 
-Fair is fair. This is where a plain managed Postgres can't compete, and if these are what you came for, stay on Neon with a clear conscience.
+Fair is fair. This is where a plain managed Postgres can't compete, and if these are what you came for, the rest of this page isn't your answer.
 
 **Database branching.** Neon's best trick. You branch the database the way you branch code: a copy-on-write branch spun up in seconds, so every pull request gets its own throwaway database with production-like data, torn down when the PR merges. For preview environments and CI, that's excellent, and it's the feature people miss most after they leave. Plainly: Kloudbean has no equivalent to Neon database branching, and I won't pretend it does.
 
@@ -167,7 +167,7 @@ Yes. A managed PostgreSQL that runs on a server, not serverless compute, stays a
 It can, by design. When a serverless database scales to zero while idle, the compute suspends, and the next request has to wake it before the first query runs. Low-traffic APIs, occasional crons, and internal tools feel that pause most.
 
 **Does Kloudbean support database branching?**
-No. Branching is Neon's feature and Kloudbean has no equivalent, so this is where Neon genuinely wins. On a managed Postgres you handle schema changes with normal migrations and test on a separate staging database, so if per-PR branch databases are how your team ships, stay on Neon.
+No. Branching is Neon's feature and Kloudbean has no equivalent, so this is where Neon genuinely wins. On a managed Postgres you handle schema changes with normal migrations and test on a separate staging database, so if per-PR branch databases are how your team ships, that's a genuine gap here and worth weighing before anything else.
 
 **How do I migrate off Neon?**
 Neon is real Postgres underneath, so it's a plain dump and load: pg_dump against your Neon connection string, psql into the new managed database, then repoint DATABASE_URL and redeploy. Kloudbean's free migration assistance can run the first cutover with you and keep downtime minimal.

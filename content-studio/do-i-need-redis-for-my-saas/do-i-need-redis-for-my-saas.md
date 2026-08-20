@@ -69,7 +69,7 @@ The pattern is clear. Postgres and a single server's memory can cover a surprisi
 
 To be fair to Redis, and this isn't a case against it, there are clear moments when it stops being optional and becomes the right call.
 
-The first, and most common: **you're running more than one app server.** The moment a load balancer sends requests to two or more servers, in-process memory stops working for anything shared. Sessions, caches, and counters all need to live somewhere every server can reach. Redis is the standard answer.
+The first, and most common: **you're running more than one app server.** The moment a load balancer sends requests to two or more servers, in-process memory stops working for anything shared. Sessions, caches, and counters all need to live somewhere every server can reach. Redis is the standard answer. This is why the two arrive together: the day you enable Kloudbean's built-in load balancer and add a second app server, in-process sessions start failing for roughly half your users, and a shared store stops being optional in the same afternoon.
 
 The second: **a hot query is straining your database.** If one expensive read runs constantly and your database is feeling it, caching that result in Redis takes the repeated load off. The signal here is a specific query you can name, not a vague wish to be faster. There's a practical [Redis caching guide](https://www.kloudbean.com/blog/redis-caching-guide/) for when you reach that point.
 
@@ -94,6 +94,8 @@ Put it in a table. For each need, Redis usually helps, but there's often a simpl
 
 Read the middle column and it's tempting to add Redis for everything. Read the right column and you'll see why you can usually wait. The simpler option nearly always comes down to "you're on one server, so memory or the database is enough." Redis becomes the obvious choice the moment that stops being true.
 
+That last row matters for how you plan. If your real need turns out to be search rather than caching, that's a different engine, not a bigger Redis. Kloudbean runs seven managed engines (PostgreSQL, MySQL, MariaDB, Redis, Memcached, MongoDB, Elasticsearch), so Redis, a plain Memcached cache, and Elasticsearch are all the same kind of decision: pick the engine that matches the job, then point your app at it. Pick by the job, not by which name you've seen most often.
+
 <!-- ADD IMAGE: two-column decision diagram. Left "Signals you can wait": one app server, in-process cache is fine, the database handles the load, sessions live on one box. Right "Signals to add Redis": more than one app server, a hot query straining the DB, rate limits across instances, background jobs need a broker. Brand colors navy #000f27, purple #4F1AF3, green #40b75f. src -> images/redis-decision.png -->
 
 *The trigger for Redis is almost always a second server or work that happens outside the request.*
@@ -110,9 +112,19 @@ You don't need a long architecture review. Three questions usually settle it.
 
 The good part about this order is that adding Redis later is easy. It's an extra service you point your app at, not a rewrite. So starting without it costs you nothing if the day never comes, and a small, well-understood change if it does.
 
-## Where this leaves Kloudbean
+## Try things in this order, and stop the moment the pain stops
 
-If you do reach one of those triggers, the goal is to add Redis without turning it into a second operations project. On Kloudbean, [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/) is one of the managed database engines you launch with a click, with automatic backups and controlled access, sitting alongside your managed server and your main database in the same dashboard. So the move stays small: when a real signal appears, you switch on managed Redis, point your app at it, and the platform handles the engine, patching, and backups while your data stays yours. That's the whole role Redis should play here, a fast layer you add when you need it, not a box you tick on day one.
+Most people arrive at this page because something already feels slow and Redis is the fix they were about to buy. So here's the order I'd actually work in. Do one step, measure, and if the pain's gone, stop. Carrying on "while you're in there" is exactly how a two-service stack quietly becomes five.
+
+1. **Name the slow thing.** Time the endpoint, turn on slow query logging, look at what the request actually spends its milliseconds on. You want a query or a function you can point at. If you can't name it, you can't cache it, and anything you add next is guesswork.
+2. **Fix it at the database.** An index, an N+1 loop, a `SELECT *` pulling columns nobody reads. A large share of "we need caching" ends here, in about twenty minutes, with no new service. Stop if the number moves.
+3. **Cache in the app's own memory.** Still one server? A plain in-process cache with a short expiry costs you no infrastructure and no network hop. Stop if that's enough, and it often is for a dashboard that recomputes the same summary for every page load.
+4. **Move the slow work out of the request.** If the user is waiting on an email, a PDF, or an export, the problem isn't cache misses, it's that the work is happening in the wrong place. A queue on Postgres with `SELECT ... FOR UPDATE SKIP LOCKED` gets you there without a broker.
+5. **Now add Redis.** You've earned it when the cache has to be shared across servers, survive restarts, or when your job library wants a broker. On Kloudbean that's launching [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/) from the same dashboard as your app and your main database, whitelisting your app server's IP on it, and putting the connection string in your environment variables. Backups and patching come with it. Half an hour, not a project.
+
+Where does this stop being a hosting question? At step two, mostly. No cache fixes a missing index, it hides one, and the hidden version comes back louder when your data grows or the cache goes cold. Managed Redis doesn't change that, and neither does a bigger server or a different provider. Cache invalidation stays yours too: nothing in any platform, ours included, knows that the plan summary you cached for an hour went stale the second the customer upgraded. That bug is subtle, it's in your code, and it's the real cost of step five.
+
+So the decision, plainly: ship without Redis, work down that list when something hurts, and add Redis at step five with a reason you could explain to another engineer in one sentence. If you can't finish that sentence yet, you don't need it yet.
 
 ---
 

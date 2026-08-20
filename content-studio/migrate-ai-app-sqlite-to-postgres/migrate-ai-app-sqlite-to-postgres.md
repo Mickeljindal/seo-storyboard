@@ -101,7 +101,7 @@ Here's the whole SQLite to Postgres migration in six moves. Read it once so the 
   <figcaption>Extract, transform types, load into a managed Postgres, then verify before you repoint the app. The old SQLite file stays put as a rollback until the cutover is confirmed.</figcaption>
 </figure>
 
-Provisioning the Postgres is the one step you don't have to script. On a managed platform you create the database from a dashboard and get a connection string back. If you've never wired a managed database into an app before, [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) walks the wiring, and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) covers running it day to day.
+Provisioning the Postgres is the one step you don't have to script. On a managed platform you create the database from a dashboard and get a connection string back. On Kloudbean that's the Databases section: pick PostgreSQL, name it, and you're handed credentials, with automatic backups running from the moment it exists. Do that first, before you touch the data, because step 5 depends on being able to compare a full SQLite file against a real Postgres you can query. If you've never wired a managed database into an app before, [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) walks the wiring, and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) covers running it day to day.
 
 ## The type and dialect gotchas that actually bite
 
@@ -191,19 +191,30 @@ So the safe order is:
 4. Only now, repoint `DATABASE_URL` at Postgres and deploy.
 5. Watch the app. Keep the old SQLite file untouched for a while. If anything looks wrong, you flip `DATABASE_URL` back and you're exactly where you started.
 
+Steps 4 and 5 are only calm if changing one environment variable is genuinely easy. That's worth checking before you start, because on some setups it means rebuilding an image or editing a file over SSH, and nobody wants to discover that mid-cutover. On Kloudbean environment variables are console fields on the application, so repointing `DATABASE_URL` and restarting is a small edit, and rolling back is the same edit in reverse. Make sure whatever you're on gives you that, one way or another. A rollback you can't perform in a minute isn't a rollback.
+
 And here's the anti-pattern that catches people, because it looks like success. You repoint the app at a brand-new, empty Postgres and deploy before moving the data. The app boots. No errors. It "works." Except it's a fresh install with zero rows, and if any code path writes before you notice, you now have data split across two databases and a real mess to reconcile. An empty database that starts clean is not the same as a migrated one. Verify row counts before you trust a green deploy.
 
 <!-- ADD IMAGE: two count queries side by side, the same SELECT count of rows on SQLite and on Postgres, showing the totals match before cutover -->
 
 Do the migration now, while the data is still small. That's the one strong opinion I'll push here. Every week you leave an AI app on SQLite in production, the dataset grows, more real users depend on it, and the cutover gets riskier. The migration you do at 200 rows is a coffee break. The one you keep putting off until 200,000 rows and paying customers is a maintenance window with your heart rate up. Small is easy. Waiting only makes it harder.
 
-One more thing for after cutover. Postgres has a real connection limit, and a busy app (or a serverless one opening a fresh connection per request) can exhaust it fast. If you see connection errors under load, that's expected, and [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) is the fix. SQLite never made you think about this because it was just a file. Postgres is a server, so plan for it.
+One more thing for after cutover. Postgres has a real connection limit, and a busy app (or a serverless one opening a fresh connection per request) can exhaust it fast. If you see connection errors under load, that's expected, and [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) is the fix. SQLite never made you think about this because it was just a file. Postgres is a server, so plan for it. This is quietly easier if your app runs as a long-lived process rather than a function, which is how apps run on Kloudbean: one process, one pool, connections reused across requests. Functions are where people burn through a connection limit, because each cold instance opens its own.
 
-## Where Kloudbean fits
+## The cheapest setup that actually survives a redeploy
 
-The reason this feels heavy is usually that the database and the app live in different places, with a different console for each. Kloudbean puts them in one dashboard. You provision a managed PostgreSQL in a few clicks, get a connection string, and it runs as its own service outside your app, so redeploys never touch your data again. You lock it down by whitelisting your app server's IP, so only your app can reach the database and everything else is refused (public access is off by default). Automatic backups, free SSL, and Git deploy come with it, and plans start at $8/mo.
+You don't need a replicated cluster, a read replica, or a connection proxy to get off SQLite. Most AI-built apps at this stage need four things, and the whole bill is one small server plus one small database. Here's the minimum that's genuinely production-shaped, not a toy:
 
-Moving an existing app is the nervous part, so Kloudbean offers free migration assistance to help you land it cleanly. And the honest boundary, because it matters: managed means the platform runs the server, the Postgres engine, SSL, backups, and patching. Your app code, your schema, and your data stay yours. A private VPC around the database is an Enterprise capability, not the default; on a standard plan the IP allow-list is how you keep Postgres off the open internet. Kloudbean makes the database easy to run. It doesn't decide your schema or clean your data for you, and this page just walked you through that part.
+1. **One managed Postgres, running as its own service.** Not a container next to your app, not a file on the disk. Its own thing, with its own lifecycle, so a deploy has no way to touch it.
+2. **The connection string in an environment variable.** Never in the repo. This is also what makes your rollback a one-field edit.
+3. **Backups on, and one restore actually tested.** A backup you've never restored is a hope. Restore into a scratch database once and query it.
+4. **The database reachable only from your app server's IP.** One allow rule. Everything else refused.
+
+That's it. On Kloudbean those four are the default path rather than four separate projects: managed PostgreSQL in the same dashboard as the app, environment variables as console fields, automatic plus on-demand backups, and IP Access Control to whitelist the app server. Postgres is one of seven managed engines there, which matters later when you want Redis in front of it, less so today. Standard plans start at $8/mo, and if the app you're moving sits on a server above 4GB, migration help is free, which is worth taking on your first cutover.
+
+Be precise about that fourth item though, because a lot of writing on this is sloppy, including some of ours in the past. On a standard plan the database is locked down by IP allow-listing, not hidden on a private network. It has an endpoint; the allow rule is what makes reaching it useless for anyone else. Running it inside a VPC is an Enterprise capability, so don't design around it unless you're on that plan.
+
+And the part no host fixes, ours included: nothing on this page happens automatically. No platform finds the row where a text value snuck into an integer column, decides whether your `created_at` strings are UTC, or resets `users_id_seq` for you. Provisioning is a few clicks anywhere decent. The cleanup is the migration, and it's yours. What managed hosting buys is that the database keeps existing after you're done, which is the whole reason you're here.
 
 ## Move your AI app onto Postgres for good
 

@@ -82,7 +82,7 @@ Add a domain, add a block, reload the proxy, and that domain now reaches its app
 
 Each app carries its own configuration, and that config never leaks to a neighbour. App A's database password, API keys, and settings live in *its* environment, invisible to app B. That's not just tidiness. If every app read from one shared config, a single leak would expose all of them at once.
 
-So each app reads its own environment variables, the same pattern a single app uses, just kept separate per app. If you're fuzzy on the how and why, [environment variables, done right](https://www.kloudbean.com/blog/environment-variables-done-right/) is the deep version.
+So each app reads its own environment variables, the same pattern a single app uses, just kept separate per app. Where you set them decides whether that separation survives contact with a hurried deploy: variables attached to the application in a console (Kloudbean does this per app, no SSH needed) can't be picked up by the app next door, whereas a shared shell profile or a single global env file on the box is exactly how one client's database password ends up readable by another's code. If you're fuzzy on the how and why, [environment variables, done right](https://www.kloudbean.com/blog/environment-variables-done-right/) is the deep version.
 
 ## The anti-pattern: one shared database
 
@@ -102,7 +102,7 @@ CREATE USER 'app_b'@'localhost' IDENTIFIED BY 'a-different-secret';
 GRANT ALL PRIVILEGES ON app_b.* TO 'app_b'@'localhost';
 ```
 
-Now app_a can only ever see `app_a`, and a problem in one database can't reach into another. A managed database per app makes this even cleaner, and each one is backed up on its own. More on that in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). The one time sharing a database is fine is when the apps are genuinely one system (a frontend and its own API, say). Unrelated apps, never.
+Now app_a can only ever see `app_a`, and a problem in one database can't reach into another. A managed database per app makes this even cleaner, and each one is backed up on its own. That's the version I'd default to: on Kloudbean a managed database is one click per app, allow-listed to the server's IP, with its own automatic and on-demand backups, so restoring one client's data doesn't mean rolling back everybody's. Seven engines are available that way, MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch and MongoDB, which matters when the apps sharing your box don't share a stack. More on that in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). The one time sharing a database is fine is when the apps are genuinely one system (a frontend and its own API, say). Unrelated apps, never.
 
 <!-- ADD IMAGE: a database list on one server showing a separate database per app: app_a, app_b, app_c -->
 
@@ -110,7 +110,7 @@ Now app_a can only ever see `app_a`, and a problem in one database can't reach i
 
 The one real risk of packing apps onto a server is resource contention. If they all get busy at once, they compete for the same CPU and RAM. Two habits keep that from biting.
 
-First, **leave headroom.** Don't run the box at 90% on a calm Tuesday, because you'll have nothing left for a Friday spike. Size for the sum of your apps' typical usage plus a comfortable buffer, and remember you can resize later, so start sensible instead of over-buying. Second, **know your heavy hitters.** If one app is far busier or hungrier than the rest, it's a candidate to move out before it drags the others down.
+First, **leave headroom.** Don't run the box at 90% on a calm Tuesday, because you'll have nothing left for a Friday spike. Size for the sum of your apps' typical usage plus a comfortable buffer, and remember you can resize later, so start sensible instead of over-buying. One caveat on that, because it catches people: sizing up is self-serve on Kloudbean, but disk can't be shrunk again afterwards, which is normal for cloud volumes. Grow deliberately rather than in a panic. Second, **know your heavy hitters.** If one app is far busier or hungrier than the rest, it's a candidate to move out before it drags the others down.
 
 This is the honest caveat with co-hosting, worth naming plainly. Isolation of data and config is complete: apps genuinely can't see each other's state. Isolation of raw horsepower is not, because they share the same CPU and memory. A true noisy neighbour, one app suddenly eating everything, can slow the others until you move it. That's a fine trade for light and medium apps, and the moment it stops being fine is your signal to split.
 
@@ -124,9 +124,16 @@ Co-hosting is a spectrum, not a religion. There's a clear point where a second s
 
 Splitting later is easy *because* you kept the apps isolated from day one. Each app is already self-contained, its own user, code, env, and database, so moving it to its own server is a redeploy, not a painful untangling. If you get to the point of spreading one app across several servers, a [load balancer](https://www.kloudbean.com/blog/cloud-load-balancer-explained/) is the next piece, and Kloudbean's Flexible Load Balancer is built in on any account to switch on when you need it.
 
-## How Kloudbean does it
+## How many apps is too many for one box?
 
-On a managed platform the four boundaries above are handled for you. You add an application to a server, give it a domain, and it gets its own user, web root, process, and routing with free SSL, added one at a time.
+There's no number, and anyone who gives you one is guessing. There are signals, though, and they're easy to check.
+
+- **Memory, not CPU, is usually the wall.** CPU spikes and recovers. RAM runs out and the kernel starts killing processes, which shows up as one app dying for no visible reason. Watch used memory at your busiest hour, not your average.
+- **Count PHP-FPM pools and Node processes, not sites.** Ten static sites cost almost nothing. Three WordPress installs with their own FPM pools plus a Node API with PM2 running several workers is a different machine entirely.
+- **Watch the disk as closely as the CPU.** Every app has logs, and co-hosting multiplies log paths. A full disk takes down every app on the box at once, which is the one failure mode where co-hosting genuinely costs you more than separate servers.
+- **If a deploy for app A makes app B slow, you're at the limit.** Builds are the heaviest thing that happens on most servers. When they start being noticeable next door, split.
+
+What makes those signals cheap to act on is not having to rebuild anything when you do. Adding an application to a server on Kloudbean gives it its own user, web root, process, routing and free SSL, one at a time, so the four boundaries above come as the default shape rather than something you assemble per app. Deploys come from Git per app, and cron for each one is defined in the dashboard instead of a single crontab where three clients' jobs sit in one file.
 
 ![The Kloudbean console showing several applications running on one server, each with its own domain and its own place in the console](../assets/console/add-application.png)
 
@@ -136,9 +143,13 @@ So `client-one.com`, `client-two.com`, and `api.mine.com` can all live on one se
 
 Want just an app plus its own API and database on one box, rather than many tenants? That narrower setup is walked through in [host an app, API, and database on one server](https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/). And if you're weighing doing all this yourself versus a managed setup, [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) lays out the trade.
 
-## The honest limits
+## What co-hosting doesn't isolate
 
-Underneath, it's ordinary managed Linux hosting. The platform keeps the server, the stack, SSL, and per-app backups healthy, and you own each app and its data. Running several apps on one box doesn't change that deal, it just makes the box you're already paying for do a lot more work. The caveat stays the same as any shared server: apps share raw CPU and memory, so a genuinely heavy app eventually wants its own home. That's not a flaw in the approach. It's the signal, built into it, that tells you when you've grown.
+Be clear-eyed about the boundary, because it's the whole risk profile of this approach in two sentences. Data and config isolation is complete: separate users, separate web roots, separate databases, separate environments, and apps genuinely cannot read each other's state. Raw horsepower isolation is not, because CPU, memory and disk are shared.
+
+Which means a few failures stay yours on any host, ours included. No platform fixes an app that leaks memory until the kernel starts killing its neighbours. No platform stops one app's unrotated logs from filling the disk that every other app needs. And no platform decides for you that a client's traffic has outgrown a shared box. What managed hosting does cover is narrower and worth stating exactly: the server, the stack, SSL, patching, and per-app backups. Your code and your data stay yours.
+
+None of that argues against co-hosting. Most single-app servers idle most of the day, and running four apps on one right-sized box is better engineering than paying for four bored ones. Just watch the shared resources, and treat the first sign of contention as information rather than an emergency.
 
 ---
 

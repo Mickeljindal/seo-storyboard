@@ -55,7 +55,7 @@ Here's the job founders underestimate. Building the app is the exciting part. Ke
 
 Running production infrastructure means provisioning a server, installing and patching the stack, configuring SSL, setting up a database, wiring deployments, and taking backups. On raw cloud, that's a real, ongoing job, and doing it badly is how you get outages and surprise bills. That's why, for most launches, you [rarely need raw AWS to launch a SaaS](https://www.kloudbean.com/blog/do-i-need-aws-to-launch-a-saas/) at all.
 
-You don't have to operate any of that yourself. Managed hosting exists precisely to take the operations half off your plate. A managed platform provisions the server, keeps the stack patched, handles SSL, runs a managed database, and takes automatic backups, so nobody on your team has to babysit a machine. The database question alone is worth reading up on, because the difference between a [managed database and a self-managed one](https://www.kloudbean.com/blog/managed-database-vs-self-managed/) is roughly the difference between "it's handled" and "it's your weekend."
+You don't have to operate any of that yourself. Managed hosting exists precisely to take the operations half off your plate. A managed platform provisions the server, keeps the stack patched, handles SSL, runs a managed database, and takes automatic backups, so nobody on your team has to babysit a machine. On Kloudbean that's one dashboard: the server, a managed MySQL or PostgreSQL next to it, free SSL, backups running on their own, and a deploy every time you push to GitHub. The reason that matters for a solo founder isn't the feature list. It's that none of those five things becomes a project you schedule. The database question alone is worth reading up on, because the difference between a [managed database and a self-managed one](https://www.kloudbean.com/blog/managed-database-vs-self-managed/) is roughly the difference between "it's handled" and "it's your weekend."
 
 My take here is blunt: the thing a non-technical founder actually needs isn't a DevOps hire. It's to not run their own raw servers in the first place.
 
@@ -86,7 +86,7 @@ Automating the building and the operating doesn't make the hard parts disappear.
 
 **Customer support is yours.** When a charge fails or a user's data looks wrong, they email you, not your hosting provider. Early support is also your sharpest product research, so handing it off before you've learned from it is a mistake.
 
-And here's the anti-pattern that bites solo founders hardest: assuming "managed" means your security and your data are fully handled. It doesn't. Managed hosting secures the server, patches the stack, and backs up the machine. It does not secure your application. If your code leaks user data, leaves an admin route open, or trusts input it shouldn't, that's an app-level problem living in code you own. Same story with data: the platform backs up the disk, but making sure your app writes the right records, and that you can actually restore what matters, is on you. A quick pass through a [prototype-to-production checklist](https://www.kloudbean.com/blog/from-prototype-to-production-checklist/) catches most of these before real users do.
+And here's the anti-pattern that bites solo founders hardest: assuming "managed" means your security and your data are fully handled. It doesn't. Managed hosting secures the server, patches the stack, and backs up the machine. It does not secure your application. If your code leaks user data, leaves an admin route open, or trusts input it shouldn't, that's an app-level problem living in code you own. Same story with data: the platform backs up the disk, but making sure your app writes the right records, and that you can actually restore what matters, is on you. The split is easier to see with an example. Kloudbean gives every server a firewall and brute-force protection by default, and lets you whitelist your app server's IP on the database so nothing else can connect to it. Useful, and none of it stops a logged-in user from opening `/admin` because your code never checked whether they should be there. Network controls and authorisation logic are different layers, and only one of them is for sale. A quick pass through a [prototype-to-production checklist](https://www.kloudbean.com/blog/from-prototype-to-production-checklist/) catches most of these before real users do.
 
 The clean way to hold this: managed hosting covers the server, the stack, SSL, backups, and patching. Your application code and your data stay yours. That boundary doesn't shift just because you skipped hiring an engineer.
 
@@ -113,7 +113,7 @@ If you're going without a coding cofounder, here's a sane order of operations. I
 1. **Validate before you build much.** Talk to potential users first. The cheapest code is the code you didn't write.
 2. **Build a small first version with AI tools.** Keep the scope brutal. One core workflow, done properly, beats ten half-built ones.
 3. **Learn enough to read your own code.** You don't need to become an engineer. You need to not be helpless when something breaks.
-4. **Put it on managed hosting from day one.** Skip raw cloud. A managed server, a managed database, SSL, and backups get you to production without a DevOps hire.
+4. **Put it on managed hosting from day one.** Skip raw cloud. A managed server, a managed database, SSL, and backups get you to production without a DevOps hire. Do it before you have users, not after, because moving a live app is the one part that's genuinely stressful. Kloudbean's trial runs 3 days on one service, which is enough to see whether the deploy from your repo works, and migration is free if the server you're moving is above 4GB.
 5. **Handle your security basics.** Secrets in environment variables, real authentication, no admin routes left wide open.
 6. **Ship, support, and listen.** Your first users will teach you what to build next better than any roadmap.
 
@@ -121,11 +121,21 @@ None of these steps requires a cofounder's equity. They require your time and a 
 
 <!-- Swap this slot for a real image. src -> images/solo-launch-path.png -->
 
-## Where Kloudbean fits
+## What ignoring the operations half costs you, and when the bill arrives
 
-If the operating half is the part you want gone, that's the specific job a managed platform does, and it's what Kloudbean is built for. You get managed servers and managed databases from one dashboard, with automatic backups, free SSL, and deployments straight from your GitHub repo on every push. Plans start around $8 a month, and you should check the pricing page for current numbers. It covers the server, the stack, SSL, backups, and patching, so you don't need a DevOps hire to keep production alive.
+Skipping infrastructure feels free at the start, because nothing bad happens on day one. The cost shows up later, and it's rarely a dramatic outage. It's usually one of these, and it's worth knowing the shape of each before you're in it.
 
-What it doesn't do, and won't pretend to, is own your product for you. Your application code and your data stay yours, app-level security included. That's the honest line of a managed platform: it runs the infrastructure so you can run the business. If cost is on your mind, the story of [cutting a SaaS bill from thousands to almost nothing](https://www.kloudbean.com/blog/cut-saas-bill-4000-to-100/) shows how much of the "we need an engineer for infra" instinct is really just an overbuilt setup.
+**The data you can't get back.** An app storing data in a file on the server's disk, or a database nobody backs up, works fine until the first redeploy or the first disk problem. Then it's gone, and there's no clever fix at that point. This is the only item on the list with no recovery path, which is why a managed database with automatic backups is the first thing to sort out, before design, before pricing, before anything.
+
+**The weekend that disappears.** Running your own raw server means the patching, the certificate that expires at 3am, the disk that fills with logs. None of it is hard. All of it lands on the one person who also does sales, support and product, which is the actual problem.
+
+**The bill nobody read.** Raw cloud is priced per resource, and an overbuilt setup from a tutorial can quietly cost several times what the app needs. A flat monthly price for a managed server is worse than free-tier arithmetic and better than a surprise.
+
+**The launch that slips by three months.** This is the most common and the least visible. Founders stall not because the infrastructure is impossible but because it's unfamiliar, so it keeps getting postponed. Paying for the operations half is mostly buying the decision back.
+
+That's the specific job Kloudbean does. Managed servers and managed databases in one dashboard, automatic backups, free SSL, patching handled, and a deploy on every push to GitHub, from $8/mo on standard plans (check the [pricing page](https://www.kloudbean.com/pricing/), since numbers move). If cost is the worry, the story of [cutting a SaaS bill from thousands to almost nothing](https://www.kloudbean.com/blog/cut-saas-bill-4000-to-100/) shows how much of the "we need an engineer for infra" instinct is really an overbuilt setup.
+
+Two items on that list no host fixes, ours included. If your app writes user files to the local disk, backups of the server won't save the data you meant to keep, because the app put it somewhere temporary. And no platform makes the product decisions, answers the first support email, or checks whether your `/admin` route asks who's knocking. Renting the operations half doesn't buy you a cofounder. It removes the reason you needed one to start.
 
 ---
 

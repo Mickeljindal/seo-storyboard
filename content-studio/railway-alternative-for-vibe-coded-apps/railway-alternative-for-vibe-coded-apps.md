@@ -19,7 +19,7 @@ cluster: 1 - Deploy AI / Vibe-Coded Apps
 
 Almost nobody looks for a Railway alternative because Railway is bad. It's the opposite. Railway made deploying a backend feel easy: connect a repo, click to add a Postgres, watch it wire together in a clean graph. So if you're here, it's usually one of two quieter reasons. You want a bill you can actually predict, and you want to own the thing your app runs on. This is a decision framework for exactly that, plus an honest look at how a flat-rate server you own compares.
 
-> **Short answer:** Railway's developer experience is genuinely great, and if usage-metered pricing works for you, there's no reason to move. People look for a Railway alternative for two reasons: the bill tracks resource usage and is hard to forecast, and it's still a platform you rent. A flat-rate server you own fixes both, keeps push-to-deploy, and lets several apps share one predictable bill. It trades the occasional near-zero month for a number you can budget.
+> **Short answer:** Railway's developer experience is good, and the metered model genuinely suits short-lived and bursty work. People look for a Railway alternative for two reasons that have nothing to do with the developer experience: the bill tracks resource usage and is hard to forecast, and it's still a platform you rent. A flat-rate server you own fixes both, keeps push-to-deploy, and lets several apps share one predictable bill. It trades the occasional near-zero month for a number you can budget.
 
 ## Railway's best feature and its scariest feature are the same feature
 
@@ -65,7 +65,7 @@ This is the one people underestimate, so I'll flag it hard. On a metered platfor
 
 If you want a server that's actually yours, that you could pick up and move elsewhere, a rented abstraction won't give you that no matter how pleasant it is. Leaning move. If you don't care and love the graph UI, that's a completely valid reason to stay.
 
-> **Prototype or product?** The honest dividing line is roughly there. For a prototype, Railway's metered model is often the smart, cheap choice and I wouldn't talk you out of it. For something you intend to keep, grow, and budget, predictability and ownership start to matter more than the occasional near-zero month.
+> **Prototype or product?** The honest dividing line is roughly there. For a prototype, Railway's metered model is often the cheaper choice, and cost is the only axis on which that's true. For something you intend to keep, grow, and budget, predictability and ownership start to matter more than the occasional near-zero month.
 
 ## What owning the server actually gets you
 
@@ -98,9 +98,9 @@ Because the price is flat, a second (or fifth) vibe-coded project doesn't start 
 
 The managed layer runs the OS, stack, SSL, patching, and backups, so you get ownership without becoming a server administrator. Launch a managed database (Postgres, MySQL, MariaDB, Redis, MongoDB, or Elasticsearch) next to the app and connect over the local network. The mechanics are in [hosting multiple apps on one server](https://www.kloudbean.com/blog/host-multiple-apps-one-server/) and [adding a managed database](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), and the end-to-end move is in the [deploy walkthrough](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/).
 
-## When you should just stay on Railway
+## When none of this is urgent yet
 
-The honest counsel, because a comparison that never says "stay" isn't worth much. Keep Railway if you're prototyping or early and the metered bill is genuinely small, if you lean on the graph-based workflow and the convenience outweighs cost predictability for you, or if your usage is stable and modest enough that the number is effectively predictable anyway. In any of those cases there's nothing to fix, and switching would buy you a server you don't yet need. Comparing the whole field? The [Render](https://www.kloudbean.com/blog/render-alternative-for-vibe-coded-apps/) and [Heroku](https://www.kloudbean.com/blog/heroku-alternative-for-modern-apps/) pieces weigh the same trade from their angles.
+A comparison that pretends every reader should switch today isn't worth much, so here's the honest read. None of the pressures above have arrived if you're prototyping or early and the metered bill is genuinely small, if you lean on the graph-based workflow and the convenience outweighs cost predictability for you, or if your usage is stable and modest enough that the number is effectively predictable anyway. In any of those cases there's nothing to fix, and switching would buy you a server you don't yet need. Comparing the whole field? The [Render](https://www.kloudbean.com/blog/render-alternative-for-vibe-coded-apps/) and [Heroku](https://www.kloudbean.com/blog/heroku-alternative-for-modern-apps/) pieces weigh the same trade from their angles.
 
 ## The honest limits
 

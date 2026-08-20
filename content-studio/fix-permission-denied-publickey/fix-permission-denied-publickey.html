@@ -89,7 +89,7 @@ ssh-add -D                        # clear everything and start clean</code></pre
   IdentitiesOnly yes</code></pre>
 
   <h2>Cause 2: the public key isn't on the server</h2>
-  <p>Keys live in the account's own <code>~/.ssh/authorized_keys</code> on the server. Not in root's copy, not in some other user's. If you can still reach the box another way, compare the fingerprint you offered against what's authorized:</p>
+  <p>Keys live in the account's own <code>~/.ssh/authorized_keys</code> on the server. Not in root's copy, not in some other user's. If you can still reach the box another way, compare the fingerprint you offered against what's authorized. And "another way" matters here: on a managed platform like Kloudbean, SSH keys for a server are attached from the dashboard, so adding a key doesn't require already having a working login to that server. That's the difference between a five-minute annoyance and a rebuild.</p>
   <pre><code># Fingerprint of your local public key
 ssh-keygen -lf ~/.ssh/id_ed25519.pub
 
@@ -161,7 +161,18 @@ ssh-copy-id -i ~/.ssh/id_ed25519.pub ubuntu@203.0.113.10</code></pre>
 sudo systemctl reload ssh         # reload keeps existing sessions alive
 # now open a SECOND terminal and prove you can still log in</code></pre>
   <p>The other quiet trap is the pasted key with a line break in it, mentioned above. It looks right in the file and never matches. Both mistakes have the same root: changing your access path without a verified fallback.</p>
-  <p>This is where a hosting console earns its keep: on Kloudbean you can manage servers and their SSH keys from the dashboard, run <a href="https://www.kloudbean.com/blog/run-a-cron-job-without-ssh/">cron jobs from the UI without SSH</a>, and give teammates scoped access as subusers, so a rejected key on one laptop doesn't cut off every path to the server.</p>
+  <p>One structural way to need SSH less often: the routine jobs people keep a shell around for don't have to run through a shell. <a href="https://www.kloudbean.com/blog/run-a-cron-job-without-ssh/">Cron from the UI</a>, env vars and runtime settings in the console, and deploys triggered from Git all work without a session, and Kloudbean does those from the dashboard. Fewer people needing shells means fewer keys to keep straight, and scoped subuser access means one teammate's broken laptop isn't everybody's outage.</p>
+
+  <h2>Locked out right now? What's actually recoverable, in order</h2>
+  <p>Work down this list and stop at the first one that's true. The order matters, because each step costs more than the one above it.</p>
+  <ol>
+    <li><strong>An open session on the box.</strong> If any terminal is still connected, that's your fix window. Don't close it. Repair <code>authorized_keys</code>, ownership and modes from there, and prove a new login works in a second terminal before you let the first one go.</li>
+    <li><strong>A second authorized key, on another machine or a teammate's laptop.</strong> Cheap, boring, and the reason most lockouts end in four minutes.</li>
+    <li><strong>Key management at the platform layer.</strong> If your host attaches SSH keys to the server from a dashboard rather than requiring you to already be inside, you can add a fresh key and log in again. On Kloudbean that's on the server screen, and it's the difference between a lockout and a rebuild.</li>
+    <li><strong>A snapshot or backup.</strong> Restore, get in, then fix properly. Slow and disruptive, but your data survives. This is why backups matter to an access problem at all.</li>
+    <li><strong>Nothing above is true.</strong> Then you're rebuilding the server and restoring data onto it.</li>
+  </ol>
+  <p>The honest part: no host fixes step 5 for you, ours included. Support can hand you a console or attach a key, nobody can recover a private key you never had a copy of, and no provider can authenticate you when you've deleted the only trusted key and disabled password auth. Access recovery is something you provision in advance or do without. Spend the four minutes now on a second key and a tested console, while nothing is broken.</p>
 
   <h2>Related reading</h2>
   <p>For the concepts underneath the error, read <a href="https://www.kloudbean.com/blog/ssh-key-authentication/">SSH key authentication</a> and, when you need to reach a service that isn't publicly exposed, <a href="https://www.kloudbean.com/blog/what-is-an-ssh-tunnel/">what an SSH tunnel is</a>. Keys are credentials, so <a href="https://www.kloudbean.com/blog/secrets-management/">secrets management</a> applies to them the same as API tokens.</p>

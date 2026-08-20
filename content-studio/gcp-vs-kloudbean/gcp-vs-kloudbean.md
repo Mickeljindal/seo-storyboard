@@ -29,15 +29,15 @@ Google Cloud is one of the clouds Kloudbean runs on. When you launch a Kloudbean
 
 ## What raw Google Cloud gives you
 
-Credit where it is due, because Google Cloud is genuinely excellent, and pretending otherwise would be silly.
+One measured line, because it's true: GCP's service catalogue is deep, and if your workload needs BigQuery or Google's ML tooling specifically, that depth is a real advantage nothing else replaces.
 
-Raw GCP gives you a vast catalog of services from compute and storage to BigQuery and machine-learning tooling, global reach across many regions, and effectively unlimited scale. For a large enterprise with a cloud-engineering team, or for a workload that genuinely needs a specific Google service, that depth is a real advantage and hard to match. That is the honest strength of the hyperscaler, and it is why the biggest companies in the world build on it. But that power comes with a cost that is not on the price sheet: complexity. You configure identity and access management, design your own virtual private cloud and networking, provision and tune Cloud SQL, set up load balancers and health checks, and make sense of a billing model with many line items and egress charges. None of that is impossible, but it is a job, often a full-time one, and for many teams it is a job they did not want and are not staffed for.
+Raw GCP gives you compute, storage, data warehousing, ML tooling, and a global footprint of regions. What it doesn't give you is any of it assembled. That power comes with a cost that isn't on the price sheet: complexity. You configure identity and access management, design your own virtual private cloud and networking, provision and tune Cloud SQL, set up load balancers and health checks, and make sense of a billing model with many line items and egress charges. None of that is impossible, but it is a job, often a full-time one, and for many teams it is a job they did not want and are not staffed for.
 
 ## What managed-on-GCP changes
 
 Kloudbean's proposition is to keep the GCP foundation and remove the operating burden, which changes the day-to-day quite a lot.
 
-Instead of assembling services, you launch a server in a click and a managed database in another, both provisioned on Google Cloud, both maintained for you. The database is patched, locked to your app server's IP, and backed up automatically. SSL is free and auto-renewing. The whole stack, servers, managed databases, object storage, a load balancer, lives behind one dashboard and one login, rather than being scattered across a dozen GCP consoles. And because Kloudbean also runs on six other clouds, you are not locked to Google Cloud, you can place a workload on GCP for the Dammam region and another on a different cloud, all from the same panel. The trade you are making is deliberate: you give up the deepest, most granular control of raw GCP, and in return you get the same infrastructure without needing a cloud team to run it. For most teams that are building products rather than operating infrastructure, that is a very good trade.
+Instead of assembling services, you launch a server in a click and a managed database in another, both provisioned on Google Cloud, both maintained for you. Seven engines are one-click on the same screen, MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch and MongoDB, rather than a separate GCP product and a separate learning curve per engine. The database is patched, allow-listed to your app server's IP, and backed up automatically, with on-demand backups when you want one before a risky change. SSL is free and auto-renewing. Shorewall and Fail2ban are on the server from the start. The whole stack, servers, managed databases, object storage, a load balancer, lives behind one dashboard and one login, rather than being scattered across a dozen GCP consoles. And because Kloudbean also runs on six other clouds, you are not locked to Google Cloud, you can place a workload on GCP for the Dammam region and another on a different cloud, all from the same panel. The trade you are making is deliberate: you give up the deepest, most granular control of raw GCP, and in return you get the same infrastructure without needing a cloud team to run it. For most teams that are building products rather than operating infrastructure, that is a very good trade.
 
 <!-- ADD IMAGE: diagram, raw GCP as many services to configure vs Kloudbean one managed dashboard running on GCP -->
 
@@ -61,17 +61,29 @@ The decision comes down to who operates the infrastructure, and the table makes 
 | **Clouds** | Google Cloud only | Seven clouds, including GCP |
 | **Best for** | Cloud teams, GCP-specific services, hyperscale | Shipping apps without operating a hyperscaler |
 
-## Who should use which
+## Which console are you going to be living in?
 
-An honest recommendation, because both are right for different people and pretending one wins outright would be a disservice.
+That's the practical question, and it splits by workload rather than by vendor loyalty.
 
-Use raw Google Cloud if you have a cloud-engineering or DevOps team who can own the operating, if your workload genuinely needs GCP-specific services such as BigQuery or its ML tooling, or if you are operating at a scale and with requirements where granular control justifies the complexity. That is a real set of situations, and for those teams GCP directly is the right call. Use Kloudbean if you are a developer, an agency, a startup, or a business that wants to build and run applications, WordPress, Node, Laravel, Python, and the rest, on solid infrastructure without hiring to operate a hyperscaler. If the phrase "configure a VPC and an IAM policy before you can deploy" fills you with dread rather than enthusiasm, managed-on-GCP is almost certainly your answer. The deciding question is simple and not about features: do you want to operate the cloud, or just use it? For a broader take on that split, [managed versus unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) covers the same fork in more detail.
+Some work only exists in the raw console. A data warehouse on BigQuery, a training pipeline on Vertex, anything wired into a Google service with no equivalent anywhere: you'll be in the GCP console for that piece, and no managed layer pretends otherwise. That's a scope boundary, not a verdict on either option.
 
-## Where Kloudbean fits, honestly
+The application tier is a different story. Servers, databases, object storage, TLS, deploys and cron are the same handful of problems for almost everyone, and they're the part that eats an engineer's week. Kloudbean provisions that tier onto Google Cloud itself, Dammam in Saudi Arabia included (see [the Dammam region guide](https://www.kloudbean.com/blog/gcp-dammam-region-guide/)), so choosing the managed layer isn't choosing away from Google's infrastructure. You're on the same regions, with someone else holding the pager for the OS and the stack.
 
-Kloudbean's role in this comparison is unusually clean to state: it is Google Cloud, and six other clouds, delivered managed. You get GCP's infrastructure, including the in-Kingdom Dammam region covered in [the Dammam region guide](https://www.kloudbean.com/blog/gcp-dammam-region-guide/), with the operating handled, from one dashboard, at a predictable price. You are not giving up Google Cloud to use Kloudbean; you are using Google Cloud without having to run it.
+And these aren't mutually exclusive. Running an analytics workload directly in GCP while your app tier runs managed on GCP is a normal, sane split. The deciding question isn't features. Do you want to operate the cloud, or use it? [Managed versus unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) works through the same fork in more detail.
 
-The honest boundary: Kloudbean is not trying to replace what a large enterprise's cloud team does with raw GCP, and it does not expose every granular GCP knob, that is the deliberate trade for simplicity. If you need the full, low-level control of the hyperscaler, or a specific GCP service that only exists there, use GCP directly. If you want that infrastructure made runnable by a small team, that is exactly the gap Kloudbean fills. Same foundation, less operating, and the freedom to spread across clouds rather than being locked to one.
+## What this choice doesn't decide
+
+Worth being clear about, because plenty of infrastructure decisions get made in the hope of fixing something the infrastructure never touched.
+
+| Stays yours either way | Why the platform can't take it |
+| --- | --- |
+| Schema design and slow queries | A missing index costs the same on a managed database as on a self-tuned one. Managed means patched and backed up, not optimised for your access patterns. |
+| Application-level access control | Cloud IAM and platform permissions govern who touches infrastructure. Who can read which row in your app is your code's job. |
+| Whether your backups actually restore | Automatic backups exist on both sides. A restore you've never tested is a belief, not a recovery plan. Test one this quarter. |
+| Your app crashing on boot | No host fixes this, ours included. A managed stack starts your process faithfully, including the broken build. |
+| Compliance obligations | Infrastructure controls and data residency are provided. Being compliant is assessed against your organisation, never against your host. |
+
+Two limits on the managed side to know before you decide, rather than after. The managed layer deliberately doesn't expose every low-level GCP knob, which is the trade for not having to configure them. And a few things are scoped differently: private networking, VPC and Kubernetes come with Enterprise, while a standard managed database is locked down by IP allow-listing rather than a private network, and a database primary lives in one region, with read replicas able to sit elsewhere. If your architecture requires the low-level version of any of that, you want to know now.
 
 ## Related reading
 

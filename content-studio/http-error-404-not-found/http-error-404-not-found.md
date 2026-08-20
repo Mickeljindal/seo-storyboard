@@ -33,28 +33,40 @@ If your 404 appeared the instant you deployed, check this first. It is the most 
 
 macOS and Windows filesystems are usually case-insensitive: `Header.css`, `header.css`, and `HEADER.CSS` all point to the same file. Linux, which almost every server runs, is case-sensitive: those are three different files. So a link, import, or asset path with the wrong case works flawlessly on your Mac and returns a 404 the moment it runs on the server, because the file it names does not exist there, only a differently-cased version does. This catches an enormous number of people, precisely because it cannot reproduce locally. If `/assets/Logo.png` 404s in production but the file is committed as `logo.png`, that mismatch is your bug. The fix is to make the reference match the actual filename exactly, and then to stop relying on your local filesystem to paper over case mistakes. This is the same root cause behind a lot of "cannot find module" failures too, which [the cannot-find-module guide](https://www.kloudbean.com/blog/fix-cannot-find-module-node/) covers from the import side. Commit filenames in a consistent case and reference them exactly, and a whole category of production-only 404s disappears.
 
+Worth saying plainly: no host fixes this one. Kloudbean runs Linux, every other serious platform runs Linux, and case sensitivity is the filesystem doing exactly what it's supposed to. The correction lives in your repository, not in anyone's server config.
+
 ## Single-page apps: the 404 on refresh
 
 If your app loads at the home page but 404s when you refresh a deep link, this is your cause, and it's a configuration one-liner.
 
 A single-page app (React, Vue, Angular, and friends) does its own routing in the browser. When you navigate to `/dashboard` by clicking inside the app, JavaScript handles it and no server request happens. But when you refresh that URL or paste it fresh, the browser asks the server for `/dashboard`, the server looks for a file or folder called `dashboard`, finds nothing, and returns 404. The app never got a chance to route. The fix is to tell the server to fall back to `index.html` for any path it doesn't recognise, so the app always loads and then handles the route itself. On Nginx that's a `try_files $uri $uri/ /index.html;` directive; most static hosts have an equivalent "rewrite everything to index.html" setting. This is not a bug in your app, it's a server that doesn't yet know your app owns its own routing. Configure the fallback and deep links start working on refresh.
 
+Whether you write that line yourself depends on who owns the web server. On Kloudbean the reverse proxy in front of your app arrives configured for the stack you deployed, so a React or Vue app serves `index.html` for unknown paths without you touching an Nginx file. On a bare VPS it's yours to add, and it's the line people forget, because everything works right up until the first refresh.
+
 ## The rest of the deploy checklist
 
 If it's neither case nor SPA routing, work down this short list, which covers almost everything else.
 
-- **Wrong build output directory.** The server is serving a different folder than the one your build produces (serving the project root instead of `dist` or `build`, for example). Point it at the actual output directory.
+- **Wrong build output directory.** The server is serving a different folder than the one your build produces (serving the project root instead of `dist` or `build`, for example). Point it at the actual output directory. On Kloudbean that's a field in the application's deployment settings, so it's visible next to the build command instead of buried in a server config you edit over SSH.
 - **A base path or subdirectory mismatch.** If the app is served from a subfolder but built for the root (or the reverse), every asset path is off by that prefix. Set the base path to match where it's actually hosted.
 - **Missing rewrite rules for clean URLs.** Frameworks that expect a front controller (many PHP apps) need a rewrite so requests route through `index.php`; without it, every pretty URL 404s. CodeIgniter is the classic case, and [a CodeIgniter 404 on every route but the homepage](https://www.kloudbean.com/blog/codeigniter-404/) is almost always this.
 - **A trailing-slash or index-file assumption.** The server may expect `index.html` in a directory, or may redirect `/page` to `/page/` differently than you assume; a mismatch shows up as a 404.
 
 Each of these is the same underlying story as the rest of the article: the request and what exists on the server don't line up, and the fix is making them line up rather than adding a page.
 
-## Where Kloudbean fits
+## Check it in this order, and stop at the first hit
 
-A good part of the deploy-time 404 category comes from wiring the web server up by hand, the fallback rule, the output directory, the rewrite for a front controller, and getting one of them slightly wrong. On Kloudbean the web server sits in front of your app already configured for the stack you deployed, so the single-page-app fallback and the front-controller rewrite are handled as part of the platform rather than a config file you hope you got right. You deploy from Git, the server routes to your app, and the common "works locally, 404 in prod" wiring mistakes are mostly designed out. It runs on Linux, so the case-sensitivity rule still applies, that one is in your filenames, not the host.
+Every cause above has a signature. Read the signature and you skip straight to the answer instead of changing things at random. Go top to bottom, because the earlier steps are cheaper and rule out more.
 
-The honest boundary: the platform can route correctly and serve the right directory, but it can't fix a link that points at the wrong-case filename or an asset your build never produced, because those live in your code and your build. What managed hosting removes is the class of 404 that comes from hand-rolling server config; what stays yours is referencing your own files correctly. For deploying a static site or SPA specifically, see [deploy a static site](https://www.kloudbean.com/blog/deploy-static-site/), and for the wider "why does it only break in production" question, [why my app works locally but not in production](https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/).
+1. **Does it 404 in production but load locally?** Compare the exact case of every path segment and filename against what's committed. First, because it's the most common and the only one you can't reproduce on your machine.
+2. **Does the home page load and only deep links 404?** That's the single-page-app fallback, and nothing else behaves that way. One directive, or one platform setting.
+3. **Does every route except `/` 404?** Missing front-controller rewrite. The router never ran, so the filesystem answered instead.
+4. **Do pages load but assets 404?** Base path or build output directory. Open the network tab and read the URL it actually requested; the wrong prefix is usually obvious.
+5. **Did it start 404ing after a build change?** Look at what the build emitted, then at the directory being served. Those two drifting apart is the whole bug.
+
+Steps 2 through 5 are all server wiring, which is the half of this list that changes depending on who runs your web server. Deploy from Git onto Kloudbean and the proxy, the rewrite and the served directory are set up for the stack you picked, so those four rarely come up. Run your own VPS and all four are yours, forever, on every new app.
+
+Step 1 belongs to you either way, and it's the one people waste the most hours on. A wrong-case reference or an asset your build never produced will 404 identically on managed hosting, on a bare server, and on any CDN, because the file genuinely isn't there. For the front-end specifics see [deploy a static site](https://www.kloudbean.com/blog/deploy-static-site/), and for the broader version of this question, [why my app works locally but not in production](https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/).
 
 ## Related reading
 

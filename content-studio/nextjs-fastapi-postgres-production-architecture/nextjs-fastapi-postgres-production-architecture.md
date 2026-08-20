@@ -54,6 +54,8 @@ Good reasons to split do exist: the API also serves a mobile app or third partie
 | Independent scaling | Harder, same box | Easier, scale each side |
 | Best for | Most apps, especially early | Multiple clients or separate teams |
 
+One thing that makes starting colocated less of a commitment than it looks: on a managed platform the two processes are two applications on a server, and moving the API to its own server later is a provisioning step plus an environment variable, not a re-architecture. Kloudbean works that way, which is worth knowing mainly because it removes the usual excuse for splitting on day one "so we don't have to later." You will be able to later.
+
 ## What the Next.js + FastAPI + PostgreSQL architecture looks like
 
 Top to bottom, the request path is short: the browser talks to Next.js, Next.js (or the browser) talks to FastAPI, and FastAPI talks to PostgreSQL. Each layer has one job and one thing that tends to bite it in production.
@@ -79,6 +81,8 @@ FastAPI is an ASGI application, not a server. It needs an ASGI server to run it,
 
 A few sharp edges people hit here. Don't ship `uvicorn --reload`, that's a development convenience and it will hurt you under load. Don't run `python main.py` with the built-in dev server and call it production. And understand what workers buy you: async lets a single worker handle many IO-bound requests concurrently, while multiple workers give you real parallelism across CPU cores. One worker on a multi-core box is leaving capacity on the floor; a hundred workers with a tiny database pool behind them is a different problem (more on that below).
 
+Supervision is the part that's easiest to get wrong by hand and least interesting to own. It's also where a managed platform earns its keep: both processes run always-on rather than spinning down between requests, and the Python and Node runtime versions are set in the console rather than over SSH, which matters here because a Python version bump can invalidate a compiled wheel just like a Node bump breaks a native module. Pinning the runtime deliberately, in a place you can see, beats discovering it from a build log.
+
 Keep the FastAPI process stateless. No in-memory sessions, no local file writes you can't lose, nothing that assumes there's only one worker. Statelessness is what lets you add workers or a second instance later without rewriting anything. I'm keeping this to the architecture role on purpose; the step-by-step and the common myths live in [deploying a FastAPI app](https://www.kloudbean.com/blog/deploy-fastapi-app/), and the "where should this Python app even live" decision is in [where to deploy a Python app](https://www.kloudbean.com/blog/where-to-deploy-a-python-app/).
 
 ## Where should the Next.js app call the API from?
@@ -97,13 +101,15 @@ PostgreSQL sits behind FastAPI as the source of truth, and the thing that surpri
 
 The fix is pooling done deliberately. Use a driver pool (SQLAlchemy's pool, or asyncpg's) sized sanely per worker rather than opening a fresh connection per request. When the worker count grows past what the database comfortably holds, put a pooler like PgBouncer in transaction mode in front of Postgres so hundreds of app-side connections map to a small, steady number of real database connections. Size the pool to the database, not to your optimism.
 
-Run Postgres as a managed database rather than one you babysit. Managed means automatic backups, version patching, and access control handled for you. Lock it down with IP allow-listing so only your application server's address can connect, and pair that with strong credentials and SSL. One honest opinion: SQLite is lovely in development and wrong for a multi-worker production API, because concurrent writers and a file-based database don't get along. Use Postgres in production. The why-Postgres and what-managed-unlocks detail is in [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/).
+Run Postgres as a managed database rather than one you babysit. Managed means automatic backups, version patching, and access control handled for you. Lock it down with IP allow-listing so only your application server's address can connect, and pair that with strong credentials and SSL. On Kloudbean that allow-list is the mechanism to use on a standard plan: you whitelist your app server's IP on the database and everything else is refused. Private networking and a VPC exist, they're an Enterprise feature, so don't design a standard-plan setup around the assumption that the database is unreachable from the internet by default. Allow-listing is what does that job for you. One honest opinion: SQLite is lovely in development and wrong for a multi-worker production API, because concurrent writers and a file-based database don't get along. Use Postgres in production. The why-Postgres and what-managed-unlocks detail is in [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/).
 
 ## Do you actually need background jobs?
 
 Probably not on day one, and that's worth saying because Celery is a whole subsystem people bolt on out of habit.
 
 You need a background worker when a request triggers slow work: sending email, resizing an image, generating a report, or calling a slow third-party or model. If you do that work inside the FastAPI request, you block a worker and eventually time the user out. The answer is to hand the job to a queue: Celery (or RQ, Dramatiq, arq) with a broker like Redis or RabbitMQ, processed by a separate worker process. Yes, that's another persistent process to run, which is exactly why you only add it when there's a real slow task.
+
+Two practical notes on where those pieces live. The broker is usually Redis, and Redis is one of the seven managed engines on the same launch screen as Postgres (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB), so it's a click rather than a second vendor and a second bill. And a lot of what people reach for Celery to do is really just scheduled work, which a cron entry configured from the dashboard handles without a broker or a worker at all. Reach for the queue when a user action triggers the slow thing, not when a nightly job does.
 
 FastAPI's built-in `BackgroundTasks` is fine for tiny fire-and-forget work that can safely vanish if the process restarts. Anything you actually care about finishing wants a real broker and worker. The anti-pattern to avoid: doing heavy work in the request path and then scaling workers to hide the symptom. Move the work off the request instead.
 
@@ -113,11 +119,25 @@ The unglamorous parts are the ones that decide whether a bad day is survivable.
 
 Put a real domain in front (one domain if colocated, or app and api subdomains if you split), serve everything over TLS, and redirect HTTP to HTTPS. Free certificates via Let's Encrypt are standard now, so there's no excuse to run plain HTTP. Keep configuration in per-environment variables rather than hardcoded values, so staging and production don't share a database by accident.
 
-Then backups. Automatic backups on the database, and here's the part people skip: restore one at least once, so you know the backup is real and you know the steps before you need them at 2am. A backup you've never restored is a hope, not a plan. This layer is boring right up until the moment it's the only thing between you and a very bad week.
+Certificates are the one item on this list nobody should still be doing by hand. Free, auto-renewing TLS is table stakes on any managed platform now, and an expired certificate taking a product down in 2026 is an embarrassing way to lose a morning.
 
-## Where Kloudbean fits
+Then backups. Automatic backups on the database, plus an on-demand one you take yourself right before a risky migration, which is the backup you'll actually want. And here's the part people skip: restore one at least once, so you know the backup is real and you know the steps before you need them at 2am. A backup you've never restored is a hope, not a plan. This layer is boring right up until the moment it's the only thing between you and a very bad week.
 
-This architecture maps onto a managed platform without much fuss. On Kloudbean you can run the Next.js process and the FastAPI process on one managed server, or on separate servers if you've decided to split, with managed PostgreSQL sitting behind them. Automatic backups, free SSL, and runtime configuration for Node and Python all live in one dashboard, and you can IP allow-list the database so only your app server reaches it. If you start colocated and later split the API onto its own server, that's a configuration change, not a rebuild. Useful to know, and secondary to the real point, which is that the shape above is what you're actually building.
+## Why the line falls between your two processes and everything under them
+
+Look back at the layer table and notice something about it. Every row splits cleanly into two kinds of problem, and the split isn't about who's more capable. It's about where the information lives.
+
+The rows underneath your code are all decisions with one right answer that doesn't depend on your product. TLS termination, HTTP to HTTPS redirects, certificate renewal, starting a process on boot and restarting it on crash, keeping the OS and the Python and Node runtimes patched, taking a database backup on a schedule, refusing connections from IPs you didn't allow-list. None of that needs to know what your app does. That's exactly why it's safe to hand over, and why a managed platform can run your two processes and the Postgres behind them without ever reading your code. It's also why "we'll set up TLS and supervision ourselves" is a strange hill to pick: you inherit a permanent maintenance job in exchange for no differentiation.
+
+The rows at and above your code are the opposite. They can only be answered by something that knows your architecture, and no platform can answer them for you:
+
+- **Which origin the browser is allowed to call.** Colocated or split is your decision, and if you split, the CORS allow-list is a line in your FastAPI config. A host can't guess your frontend's origin.
+- **Which environment variables are secrets.** `NEXT_PUBLIC_` is a rule about your intent. The platform stores whatever you put in it, faithfully, including a Stripe secret key you accidentally prefixed for the browser.
+- **How big the pool is.** Only your code knows how many workers you run and how many connections each one holds. A managed Postgres will hand out connections until it hits its ceiling and then start refusing them, correctly.
+- **Whether a retried job is safe to run twice.** Idempotency is business logic. A broker guarantees delivery, not that charging a card twice is fine.
+- **Whether your app boots.** No host fixes this, ours included. A managed server will start your process faithfully every single time, including the build with the import error in it, and restart it just as faithfully in a crash loop.
+
+That's the honest shape of managed hosting: it owns the layers where the correct answer is universal, and it can't touch the layers where the answer is yours. If you'd rather not hand-wire process supervision, TLS, runtime versions, and database backups, Kloudbean runs both processes on managed servers with managed PostgreSQL and Redis behind them, one dashboard, and moving the API to its own server later stays a config change. The architecture above is the same either way, which is rather the point of drawing it first.
 
 <div class="cta">
 Ship the stack, not the plumbing. If you want managed servers for your Next.js and FastAPI processes and a managed PostgreSQL behind them, that's what Kloudbean is for.

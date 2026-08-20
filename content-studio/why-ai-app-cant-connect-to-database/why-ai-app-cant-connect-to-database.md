@@ -134,17 +134,29 @@ DATABASE_URL=postgres://appuser:password@your-db-host:5432/appdb?sslmode=require
 console.log('DB target ->', new URL(process.env.DATABASE_URL).host)
 ```
 
-If it prints `localhost` or `undefined`, there's your answer. Set the variables in your host's environment settings, not in a committed file. [Environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) covers the safe way to do it, and [why my AI app works locally but not in production](https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/) walks the wider set of local-versus-prod gaps. This database version is the most common one by far.
+If it prints `localhost` or `undefined`, there's your answer. Set the variables in your host's environment settings, not in a committed file. On Kloudbean that's a field in the application's settings, alongside the Node or Python runtime config, so putting `DATABASE_URL` into production doesn't involve SSHing in to edit a file you'll forget about. Whatever platform you're on, the rule is the same: the production value lives with the environment, never in the repo. [Environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) covers the safe way to do it, and [why my AI app works locally but not in production](https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/) walks the wider set of local-versus-prod gaps. This database version is the most common one by far.
 
 If you built the app with an AI tool and this is your first real deploy, the missing-env-var trap is practically a rite of passage. The [last mile of vibe coding](https://www.kloudbean.com/blog/last-mile-of-vibe-coding/) is all about the gap between a working preview and a running production app, and this sits right in the middle of it.
 
 <!-- ADD IMAGE: the deployed app's environment variables screen with DATABASE_URL set for production. -->
 
-## Where Kloudbean fits
+## Who has to fix each of these: your code, your config, or the database's front door
 
-Most of this pain comes from the pieces living in different places, each with its own rules. Kloudbean keeps the app and its database in one dashboard, which makes the connection details easy to find and the allow-list easy to set. A managed database starts with public access off. You open it by whitelisting the connecting IP: your dev machine while you build, the app server's IP once you deploy. Only those addresses get in, so the database stays off the open internet without you hand-rolling a firewall. The master user, password, and host all show in the panel, so your app connects with the right identity from the start. You get automatic backups and free SSL, deploy from Git, and run Node, Python, and more. Plans start at $8/mo. Adding a database to an app for the first time? [Add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) walk the whole flow.
+Sort the whole list by owner and something useful falls out. Most of these aren't bugs at all, and only one of them is really about how your app is written.
 
-The honest boundary: managed means the platform handles the server, the stack, SSL, backups, and patching. Your app code and your data stay yours. Whitelisting is self-serve on a standard plan, and it's the mechanism that keeps the database private. Full network isolation in a private VPC is an Enterprise capability, not a standard default, so on a normal plan the IP allow-list is how you lock the database down.
+| The error | Whose layer it is | What actually fixes it |
+| --- | --- | --- |
+| Silent timeout | The database's front door | The connecting IP on the allow-list. Nothing else touches it |
+| ECONNREFUSED | Your config | The right host and port, copied from the panel, not remembered |
+| ENOTFOUND | Your config | The exact host string, no stray space, no internal-only name |
+| password authentication failed | Your config | The database's own master user, not your dashboard login |
+| SSL required / self-signed | Your config | `sslmode` matched to what the server expects |
+| Works locally, fails deployed | Your config | The same variables set in the production environment |
+| too many connections | **Your code** | A pool. A bigger database only buys you time |
+
+Six of seven rows are configuration, which is why "my app can't connect to the database" so rarely turns out to be a code problem. It also explains why having the app and the database in one place helps: every value in that middle column lives in a panel you can read. On Kloudbean the managed database ships with public access off, the allow-list, host, port, and master credentials are all in the database panel, environment variables sit in the app's settings, and free SSL means `sslmode=require` has a real certificate behind it rather than a self-signed one you have to work around. Automatic backups run alongside. From $8/mo. First time wiring one up? [Add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) walk the whole flow.
+
+Now read the column again, because it also marks the limits. No platform can guess which IP deserves to be trusted, so the allow-list entry is a security decision that stays yours, and it's exactly why the `0.0.0.0/0` shortcut is so tempting and so bad. No host stops your code opening a connection per request either. That last row will take down a database on any provider, at any size, and pooling is the only real answer. And private networking inside a VPC is an Enterprise feature here, so on a standard plan don't design around it. The allow-list plus real credentials plus SSL is the lock you've got, and it's genuinely enough when you use it.
 
 **Launch a database your deployed app can actually reach, in one dashboard, with the allow-list one click away.** Run your app and its managed database together on Kloudbean: whitelist your server's IP, copy the host and master user from the panel, and connect. Automatic backups and free SSL come standard. Start at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
 

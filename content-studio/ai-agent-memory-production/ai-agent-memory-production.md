@@ -56,6 +56,8 @@ Why Redis and not Postgres for this? Because it's hot, small, and disposable. Yo
 
 One caution: don't treat Redis as your only home for chat. It's memory-resident and it's meant to be evictable. If a node restarts or a key expires and that was the only copy, the conversation is gone. Keep the durable record in Postgres and let Redis be the accelerator. That split is the whole point.
 
+One practical note, because it changes whether you bother: Redis is a managed engine you add beside the app on Kloudbean, not a second provider to wire in. The cache layer is optional, and optional things get skipped when adding them means another vendor and another console.
+
 ## Durable memory: history and preferences live in Postgres
 
 Durable memory is your record of truth, and it belongs in a real database that outlives every deploy. This is the full message history, plus the things you actually know about a user: their name, their plan, the preferences they set, the facts they've told the agent to remember. When someone returns after a week, this is what makes the agent feel like it knows them. Postgres is the sensible default.
@@ -85,6 +87,8 @@ create table user_memory (
 
 Two things this buys you. First, when you assemble a prompt you can load the last N turns from here if Redis is cold, so nothing is ever truly lost. Second, and this matters more than people expect, it gives you one place to delete everything about a user when they ask. More on that below, because it's a section, not a footnote.
 
+Two things to settle when you provision it. Backups, because a record of truth without a restore path isn't one, and Kloudbean's managed Postgres takes automatic backups plus on-demand ones. And access, which for a standard plan means whitelisting your app server's IP on the database so only that server can connect and everything else is refused. Not a private network. IP allow-listing is the control you actually get, and it's enough if you use it.
+
 ## Long-term recall: embeddings and vector search with pgvector
 
 Long-term memory is the one people reach for too early and then over-build. It answers a specific question: "somewhere in this user's hundreds of past messages, or in my pile of documents, is there something relevant to what they just asked?" You can't stuff all of that into the prompt, and keyword search misses anything phrased differently. So you embed the text into vectors and search by meaning. That's semantic recall, and it's what vector search is for.
@@ -113,6 +117,8 @@ limit 5;
 That `<=>` is pgvector's distance operator, and the `vector(1536)` dimension is just an example (match it to whatever model produces your embeddings). The deeper walkthrough, including indexing and when to reach for a dedicated vector store instead, is in [pgvector for AI apps](https://www.kloudbean.com/blog/pgvector-for-ai-apps/). One practical note: enabling the extension depends on your Postgres version and setup, so check it's available before you design around it.
 
 Here's my one firm opinion for this whole page. Most agents do not need a dedicated vector database on day one. pgvector inside the Postgres you already run is enough for a very long time, and one database is far less to operate, back up, and reason about than three. Add a specialised vector product when your scale genuinely demands it, which is later than the hype suggests, not on launch day.
+
+The operational argument is the strong one. Embeddings in the same managed Postgres as your messages means one connection string, one automatic backup covering both, and one thing to restore if a restore ever happens. Split them across a Postgres provider and a vector provider and your memory now has two backup schedules that can disagree with each other. That's a real failure mode, and it's boring enough that nobody plans for it.
 
 ## So which of the three do you actually need?
 
@@ -160,11 +166,17 @@ context = [
 
 Notice what this does to cost and quality at the same time. You send a roughly constant number of tokens per turn instead of an ever-growing pile, so spend stays predictable no matter how long the conversation runs. And the model gets a tighter, more relevant prompt, which usually improves the answer rather than hurting it. More history is not more intelligence. The right history is.
 
-## Where Kloudbean fits
+## The cheapest memory setup that actually works
 
-The reason memory gets fiddly is that the three stores usually live in three different places: one provider for Postgres, another for Redis, a separate thing for vectors, and a console to learn for each. Kloudbean puts them in one dashboard. You run an always-on Node or Python app (no cold starts, so the agent is always warm), add a managed Postgres and a managed Redis, get automatic backups and free SSL, and deploy from Git on every push. Postgres can carry your durable history and, where `pgvector` is available for your setup, your embeddings too, which keeps memory in one database instead of three. You lock the database down by whitelisting your app server's IP, so only your app can reach it and everything else is refused.
+Everything above describes the full shape. Almost nobody should build the full shape first. If you want the smallest version you won't regret in three months, it's two stores and one process, in this order:
 
-The honest boundary, because it builds trust: managed means the platform handles the server, the stack, SSL, backups, and patching. The memory logic is yours: what you store, how long you keep it, and honouring a deletion request when a user asks. Kloudbean makes the stores easy to run. It can't decide your retention policy or delete a record you never wired up. Full network isolation in a private VPC is an Enterprise capability; on a standard plan, the IP allow-list is how you keep the database off the open internet.
+1. **An app process that stays running.** A runtime that sleeps between requests throws away the working set you just assembled, so the first request after a nap rebuilds it from the database and feels slow for reasons your code can't fix. Persistent processes make that problem stop existing instead of needing a workaround.
+2. **One managed Postgres, outside the app.** `messages`, `user_memory`, and where `pgvector` is available for your setup, `memory_chunks` as well. One database, one backup, one deletion path. This is the piece that stops a redeploy erasing every conversation.
+3. **Redis only once you can name the read you're repeating.** The cache is real value, but it's value against a load. Add it when you can point at the query you run on every single turn. Adding it on launch day is a store to operate for traffic that hasn't arrived.
+
+That's the shape Kloudbean is built around, which is why it kept showing up in the sections above. Always-on Node and Python runtimes, managed Postgres and Redis (two of seven database engines), automatic backups, free SSL, and Git deploys sit behind one login, so "two stores" stays two stores rather than becoming two vendors, two consoles, and two backup schedules.
+
+Now the part no host fixes, ours very much included. The memory logic is yours. Nobody else decides how long a conversation lives, writes the rolling summary that keeps your prompt from growing forever, or deletes a row you never wired a delete for. If your "forget this user" path misses the Redis key, it misses it on every platform in existence, and a managed database will happily back up the copy you thought you'd erased. Infrastructure gives the stores a home and keeps them restorable. Retention is a decision, and decisions don't come with the server. One scope note while we're being precise: full network isolation in a private VPC is part of the Enterprise package, so on a standard plan IP allow-listing is your access model, not a private network.
 
 ## Give your agent's memory a home that stays put
 

@@ -48,11 +48,11 @@ Here's where self-hosting bites people who came from static hosting. A Next.js a
 
 That something is a process manager. PM2 is the common one for Node. It runs your app, respawns it if it dies, and can run several instances to use more than one CPU core. Without it, your app runs until the first crash or the first reboot, and then it's just gone, quietly, usually at the worst possible time.
 
-This is also the line between a persistent server and serverless. Serverless spins a function up per request and tears it down after; a persistent Node process stays warm and can hold things like a database pool between requests. For a stateful API talking to Postgres, persistent is usually the simpler model to reason about. More on getting a Node app onto a managed host is in [deploying a Node app to managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/).
+This is also the line between a persistent server and serverless. Serverless spins a function up per request and tears it down after; a persistent Node process stays warm and can hold things like a database pool between requests. For a stateful API talking to Postgres, persistent is usually the simpler model to reason about. It's worth checking that whatever you deploy to actually runs a persistent process rather than sleeping it: on Kloudbean the app runs always-on with PM2 supervising it and multi-process mode available when you want more than one core, so the pool you open on boot is still there on the hundredth request. That property is the whole reason the next section is short. More on getting a Node app onto a managed host is in [deploying a Node app to managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/).
 
 ## PostgreSQL, and the connection pool Node can't skip
 
-PostgreSQL is the easy call here. It's reliable, it handles JSON when you need it, and a managed instance means someone else deals with patching, replication, and the parts you'd rather not babysit. Run it as a managed database sitting right next to the API.
+PostgreSQL is the easy call here. It's reliable, it handles JSON when you need it, and a managed instance means someone else deals with patching, replication, and the parts you'd rather not babysit. Run it as a managed database sitting right next to the API, and lock it to your app server's IP so nothing else can open a connection. On a Kloudbean standard plan that IP allow-list is the mechanism, one click on the database, and it's the sentence to use instead of "it's on a private network," because a VPC is an Enterprise feature and you shouldn't design around one you don't have.
 
 The part people miss is the connection pool. Every Postgres connection costs memory on the database, and Postgres has a hard ceiling set by `max_connections`. Node's async model makes it very easy to fire off dozens of queries at once, each grabbing its own connection, and you hit that ceiling fast. The symptom is ugly: `sorry, too many clients already`, and requests start failing under exactly the load you were hoping to handle.
 
@@ -66,6 +66,8 @@ Next.js has a sharp edge worth calling out here. Anything prefixed `NEXT_PUBLIC_
 
 In practice: set them where your host injects runtime config, keep a `.env` out of version control, and rotate anything that leaks. Boring work. Also the difference between a normal Tuesday and a very bad one.
 
+One ordering detail that catches people out, and it's specific to Next.js rather than to any host. `NEXT_PUBLIC_` values are read at build time, so if your platform injects environment variables only at run time, a public variable added after the build is simply missing from the bundle. Set the variables first, then trigger the build. On Kloudbean the variables live in the app's runtime config in the dashboard and the Git deploy builds after they're set, which is the order you want, and it's still your job to notice when you've added one and not rebuilt.
+
 ## Background jobs, and when a request shouldn't wait
 
 Some work has no business happening inside a web request. Sending email, resizing an image, calling a slow third-party API, generating a report. Make a user wait on those and the request either times out or just feels broken.
@@ -78,7 +80,7 @@ Don't build this on day one if you don't need it. But know the seam is there. Wh
 
 A few smaller layers that still bite if you ignore them.
 
-User uploads should not land on the app server's local disk. It feels fine in development, then you redeploy or add a second server and the files are gone, or invisible to half your traffic. Put them in object storage (an S3-compatible bucket) and store the URL in Postgres. Static assets that Next.js builds are fine served by Next.js, and a CDN in front helps with reach.
+User uploads should not land on the app server's local disk. It feels fine in development, then you redeploy or add a second server and the files are gone, or invisible to half your traffic. Put them in object storage (an S3-compatible bucket) and store the URL in Postgres. Kloudbean has that storage built in, S3-compatible so the AWS SDK and CLI work unchanged, and data transfer out of those buckets isn't metered, which is a real thing to check for an app that serves images. That last part applies to the built-in S3 storage specifically, not to every service on the platform. Static assets that Next.js builds are fine served by Next.js, and a CDN in front helps with reach.
 
 SSL is not optional. Your domain serves over HTTPS, browsers expect it, and a lot of features (secure cookies, service workers) quietly require it. Point the domain at the server, terminate SSL, redirect HTTP to HTTPS, done. Most platforms issue and renew the certificate for you now, so this is a checkbox rather than a chore.
 
@@ -111,9 +113,22 @@ The anti-pattern I see most is splitting too early. Someone reads about microser
 
 Split when there's a reason you can say out loud. The API needs to scale on its own. A worker is heavy enough to starve the web process. Another client depends on the API. A separate team owns the backend. Those are real reasons. A diagram is not.
 
-## Where Kloudbean fits
+## The cheapest version of this that actually holds up
 
-None of this is Kloudbean-specific, and that's the point. The architecture is the architecture on any host that runs a real server. If you'd rather not wire up the process manager, the pool, the SSL, and the backups by hand, that's the shape a managed platform hands you. On Kloudbean, a managed server runs your Next.js and Node API as persistent processes, a managed PostgreSQL sits beside it, environment variables and runtime config live in the dashboard, free SSL and automatic backups are handled, and it's one place instead of several. The step-by-step for the frontend is in [deploying a Next.js app to your own server](https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/), and the AI-app variant of this same architecture is in [the AI app reference architecture](https://www.kloudbean.com/blog/ai-app-reference-architecture/).
+Since the advice throughout has been "add it when you need it," it's fair to say exactly what the floor looks like. Here's the smallest setup I'd be willing to put real users on, with nothing in it that's there for show.
+
+1. **One server, running both processes.** Next.js and the Node API on the same box, always-on under a process manager. Not two servers. Not a Kubernetes cluster. One.
+2. **One managed PostgreSQL, allow-listed to that server.** One pool per process, sized to the database. Nothing else may open a connection.
+3. **Environment variables injected at runtime, `.env` out of Git.** Nothing with `NEXT_PUBLIC_` in front of it that you'd mind a stranger reading.
+4. **A domain with free auto-renewing TLS, HTTP redirecting to HTTPS.** Certificate renewal is not a calendar reminder.
+5. **A bucket for uploads.** Even if there are three uploads a week. The disk-loss failure only needs to happen once.
+6. **Automatic backups, plus one restore you have actually performed.** The restore is the item, not the backup.
+
+That's it. No Redis, no queue, no CDN, no replicas, no separate API service. Each of those is a real tool with a real trigger: Redis when a read is hot enough to cache or a user action triggers slow work, a replica when reads outgrow one box, a split service when you can name why out loud. Adding them before the trigger buys you deploys and network hops and nothing else.
+
+On a managed platform that list is close to the default rather than a project. Kloudbean's standard plans start at $8/mo for the server, with the managed database, the S3-compatible bucket, free SSL, Git deploys, and automatic backups in the same dashboard, so the six items above are mostly checkboxes and a connection string. Vertical resize up is self-serve when the box gets busy, though note disk only grows: you can't shrink it later, so step up rather than guessing high.
+
+Three things stay yours no matter how much of this you hand over, and they're the three most likely to break your launch. A missing index will be slow on any host. A pool sized wrong will exhaust any Postgres. And your app crashing on boot is not something any host fixes, ours included, because a managed server starts the process you gave it faithfully, including the broken one, and restarts it just as faithfully. Managed means the floor is solid. The building is still your work. The frontend step-by-step is in [deploying a Next.js app to your own server](https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/), and the AI-app variant of this architecture is in [the AI app reference architecture](https://www.kloudbean.com/blog/ai-app-reference-architecture/).
 
 ---
 

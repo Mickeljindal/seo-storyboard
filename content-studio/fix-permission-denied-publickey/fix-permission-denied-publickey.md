@@ -96,7 +96,7 @@ Host prod
 
 ## Cause 2: the public key isn't on the server
 
-Keys live in the account's own `~/.ssh/authorized_keys` on the server. Not in root's copy, not in some other user's. If you can still reach the box another way, compare the fingerprint you offered against what's authorized:
+Keys live in the account's own `~/.ssh/authorized_keys` on the server. Not in root's copy, not in some other user's. If you can still reach the box another way, compare the fingerprint you offered against what's authorized. And "another way" matters here: on a managed platform like Kloudbean, SSH keys for a server are attached from the dashboard, so adding a key doesn't require already having a working login to that server. That's the difference between a five-minute annoyance and a rebuild.
 
 ```bash
 # Fingerprint of your local public key
@@ -212,7 +212,19 @@ sudo systemctl reload ssh         # reload keeps existing sessions alive
 
 The other quiet trap is the pasted key with a line break in it, mentioned above. It looks right in the file and never matches. Both mistakes have the same root: changing your access path without a verified fallback.
 
-This is where a hosting console earns its keep: on Kloudbean you can manage servers and their SSH keys from the dashboard, run [cron jobs from the UI without SSH](https://www.kloudbean.com/blog/run-a-cron-job-without-ssh/), and give teammates scoped access as subusers, so a rejected key on one laptop doesn't cut off every path to the server.
+One structural way to need SSH less often: the routine jobs people keep a shell around for don't have to run through a shell. [Cron from the UI](https://www.kloudbean.com/blog/run-a-cron-job-without-ssh/), env vars and runtime settings in the console, and deploys triggered from Git all work without a session, and Kloudbean does those from the dashboard. Fewer people needing shells means fewer keys to keep straight, and scoped subuser access means one teammate's broken laptop isn't everybody's outage.
+
+## Locked out right now? What's actually recoverable, in order
+
+Work down this list and stop at the first one that's true. The order matters, because each step costs more than the one above it.
+
+1. **An open session on the box.** If any terminal is still connected, that's your fix window. Don't close it. Repair `authorized_keys`, ownership and modes from there, and prove a new login works in a second terminal before you let the first one go.
+2. **A second authorized key, on another machine or a teammate's laptop.** Cheap, boring, and the reason most lockouts end in four minutes.
+3. **Key management at the platform layer.** If your host attaches SSH keys to the server from a dashboard rather than requiring you to already be inside, you can add a fresh key and log in again. On Kloudbean that's on the server screen, and it's the difference between a lockout and a rebuild.
+4. **A snapshot or backup.** Restore, get in, then fix properly. Slow and disruptive, but your data survives. This is why backups matter to an access problem at all.
+5. **Nothing above is true.** Then you're rebuilding the server and restoring data onto it.
+
+The honest part: no host fixes step 5 for you, ours included. Support can hand you a console or attach a key, nobody can recover a private key you never had a copy of, and no provider can authenticate you when you've deleted the only trusted key and disabled password auth. Access recovery is something you provision in advance or do without. Spend the four minutes now on a second key and a tested console, while nothing is broken.
 
 ## Related reading
 

@@ -31,6 +31,8 @@ The shape that satisfies this is well established, and it maps onto CSCC's other
 
 **Private networking only.** The database has no public endpoint. It sits on a private address inside your virtual network, reachable from the application tier and nothing else. This also serves 2-4-1-1, which requires critical system networks to be segregated and isolated.
 
+It helps to know how that maps onto a real platform before you promise it to an assessor. On a standard self-serve managed database, including Kloudbean's, the access control you get is IP allow-listing: you whitelist your application server's address on the database and every other source is refused. That is a genuinely good control, and it is not this one. Removing the public endpoint outright needs private addressing and a VPC underneath, which is an Enterprise arrangement here and a paid tier almost everywhere else. If you are scoping a critical system, budget for that from the start rather than discovering it during a review.
+
 **Application tier as the access path.** The application connects over the private network. Users authenticate to the application, the application authorises the action, and the application queries the database. Combined with the minimum three-tier requirement in 2-12-2 and 2-13-3-1, this is the same architecture read from a different angle.
 
 **A narrow administrative path.** DBAs are the permitted exception, but that access should still be constrained: through VPN and a bastion host rather than from the open internet, with multi-factor authentication under 2-2-1-3, from workstations on the isolated management network described in 2-3-1-4, and with the session logged.
@@ -53,6 +55,8 @@ Be honest with your team about the friction, because unacknowledged friction tur
 
 The pattern is the same each time: the need is legitimate, and the answer is to build the path into the application where it can be authenticated, authorised, and logged, rather than leaving a direct connection open because it is convenient.
 
+That last row is the easiest one to get right, and teams still miss it. A batch job belongs on the application server, scheduled there, using the app's own service credential. Kloudbean lets you set cron jobs from the dashboard rather than over SSH, which matters here for a reason that has nothing to do with convenience: nobody needs a shell on the box to add a scheduled task, so the shell stays reserved for the people who genuinely administer it.
+
 ## The uncomfortable part: limiting DBA visibility
 
 The final clause is the one most implementations skip, and it deserves a straight treatment. If DBAs are the permitted exception, they can technically read everything, including data classified under 2-6-1-2. The control asks you to give consideration to solutions that limit or prohibit that visibility.
@@ -65,9 +69,26 @@ Being clear about the limit: no infrastructure configuration achieves this on it
 
 For a review, have these ready: the network configuration showing the database has no public endpoint, the connectivity path proving only the application tier can reach it, the user and role list with the DBA exception explicitly identified, the VPN and bastion configuration for the administrative path, MFA coverage for those accounts, and administrative session logs. If someone asks whether a developer can reach production data directly, you want to answer with configuration rather than policy.
 
-## Where Kloudbean fits
+Collecting that is its own small project, and it is where a managed engagement changes the work rather than the architecture. On Kloudbean's enterprise engagements the network configuration, the connectivity proof, and the administrative session logs come to you as managed reports, because Kloudbean administers the infrastructure access on your behalf. What nobody can hand you is the application half of the evidence pack, and that is usually the half that is missing a week before a review.
 
-For standard, self-serve databases, the day-one control every user can apply is IP allow-listing: whitelist your application server's IP so only that server can connect, and refuse everything else. The full no-public-endpoint architecture that CSCC 2-2-1-8 wants for critical systems is an Enterprise capability. On managed enterprise engagements, Kloudbean runs managed databases on private addressing with no public endpoint, reachable from the application tier over private networking, with administrative access routed through VPN and a dedicated bastion host under multi-factor authentication, least-privilege roles, and session logging. That covers the infrastructure half of 2-2-1-8. The application-layer pieces, an internal admin view, a masked reporting path, and any field-level encryption or tokenisation, are built by your development team, and we will happily design the split with you.
+## Who has to build each half of this control
+
+One control, six deliverables, and they do not all belong to the same team. Sorting them is more useful than the list itself, because it tells you whether your next move is a network change, a sprint, or a workshop with the business.
+
+| What 2-2-1-8 needs | Who actually delivers it | What that looks like in practice |
+|---|---|---|
+| No public route to the database port | Infrastructure | Private addressing with no public endpoint, or at minimum an IP allow-list naming only the app tier |
+| A narrow, audited administrative path | Infrastructure | VPN plus bastion, MFA, least-privilege roles, session logs |
+| Users reach data through applications only | Your application | An internal admin view, a support lookup screen, batch jobs inside the app tier |
+| A reporting path that is not production | Your application | Masking or scrambling before anything leaves, per 2-6-1-1 and 2-6-1-5 |
+| Limiting what an administrator can see | Your application | Field-level encryption or tokenisation, with keys held away from the DBA |
+| Deciding what counts as classified | Your organisation | Data classification, which needs business knowledge no vendor has |
+
+Rows three to six deserve saying out loud: no hosting provider fixes them, ours included. An internal admin view is a sprint. Field-level encryption is a code and key-management decision your developers make. Classification is a conversation with the people who own the data. If a vendor tells you their product satisfies 2-2-1-8, ask which of these six rows they mean, because the defensible answer is the first two.
+
+Those first two are the rows a hosting decision genuinely settles, which is why they turn up in the architecture section above rather than being saved for the end. On Kloudbean's managed enterprise engagements the database runs on private addressing with no public endpoint, reachable from the application tier over private networking, and the administrative exception goes through VPN and a dedicated bastion under MFA with least-privilege roles and session logging, on in-Kingdom infrastructure where residency requires it.
+
+Where that stops, precisely: private networking, VPC and VPN are part of the Enterprise package, so on a standard plan the access model is the IP allow-list, not a private network. And infrastructure can keep the keys somewhere a DBA cannot reach without ever deciding which fields should be encrypted. That decision is yours, and it is the one the control's last clause is really asking about.
 
 ## Related reading
 

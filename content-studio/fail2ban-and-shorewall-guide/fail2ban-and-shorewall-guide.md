@@ -37,6 +37,8 @@ Shorewall is a high-level configuration tool for the Linux firewall (netfilter, 
 
 The effect is simple and powerful. Every port you are not using is simply closed, so the internet's endless scanning finds nothing to talk to. A closed port cannot be brute-forced, cannot be exploited, and does not even reveal that a service exists. Most of the noise from the previous section never reaches an application at all, because the firewall answered first. This is the single highest-leverage thing you can do to a server, and it is why it comes first.
 
+Timing matters as much as the rules do. The probing starts at the moment the IP goes live, not at the moment you finish configuring, so a firewall you write on day two spent a day not existing. That gap is the practical reason baseline hardening belongs in provisioning rather than in a runbook. Kloudbean servers come up with Shorewall already configured for the ports the stack actually uses, so there is no window between the server existing and the server being closed. On a raw VPS, write the deny-by-default policy before you install anything else.
+
 ## Fail2ban: ban the ones knocking too hard
 
 A firewall closes the doors you do not use. But some doors have to stay open, and SSH is the obvious one. That is where Fail2ban earns its keep.
@@ -44,6 +46,8 @@ A firewall closes the doors you do not use. But some doors have to stay open, an
 Fail2ban is a small daemon that reads log files and acts on patterns. You point it at a service's log (the SSH auth log is the classic), and you set a rule: if an IP fails to authenticate more than a handful of times within a short window, ban it. The ban is enforced by adding a temporary firewall rule that drops that IP's traffic, and after a set time the ban lifts. In Fail2ban's language these are "jails," each with a `maxretry` (how many failures are allowed), a `findtime` (the window they are counted in), and a `bantime` (how long the ban lasts).
 
 The result is that a bot which starts guessing SSH passwords gets a few attempts and then hits a wall, silently, for minutes or hours. Multiply that across every attacker and the brute-force problem largely evaporates: nobody gets enough attempts to succeed. Fail2ban does not replace strong authentication, it buys it time and quiet, and it turns a screaming auth log into a calm one.
+
+Tuning is where people either overdo it or never start. Too aggressive and you ban yourself out of your own server after three fat-fingered logins, which is a genuinely common way to lose an afternoon. Kloudbean sets Fail2ban up as part of the same baseline as the firewall, so the jails are running on a new server without you writing them, and access to the console and the app stays in the dashboard if SSH ever does lock you out. What Fail2ban cannot do, on any host, is make a guessable password safe. It slows the guessing down.
 
 <!-- ADD IMAGE: diagram, four layers (edge DDoS, WAF app layer, Shorewall host firewall, Fail2ban brute-force banning) with Shorewall+Fail2ban as the host layer -->
 
@@ -59,11 +63,23 @@ This is the part that keeps you from a false sense of security, so read it caref
 
 Fail2ban and Shorewall operate at the host and network layer. They are brilliant at their jobs and useless outside them, and knowing the boundary is what makes them useful rather than a comfort blanket. A host firewall does not understand HTTP, so it cannot tell a SQL-injection attempt from a normal request to your app; that is a job for [a web application firewall](https://www.kloudbean.com/blog/what-a-waf-does/), which works at the application layer. Neither tool absorbs a large volumetric flood; a serious [DDoS attack](https://www.kloudbean.com/blog/ddos-protection-explained/) is filtered at the edge, upstream of your server, long before Fail2ban could react. And none of this substitutes for the basics: keeping the OS patched, using SSH keys with password login disabled, and running services with least privilege. Think of Fail2ban and Shorewall as the floor of your security, not the ceiling. They belong in a stack with the other layers, as the diagram shows, not as a replacement for any of them.
 
-## Where Kloudbean fits, honestly
+Which means the two outer layers have to come from somewhere else, and it's fair to say plainly where. On Kloudbean the host layer is included and the edge layer is an add-on: Cloudflare, paid on standard plans and included for Enterprise, is what handles volumetric filtering and application-layer rules in front of the site. The host firewall and the brute-force banning don't stretch to cover that, and pretending otherwise is how people end up surprised.
 
-Here is the practical payoff. On Kloudbean, Shorewall and Fail2ban are part of the baseline server hardening, configured automatically. You do not hand-write firewall zones or tune Fail2ban jails to get the floor of protection this article describes; a new server arrives with the doors already closed to what it does not need and the brute-force bouncer already watching. Free auto-renewing SSL comes with it, and the platform keeps the underlying OS patched, which is the other half of a hardened host.
+## Your first hour on a new public server, in leverage order
 
-The honest boundary: the platform hardens the server, the firewall, the brute-force banning, patching, and TLS. It does not write your application's security, manage your SSH key hygiene for you, or filter application-layer attacks, which is where a WAF and your own code come in. For the application layer and volumetric protection, Cloudflare is available as an add-on. Baseline host hardening is handled; the layers above it are a shared job, and the honest map of who does what is in [the secure and compliant hosting guide](https://www.kloudbean.com/blog/secure-compliant-hosting/).
+Everything above is explanation. This is the sequence, ordered by how much attack surface each step removes per minute spent. Do them in this order on any public box, and notice as you go which ones the hosting model can settle for you and which ones follow you everywhere.
+
+1. **Deny-by-default inbound firewall.** Nothing else you do matters as much. On a VPS this is Shorewall or equivalent, written before you install a service. On a Kloudbean server it is already configured at provisioning.
+2. **SSH keys on, password authentication off, root login off.** Yours, on every platform. This is the step that actually ends brute-forcing rather than slowing it, and no host can do it for you because the key lives with you.
+3. **A Fail2ban jail on the auth log.** Install it and point it at the log, or inherit it as part of baseline hardening. Either way, check `fail2ban-client status` once so you know it's really running.
+4. **TLS on every hostname, renewing automatically.** An expired certificate is a self-inflicted outage. Free auto-renewing SSL covers this on Kloudbean; on a VPS it's your cron job and your renewal failure to notice.
+5. **A patch cadence you don't have to remember.** The OS side is what a managed platform patches. Your framework, your plugins, and your dependencies are still yours, and they're where most real compromises actually come from.
+6. **Narrow the admin surfaces by address.** Admin panels, staging, phpMyAdmin, database ports. IP Access Control with allow and deny rules by CIDR does this, and a Basic Auth gate in front of a whole app is the cheap version when the address list changes too often.
+7. **Add an edge layer if you're a plausible target.** Cloudflare as an add-on, for the volumetric and application-layer jobs the host firewall structurally cannot do.
+
+Steps 1, 3, 4 and part of 5 are what "baseline hardening included" actually means, and they're the ones people most often postpone on a self-managed box. Step 6 is available in the dashboard. Steps 2 and the application half of 5 are yours forever.
+
+And there's a category no host touches, ours firmly included. A firewall doesn't help if credentials are committed to a public repository. Fail2ban doesn't help if the SSH private key was emailed to a contractor in 2022. Neither one has an opinion about an outdated plugin with a known remote-code-execution bug, a database password of eight lowercase letters, or an admin account still called admin. Those are the compromises that actually happen, and the honest map of who owns what sits in [the secure and compliant hosting guide](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 
 ## Related reading
 

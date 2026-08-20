@@ -22,7 +22,7 @@ Fly.io's pitch is global speed. It runs your app as micro-VMs in many regions so
 
 So before comparing dashboards, let's ask the question that actually decides this: what do you mean by "the edge"? Get that right and the whole choice falls out cleanly.
 
-> **The short version:** Most apps don't need compute running in 30 cities. They need one solid managed server on a cloud you choose, a fast global edge cache in front for the content layer, and a managed database on the box. Kloudbean gives you that: an owned server across 7 clouds, a managed database, Git push-to-deploy, and Cloudflare Enterprise edge caching for worldwide speed. If you genuinely need dynamic compute in many regions, stay on Fly. It's built for exactly that.
+> **The short version:** Most apps don't need compute running in 30 cities. They need one solid managed server on a cloud you choose, a fast global edge cache in front for the content layer, and a managed database on the box. Kloudbean gives you that: an owned server across 7 clouds, a managed database, Git push-to-deploy, and Cloudflare Enterprise edge caching for worldwide speed. The boundary is worth stating plainly, because it decides the whole question: Kloudbean runs always-on servers, not dynamic compute spread across dozens of regions. If your app truly needs code executing close to users in many places at once, that is a different architecture and this is not it. Most apps that think they need it need a cache.
 
 ## First, which "edge" do you actually need?
 
@@ -139,8 +139,8 @@ You connect a Git repository, set the runtime and the build and start commands, 
 **Can I still scale on Kloudbean without going multi-region?**
 Yes. You resize the server for more CPU and RAM, and for more traffic you add nodes behind the built-in Flexible Load Balancer. That scales capacity without taking on multi-region distributed state. Kubernetes and autoscaling exist for enterprise and custom setups.
 
-**When should I stay on Fly.io?**
-When you genuinely need distributed compute, meaning your dynamic application running in multiple regions with low latency, and you're actually using it. Don't switch away from a capability you depend on just for simplicity. Switch if what you really needed was fast content delivery, which an owned server plus Cloudflare edge does more simply.
+**When is multi-region compute actually the right architecture?**
+When you genuinely need distributed compute, meaning your dynamic application executing in multiple regions with low latency, and you're actually using it rather than planning to. That's a real architecture with real reasons, and it isn't what an always-on managed server does. Don't walk away from a capability you depend on just for simplicity. Switch if what you really needed was fast content delivery, which an owned server plus Cloudflare edge does more simply.
 
 ---
 

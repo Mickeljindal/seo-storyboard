@@ -50,6 +50,8 @@ pip install -r requirements.txt
 
 Once activated, `pip install` behaves exactly as you remember, because inside the environment there is no external manager to conflict with. Your packages install into `.venv`, not the system, so nothing you do can break the OS Python. When you deploy, you do the same thing on the server: create the environment, install from `requirements.txt`, and point your process manager or service at the Python inside `.venv`. If you have ever had two projects need different versions of the same library, this also solves that, because each project carries its own. One environment per app is the habit worth building. It was always good practice; Debian 12 just made it the default path instead of an optional one.
 
+That last step, pointing the running process at the right interpreter, is where most people lose an hour. On Kloudbean the Python runtime config lives in the console, so you set the interpreter path and the start command from the dashboard instead of hand-editing a systemd unit over SSH. Same idea either way: the process has to be told which Python to use, because it won't guess.
+
 ## For command-line tools, use pipx
 
 There is one case where a virtual environment feels like overkill, and it has its own clean answer.
@@ -76,17 +78,24 @@ pip install <package> --break-system-packages
 
 It tells pip to ignore the boundary and install into the system Python anyway. It works. It is also named that way on purpose, because it can upgrade a package the operating system relies on and leave a system tool broken, sometimes `apt` itself. The only place I would use it is a disposable container or CI image that gets thrown away, where there is no long-lived system to protect and speed matters more than hygiene. On a real server, a machine you will still be running in six months, reach for a virtual environment instead. The two minutes you save with the flag are not worth the afternoon you might lose to a half-broken system Python later.
 
+There's a second reason to avoid it on managed hosting specifically. If the platform owns OS patching, as Kloudbean does on its Debian 12 stack, then packages you force into the system Python are sitting directly in the path of the next update. You've created a conflict between your install and the platform's, and the update usually wins. Your own `.venv` is invisible to that process, which is precisely why it's the safe place to be.
+
 ## What does not work, so you can skip it
 
 A couple of things people try in a panic are dead ends, worth naming so you do not waste time.
 
 The `--user` flag does not bypass this; PEP 668 blocks user installs into an externally-managed Python too. Deleting the `EXTERNALLY-MANAGED` marker file to silence the error is possible, and it is a bad idea: you are removing the guard rail rather than stepping around it, and you inherit exactly the system-breakage risk it was added to prevent. And `sudo pip install` makes it worse, not better, because now you are installing into the system Python as root, which is the precise scenario the rule exists to stop. If a fix feels like fighting the OS, it is the wrong fix. The right ones (a venv, or pipx) work with the boundary, not against it.
 
-## Where Kloudbean fits
+## When it works locally and the deployed app still can't find its packages
 
-On a Kloudbean server your Python apps run on a current, patched OS (the platform moved to Debian 12), so this is the behaviour you will meet, and the clean pattern is the same one above: a virtual environment per application, installed from your `requirements.txt`, with the managed stack kept up to date underneath you. Because the platform handles the OS and its updates, you are not hand-managing the system Python at all, which sidesteps the whole category of "I broke apt with pip" problems. You deploy your app, its environment is isolated, and the base system stays the platform's responsibility.
+Locally this error costs you thirty seconds. On a server it turns into a process that starts, throws `ModuleNotFoundError`, and restarts forever, and the venv is nearly always the reason. Check these four things in this order, because each one makes the next one pointless if it's wrong.
 
-The honest boundary: managed hosting keeps the server and the OS Python healthy, but which packages your app needs, keeping your `requirements.txt` accurate, and using a virtual environment are your side of the line. No platform can guess your dependencies for you. What it can do is make sure the ground underneath your environment is patched and consistent, so the only Python you actively manage is your own project's. For the full deployment path, see [deploying a Flask app](https://www.kloudbean.com/blog/deploy-flask-app/) or [a Django app](https://www.kloudbean.com/blog/deploy-django-app/).
+1. **Which Python is actually running the process?** Not `which python3` in your SSH session. The one named in the service file, the process-manager config, or the start command. If it says `/usr/bin/python3`, it will never see `.venv`, and reinstalling packages a fourth time won't change that. Point it at `/path/to/app/.venv/bin/python`.
+2. **Was the venv built on this machine?** A `.venv` copied from your laptop or committed to Git carries absolute paths from the machine that made it, and sometimes the wrong architecture entirely. Rebuild it on the server. Then put `.venv/` in `.gitignore` so it can't happen again.
+3. **Did the install run inside it?** `activate` failing silently is common in deploy scripts, and everything after it targets the system Python. Skip the ambiguity: call the venv's pip directly with `.venv/bin/pip install -r requirements.txt`. No activation step, nothing to get wrong.
+4. **Is `requirements.txt` complete?** The package that works locally because you installed it manually six weeks ago and never wrote it down is the classic. Build a fresh venv from the file alone and start the app. If it runs, the file is honest.
+
+No host fixes any of those four, ours included. They're all your side of the line, because they're all decisions about your code. What a managed platform removes is the layer underneath: Kloudbean patches the OS and the system Python for you, so the "I broke apt with pip" incident stops being possible, and Git deploys with live build logs mean you can watch the install step succeed or fail rather than guessing at it afterwards. The interpreter path and start command live in the console, so item one is a field you fill in, not a systemd file you edit blind. Everything about which packages your app needs stays yours. For the full deployment path, see [deploying a Flask app](https://www.kloudbean.com/blog/deploy-flask-app/) or [a Django app](https://www.kloudbean.com/blog/deploy-django-app/).
 
 ## Related reading
 

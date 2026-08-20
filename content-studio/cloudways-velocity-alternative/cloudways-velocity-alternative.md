@@ -16,9 +16,9 @@ So Velocity is Cloudways answering a real demand: developers wanted managed Node
 
 Nobody shops for an alternative to a product that fits. The reasons that come up are less about Node hosting itself and more about everything that surrounds a real app.
 
-**An app needs a database, and you'd rather not run it somewhere else.** A Node API almost always talks to Postgres, MySQL, MongoDB, or Redis. If your managed database lives on a different product or a different vendor than your app, every query crosses more network than it should, and you're managing two things. Keeping the app and its database in one account is the single biggest simplifier.
+**An app needs a database, and you'd rather not run it somewhere else.** A Node API almost always talks to Postgres, MySQL, MongoDB, or Redis. If your managed database lives on a different product or a different vendor than your app, every query crosses more network than it should, and you're managing two things. Keeping the app and its database in one account is the single biggest simplifier. On Kloudbean that's a one-click managed engine launched in the same account as the app, locked down by whitelisting your app server's IP so nothing else can connect to it.
 
-**You want the whole stack, not just the runtime.** Object storage for uploads, a static site for the marketing front end, a load balancer before a traffic spike. If those are separate products or separate bills, the seams add up fast for a small team.
+**You want the whole stack, not just the runtime.** Object storage for uploads, a static site for the marketing front end, a load balancer before a traffic spike. If those are separate products or separate bills, the seams add up fast for a small team. Kloudbean ships all three in the account: S3-compatible buckets, free static site hosting with SSL, and the Flexible Load Balancer, which is present on every account and simply off until you enable it.
 
 **Predictable pricing.** A flat monthly server price you can put in a budget beats a bill you reverse-engineer at the end of the month.
 
@@ -26,11 +26,11 @@ Nobody shops for an alternative to a product that fits. The reasons that come up
 
 None of that makes Velocity a bad product. It makes it a Node hosting product, when some teams want the entire stack handled in one place.
 
-## What Cloudways does genuinely well
+## Cloudways' real strength, and what it doesn't settle
 
-Fair credit, because a one-sided comparison isn't worth your time. Cloudways is a mature, well-run managed host with years behind it, especially in the WordPress and agency world. It's known for responsive round-the-clock support, a polished dashboard, and a deep ecosystem of agency tooling, staging, and add-ons. If your team is already deep in the Cloudways world for your WordPress or PHP sites, running your Node app there too, on Velocity, keeps everything under one login you already know. That's a real, sensible reason to stay.
+Credit where it's due: Cloudways is a mature managed host with a large support operation behind it. That's genuine and it's why plenty of teams landed there in the first place.
 
-Here's the honest test. If your priority is staying inside an established WordPress-first platform with a big support operation, Cloudways is a strong home. If your priority is running a Node app with its database, storage, and scaling all in one modern dashboard, keep reading.
+What it doesn't settle is scope. Velocity is a Node hosting product, so the database, the object storage, the static front end, and the load balancer remain separate decisions you make and manage elsewhere. And this isn't a PHP-versus-Node split, in case that's the shape you had in your head: Kloudbean runs WordPress, WooCommerce, Laravel, Magento, Drupal, and Joomla, with staging on WordPress and Laravel, alongside Node, Python, Ruby, Java, Go, and static sites. So the comparison isn't which platform is managed. Both are. It's how much of your stack each one actually holds.
 
 ## Cloudways Velocity vs Kloudbean, honestly
 
@@ -54,11 +54,22 @@ The pattern, not the score: both run your Node app. Kloudbean's difference is th
 
 *Velocity manages the Node app. Kloudbean keeps the app and everything it depends on, database, storage, static front end, load balancer, in one dashboard.*
 
-## Where Kloudbean fits
+## What will this app need six months from now?
 
-Here's the profile that points at Kloudbean: you're running a Node app that needs a database and probably file storage, you want a predictable bill, and you'd rather manage one dashboard than several products. On Kloudbean your Node app deploys from GitHub, runs always-on under PM2, and sits next to a one-click managed database (PostgreSQL, MySQL, MongoDB, or Redis) in the same account. Object storage, a static marketing site, and a load balancer are right there when you need them, across seven clouds including AWS Lightsail and UpCloud. Pricing is a flat server plan from $8/mo, and migration help is free.
+That's the question worth answering before you sign anything, because a Node runtime is rarely the last thing you buy. Write the list out. Most Node apps in production end up needing:
 
-The honest boundary: Cloudways has the longer track record in managed hosting and a large support operation, and if you're already all-in on their platform for WordPress, adding Velocity keeps things in one familiar place. Kloudbean's case is the modern one-dashboard stack for a Node app and its data. Pick the one that matches where your app actually lives.
+- a managed database, and a real backup of it
+- somewhere for user uploads that isn't the app server's disk
+- Redis, once sessions or rate limits show up
+- a home for the marketing or docs site
+- a second app node behind a load balancer, the first time traffic spikes
+- and often a WordPress or Laravel property sitting alongside, because most companies aren't monolingual
+
+Now go down your list and mark each item "in the platform" or "another vendor". That's the decision, and it's a scope question rather than a quality one. Kloudbean's answer is that every line above is a tile in the same account: seven managed engines one-click, built-in S3-compatible storage with no metering on data-transfer-out, free static site hosting, the load balancer already present and just switched off, and the PHP stack running beside the Node app. Seven clouds underneath, flat pricing from $8/mo, GitHub deploys with live build logs, free migration on servers above 4GB.
+
+Two things to be straight about. Kubernetes, autoscaling, VPC and VPN are Enterprise here, not standard-plan toggles, so on a standard plan you scale by resizing up and adding nodes behind the balancer yourself. And the primary database is single-region; read replicas can travel, the primary doesn't.
+
+Then there's the list no host on this page closes for you. A memory leak in your Node process. A blocking loop that pins one CPU. A query with no index. A dependency you didn't pin that broke on the next build. Managed hosting means the server, the stack, SSL, backups and patching are somebody else's evening. The application is still yours, and the platform that promises otherwise is guessing.
 
 ![The Kloudbean console deploying a Node.js app from GitHub with a managed database in the same dashboard](../assets/console/add-application.png)
 
@@ -91,7 +102,7 @@ Cloudways Velocity is the rebranded name for Cloudways' managed Node.js hosting.
 The Velocity name is new, but it's Cloudways' existing managed Node.js hosting under a fresh brand rather than a brand-new runtime. The underlying idea, a managed Node application on Cloudways-provisioned cloud servers, is the same. Always check Cloudways' own docs for the current feature set and pricing, since a rename often comes with changes.
 
 **What's the best Cloudways Velocity alternative for Node.js?**
-If you want more than Node hosting alone, Kloudbean is a strong alternative: it runs your Node app always-on with PM2 and GitHub deploys, and puts managed databases, object storage, static sites, and a load balancer in the same dashboard across seven clouds, from $8/mo with free migration. Cloudways is the pick if you're already invested in its WordPress-first platform and support.
+If you want more than Node hosting alone, Kloudbean is a strong alternative: it runs your Node app always-on with PM2 and GitHub deploys, and puts managed databases, object storage, static sites, and a load balancer in the same dashboard across seven clouds, from $8/mo with free migration. Cloudways has a mature support operation, so the real question is scope: how much of your stack each platform holds rather than which one is managed.
 
 **Does Kloudbean support managed databases next to a Node app?**
 Yes. Kloudbean runs seven managed engines one-click, PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Memcached, and Elasticsearch, in the same account as the app. Because the app and database sit together, you avoid sending every query to a separate product, and both are managed and backed up from one dashboard.

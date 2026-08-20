@@ -37,7 +37,7 @@ sudo systemctl enable redis-server   # so it survives a reboot
 
 That last line matters more than people expect. A Redis that was started manually and never enabled will come back down at the next reboot, and the cache will silently fail until someone notices the page got slower.
 
-Also worth ruling out: on some shared hosting plans Redis is simply not available. If `redis-cli` is not installed and you have no way to install it, the plugin cannot connect because there is nothing to connect to, and no amount of configuration will change that.
+Also worth ruling out: on some shared hosting plans Redis is simply not available. If `redis-cli` is not installed and you have no way to install it, the plugin cannot connect because there is nothing to connect to, and no amount of configuration will change that. This is the point where the hosting model decides the answer for you. Redis is one of seven managed engines you can launch on Kloudbean (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB), so it's a resource you add rather than a feature you hope your plan includes, and whether it comes back up after a reboot isn't a thing you have to remember.
 
 ## Cause 2: wrong host or port
 
@@ -68,7 +68,7 @@ If `redis-cli ping` returns `NOAUTH Authentication required`, Redis has `require
 define( 'WP_REDIS_PASSWORD', 'your-redis-password' );
 ```
 
-For a managed Redis instance you will usually be given a full connection URL, in which case the scheme, host, port, and credentials all need to match what the provider issued. If the instance requires TLS, a plain connection will fail even with the right password, so check whether you need `rediss://` rather than `redis://`.
+For a managed Redis instance you will usually be given a full connection URL, in which case the scheme, host, port, and credentials all need to match what the provider issued. If the instance requires TLS, a plain connection will fail even with the right password, so check whether you need `rediss://` rather than `redis://`. Managed Redis on Kloudbean works this way too: you take the host, port, and credentials from the dashboard, and you whitelist your app server's IP on the instance so that server is the only address allowed to authenticate at all. Copy the values, don't retype them. A trailing space in a pasted password produces the exact same `NOAUTH` you started with.
 
 ## Cause 4: the PHP redis extension is missing
 
@@ -110,6 +110,8 @@ redis-cli config set maxmemory-policy allkeys-lru
 
 My honest opinion: if you are using Redis purely as an object cache, `allkeys-lru` should be the default you set on day one. Leaving it at `noeviction` turns a full cache into an application error, which is exactly backwards for something that is supposed to be optional.
 
+Notice who owns this bug. It lives in `redis.conf`, not in your application, so it belongs to whoever runs the box. On a VPS you own that file, including remembering that a `config set` evaporates at the next restart unless you persist it. On a managed instance, like the ones in the Kloudbean dashboard, the server config and its survival across restarts sit on the provider's side of the line, and the instance is backed up on a schedule you didn't have to write. What stays yours either way is the decision about how much memory the cache should have.
+
 | What you see | Cause | Fix |
 |---|---|---|
 | `redis-cli ping` fails, connection refused | Redis down or wrong host/port | Start and enable Redis, verify bind and port |
@@ -138,11 +140,15 @@ A connected plugin with an empty keyspace means something is still wrong, usuall
 
 The causes are the same minus the PHP extension. A Node client failing to reach Redis usually surfaces as `ECONNREFUSED`, which is the same diagnosis path: confirm the service answers, then check the host, port, and credentials your app is actually using. Our [ECONNREFUSED guide](https://www.kloudbean.com/blog/fix-econnrefused-node/) covers that in detail, including the localhost trap where code works locally and fails in production because the database or cache is on a separate host. If you are using Redis as a queue backend, [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/) covers the connection settings that library expects.
 
-## How managed Redis removes most of these
+## The fix that appears to work and shouldn't be used: binding Redis to 0.0.0.0
 
-Looking at the six causes, four of them are operational rather than application problems: the service not running, not being enabled at boot, the wrong bind address, and a memory policy nobody set deliberately. Those disappear when the instance is managed. On Kloudbean you launch managed Redis in a few clicks, it sits in the same dashboard as your app, right next to it, and you get a connection string rather than a configuration puzzle. Because the cache runs in the same account as your app and is locked down with IP allow-listing, you are not exposing Redis to the public internet to make it reachable, which is a mistake we see people make while trying to fix this error.
+Search this error for long enough and you'll find the shortcut. Edit `redis.conf`, change `bind 127.0.0.1` to `bind 0.0.0.0`, turn off `protected-mode`, restart. The plugin flips to "Connected" and the problem looks solved.
 
-What it does not fix, honestly: a wrong constant in `wp-config.php` is still a wrong constant, and a missing PHP extension is still a PHP matter. Managed Redis removes the service-level causes, not the configuration ones.
+Here's the mechanism that makes it a bad trade. Redis was designed to sit on a trusted network, and by default it answers any client that reaches it. So the moment it listens on a public interface, the only thing between your cache and the internet is whether you also set `requirepass`, and Redis auth is a single shared password with no rate limiting or lockout in front of it. Port 6379 gets swept the same way port 22 does. An open Redis isn't just readable, it's writable, and a writable cache in front of a CMS is a code-execution path, not a data leak. You didn't fix a connection error. You moved it into a security incident with a delay on it.
+
+The correct version of that same fix is to keep the bind address narrow and change what's allowed to reach it. If the app and Redis are on one box, loopback or a Unix socket is the whole answer and you never needed a public bind. If they're on different hosts, restrict by address: allow your application server and nothing else. On Kloudbean's managed Redis, that's IP allow-listing on the instance, so the cache is reachable from your app server's address and refuses everything else, with the credentials handed to you rather than invented. That's the same idea a competent VPS setup reaches by hand, minus the chance of a forgotten `0.0.0.0` surviving in a config file for a year.
+
+Some of this no host can do for you, ours included. Nobody can stop you from editing `redis.conf` on a server you control, and no platform makes a wrong `WP_REDIS_HOST` right or installs a PHP extension you never asked for. The line is roughly this: causes 1, 2 and 6 are about who runs the service, and a managed instance takes those. Causes 3, 4 and 5 are configuration inside your application, and those stay with you no matter where the cache runs.
 
 ## Related reading
 

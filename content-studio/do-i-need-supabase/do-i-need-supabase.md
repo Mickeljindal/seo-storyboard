@@ -54,7 +54,7 @@ Go through the bundle piece by piece and be honest about what your app really us
 
 **An API.** If you have a backend, it already serves your API. Supabase's auto-generated API mainly shines when you have no backend and want the frontend to talk straight to the database.
 
-**File storage.** Only matters if users upload files. And object storage is a separate piece you can bolt onto any stack, Supabase or not.
+**File storage.** Only matters if users upload files. And object storage is a separate piece you can bolt onto any stack, Supabase or not. Kloudbean's built-in S3-compatible buckets are an example: they speak the AWS S3 SDK, so any library you'd already use works, and data transfer out of that built-in storage isn't metered, which matters if you're serving images or video. So "I need somewhere for uploads" on its own is not a reason to take the whole bundle.
 
 **Realtime.** Only if your app is genuinely live: chat, collaborative editing, presence, a live dashboard. Most CRUD apps aren't, and that's fine.
 
@@ -96,7 +96,7 @@ Neither column wins in the abstract. If you have no backend, that left column is
 
 ## Is Supabase lock-in? Not really, it's Postgres
 
-One fair point in Supabase's favour, and it takes the fear out of the whole decision: the core is standard PostgreSQL. Your tables, rows, schema, and indexes are plain Postgres. So choosing Supabase isn't a one-way door. If you outgrow the bundle, or decide you only wanted the database after all, you can move. The two honest ways to do that, migrate your data to a managed Postgres you run, or self-host the open-source Supabase stack, are laid out in the [Supabase alternative](https://www.kloudbean.com/blog/supabase-alternative/) guide. Starting on Supabase doesn't paint you into a corner.
+One fair point in Supabase's favour, and it takes the fear out of the whole decision: the core is standard PostgreSQL. Your tables, rows, schema, and indexes are plain Postgres. So choosing Supabase isn't a one-way door. If you outgrow the bundle, or decide you only wanted the database after all, you can move. The two honest ways to do that, migrate your data to a managed Postgres you run, or self-host the open-source Supabase stack, are laid out in the [Supabase alternative](https://www.kloudbean.com/blog/supabase-alternative/) guide. Starting on Supabase doesn't paint you into a corner. Worth knowing that both of those exits can land in the same place: on Kloudbean, managed PostgreSQL is one of seven managed engines and Supabase itself is a one-click app, so "I only wanted the database" and "I want the whole stack on infrastructure I control" aren't two different platform decisions.
 
 Two related questions get tangled up with this one, so let's separate them.
 
@@ -117,9 +117,21 @@ You don't need a long deliberation. Find your situation in this table and you'll
 
 If you want the one-line version: do you already have a backend that does auth and serves your API? If yes, you almost certainly need a database, not a backend-as-a-service. If no, and you'd rather not build and host one, the Supabase bundle is earning its keep. And because it's Postgres either way, you can change your mind later without a rewrite. The hands-on side of the plain-database route is in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
 
-## Where this leaves Kloudbean
+## Count the pieces you'd actually use, then decide
 
-If your answer landed on "I just need a reliable Postgres," that's a managed database, and it's one of the things Kloudbean runs: managed PostgreSQL as its own product, backed up, with access locked to your app server's IP, sitting in the same dashboard as your app server and the rest of your stack across several clouds. If your answer landed on "I want the whole Supabase bundle, but on infrastructure I run," Supabase is a one-click app there too. Either way, your data stays yours to export. That's the honest boundary of managed hosting: the platform runs the server, the stack, SSL, patching, and backups, while your app code and your data are yours. Useful to know, and secondary to the real point here, which is to choose by what you'll use. The dedicated walkthrough is [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/), and if you're set on running the full stack yourself, [self-host Supabase](https://www.kloudbean.com/blog/self-host-supabase/) covers it.
+Here's a tally that settles this faster than any comparison. Give yourself one point for each of the five pieces your app would genuinely lean on in the next three months. Not "might be nice." Would use.
+
+1. **Postgres.** Everyone scores this one. It isn't information.
+2. **Auth.** One point only if you have no auth today and no framework that ships it.
+3. **Auto-generated APIs.** One point only if your frontend would talk to the database directly, with no server of yours in between.
+4. **Storage.** One point only if users upload files and you'd rather not wire up a bucket yourself.
+5. **Realtime.** One point only if live updates are part of the product, not a someday feature.
+
+Now read your score. **One point** means you wanted a database, and the bundle is four services you'd be reasoning about for nothing. Take plain Postgres. **Two points** is the genuinely arguable middle, and I'd still lean plain database plus one library, because a single well-chosen auth library is smaller than a platform. **Three or more** and the bundle is doing real work. Take Supabase and stop deliberating, you're using what you're paying for.
+
+One thing the tally can't score, and it's the sharpest edge in this whole decision: if you take point three, the auto-generated API, then your row-level security policies become your authorization layer. Get a policy wrong and a browser can read data it shouldn't, and no host closes that hole. Not Supabase Cloud, not a self-hosted stack, not us. Same goes for the boring stuff underneath. A missing index is a missing index on any of these, and every platform will run your slow query at full speed. Those two things are yours in every version of this decision, so factor them in before you pick the option with more surface.
+
+Whichever number you landed on has somewhere to run. If it's a database, [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) sits in the same dashboard as your app server, backed up, with access locked to your app server's whitelisted IP. If it's the bundle on infrastructure you control, [self-host Supabase](https://www.kloudbean.com/blog/self-host-supabase/) covers the one-click route. And since it's Postgres underneath either way, a `pg_dump` is always your escape hatch, which is exactly why this decision deserves ten minutes rather than a week.
 
 ---
 

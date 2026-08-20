@@ -1,7 +1,7 @@
 ---
 title: "How One Team Cut a $4,000 Hosting Bill to $100"
 slug: cut-saas-bill-4000-to-100
-meta_description: "An illustrative teardown of how a scattered SaaS-and-cloud bill balloons to $4,000 — and how consolidating hosting, databases and per-project costs onto one owned server collapses it. The honest math, and what it can't cut."
+meta_description: "An illustrative teardown of how a scattered SaaS-and-cloud bill balloons to $4,000, and how consolidating hosting, databases and per-project costs onto one owned server collapses it. The honest math, and what it can't cut."
 target_keyword: cut SaaS hosting bill
 secondary_keywords:
   - reduce hosting costs
@@ -10,7 +10,7 @@ secondary_keywords:
   - stop paying per-seat hosting
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 1 — Deploy AI / Vibe-Coded Apps
+cluster: 1. Deploy AI / Vibe-Coded Apps
 ---
 
 ![How one team cut a $4,000 hosting bill to $100 by consolidating onto one owned server](images/hero.png)
@@ -55,6 +55,8 @@ Here's the grounded pattern, and it's the thing that surprises people most when 
 - **Per project.** Each app is its own plan, so shipping a second and third thing multiplies the base cost instead of sharing it.
 - **Per usage.** Requests, function invocations, bandwidth, database rows and connections, build minutes. Every good month costs more.
 
+The usage axis is the sneaky one, and egress is its worst line, because you get billed for being popular. Worth knowing which storage bills you for that and which doesn't: Kloudbean's built-in S3-compatible buckets don't meter data transfer out at all, so serving images and downloads from there removes a variable line rather than shrinking it. Managed Google Cloud Storage buckets are a different product on a dedicated cloud project, and those do bill both egress and ingress.
+
 None of these is a scam. They're rational ways for a platform to charge. But stacked together, your bill scales with your team size, your ambition, and your traffic simultaneously. That's three multipliers on one base, and a team growing on all three axes feels it fast.
 
 ## How consolidating cuts the SaaS hosting bill
@@ -91,11 +93,13 @@ The other one is watching only the big, obvious line (the compute plan) while th
 
 Fair objection, so let's meet it head-on. Spreading your stack across many managed platforms does buy a kind of resilience: if one service has a bad day, the others don't. Consolidating concentrates that. But the trade is more even than it looks. A managed server comes with backups, monitoring, and a process manager that restarts your app if it falls over. And the multi-platform setup has its own hidden fragility: more vendors means more separate outages that can hit you, more billing relationships to manage, and more places for a misconfiguration to hide. If uptime is genuinely critical, you don't abandon consolidation, you scale it deliberately with a load balancer and more than one instance, which a managed server supports without re-architecting your app. For most small teams, one well-backed-up server is more reliable than a sprawl of tiers nobody is actively watching. Concentration isn't automatically risk; unmanaged sprawl carries its own.
 
+Two things make that trade practical rather than theoretical. Backups run automatically, and you can also take an on-demand one before a risky deploy, which is the moment you actually want a restore point. And the load balancer is built in on any Kloudbean account rather than being a separate product you go and buy, so the day one box stops being enough, you put a second behind an FLB and keep the same flat-price shape. That's the honest version of "scale later": a decision you can defer, not one you have to design around now.
+
 ## Why predictable beats cheapest
 
 Here's my actual opinion, after watching a lot of these bills. The goal isn't the lowest possible number. It's a number you can forecast. A flat server costs the same in a quiet month and a viral one, so you can budget it, and a launch that goes well doesn't arrive with a usage-overage hangover. For a small team, a bill you can predict at the start of the month and recognize at the end of it is worth more than shaving off the last few dollars. Cheapest is a trap when "cheapest" also means "unknowable until the invoice lands."
 
-<!-- ADD IMAGE: a simple before/after of the monthly total — a long itemized invoice with many line items next to a one-line flat server charge (mocked or anonymized, no real vendor names or account data) -->
+<!-- ADD IMAGE: a simple before/after of the monthly total: a long itemized invoice with many line items next to a one-line flat server charge (mocked or anonymized, no real vendor names or account data) -->
 
 ## Run the teardown on your own bill
 
@@ -106,15 +110,26 @@ You don't need a $4,000 bill for this to matter. Pull up your last invoice and s
 
 Add up pile one. If it's a meaningful number, and if you're running more than one app, on a team, with real traffic, it usually is, the case makes itself. If it's small, you've just confirmed you're fine where you are, which is also a useful answer. Either way you now know your real infrastructure spend as a single figure, which is more than most teams can say before they do this. The [cut your cloud bill guide](https://www.kloudbean.com/blog/how-to-cut-your-cloud-bill/) goes deeper on the exercise, and [cloud hosting pricing explained](https://www.kloudbean.com/blog/cloud-hosting-pricing-explained/) unpacks the metered shapes.
 
-<!-- ADD IMAGE: the "two piles" worksheet — invoice lines sorted into "infrastructure (consolidates)" and "third-party SaaS (stays)" columns -->
+<!-- ADD IMAGE: the "two piles" worksheet: invoice lines sorted into "infrastructure (consolidates)" and "third-party SaaS (stays)" columns -->
 
 ## How the consolidation actually happens
 
 The practical path is undramatic, which is the point. You launch a managed server, deploy each app from its Git repo, move each app's database onto a managed instance on that server, port the environment variables, and cut each domain over with SSL. Apps that lived on three platforms now live on one, behind their own domains, sharing a server you pay for once. Do it one app at a time so nothing goes dark, and decommission each old plan only after its app is confirmed live on the new box. The [deploy walkthrough](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) covers the steps, running the whole stack on [one server](https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/) explains the architecture, and the agencies who do this at scale describe the same pattern in [hosting 20 client apps](https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/).
 
-## The honest limits
+## Should you actually do this? Read your own two piles against these
 
-Kloudbean runs **Linux** web stacks: Node, PHP, Python, and frameworks like React, Next.js, Vue, Laravel, Django, and WordPress. That covers what most modern and vibe-coded apps are built on. It isn't for Windows, .NET, or IIS workloads. "Managed" means the server, stack, SSL, and backups are handled while you own your application and data. And to say it once, plainly: consolidation cuts the infrastructure you're overpaying for, not the third-party SaaS you genuinely use. If your unmanaged VPS bill looks cheap by comparison, the [real cost of an unmanaged VPS](https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/) is worth reading before you decide, and side projects have their own math in [the cost of running a side project](https://www.kloudbean.com/blog/cost-of-running-a-side-project/).
+You've got pile one totalled by now. Run it past these six cues and the answer usually falls out in a couple of minutes.
+
+- **Pile one is small and you run one app.** Stay where you are. An always-on server loses to a hobby tier at that size, and switching costs you a weekend for nothing.
+- **You pay per seat for people who never deploy.** Consolidate. That axis is the purest waste on the invoice, and it's the one that grows every time you hire.
+- **Two or more apps, each on its own plan.** Biggest single win available. They become applications on one server, each with its own domain and database.
+- **A metered database tier is your second-biggest line.** Move it next to the app. This is the change that most often surprises people with how much it takes off.
+- **Bandwidth or egress keeps spiking.** Check what's actually serving your files. Kloudbean's built-in S3-compatible object storage doesn't meter data transfer out, so a media-heavy app can lose a whole recurring line by moving assets there. Note the scope: that applies to the built-in storage, not to managed Google Cloud Storage buckets, which do bill egress and ingress.
+- **A good month frightens you.** Flat wins on predictability even at roughly equal price. That's a real reason, not a soft one.
+
+One scope note before you plan a move. Kloudbean runs Linux stacks: Node, PHP, Python, Go, Ruby, Java, .NET on the Linux-supported versions, and frameworks like React, Next.js, Vue, Laravel, Django, and WordPress. Windows Server sits on premium and enterprise plans, so if you need IIS specifically, raise it before you scope the migration rather than after.
+
+And the part no host fixes, ours very much included. If your bill is high because one endpoint runs an N+1 query on every page load, or because a background job re-processes the same rows every night, moving it to a flat server just relocates the problem behind a fixed price. It'll be cheaper. It'll still be wrong. Same with the third-party SaaS in pile two: nobody's hosting plan cancels your email or analytics subscription. Consolidation is a pricing-shape fix, and it's a good one, but it doesn't touch application decisions. Those stay yours on every platform. If an unmanaged box still looks cheaper on paper, the [real cost of an unmanaged VPS](https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/) is the honest comparison, and side projects have their own math in [the cost of running a side project](https://www.kloudbean.com/blog/cost-of-running-a-side-project/).
 
 **A bill you own, not one that owns you.** See what a flat, owned server would cost you on [pricing](https://www.kloudbean.com/pricing/), or start free at [kloudbean.com](https://www.kloudbean.com/) with your first migration done for you.
 
@@ -138,4 +153,4 @@ Not always the absolute cheapest, but usually the most predictable. It costs the
 **What actually made the bill so high in the first place?**
 Usually the multipliers, not the compute. Per-seat pricing, per-project plans, and usage meters (bandwidth, database connections, log retention) stack on top of each other, so the bill grows with team size, number of apps, and traffic at the same time. Consolidation removes the per-seat and per-project multipliers and folds the rest into one flat server.
 
-By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.
+By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale. Faster Than Ever.

@@ -27,6 +27,8 @@ This is the whole thing. Everything else is a consequence of it.
 
 Apache, in its traditional configuration, handles each connection with its own process or thread. That's straightforward and very compatible, but each connection carries the memory overhead of a process, so under thousands of simultaneous connections the memory footprint climbs and the server can struggle. Nginx was built later, specifically to solve that, using an event-driven, asynchronous model: a small, fixed number of worker processes each juggle thousands of connections by reacting to events rather than dedicating a process to each. The result is that Nginx holds many concurrent connections on modest, predictable memory, which is exactly the shape of modern web traffic. Apache has since added an event-based mode of its own that narrows the gap, but the mental model still holds: Apache's heritage is a worker per connection, Nginx's is a few workers handling everything.
 
+Which is also why the argument matters less than the configuration. Worker counts, proxy buffers, keepalive timeouts, TLS ciphers, caching headers: get those wrong on either server and the architectural advantage evaporates. That's the part a managed stack settles for you, and it's genuinely the more valuable half.
+
 ## Where each one wins
 
 Neither is simply better; they're better at different jobs. Match the tool to the workload.
@@ -38,6 +40,8 @@ Nginx shines at serving static files fast, handling high concurrency without bal
 This is the single most practical difference for a lot of people, so it deserves its own note.
 
 Apache lets you drop a `.htaccess` file into any directory to change configuration for that folder, rewrites, access rules, redirects, without touching the main server config or restarting anything. That's genuinely convenient, especially on shared hosting where you don't control the main config, and it's why so much PHP software ships `.htaccess` rules. Nginx deliberately doesn't do per-directory config files; everything lives in the central server configuration. That's faster (the server isn't checking every directory for an override on each request) but it means changes go in one central place and you need access to it. In practice this is the thing that trips people migrating an app from Apache to Nginx: their `.htaccess` rewrites don't come along automatically and have to be translated into the Nginx config. Not hard, but a real step, and the reason some apps stay on Apache.
+
+Price that step into any migration plan, because it's the one task that reliably gets forgotten and then shows up as a wave of 404s on URLs that used to redirect. It's also worth asking whoever you're moving to whether they'll do the translation with you. Kloudbean's migration assistance is free for servers above 4GB, and rewrite rules are exactly the sort of thing worth handing over rather than reverse-engineering from a file someone wrote in 2016.
 
 ## Nginx vs Apache, side by side
 
@@ -56,13 +60,27 @@ The trade-offs line up cleanly once the architecture is clear.
 
 Here's the opinion, because the benchmark wars miss the point for most readers.
 
-If you're running your own server by hand, the choice is real and worth making deliberately along the lines above. But if you're on a managed platform, or you're building a typical web app rather than operating infrastructure, the honest truth is that this is decided and tuned for you, and you probably shouldn't spend a day on it. The other thing the debate often misses: it's not either-or. A very common production setup runs both, Nginx at the front as a reverse proxy handling connections, TLS, and static files, passing dynamic requests back to Apache or, more often now, to a language runtime like PHP-FPM or a Node process. So the "winner" in many real stacks is "Nginx in front, something else behind." Unless you have a specific reason, high concurrency pushing you to Nginx, or an .htaccess-bound app keeping you on Apache, the web server is not where your attention pays off. Your application, your database, and your deploys are.
+If you're running your own server by hand, the choice is real and worth making deliberately along the lines above. But if you're on a managed platform, or you're building a typical web app rather than operating infrastructure, the honest truth is that this is decided and tuned for you, and you probably shouldn't spend a day on it. The other thing the debate often misses: it's not either-or. A very common production setup runs both, Nginx at the front as a reverse proxy handling connections, TLS, and static files, passing dynamic requests back to Apache or, more often now, to a language runtime like PHP-FPM or a Node process. So the "winner" in many real stacks is "Nginx in front, something else behind." Unless you have a specific reason, high concurrency pushing you to Nginx, or an .htaccess-bound app keeping you on Apache, the web server is not where your attention pays off. Your application, your database, and your deploys are. For what it's worth, that's the bet managed platforms have already made: Kloudbean puts a tuned Nginx layer at the front with your runtime behind it, which is the pattern above, chosen because it's the right default for the concurrency a normal app actually sees.
 
-## Where Kloudbean fits
+## One question decides it. Here's the question
 
-On Kloudbean the web server is part of the managed stack, so this is a decision you don't have to make or tune. Your app runs behind a properly configured Nginx layer that handles connections, TLS, and static files, with your application or language runtime behind it, which is the front-Nginx pattern above, set up for you. That's deliberate: Nginx's event-driven model is the right default for the concurrency modern apps see, and getting the configuration right (worker counts, proxy settings, caching headers, TLS) is exactly the fiddly work a managed platform should absorb. If you're coming from an Apache app that leans on `.htaccess`, that's worth flagging when you migrate, since those rules need translating rather than copying.
+Not a benchmark. Not a preference. One thing:
 
-The honest boundary: managed hosting runs and tunes the web server for you, but your application's own configuration, its routes, its rewrite logic, its framework settings, is still yours. What you're handed is a sensible, performant default so you're not benchmarking web servers instead of building. For how the pieces fit together, [how cloud hosting works](https://www.kloudbean.com/blog/how-cloud-hosting-works/) is the overview, and the front-server role is explained in [reverse proxy explained](https://www.kloudbean.com/blog/reverse-proxy-explained/).
+**Does anything in your app read `.htaccess`, or depend on a specific Apache module?**
+
+If yes, Apache is the shortest path, and choosing Nginx means committing to translate those rules into central config before you cut over. That's a real, finite job, not a reason to panic, and it's a job you should do on purpose rather than discover during a launch window.
+
+If no, use Nginx. It's the better fit for how traffic arrives now, it's lighter under concurrency, and it's the front door almost every modern stack already assumes. You don't need to justify it any further than that.
+
+And if the honest answer is "I don't know," the answer is still Nginx, with the runtime behind it. That combination is what a managed stack hands you, and it's a fine place to be wrong from.
+
+Now the part the choice doesn't touch. A web server routes requests; it doesn't understand your app. So no host fixes these, ours included:
+
+- **Your framework's router.** A 404 from your app's routing table looks identical to a 404 from the web server, and only one of them is in a config file. Check which layer answered before editing anything.
+- **Your own rewrite and redirect logic.** Canonical hosts, trailing slashes, legacy URL maps. Someone has to decide those, and it isn't the server.
+- **A slow page that's slow in the database.** Neither server has ever fixed a missing index, and swapping one for the other won't start.
+
+Which is why the debate deserves about a minute of your day. Get the layer right, then go look at the query. For how the pieces sit together, [how cloud hosting works](https://www.kloudbean.com/blog/how-cloud-hosting-works/) is the overview, and the front-server role is in [reverse proxy explained](https://www.kloudbean.com/blog/reverse-proxy-explained/).
 
 ## Related reading
 

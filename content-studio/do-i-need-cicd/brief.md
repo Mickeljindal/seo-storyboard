@@ -36,7 +36,8 @@ smoke test beats a ten-stage pipeline with no tests). Never claims Kloudbean "wi
 CI/CD as one way to get the push-to-deploy half. No metrics invented.
 
 ## Product mention (one light touch + CTA, grounded in kloudbean-facts.md)
-Single light mention in "Where this leaves Kloudbean": managed CI/CD connects a Git repo and builds
+Woven into the explanation, and in the closing "cheapest version that actually protects you" section
+rather than a bolted-on product block: managed CI/CD connects a Git repo and builds
 and deploys on every push, with deployment history and live build logs in the console. Plus the CTA
 line. No autoscaling-for-all, no VPC-as-default, no invented pricing, no "wins".
 

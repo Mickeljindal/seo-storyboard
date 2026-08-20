@@ -79,7 +79,7 @@ The supported way is to run a paid instance, which doesn't spin down. Some peopl
 Partly. A ping can prevent idle spin-down, but it doesn't help the genuine first visitor or a request right after a deploy, it keeps the service running around the clock (which you pay for on usage-billed plans), and it's an external dependency that can fail quietly. It's a band-aid, not a real fix.
 
 **Does Render's paid tier have cold starts?**
-No. Per Render's documentation, paid instance types don't spin down for inactivity, so they stay warm. The cold-start behavior is specific to the free web service tier. If you need always-on and want to stay on Render, that means moving to a paid instance.
+No. Per Render's documentation, paid instance types don't spin down for inactivity, so they stay warm. The cold-start behavior is specific to the free web service tier. So the Render-native answer to always-on is a paid instance type rather than a keep-warm trick.
 
 **Is a keep-warm ping cheaper than always-on hosting?**
 Usually not, once you account for it honestly. Keeping a service pinged means it runs continuously, so on a metered plan you pay for that time anyway, plus you maintain the pinger. A flat always-on plan (Kloudbean starts at $8/mo) is often simpler and more predictable than engineering around sleep.

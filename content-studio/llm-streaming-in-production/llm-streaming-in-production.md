@@ -149,6 +149,8 @@ The classic bug: everything streams perfectly in development, then in production
 
 A reverse proxy buffers by default for good reasons on normal responses: it can serve a slow backend's output to a fast client efficiently and free the backend sooner. For a stream, that same behaviour is fatal. The proxy holds your tokens waiting for an end that, from its point of view, takes ten seconds to arrive, then hands the browser the whole thing in one lump. Streaming didn't fail. It got un-streamed in transit. (For the general picture of what a reverse proxy is and does, [reverse proxy explained](https://www.kloudbean.com/blog/reverse-proxy-explained/) is the primer; this section is specifically about the streaming edge case.)
 
+Before the config below, work out whether that config is even yours. On a raw VPS you own the nginx file and can set anything. On a managed platform, including Kloudbean, the reverse proxy in front of your app is part of the managed layer, not a file you tune per route. That sounds like a limitation and is mostly the opposite: it means the lever you reach for is the response header, which travels with the response and works regardless of who owns the config. Set it in your handler and you're done, on either kind of host.
+
 <!-- ADD IMAGE: the token-flow diagram (browser to reverse proxy to your app to model), marking the proxy as the choke point where buffering on delivers one lump and buffering off passes tokens straight through. -->
 
 On nginx, the fix is a handful of directives on the streaming location. Turn buffering off, turn caching off, turn gzip off for this route (compression forces the proxy to collect the body before it can compress), keep the upstream connection on HTTP/1.1, and allow chunked transfer.
@@ -185,7 +187,7 @@ Backpressure is what happens when your app produces tokens faster than the clien
 
 The good news: the runtimes handle the common case if you let them. When you write to a Node response and the socket's buffer is full, `res.write()` returns `false`, signalling you to pause until the `drain` event. The OpenAI-style `for await` loop naturally respects this when the underlying stream is piped properly, because awaiting the consumer slows the producer. The failure mode is code that ignores the return value and keeps shoving tokens into a buffer nobody is draining.
 
-You don't need to hand-roll flow control for a normal chat app. You do need to not fight it: don't buffer the entire model response in an array to send at the end (that's just un-streaming yourself with extra steps), and cap how many concurrent streams a single instance will hold so a burst can't exhaust memory. If you truly need many thousands of simultaneous long streams, that's a horizontal-scaling conversation, and again the patterns in [scaling WebSockets in Node.js](https://www.kloudbean.com/blog/scale-websockets-nodejs/) transfer directly to SSE.
+You don't need to hand-roll flow control for a normal chat app. You do need to not fight it: don't buffer the entire model response in an array to send at the end (that's just un-streaming yourself with extra steps), and cap how many concurrent streams a single instance will hold so a burst can't exhaust memory. Once you've capped it, one Node process holding a few hundred open streams is the constraint, and the cheap answer is more processes on the same box: Kloudbean runs Node under PM2 in multi-process mode, so you use every core instead of pinning long connections to a single worker, and you can resize the server up yourself when memory gets tight. If you truly need many thousands of simultaneous long streams, that's a horizontal-scaling conversation, and again the patterns in [scaling WebSockets in Node.js](https://www.kloudbean.com/blog/scale-websockets-nodejs/) transfer directly to SSE.
 
 ## Reconnecting and resuming a dropped stream
 
@@ -203,11 +205,26 @@ The anti-pattern I see most, and it's worth naming: faking a stream with a polli
 
 Streaming wants two things serverless is bad at: a process that stays open for the life of the response, and a path to the client that doesn't buffer. A long-lived server gives you both by default. This is the honest reason a steady, connection-heavy streaming workload is usually happier on an always-on process than on functions, even setting any one provider aside.
 
-## Where Kloudbean fits
+Concretely, that's what you're choosing when you deploy a streaming app to something like Kloudbean instead of a function platform: your Node or Python app runs as a process that stays up between requests, so an open SSE connection lives for as long as the generation takes and there's no execution ceiling to design around, and no cold start charged to your first token. Nothing exotic. It's the old model, and it happens to be the right shape for streaming. If you're already on functions and hitting this, [moving an AI app off serverless](https://www.kloudbean.com/blog/move-ai-app-off-serverless/) walks the migration.
 
-Streaming needs a stable, long-lived process and a proxy that passes bytes through instead of hoarding them. That's what an always-on server is, and what serverless often isn't. On Kloudbean you run your app as a real process (Node or Python), not a function that spins up per request, so an open SSE or WebSocket connection has somewhere steady to live and there are no cold starts to tax that first token. The platform manages the web server, the reverse proxy layer, and free SSL in front of your app, and you deploy from Git on every push.
+## Why flushing harder never fixes it, and what to test instead
 
-The honest boundary, because it's what builds trust: managed means Kloudbean handles the server, the stack, SSL, backups, and patching. Your streaming endpoint is still yours to write, which means the headers we covered (buffering off on the route, `X-Accel-Buffering: no`, gzip off, a sane read timeout) are your call to set, because only you know which routes stream. Kloudbean gives the stream a stable home and keeps the pipe open. It doesn't turn a blocking handler into a streaming one. Where you need a managed database behind the app, you lock it down by whitelisting your app server's IP so only your app can reach it; full private networking in a VPC is an Enterprise capability, not the standard default.
+Search this problem and the popular advice is to flush harder. Call `res.flush()` after every token. Rip out the compression middleware. Send a couple of kilobytes of whitespace first to "prime" the connection. People try all three, in that order, and stay broken. So here's the mechanism, because once you see it you stop reaching for them.
+
+Your app writes a token and it does leave your process. Immediately. Flushing works exactly as advertised: it pushes bytes out of your socket. The problem is where they land. The proxy is a separate program that already has your bytes and is deciding when to forward them, and no flush call inside your process reaches into another process's buffer. You can flush all day into a bucket someone else is holding shut. The whitespace-padding trick is even more misleading, because it's real advice for a genuinely different problem, old browsers that wouldn't render until they'd received a few kilobytes, and it does nothing about a proxy.
+
+Only three things cross that boundary: instructions the proxy is built to read. The `X-Accel-Buffering: no` header, the `text/event-stream` content type that some layers special-case, and the proxy's own config. Everything else is you talking to yourself.
+
+Which means the first move is finding the layer, not editing code. Four checks, in order, and stop when the trickle disappears:
+
+1. **Hit the app directly on its port, past the proxy.** `curl -N http://127.0.0.1:3000/chat` on the server. Tokens arriving one at a time means your handler is genuinely streaming and the bug is downstream. If it arrives in one lump here, stop; nothing in front of the app is at fault.
+2. **Hit the public URL with `curl -N`.** Trickle means the proxy is passing bytes through. Lump means buffering, and the header is your first fix.
+3. **Bypass the CDN.** Same public request against the origin, or with the CDN paused. Plenty of "nginx is buffering" investigations end here, one layer further out than anyone was looking.
+4. **Watch the clock, not just the shape.** If it trickles then stops dead around 30 or 60 seconds, that's an idle timeout, not buffering, and you're in the previous section instead.
+
+Use `curl -N` rather than the browser for this. Browsers add their own buffering and rendering behaviour on top, so a curl that trickles and a UI that doesn't is a front-end bug, which is a nice thing to be able to prove in one command.
+
+The part no host fixes, ours included: if your route awaits the whole completion and then returns it, every proxy on earth will deliver it in one lump, correctly, because that's not a stream. A managed platform can keep the pipe open, run your app as a process that stays alive, and honour the header your handler sets. It can't turn a blocking handler into a streaming one, and it can't know which of your routes stream, so those headers stay your call. That's the split worth remembering: the transport is buyable, the handler isn't.
 
 ## Give your token stream a process that stays open
 

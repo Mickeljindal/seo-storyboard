@@ -202,6 +202,12 @@ LIMIT 10;</code></pre>
   <p>The instinct is to raise <code>max_connections</code>. Resist it. More connections means more memory on idle processes, and it multiplies your worst-case memory because each connection can grab <code>work_mem</code> for every sort or hash it runs. The fix is <strong>Postgres connection pooling</strong>: a small, reused set of connections that many requests share.</p>
   <p>Your framework probably already pools: Prisma, the <code>pg</code> Pool in Node, SQLAlchemy, and ActiveRecord all keep one. Set a sane pool size per app instance rather than a connection per request. Running many app servers or anything serverless? Put a dedicated pooler in front (PgBouncer in transaction mode is the usual pick), so thousands of clients funnel down to a handful of real connections. A classic start is roughly two times your CPU cores; most apps need far fewer than they reach for. More in <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>.</p>
 
+  <p>Both of those settings, the connection string and the pool size, belong in environment variables rather than in your code, because the right pool size differs between your laptop and production. On Kloudbean they live in the console's runtime config, so you change the pool ceiling and restart without touching the repo or opening an SSH session.</p>
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console environment variables screen holding the PostgreSQL connection string safely out of code">
+    <figcaption>Runtime configuration then Environment Variables: the connection string and pool size live here, never in your repo.</figcaption>
+  </figure>
+
   <h2>Memory settings, carefully</h2>
   <p>These are the knobs people want to turn first and should turn last. On managed PostgreSQL the defaults already scale to your plan, so treat these as concepts you reach for when a query needs them, and a bigger plan raises the ceiling.</p>
   <ul>
@@ -218,30 +224,41 @@ RESET work_mem;</code></pre>
 
   <h2>When the honest fix is a bigger server</h2>
   <p>Sometimes the answer really is more hardware. If CPU sits pinned near 100 percent, RAM is exhausted so the cache can't hold your working set, or you're I/O bound after the queries are already tuned, the box is the bottleneck. On managed PostgreSQL you resize for more CPU and RAM without rebuilding anything, and backups and patching keep running.</p>
+  <p>You need two views side by side to make that call honestly: your <code>pg_stat_statements</code> output and the actual CPU and RAM on the box. Slow queries while CPU sits idle is a query or index problem, and a bigger server will not help. Pinned CPU after the queries are already tuned is the real signal to resize. Kloudbean's server health view is what I'd keep open next to the query stats, and vertical resize up is self-serve when the numbers say so. One caveat before you jump: scaling disk down again isn't supported, so grow deliberately rather than in a panic.</p>
+  <figure>
+    <img src="../assets/console/server-health.png" alt="The Kloudbean console server health view showing CPU and RAM usage to decide between tuning and resizing">
+    <figcaption>Server health: correlate slow queries with real CPU and RAM before you decide to tune or to resize.</figcaption>
+  </figure>
   <p>But tune queries and indexes first. Bad SQL scales badly no matter the hardware. A missing index that scans five million rows scans them faster on a bigger box, then falls over again at ten million. Doubling your server to hide an N+1 loop is the most expensive way to not fix a bug. For read-heavy workloads, a <a href="https://www.kloudbean.com/blog/redis-caching-guide/">managed Redis cache</a> in front of your hottest reads often buys more headroom than a bigger database.</p>
 
-  <h2>Put it into practice on managed PostgreSQL</h2>
-  <p>The tuning above is plain Postgres; it works anywhere. What a managed platform changes is the ops around it. Provisioning, IP allow-listing, patching, and backups are handled, so your time goes to schema, queries, and indexes.</p>
+  <h2>Who owns each of these levers, you or your host?</h2>
+  <p>Half the wasted time in a performance investigation comes from working the wrong side of this line. Someone opens a ticket about a slow query, or spends a week hand-rolling something the platform already does. So here's the split for the levers above, and it's a useful sanity check whoever you host with.</p>
 
-  <p><strong>1. Launch a managed PostgreSQL.</strong> Postgres is one of seven managed database engines here. In the DBS section, pick Postgres, name it, and it's provisioned with automatic backups on and locked to your app server's IP. You own the schema, queries, and data; the platform handles provisioning, patching, and backups.</p>
+  <table class="cmp">
+    <thead><tr><th>The lever</th><th>Who owns it</th><th>What that means</th></tr></thead>
+    <tbody>
+      <tr><td>A missing index</td><td>You</td><td>Nobody else can see your query patterns. This is the highest-payoff row in the article and it's entirely yours</td></tr>
+      <tr><td>N+1 query loops</td><td>You</td><td>An ORM decision inside your code. Invisible from outside the app</td></tr>
+      <tr><td><code>work_mem</code> for a heavy query</td><td>You</td><td>Set it per session around the query that needs it, then reset</td></tr>
+      <tr><td>Pool size</td><td>You</td><td>A number in your app config. The database can only refuse connections, not batch them for you</td></tr>
+      <tr><td><code>shared_buffers</code> baseline</td><td>Your host</td><td>Scaled to the plan and needs a restart. Practical lever is plan size, not the knob</td></tr>
+      <tr><td>Postgres and OS patching</td><td>Your host</td><td>On managed PostgreSQL this happens without you scheduling a maintenance window</td></tr>
+      <tr><td>Autovacuum running at all</td><td>Your host</td><td>On by default. Per-table scale factors for a write-heavy table are still yours</td></tr>
+      <tr><td>Backups existing</td><td>Your host</td><td>Automatic, plus on-demand when you want a point before a risky migration</td></tr>
+      <tr><td>Backups actually restoring</td><td>Shared</td><td>The platform takes them. Only you can run the test restore that proves they work</td></tr>
+      <tr><td>Provisioning and access control</td><td>Your host</td><td>Launch Postgres in the DBS section, one of seven managed engines, and whitelist your app server's IP so nothing else can connect</td></tr>
+      <tr><td>Deciding you need a bigger box</td><td>Shared</td><td>You read the numbers, the resize is a self-serve click, and the disk can't shrink afterwards</td></tr>
+    </tbody>
+  </table>
+
   <figure>
     <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed PostgreSQL database with automatic backups and IP allow-listing">
     <figcaption>DBS then Launch Database: managed PostgreSQL, provisioned with automatic backups running, locked to your app server's IP.</figcaption>
   </figure>
 
-  <p><strong>2. Connect and lock it down.</strong> Put the connection string in an environment variable, set your pool size there, then whitelist your app server's IP so only it can reach the database, keeping it off the public internet. Your Node or Python app reads the variable and connects internally. Wiring up an app? <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">Deploying a Node app to a managed cloud</a> walks the path.</p>
-  <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean console environment variables screen holding the PostgreSQL connection string safely out of code">
-    <figcaption>Runtime configuration then Environment Variables: the connection string and pool size live here, never in your repo.</figcaption>
-  </figure>
+  <p>Look at where the biggest wins landed. The two levers that fix most slow Postgres, the missing index and the N+1 loop, sit firmly in your column, and no host on earth fixes them for you. Kloudbean can't, and any platform that implies it can is selling you something. What managed hosting genuinely buys you is that the bottom half of that table stops consuming your attention, so the time you'd have spent on patching windows and backup scripts goes into <code>EXPLAIN</code> output instead.</p>
 
-  <p><strong>3. Watch CPU and RAM while you measure.</strong> Keep the server health view open next to your <code>pg_stat_statements</code> results; together they tell you which fix you need. Slow while CPU sits idle means a query or index problem, so fix that. Pinned at 100 percent after you've already tuned means it's time to resize.</p>
-  <figure>
-    <img src="../assets/console/server-health.png" alt="The Kloudbean console server health view showing CPU and RAM usage to decide between tuning and resizing">
-    <figcaption>Server health: correlate slow queries with real CPU and RAM before you decide to tune or to resize.</figcaption>
-  </figure>
-
-  <p>Backups run automatically, but a backup you've never restored is a hope. Do a test restore before you need one. Here's how <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups</a> work.</p>
+  <p>One row deserves a nudge. Backups run automatically, but a backup you've never restored is a hope, not a plan. Take an on-demand backup before your next risky migration and restore it somewhere harmless once, so you know the mechanism works before you need it at 3am. Here's how <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups</a> work. And if you're still wiring the app up, <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploying a Node app to a managed cloud</a> walks that path.</p>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Make Postgres earn its keep.</p>

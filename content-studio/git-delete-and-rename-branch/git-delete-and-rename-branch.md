@@ -81,7 +81,7 @@ git push origin :old-feature
 
 Both forms delete the same remote branch. The `--delete` form is easier to read and remember. The older colon form, `git push origin :old-feature`, literally means push nothing into that remote branch, which Git reads as delete it. You will still meet the colon form in old answers and scripts, so it is worth recognizing.
 
-Because this is a push, you need write access to the remote. If the delete is rejected on permissions, the problem is your access, not the command. And deleting a shared branch deserves a pause: once it is gone it is gone for the whole team, so make sure the work is merged or genuinely unwanted first.
+Because this is a push, you need write access to the remote. If the delete is rejected on permissions, the problem is your access, not the command. And deleting a shared branch deserves a pause: once it is gone it is gone for the whole team, so make sure the work is merged or genuinely unwanted first. One extra thing to check before you delete: whether anything automated is watching that branch. A deploy pipeline pointed at a branch that no longer exists doesn't complain, it just stops shipping, and nobody notices until someone asks why their merge isn't live.
 
 ## Rename a local branch
 
@@ -184,11 +184,13 @@ Bookmark this. It is the whole family in one grid, with concrete example names y
 
 If you only keep two rules from all of this: lowercase deletes safely and uppercase forces, and there is no remote rename, only push-new then delete-old.
 
-## Branches, CI/CD, and your deploys
+## The one time a branch name isn't just a label
 
-Branch names stop being harmless labels the moment you wire up continuous deployment. The branch a pipeline watches is the branch that ships. Rename or delete the wrong one and a deploy can quietly stop firing, or a stale preview environment can hang around pointing at a branch that no longer exists.
+Branch names stop being harmless the moment continuous deployment is watching one. The branch a pipeline watches is the branch that ships. Rename or delete it and the deploy doesn't error, it goes quiet, and a stale preview environment can sit there pointing at a ref that no longer exists.
 
-So the cleanup habits above pay off directly in a pipeline. Prune dead branches, keep the deploy branch's name stable, and reset upstream tracking after a rename so pushes land where the pipeline is listening. If you connect a repo to a managed pipeline like Kloudbean's, where CI/CD connects a Git repo and builds and deploys on every push, the branch you point it at is the contract, so keep it tidy and predictable. The mechanics of that setup live in the guides on [CI/CD that auto-deploys from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) and [deploying a Node app to managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/). And since a remote branch delete is a push, it leans on the same [SSH key access](https://www.kloudbean.com/blog/ssh-key-authentication/) your normal pushes use. Per-branch preview environments usually carry their own config too, which is where [handling environment variables properly](https://www.kloudbean.com/blog/environment-variables-done-right/) keeps things sane.
+So three habits carry over from everything above: prune dead branches, keep the deploy branch's name stable, and reset upstream tracking after a rename so pushes land where the pipeline is listening. Whatever runs your deploys, treat the branch name as a contract with it. On Kloudbean's managed CI/CD the branch you connect is exactly that contract, and deployment history plus live build logs are how you tell "nothing was pushed" apart from "the build failed", which is the question a renamed branch usually creates. Setup mechanics are in [CI/CD that auto-deploys from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) and [deploying a Node app to managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/). Since a remote delete is a push, it uses the same [SSH key access](https://www.kloudbean.com/blog/ssh-key-authentication/) as any other, and per-branch preview environments carry their own config, which is where [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) earns its keep.
+
+Being straight about the scope, though: this is a Git article, and Git is where the fix lives. No host recovers a force-pushed history or resurrects an unmerged branch you force-deleted. That's `git reflog` on whichever machine still has the objects, and if nobody has them, they're gone. A deploy platform's job here is narrow and worth exactly what it is: making it obvious which branch is live and what the last push did.
 
 ---
 

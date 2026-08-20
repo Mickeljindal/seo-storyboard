@@ -50,7 +50,7 @@ Skip the vibes and look at what your app actually does. Some work loves serverle
 | A database the app talks to constantly | Separate metered service, connection juggling | Launched on the same box |
 | A cost you can put in a budget | Several meters, moves with usage | One flat number |
 
-If your rows land mostly in the first column, stay on Vercel and stop reading. If three or more land in "wants a server," you've found your ceiling. That's not Vercel failing. It's a front-end-and-functions platform being asked to be a full-stack host, which was never the job it signed up for.
+If your rows land mostly in the first column, you're already on the right platform and this page isn't for you. If three or more land in "wants a server," you've found your ceiling. That's not Vercel failing. It's a front-end-and-functions platform being asked to be a full-stack host, which was never the job it signed up for.
 
 ## The connection-storm gotcha nobody warns you about
 

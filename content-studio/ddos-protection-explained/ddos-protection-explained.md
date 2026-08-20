@@ -11,7 +11,7 @@ secondary_keywords:
   - ddos mitigation
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 9 — Security, Scaling & Load Balancing
+cluster: 9 - Security, Scaling & Load Balancing
 ---
 
 ![DDoS protection explained: filtering a flood of traffic at the edge before it reaches your origin](images/hero.png)
@@ -68,10 +68,10 @@ The origin never tries to eat the flood. That's the edge's job.
 
 Real DDoS protection is a stack, not a switch. Each layer catches something the others miss, so you want them working together.
 
-- **An edge / CDN network.** This is the load-bearing layer for big attacks. It sits in front of your site with capacity far larger than any single origin, so it absorbs and scrubs volumetric floods before they reach you. It's the only thing that meaningfully answers a terabit-scale attack, because your server never could. It also hides your origin IP so attackers can't route around it.
+- **An edge / CDN network.** This is the load-bearing layer for big attacks. It sits in front of your site with capacity far larger than any single origin, so it absorbs and scrubs volumetric floods before they reach you. It's the only thing that meaningfully answers a terabit-scale attack, because your server never could. It also hides your origin IP so attackers can't route around it. On Kloudbean this layer is the Cloudflare Enterprise add-on, paid on standard plans and included for Enterprise accounts, which is worth knowing now rather than during an incident: it's a thing you switch on, so switch it on early.
 - **Rate limiting.** A cap on how many requests one source can make in a window. Cheap and effective against crude layer-7 abuse, where a single IP or a small set hammers your login or search. It won't stop a wide botnet on its own, but it takes the easy attacks off the table.
 - **A WAF.** A web application firewall inspects HTTP requests and blocks the ones that match attack or abuse patterns. This is your main tool against the sneaky layer-7 floods that look like real traffic. If you want the full picture of what a WAF does and doesn't do, [this guide breaks it down](https://www.kloudbean.com/blog/what-a-waf-does/).
-- **A firewall and Fail2ban on the server.** The last, closest layer. A firewall closes ports you don't use, and Fail2ban watches your logs and bans addresses that keep misbehaving, like a script trying passwords over and over. This won't stop a big flood, and it isn't meant to. It's excellent against smaller, persistent abuse. More on hardening the origin in [secure hosting](https://www.kloudbean.com/blog/secure-wordpress-hosting/) and the [security headers guide](https://www.kloudbean.com/blog/security-headers-guide/).
+- **A firewall and Fail2ban on the server.** The last, closest layer. A firewall closes ports you don't use, and Fail2ban watches your logs and bans addresses that keep misbehaving, like a script trying passwords over and over. This won't stop a big flood, and it isn't meant to. It's excellent against smaller, persistent abuse. Kloudbean ships Shorewall and Fail2ban on every server automatically, which is the one layer here you don't have to remember, and the layer people most often forget when they build a box themselves. More on hardening the origin in [secure hosting](https://www.kloudbean.com/blog/secure-wordpress-hosting/) and the [security headers guide](https://www.kloudbean.com/blog/security-headers-guide/).
 
 A quick clarification, because people mix these up. A [load balancer](https://www.kloudbean.com/blog/cloud-load-balancer-explained/) spreads traffic across app instances for performance and availability. It is not DDoS mitigation on its own, though it's part of how traffic reaches your origin. Don't count on it to filter a flood.
 
@@ -83,7 +83,7 @@ A quick clarification, because people mix these up. A [load balancer](https://ww
 
 Three mistakes come up again and again. They're worth naming, because each one feels reasonable and each one fails at the worst possible moment.
 
-**"A bigger server will absorb it."** This is the expensive one. You cannot out-muscle a flood from attackers who add machines for free. A large volumetric attack is an edge and upstream-capacity problem, and no single origin server has that capacity, period. Upgrading the box costs more and still falls over. My blunt take: your origin should never try to eat a flood. That's not its job.
+**"A bigger server will absorb it."** This is the expensive one. You cannot out-muscle a flood from attackers who add machines for free. A large volumetric attack is an edge and upstream-capacity problem, and no single origin server has that capacity, period. Upgrading the box costs more and still falls over. My blunt take: your origin should never try to eat a flood. That's not its job. Being fair about what the layer below does help with: running on tier-1 cloud capacity (Kloudbean provisions on seven of them, so you're on AWS, GCP, DigitalOcean and the like whichever you pick) means the network under your server isn't the weak link. It still isn't the thing that stops a flood. It just isn't the thing that snaps first.
 
 **"We're too small to be a target."** Automated attacks don't check your follower count. Small sites get hit for extortion, by competitors, by people renting a cheap botnet for an afternoon, or as collateral when they share infrastructure with a real target. "Beneath notice" is the complacency that leaves you with zero protection when your turn comes.
 
@@ -102,11 +102,19 @@ Landed here mid-attack? A few calm moves, in order.
 
 <!-- ADD IMAGE: toggling an "under attack" mode or a stricter rate-limit rule during an incident -->
 
-## Where Kloudbean fits, honestly
+## The cheapest version of this that actually holds
 
-On Kloudbean, the edge layer is the **Cloudflare Enterprise add-on**. It's paid on standard plans and included for Enterprise accounts, and it's what absorbs and filters volumetric floods and gives you a WAF for layer-7 patterns. Under that sits **tier-1 cloud capacity** from whichever provider you launched on, so the network beneath you isn't fragile. And on the server itself, every account ships with a **Shorewall firewall and Fail2ban** running automatically, so smaller abuse and repeat offenders get shut down without you touching a config file.
+You don't need an enterprise security programme to stop being an easy target. There's a minimum setup, and it's short. Three things, in this order, and it's the order that matters.
 
-Now the honest part, because you deserve it. No layer is a magic shield, and anyone who promises absolute immunity is selling something. A large enough volumetric attack is fundamentally an edge and upstream-capacity problem, not something your Linux origin server can absorb, no matter how big it is. What you actually control is making sure the flood meets a real edge before it meets you. Do that on a calm day, keep the firewall and Fail2ban doing their quiet work, and the typical attack turns into background noise the edge eats. Whether a managed host or you run that stack is part of the wider [managed vs unmanaged](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) question, and it matters most on the day you're under fire.
+1. **An edge in front, switched on before you need it.** This is the load-bearing piece and the only one that answers a volumetric flood. Turn it on during a calm week, confirm traffic actually flows through it, and forget about it.
+2. **Your origin IP not published anywhere.** An edge you can route around is decoration. If your origin answers directly on its own address, someone will find it in DNS history and go straight there. This costs nothing to get right and is the most commonly skipped step on the list.
+3. **A firewall and Fail2ban running on the box.** Not for floods. For the constant low-grade background noise, the SSH probes, the password spraying, the endpoint someone is grinding at. Set it once.
+
+That's it. Everything past that is refinement: rate limits tuned to your endpoints, a WAF rule for whatever pattern shows up in your logs, an "under attack" mode you know where to find. Worth having, not worth blocking on.
+
+If it helps to know where that lands on Kloudbean specifically: step three is already done, since Shorewall and Fail2ban run on every server from launch. Step one is the Cloudflare add-on, paid on standard plans and included with Enterprise. Step two is on you either way, because no host can stop you pointing a spare DNS record straight at your own origin.
+
+And the honest limit, which you should be suspicious of any provider not stating. Nobody stops every DDoS attack. A large enough volumetric flood is an edge and upstream-capacity problem, and no origin server, ours included, absorbs one no matter how big you size it. What a host can do is give you a real edge to hide behind and a hardened box underneath. What no host can do is make that decision for you on a quiet afternoon, which is the day the decision is cheap. Whether you'd rather run that stack yourself is the wider [managed vs unmanaged](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) question, and it gets loud on the day you're under fire.
 
 ---
 

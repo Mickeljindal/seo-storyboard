@@ -31,3 +31,19 @@ where-to-deploy-nodejs-app, render-vs-railway-vs-kloudbean, deploy-node-app-to-m
 
 ## Voice / gate
 0 em-dashes (incl. in JS strings, use commas). Contractions, decisive, fair. >=1400 words prose (tool excluded from count). JSON-LD Article+FAQPage valid (widget script is data-kb-widget, not ld+json, so extraction unaffected). Images resolve. 0 banned blurbs. .html and .md in sync (.md carries a static version of the tool). 2026.
+
+## Update (product-placement pass)
+
+The interactive JS quiz widget described above was REMOVED, per the owner constraint against shipping
+interactive JS tools in articles. It is replaced by the static equivalent that does the same job: the
+four questions as a list, an inline SVG decision tree (Q1 awake, then Q2 priority, four outcomes), and
+an answers-to-pick table with a "what you are accepting" column. Title, meta, H1, og tags and the
+Article JSON-LD headline no longer claim interactivity. The `details.kb-acc` profile accordions stay,
+since those are plain HTML with no script.
+
+The end-loaded product section ("Where a managed cloud fits, honestly") was replaced with a
+scope-boundary closing, "Four things this tree deliberately doesn't decide" (traffic shape, cold start
+versus slow query, the managed scope boundary including Docker and Enterprise-only features, and an
+explicit no-host-fixes-your-app beat). Platform relevance moved up into the always-on and database
+questions where each genuinely changes the outcome. Also corrected: a platform-wide "no egress meter"
+claim in the profiles accordion, which is only true of the built-in S3-compatible object storage.

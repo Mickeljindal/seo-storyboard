@@ -141,9 +141,9 @@ Test on the temporary `*.kloudbeansite.com` URL, then add your custom domain und
 
 A **503** after a Replit move is almost always one of the rows you half-finished. In order of likelihood: a Secret that didn't get recreated as an environment variable, the app not binding `process.env.PORT` (Replit handled ports for you), or the database code still pointing at `REPLIT_DB_URL` instead of your new connection string. Read `app.error.log` at `/home/admin/hosted-sites/<app_system_user>/app-logs`, and the failure is usually named plainly. The deeper [503 playbook](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/) covers the rest.
 
-## When staying on Replit is the right call
+## When this move isn't worth making yet
 
-To be fair to Replit: if you're still prototyping, learning, or the app is small and its hosting suits you, there's no reason to move. The all-in-one experience is genuinely good for that. The migration pays off later, for two reasons. Cost gets predictable: instead of Autoscale usage billing or a per-Deployment Reserved VM, an owned server is a flat monthly price that several apps can share. And you gain control: the runtime, the process, the database, and the domain are all yours, on standard infrastructure you can move again whenever you want. You can even keep editing in Replit and just push to GitHub, letting your server rebuild. Replit stays the IDE; production lives on the box you own.
+One honest line for Replit: the all-in-one experience is good at what it's for. If you're still prototyping or learning, and the bill is small, none of the pressures below have arrived yet, so nothing here is urgent. The migration pays off later, for two reasons. Cost gets predictable: instead of Autoscale usage billing or a per-Deployment Reserved VM, an owned server is a flat monthly price that several apps can share. And you gain control: the runtime, the process, the database, and the domain are all yours, on standard infrastructure you can move again whenever you want. You can even keep editing in Replit and just push to GitHub, letting your server rebuild. Replit stays the IDE; production lives on the box you own.
 
 ## The honest limits
 

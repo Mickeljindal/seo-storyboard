@@ -67,3 +67,14 @@ Next.js -> Node API -> Postgres, optional cache/queue, backups; navy #000f27 / p
 green #40b75f), light CTA, 9-question FAQ mirrored to FAQPage JSON-LD, plus the clean Organization
 entity block. Near-zero em-dashes. No metrics. Cluster: 2 - Deployment Fundamentals.
 Byline: "Boring architecture is the kind that sleeps through the night."
+
+## Update (product-placement pass)
+
+The single end-loaded "Where Kloudbean fits" paragraph described above is gone. Platform relevance now
+sits inside the sections where it changes the outcome: persistent-process supervision (always-on, PM2,
+multi-process), the managed Postgres locked down by IP allow-listing rather than a private network,
+the build-time ordering of NEXT_PUBLIC_ variables against runtime config, and built-in S3-compatible
+object storage for uploads. The closing is now a reader-serving minimum-setup section, "The cheapest
+version of this that actually holds up": six numbered floor items, what to skip and its trigger, then
+an explicit beat that a missing index, a mis-sized pool and an app that crashes on boot are not things
+any host fixes, ours included.

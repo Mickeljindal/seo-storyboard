@@ -40,7 +40,7 @@
   <p>Here's where most "run Langflow" tutorials wave their hands. Langflow in production is three parts, and if you skip the middle one you'll lose work. The parts:</p>
   <ul>
     <li><strong>The Langflow app itself.</strong> A Python process serving the canvas UI and your flows' API endpoints. This is the light bit.</li>
-    <li><strong>A database for your flows.</strong> Langflow saves your flows, users, and settings. Its default is a local file (SQLite). Fine on your laptop, wrong for a server. Point it at a managed PostgreSQL so your work survives a restart or a redeploy.</li>
+    <li><strong>A database for your flows.</strong> Langflow saves your flows, users, and settings. Its default is a local file (SQLite). Fine on your laptop, wrong for a server. Point it at a managed PostgreSQL so your work survives a restart or a redeploy. Using a managed one also drags your flows into an existing backup job instead of leaving them in a file you'd have to remember to copy.</li>
     <li><strong>A vector store for embeddings.</strong> Any RAG flow turns your documents into embeddings and needs somewhere to keep them. That's a vector database. You can run a dedicated one, or you can enable <strong>pgvector</strong> on the same managed Postgres and keep everything in one place.</li>
   </ul>
   <p>That pgvector detail is the one people wish they'd known on day one. PostgreSQL with the <code>vector</code> extension stores and searches embeddings natively, so a small RAG project doesn't need a second piece of infrastructure. One managed Postgres does both jobs: it holds your saved flows and it holds your embeddings. Fewer moving parts, one thing to back up.</p>
@@ -179,12 +179,22 @@ langflow run --host 0.0.0.0 --port 7860</code></pre>
   <ul>
     <li><strong>Leaving Langflow on its default file store.</strong> The flows live in a local SQLite file, the server restarts or redeploys, and the work is gone. Point it at managed Postgres before you build anything you care about.</li>
     <li><strong>Baking keys into the flow.</strong> Exporting a flow with the provider key typed into a node means the key rides along in the JSON. Keep keys in the environment, reference them, and they never leak into an export.</li>
-    <li><strong>Under-sizing for ingestion.</strong> Orchestration is light, but loading and embedding a big document set can spike memory for a while. If a large import gets killed, resize the box for the ingest, then scale back.</li>
+    <li><strong>Under-sizing for ingestion.</strong> Orchestration is light, but loading and embedding a big document set can spike memory for a while. If a large import gets killed, resize the box for the ingest, then scale back. On Kloudbean the resize up is self-serve, and one caveat worth knowing before you go big: disk can't be shrunk again afterwards, so grow RAM freely and grow disk deliberately.</li>
     <li><strong>Assuming Langflow needs a GPU.</strong> It doesn't, unless you're also self-hosting the model. Put the GPU on the Ollama box, not the Langflow one.</li>
   </ul>
 
-  <h2>How it fits the rest of your stack</h2>
-  <p>Self-hosted Langflow isn't an island. It's a Python app next to a database, which is a shape the platform is built for. Keep the model private by pairing it with <a href="https://www.kloudbean.com/blog/self-host-ollama-open-webui/">your own Ollama and Open WebUI</a>. Lean on <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> for both flows and pgvector embeddings. Because Langflow is so light, it'll happily <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">share one server with your other apps</a>, so the box already running your automations can host your AI flows too. Set <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">the wider AI app</a> around it, and let <a href="https://www.kloudbean.com/blog/server-backups-guide/">automatic backups</a> cover the database. Want the map of everything self-hostable? Start from the <a href="https://www.kloudbean.com/blog/best-self-hosted-tools/">self-hosted tools hub</a>.</p>
+  <h2>What running it yourself signs you up for</h2>
+  <p>Before you commit, look at the ongoing work honestly, because that's what people underestimate. Three jobs land somewhere, and only one of them is really about hosting.</p>
+
+  <ul>
+    <li><strong>The Langflow app: yours.</strong> Version upgrades, breaking changes between releases, flows that need rewiring after an upgrade. Langflow moves fast. No managed platform does this for you, and if you want the version bumps handled by someone else, that's a genuine reason to use the hosted product instead. Not a sales line, just true.</li>
+    <li><strong>The box, the stack, the certificate: the platform's.</strong> OS patching, the Python stack, free SSL on your subdomain, database backups. This is the half you can hand off, and on Kloudbean it's the default rather than something you configure.</li>
+    <li><strong>Your keys, docs, and prompts: yours and nobody else's.</strong> Which was the whole reason you started reading. Keep the provider keys in the server environment, and put IP allow-listing on the managed Postgres so only your app server can reach it.</li>
+  </ul>
+
+  <p>So the decision cue is short. Kicking tyres on an idea, or you'd rather not track Langflow releases? Use the hosted version, honestly, it's fine. Flows carrying customer documents, a key you can't hand to a vendor, or a setup you need to rebuild identically next quarter? Run it yourself, and accept the upgrade chore as the price.</p>
+
+  <p>Nearby pieces if you're building the rest of it: pair it with <a href="https://www.kloudbean.com/blog/self-host-ollama-open-webui/">your own Ollama and Open WebUI</a> to keep the model private, lean on <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> for flows and pgvector both, and since Langflow is light it'll <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">share one server with your other apps</a>. Wire <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">the wider AI app</a> around it, let <a href="https://www.kloudbean.com/blog/server-backups-guide/">automatic backups</a> cover the database, and browse the <a href="https://www.kloudbean.com/blog/best-self-hosted-tools/">self-hosted tools hub</a> for the rest.</p>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Build the AI backend. Keep the keys, the docs, and the flows.</p>

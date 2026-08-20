@@ -39,11 +39,15 @@ This is the fix I'd reach for on any real server, and it's why the error is almo
 
 Run your Node app on a non-privileged port (3000, 8080, anything above 1024) where no special permission is needed, and put a reverse proxy in front of it. The proxy (Nginx, typically) listens on 80 and 443, terminates SSL, and forwards requests to your app on its high port. Your application never needs elevated privileges, the proxy handles the public-facing ports, and you also get TLS termination, compression, and a place to serve static files, all for free. This is the standard production shape for a Node app, and [the Nginx reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/) walks it end to end. If your instinct was to get Node onto port 80 directly, this is the better instinct to replace it with: apps bind high ports, proxies own the low ones.
 
+Whether you build that shape yourself depends on where the app lives. On a bare VPS it's your vhost, your proxy_pass block, and your certificate renewal. On a managed Node server it's the default arrangement: on Kloudbean the app runs under PM2 as a non-root user on its own port while the web server in front holds 80 and 443 with free auto-renewing SSL, and the port your app listens on is a setting rather than a config file you edit over SSH. Either way, the architecture is the same. The difference is who writes it.
+
 ## What not to do: run Node as root
 
 There's a fix that works and that you should not use, so let me be direct about it.
 
 You can make the error vanish by running your Node process as root (or with `sudo`), because root is allowed to bind privileged ports. Don't. Running an internet-facing application as root means that if the app is ever compromised, the attacker has root on your server, not just your app's limited user. You've turned a contained problem into a total one. The privileged-port rule exists precisely to discourage this, and stepping around it with root is defeating a safety feature. If you genuinely need the app itself to bind port 80 without a proxy (rare, but it happens in some container setups), the least-bad option is granting just that one capability with `setcap 'cap_net_bind_service=+ep' $(which node)`, which permits low-port binding without full root. But in almost every case, the reverse proxy is cleaner and you should use it instead.
+
+This is mostly a discipline problem, and discipline erodes at 1am. The reason a managed setup helps is not that root is forbidden, it's that the app is already running as its own user with the proxy already in place, so there's no moment where `sudo node server.js` looks like the fastest way out. Fail2ban and the host firewall are on by default on a Kloudbean server too, which limits the noise but does nothing about a process you deliberately gave root. That part is on you, on any platform.
 
 ## When the port is above 1024
 
@@ -51,11 +55,36 @@ If your EACCES is not about a low port, here's the other branch, so you're not m
 
 Getting EACCES on a high port (say 3000) means the cause is not the privileged-port rule. Look instead at a file or socket permission issue: your app might be trying to bind a Unix domain socket in a directory it can't write to, or a previous run left a socket file owned by another user, or a security policy (SELinux, AppArmor) is blocking the bind. Check who owns the socket file or directory and whether your app's user can write there, remove a stale socket left by a crashed process, and confirm no mandatory-access-control policy is intervening. The error text is the same word, "permission denied," but on a high port it's pointing at the filesystem or a security module, not at the reserved-port rule, so that's where to look.
 
-## Where Kloudbean fits
+None of that branch is a hosting question. A socket path your app user can't write to is your deploy's ownership problem wherever it runs, and no platform can guess which directory you meant. Run `ls -l` on the socket path before you change anything else.
 
-On Kloudbean this error mostly doesn't reach you, because the platform already runs your app the right way: your Node process runs as a non-root user on its own port under PM2, and the web server in front handles ports 80 and 443 and the SSL certificate. That's the reverse-proxy pattern above, set up for you, which is why "how do I bind port 80" is a question you don't have to answer on a managed server. You point the platform at your app and its port, and the public ports and TLS are handled at the layer where they belong.
+## Which EACCES is yours, and which belongs to the layer underneath
 
-The honest boundary: managed hosting sets up the proxy, the ports, and SSL, but your application code choosing a sensible port, and any file or socket permissions inside your own app, remain yours. The platform can route port 80 to your app cleanly; it can't know that your code tried to open a socket in a directory it doesn't own. What it removes is the whole privileged-port dance, which is the version of this error most people actually hit. For where to run Node in production, see [the managed Node.js hosting guide](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/).
+Everything above sorts into two piles, and knowing which pile you're in saves the wasted half hour. Here's the split.
+
+| What actually produced it | Whose fix | What to do |
+|---|---|---|
+| Port 80 or 443 hard-coded in your code | Your code | Read `process.env.PORT` with a high-port default |
+| `PORT` never set in production, so a fallback of 80 kicks in | Your config | Set the variable where the app runs, not in your shell |
+| App started with `sudo` to make the error stop | Your call, and it's the wrong one | Undo it, run as an ordinary user, proxy the low ports |
+| Unix socket in a directory the app user can't write | Your deploy | Fix ownership on the socket directory |
+| Stale socket file left by a crashed process | Your process management | Remove it on start, or let a supervisor handle restarts |
+| No proxy in front, so the app is expected to hold 80 | The server layer | Nginx on 80 and 443 forwarding to your high port |
+| SELinux or AppArmor refusing the bind | The server layer | Adjust the policy, or ask whoever runs the box |
+
+The bottom two rows are the ones people outsource, and on Kloudbean they're already settled: the proxy, the certificate, and the OS policy come with a managed Node server, and the app runs as a non-root user on the port you choose in the console. That's the part of this error a hosting decision genuinely removes.
+
+The top five rows no host can touch, ours included. If `server.js` says `app.listen(80)`, it will fail on every managed platform on earth, and it should. That single line is worth fixing properly, because the same habit is what makes an app awkward to run locally, in CI, in a container, and behind any proxy at all:
+
+```js
+// not this
+app.listen(80);
+
+// this
+const port = process.env.PORT || 3000;
+app.listen(port, () => console.log(`listening on ${port}`));
+```
+
+For where to run Node in production, see [the managed Node.js hosting guide](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/).
 
 ## Related reading
 

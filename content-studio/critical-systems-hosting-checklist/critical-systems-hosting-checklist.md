@@ -46,12 +46,16 @@ Work through it as a gap list rather than a score. Two columns matter for every 
 - Endpoint protection on servers hosting critical systems (2-3-1-2).
 - System logs and critical files protected from unauthorised access, tampering, modification, and deletion (2-3-1-8).
 
+The cadence in 2-3-1-3 is the row that quietly needs an owner. On a managed enterprise engagement Kloudbean patches internet-facing production monthly and internal environments quarterly, remediates critical vulnerabilities immediately, hardens VMs to CIS benchmarks, and re-reviews configuration every six months, then hands you the dated output. Decide now whether that owner is your team or your provider, because a shared assumption is how a patch history ends up with a nine-month hole in it.
+
 ## 5. Database access
 
 - Direct database access prohibited for everyone except database administrators; all other users reach data through applications only (2-2-1-8). *Evidence:* network configuration showing the database is not reachable directly, plus the user and role list.
 - Consider controls that limit or prevent administrators seeing classified data, which the same control asks you to give consideration to.
 
 This control has more architectural consequence than its length suggests, and we covered it separately in [database access control under CSCC 2-2-1-8](https://www.kloudbean.com/blog/database-private-access-control/).
+
+Architecturally it means the database cannot sit on a public endpoint that a person could reach with credentials. On a Kloudbean enterprise engagement the managed database runs on a private IP inside a VPC, reached from the application layer through a connector, with administrative access only via VPN and a bastion. Private networking is an Enterprise capability rather than standard-plan behaviour, which is exactly why this control pushes critical systems onto an enterprise footprint.
 
 ## 6. Logging and monitoring
 
@@ -62,7 +66,7 @@ This control has more architectural consequence than its length suggests, and we
 - Logs protected and complete, including time, date, ID, and affected system (2-11-1-5).
 - Retention of at least 18 months (2-11-2). *Evidence:* the bucket retention setting, and a successful retrieval of an event older than a year.
 
-The retention and immutability distinction trips people up, so it has its own walkthrough in [CSCC 18-month log retention](https://www.kloudbean.com/blog/cscc-log-retention-immutable-logs/).
+The retention and immutability distinction trips people up, so it has its own walkthrough in [CSCC 18-month log retention](https://www.kloudbean.com/blog/cscc-log-retention-immutable-logs/). The short version: a retention period you can shorten is not immutability. On an enterprise engagement Kloudbean centralises OS, application, and audit logs into write-once storage with a retention lock at the 548-day minimum, plus file integrity monitoring on critical VMs, so the artefact for 2-11-2 is a setting nobody can quietly reduce rather than a promise nobody edited the logs.
 
 ## 7. Backup and resilience
 
@@ -101,9 +105,22 @@ Worth separating clearly, because assuming a provider covers these is the most c
 - **Around-the-clock response.** Detection can be built into infrastructure; investigation, severity classification, escalation, and regulator reporting need people.
 - **Commissioning penetration tests** and engaging NCA for formal assessment.
 
-## Where Kloudbean fits
+## Put the recurring obligations in a calendar before anything else
 
-On managed enterprise engagements, Kloudbean configures and maintains the infrastructure-layer rows above and supplies evidence as managed reports, on a dedicated cloud account including Google Cloud's Dammam region (me-central2) where in-Kingdom placement is required. To be clear about the boundary: this is an enterprise engagement rather than a self-serve plan, no provider can make an organisation compliant, and SOC or SIEM operations are scoped collaboratively with you rather than sold as a fixed package.
+Configuration is a project and projects end. The cadences don't, and that asymmetry is where reviews find holes. So before you work the gap list, build this calendar and put a name against every row.
+
+| Cadence | What has to happen | The artefact to keep |
+| --- | --- | --- |
+| Monthly | Patch internet-facing critical systems (2-3-1-3); vulnerability assessment (2-9-2); risk register review | Patch history per host; scan report with remediation notes |
+| Every 3 months | Access rights review (2-2-2); backup recovery test (2-8-2); patch internal systems | Dated review record; restore record including how long it took |
+| Every 6 months | Firewall and access-list review (2-4-1-2); configuration and hardening review (2-3-1-6); penetration test (2-10-2) | Dated review output; test report plus remediation evidence |
+| Annually | DR plan test (3-1-1-3); CSCC implementation review (1-4-1); risk assessment (1-2-1-1) | Dated test record; review report |
+| Every 3 years | Independent review from outside the cybersecurity function (1-4-2) | The independent reviewer's report |
+| Continuous | Round-the-clock event monitoring (2-11-1-4); 18-month retention (2-11-2) | The rota and escalation path; the retention setting, plus a successful retrieval of an event over a year old |
+
+On a managed enterprise engagement Kloudbean owns the infrastructure half of that calendar and produces the artefacts as managed reports: the monthly and quarterly patch cadence, the six-monthly hardening and firewall reviews, daily backups with quarterly restore tests, immutable logging held to the retention minimum, multi-zone failover, and network segregation per environment. That runs on a dedicated cloud account, which can sit in Google Cloud's Dammam region where in-Kingdom placement is required. It's an enterprise engagement with a named onboarding manager and DevOps engineer, not a toggle on a self-serve plan, and it's worth saying plainly that Kloudbean is aligned with the CSCC rather than certified against it.
+
+The rest of the calendar has no provider-shaped answer, and you should be suspicious of anyone who says otherwise. Nobody can decide for you which of your systems meet NCA's criticality criteria. Nobody else can vet your staff, own your risk register, write the masking logic 2-6-1-1 asks for, classify your records, commission your penetration test, or talk to the regulator on your behalf. SOC and SIEM work sits in between: real, and scoped collaboratively per engagement rather than sold as a fixed package. And the failure mode that catches the most organisations is neither technical nor commercial. It's a retention setting that reverted to a cloud default, or a three-monthly access review that nobody put in a diary. Both survive an audit only if someone's name is on the row.
 
 ## Related reading
 

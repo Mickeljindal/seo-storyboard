@@ -76,6 +76,8 @@ You have three common ways to count.
 
 Here's the anti-pattern that quietly defeats all three: **keeping the counter in memory.** A common mistake we see is a limiter that stores counts in a process variable. It works perfectly on your laptop and in a demo. Then you run two app instances behind a load balancer, and each process keeps its own count, so your "30 requests a minute" silently becomes "30 per minute per instance". Scale to four instances and it's 4x. The limit is a decoration. The counter has to live in one shared place every instance reads and writes, and that place is Redis.
 
+Which is a small enough dependency that there's no excuse for skipping it. Managed Redis is one of the seven engines you can launch from Kloudbean's DBS section, it lands with a connection string you drop into the runtime config, and you whitelist your app server's IP so nothing but your app can talk to it. Ten minutes, and the limit you wrote is the limit you actually enforce.
+
 And an opinion, because it saves time: most teams over-engineer the algorithm and under-engineer the kill switch. A plain token bucket in Redis is enough for almost everyone. Spend your energy on the spend cap, not on picking between sliding-window variants.
 
 Here's a correct, atomic token bucket. The check-and-take runs as one Redis Lua script so two simultaneous requests can't both think they got the last token.
@@ -165,6 +167,8 @@ Rate limits cap frequency. They don't directly cap dollars, and that distinction
 
 **Build a kill switch.** One flag in Redis, checked before every model call. Flip it and all model calls stop instantly, everywhere, no redeploy. It's the thing you reach for at 2am when something is very wrong and you want the bleeding to stop now.
 
+The "no redeploy" part is the whole value, and it's why this belongs in Redis rather than in an environment variable or a config file. A flag in the shared store is read on the next request by every instance, with nothing to rebuild and nothing to restart. That also means the process holding your spend totals has to stay up between requests to be worth anything, which is what always-on Node and Python processes on Kloudbean give you: no cold start quietly resetting a counter you were relying on.
+
 ```js
 // checked before every model call
 if (await redis.get("killswitch")) {
@@ -205,13 +209,31 @@ Return **429 with a Retry-After header** telling the client how many seconds to 
 
 Whatever you pick, don't show a raw error. Tell the user they're going a little fast and to try again in a few seconds, or degrade quietly in the background. Handled well, a 429 is a speed bump. Handled badly, it looks like a crash.
 
-## Where Kloudbean fits
+The queue-and-defer option is the one with an infrastructure cost attached, so weigh it honestly: something has to drain the queue later. That's a worker process, or a scheduled job if the work batches naturally. Both are ordinary on a platform that runs long-lived processes and has cron in the console, which Kloudbean does, and both are awkward on anything that only wakes up for an HTTP request. If deferring means building a whole second execution model, return the 429 and move on.
 
-Two things make this whole setup work: a shared store for the counters and a process that's always running to enforce them. Kloudbean gives you both in one dashboard. You get a managed Redis (one of its managed databases) for your token buckets, concurrency counters, spend totals, and the kill-switch flag, and an always-on server (Node or Python) to run the limiter middleware. No cold starts resetting a counter, one process with a shared connection pool. Set `REDIS_URL` and your model key as environment variables in the dashboard, get free SSL, and deploy from Git on every push.
+## What skipping each control actually costs you
 
-If you want a coarse edge layer, Cloudflare is available as a paid add-on (free for Enterprise) and can do IP rate limiting in front of the app. That's an optional blunt filter, not the per-user control, and it isn't specific to Kloudbean. Baseline server hardening is Shorewall plus Fail2ban. The per-user and per-key limiting is your application code, Redis-backed. Kloudbean provides the Redis and the always-on process; it does not rate-limit your AI endpoint for you, and there's no magic WAF that does it either. You lock the database down by whitelisting your app server's IP, so only your app can reach Redis and everything else is refused. Full network isolation in a private VPC is an Enterprise capability, not the standard default.
+Every item in this article is easy to defer, and each one has a specific bill attached when it's finally tested. Not a percentage, not a scary statistic, just the concrete thing that happens. This is the list I'd read before deciding what to leave out.
 
-The honest boundary: managed means Kloudbean runs the server, the stack, SSL, backups, and patching. Your code, your prompts, your limits, and your data stay yours. It gives your limiter a solid home with a real shared counter. It can't decide your budgets for you. For the wider picture of what AI builders leave for you to finish, see [the last mile of vibe coding](https://www.kloudbean.com/blog/last-mile-of-vibe-coding/), and run the [AI-built app security checklist](https://www.kloudbean.com/blog/ai-built-app-security-checklist/) before you open the doors. If you're still choosing where to run it, [best hosting for AI SaaS](https://www.kloudbean.com/blog/best-hosting-for-ai-saas/) weighs the options, and [hosting an AI chatbot in production](https://www.kloudbean.com/blog/host-ai-chatbot-in-production/) shows the same limits in a full app.
+**No provider spend cap.** The failure is unbounded, which is the point. Everything else in this article is your code, and your code can have a bug at 2am while you sleep. The provider's cap is the only control enforced somewhere your bug can't reach. Skip nothing else on this list before you skip this.
+
+**No per-user budget, only a global cap.** One caller can spend the entire budget, and when the global cap trips it takes every paying customer down with them. You get an outage caused by abuse instead of a blocked abuser. Worse, you find out from a support ticket rather than an alert.
+
+**Counters in process memory.** No visible failure at all, which is what makes it nasty. The limiter looks like it's working, and your real ceiling is silently multiplied by however many instances you run. You discover the true number from the invoice.
+
+**No concurrency cap.** Requests-per-minute limits let a single user hold twenty long streaming calls open at once and stay technically compliant. Your server runs out of sockets or memory before your rate limit says a word.
+
+**No token accounting.** You can't answer "who spent this?" and you can't answer it retroactively either, because the usage numbers came back on the response and you threw them away. Every billing dispute becomes a guess.
+
+**No kill switch.** The 2am scenario turns into a deploy under pressure, which is the worst time to deploy anything. A flag you can flip is minutes; a code change you have to ship, review and deploy while spend climbs is not.
+
+**No `max_tokens` and no model routing.** Nothing breaks. The bill just runs two or three times higher than it needs to, forever, on work a cheaper model would have done fine.
+
+**No polite 429.** Clients retry harder, which multiplies exactly the traffic you were trying to reduce, and users read it as your app being broken rather than them going too fast.
+
+Now the part worth being straight about, because it cuts against the pitch. Nothing here is fixed by choosing a host. There's no WAF, no edge product, and no managed platform that rate-limits your AI endpoint for you, ours included, because the limit is keyed on a user identity only your application knows. Kloudbean can't decide your budgets, write your token bucket, or pick your `max_tokens`. What it can do is stop the two things this code depends on from being infrastructure projects: managed Redis for the buckets, spend totals and the kill-switch flag, and an always-on Node or Python process so nothing cold-starts your counters back to zero. `REDIS_URL` and your model key go in the console's environment variables, deploys come from Git, SSL is free, and Redis is locked to your app server's IP so nothing else can read your counters. Full network isolation in a private VPC is an Enterprise capability rather than the standard default. If you want a blunt edge filter on top, Cloudflare is a paid add-on (free on Enterprise) and baseline hardening is Shorewall plus Fail2ban, but treat those as flood protection, not cost control.
+
+For the wider picture of what AI builders leave for you to finish, see [the last mile of vibe coding](https://www.kloudbean.com/blog/last-mile-of-vibe-coding/), and run the [AI-built app security checklist](https://www.kloudbean.com/blog/ai-built-app-security-checklist/) before you open the doors. If you're still choosing where to run it, [best hosting for AI SaaS](https://www.kloudbean.com/blog/best-hosting-for-ai-saas/) weighs the options, and [hosting an AI chatbot in production](https://www.kloudbean.com/blog/host-ai-chatbot-in-production/) shows the same limits in a full app.
 
 ## Put your rate limiter on a foundation that actually holds a shared counter
 

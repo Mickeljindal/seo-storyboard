@@ -130,7 +130,7 @@ sudo sh -c ': > /var/log/myapp/out.log'
 
 Two things never to do on a production box under pressure. Don't wipe a log directory wholesale, as in `rm -rf /var/log` or anything shaped like it, because you'll destroy the evidence you need for the postmortem and break services that expect their log paths and permissions to exist. And never `rm` anything inside a database data directory, including files that look like logs. To Postgres and MySQL those files are the database, and removing them can leave you restoring from backup instead of recovering in place.
 
-The rule that keeps you out of trouble: identify the file, work out which process owns it, then act. If you can't identify it, leave it alone, and take a snapshot or backup before touching anything you're unsure about. Also resist the urge to "fix permissions" while you're in there. `chmod 777` on a log or upload directory turns a capacity incident into a security one.
+The rule that keeps you out of trouble: identify the file, work out which process owns it, then act. If you can't identify it, leave it alone, and take a snapshot or backup before touching anything you're unsure about. On a Kloudbean server that's an on-demand backup from the dashboard, taken before the cleanup rather than after you've discovered the file mattered. Also resist the urge to "fix permissions" while you're in there. `chmod 777` on a log or upload directory turns a capacity incident into a security one.
 
 <!-- ADD IMAGE: Output of lsof +L1 showing a deleted log file still held open by a running process, with the size column visible. -->
 
@@ -234,7 +234,7 @@ Then go find out why it's crashing, because the dumps are a symptom.
 
 Nearly every full-disk incident I've looked at traces back to one of two things: no log rotation policy, or user uploads sitting on the application server's local disk. Neither is a capacity problem. Both are design problems that present as capacity problems.
 
-Resizing the volume feels like a fix. It's a delay. If a log grows without bound, a bigger disk changes the date of the next outage and nothing else. Resize when you genuinely need room for data you intend to keep, or for headroom mid-incident, then go fix the cause the same week.
+Resizing the volume feels like a fix. It's a delay. If a log grows without bound, a bigger disk changes the date of the next outage and nothing else. Resize when you genuinely need room for data you intend to keep, or for headroom mid-incident, then go fix the cause the same week. Worth knowing before you reach for it: on Kloudbean, sizing a server up is self-serve from the console, but disk can't be shrunk again afterwards, which is true of most cloud volumes. So a panic resize is a one-way door on your monthly bill. Get the space, then remove the reason you needed it.
 
 The anti-pattern worth naming, because it's everywhere: disk fills, someone deletes logs, restarts the service, closes the ticket, adds no rotation. That's not a fix, it's a subscription. The same outage comes back on a schedule set by your log volume, usually at a worse hour with a less experienced person on call.
 
@@ -244,9 +244,23 @@ Three things, in order of how much grief they save.
 
 1. **Rotation on every log path, tested.** Not just your app. Nginx, the journal, cron output, worker logs, anything that appends. Run `logrotate -d` so you know the policy parses, then check a week later that files really are rotating.
 2. **An alert at a threshold you can act on.** Somewhere around 75 to 80% used gives you time to think instead of react. Alert on inode usage too, since a bytes-only check misses that failure completely, and note that an uptime check which only asks whether the site answers won't catch a disk creeping toward full.
-3. **Get user uploads off the application server.** Files that grow with your user base don't belong on a volume sized for an OS and an app. Object storage moves that growth somewhere designed for it, and it makes your app server disposable again.
+3. **Get user uploads off the application server.** Files that grow with your user base don't belong on a volume sized for an OS and an app. Object storage moves that growth somewhere designed for it, and it makes your app server disposable again. Kloudbean has S3-compatible buckets built in, and because data transfer out of that built-in storage isn't metered, serving images from a bucket doesn't turn a disk problem into a bandwidth bill. The code change is usually one storage driver and one env var.
 
-A practical note on where that leaves you: the two durable fixes are keeping uploads off the server's disk and having backups plus monitoring so a filling disk becomes a warning instead of an outage. On Kloudbean that's S3-compatible object storage for uploads, automatic backups you can restore from if a cleanup goes wrong, uptime monitoring, and managed servers where the stack and patching are handled, though rotation for your own application logs is still yours to configure.
+## Who actually fixes a full disk: your code, your config, or the server layer
+
+Full disks get blamed on hosting more than almost any other incident, and most of the time that's the wrong address. Here's the honest split, ours included.
+
+| What filled it | Who owns the fix | What that means in practice |
+|---|---|---|
+| Unrotated application logs | **Your config.** No host fixes this | A managed platform patches the OS and runs the stack. It does not know your app writes 4GB a day to a path you invented. The logrotate policy is yours to write, on any host. |
+| User uploads on local disk | **Your code**, with somewhere to put them | You change the storage target. The platform supplies the bucket: Kloudbean's S3-compatible storage is in the same dashboard as the server. |
+| WAL, binlogs, replication slots | **Shared** | Retention and slot hygiene are database decisions. On a managed database engine you're at least not also sizing and patching the DB host while the disk is at 100%. |
+| Package cache, old kernels, journal | **Server layer** | This is the part managed hosting genuinely removes from your week, since patching and cleanup happen without you scheduling them. |
+| Volume honestly too small for real data | **You decide, the platform executes** | Vertical resize up is self-serve. Disk can't be shrunk back, so decide with data rather than during the incident. |
+| Finding out from users instead of an alert | **Monitoring** | Watch bytes and inodes. A check that only asks "does the site respond" reports success right up to the moment it doesn't. |
+| The same outage every few months | **You.** Nobody can outsource this | No provider, ours included, can install the habit of fixing the cause instead of the symptom. |
+
+If a row in that table says "your config" or "your code", changing hosts won't help you. The rows a managed platform does own are the boring ones, and the useful thing about having backups, object storage, managed databases and monitoring in one place is that the fix for the rows you own stops being a procurement exercise.
 
 ## Related reading
 

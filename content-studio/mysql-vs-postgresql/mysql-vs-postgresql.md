@@ -33,6 +33,10 @@ Building on WordPress, WooCommerce, or a classic PHP stack? Use MySQL or MariaDB
 
 The honest bit most articles skip: for a typical CRUD web app with a few thousand users, you could flip a coin and be fine. The differences below decide the edges. Knowing the edges is how you choose on purpose instead of by vibe.
 
+It also helps to notice how much of the old pressure on this decision was operational, not technical. Choosing an engine used to mean choosing what your ops team would learn to run. When both are one-click managed engines on the same screen (Kloudbean lists seven: MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB), the decision drops down to a per-project one. That doesn't make the engineering differences below go away. It just means picking "wrong" costs you a migration, not a hiring plan.
+
+![The Kloudbean console launching a managed database, with MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB as choices](../assets/console/launch-database.png)
+
 <!-- Decision tree SVG in the HTML: Start -> need JSONB/arrays/PostGIS/pgvector? -> WordPress/LAMP/PHP? -> complex queries or strict integrity? -> team fluent in one? -> default PostgreSQL. Follow the branches by what your project needs; ecosystem and team familiarity override the default. -->
 
 ## MySQL vs PostgreSQL: the differences that actually decide it
@@ -89,12 +93,23 @@ This one has no real MySQL equivalent, and it's why so many teams quietly standa
 
 MySQL earns its enormous install base here, and it's not nostalgia. Its replication is mature and well-understood, and decades of tooling, tutorials, and hire-able expertise have grown around it. It's the database of WordPress, a huge slice of the web, and the default on most shared hosting. If you live in PHP, or you want the widest pool of people who can operate your database at 2am, MySQL or MariaDB is the frictionless path. Postgres has excellent replication too, both streaming and logical. But the gravity of the MySQL ecosystem is a real reason to choose it, especially for content sites and standard web apps. It's also why people go looking for [a PlanetScale alternative that is just plain managed MySQL](https://www.kloudbean.com/blog/planetscale-alternative/): they want the ordinary engine and a normal connection string, not a platform-specific workflow wrapped around it.
 
+That ecosystem gravity shows up in tooling too, and it's worth knowing before you choose, because it's one of the few places the engine changes what you can do cheaply. On Kloudbean, [read replicas](https://www.kloudbean.com/blog/database-read-replicas-scaling/) are one-click for MySQL and MariaDB on a standard plan, while replicas for every engine, Postgres included, come with Enterprise. So if "reads will outgrow one box and I want to fix that with a click, soon" is your near-term future, MySQL gets you there on a cheaper plan. It's a small point next to JSONB and extensions, and it's still the kind of detail that decides a real project. One constraint applies to both engines: the primary lives in a single region. Replicas can sit elsewhere, the primary can't.
+
 ## Where people pick wrong
 
 A few patterns come up again and again, and they're all avoidable.
 
 - **Picking Postgres for a WordPress site.** WordPress is built on MySQL. Choosing Postgres here means fighting plugins, hosts, and every tutorial you'll ever read. Don't. Use MySQL or MariaDB and move on.
-- **Picking MySQL, then needing what Postgres has.** The team ships on MySQL because a tutorial did, then six months later they want PostGIS or pgvector and end up bolting on a second database. If you can see that future, start on Postgres.
+- **Picking MySQL, then needing what Postgres has.** The team ships on MySQL because a tutorial did, then six months later they want PostGIS or pgvector and end up bolting on a second database. If you can see that future, start on Postgres. And if you don't see it in time, running both is a smaller deal than it sounds: two launches, two connection strings, and your app picks an engine from config rather than from code.
+
+```bash
+# Same app, whichever engine you pointed it at
+DATABASE_URL=postgresql://appuser:secret@10.0.0.5:5432/appdb
+DATABASE_URL=mysql://appuser:secret@10.0.0.5:3306/appdb
+```
+
+![The Kloudbean console environment variables screen, where the database connection string lives outside the code](../assets/console/env-vars.png)
+
 - **Choosing on a benchmark you found online.** Someone else's numbers, on someone else's hardware, running someone else's query, tell you almost nothing about your app. If performance actually matters, run `EXPLAIN` on your own slow query and add the missing index. That's where the real wins are.
 
 And while we're clearing the air, retire two ancient beliefs. "Postgres is slow" is decades out of date; on complex queries it's often the faster one now. "MySQL can't handle serious work" is equally false; it runs some of the largest sites on earth. Both grew up and borrowed each other's best ideas. Choose on fit, not on stale trash talk.
@@ -115,23 +130,20 @@ No hedging. Here's the call.
 
 Both are mature, actively developed, free, and open source, and both will outrun what most projects ask of them. This is a fit decision, not a bet you can lose.
 
-## You don't have to marry one
+## What this argument doesn't settle
 
-Here's the part that takes the pressure off. On Kloudbean, MySQL and PostgreSQL are both one-click managed engines, next to MariaDB, Redis, Elasticsearch, and MongoDB. You launch the one you chose, get a connection string, point your app at it, and it's backed up from minute one and locked to your app server's IP so only it can connect.
+Worth being blunt about, because a lot of the energy people spend on this choice is energy they're avoiding spending on the thing that's actually slow. Whichever engine you land on, the list below is unchanged.
 
-![The Kloudbean console launching a managed database, with MySQL, PostgreSQL, MariaDB, Redis, Elasticsearch, and MongoDB as choices](../assets/console/launch-database.png)
+| Doesn't change with the engine | Why |
+| --- | --- |
+| Whether your slow query has an index | Both engines will scan a large table for you happily and forever. Read the plan, add the index. `EXPLAIN` in Postgres, `EXPLAIN` in MySQL, same job. |
+| Schema and migration discipline | A nullable column that shouldn't be, a missing foreign key, a migration nobody tested against production data. Postgres is stricter, so it catches more at the door. It doesn't design the schema. |
+| Connection pooling | Every connection costs memory on either engine, and both have a ceiling you can hit. One pool per process, sized to the database. See [connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/). |
+| Whether your backups restore | Automatic backups exist for both, on any decent managed platform. A restore you've never run is a belief. Run one this quarter. |
+| Your app crashing on boot | No host fixes this, ours included. A managed engine will accept connections perfectly while your app dies on a bad migration. |
+| Compliance obligations | The platform provides infrastructure controls and data residency. Being compliant is assessed against your organisation, never against your database engine or your host. |
 
-Because it's a click, you can pick per project, or run both: Postgres for the app that needs JSONB, MySQL for the WordPress site beside it. Your app reads its connection from an environment variable, so pointing it at an engine is config, not code.
-
-![The Kloudbean console environment variables screen, where the database connection string lives outside the code](../assets/console/env-vars.png)
-
-```bash
-# Same app, whichever engine you picked
-DATABASE_URL=postgresql://appuser:secret@10.0.0.5:5432/appdb
-DATABASE_URL=mysql://appuser:secret@10.0.0.5:3306/appdb
-```
-
-Managed here means the platform runs and patches the engine, locks it down so only your whitelisted app server can reach it, and backs it up, while your schema and data stay yours and exportable anytime. Both engines run on Linux, where nearly every web app lives. For the deeper how-to, see [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), or the guides for [managed MySQL hosting](https://www.kloudbean.com/blog/managed-mysql-hosting/) and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/). Rather run it yourself? [Managed vs self-managed](https://www.kloudbean.com/blog/managed-database-vs-self-managed/) weighs that honestly. When reads pile up, [read replicas](https://www.kloudbean.com/blog/database-read-replicas-scaling/) are the usual next step for either engine, and a [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/) cache takes pressure off both.
+So decide with the verdict above, then go spend the saved afternoon on the query plan. If you want the operational side handled either way, both engines run one-click and patched with automatic backups and IP allow-listing so only your app server can reach them, with your schema and data yours to export whenever you like. The how-to is in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), and the engine-specific detail in [managed MySQL hosting](https://www.kloudbean.com/blog/managed-mysql-hosting/) and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/). Rather run it yourself? [Managed vs self-managed](https://www.kloudbean.com/blog/managed-database-vs-self-managed/) weighs that honestly, and a [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/) cache takes read pressure off either engine.
 
 ---
 

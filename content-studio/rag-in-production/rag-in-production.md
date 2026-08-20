@@ -104,6 +104,8 @@ Keeping the index honest takes a few deliberate moves:
 - **Delete when the source is deleted.** Removing a document has to remove its vectors too. Orphaned vectors are the most dangerous kind, because they represent content that no longer exists anywhere you can audit.
 - **Version and reconcile.** Tag chunks with a document version, and run a periodic reconcile job that compares the index against the source of truth and cleans up drift. A scheduled task (a cron job beside the app) is the usual home for that sweep.
 
+That reconcile job is the one piece of RAG infrastructure people skip because it needs somewhere to run on a schedule, and wiring cron on a box you also have to maintain feels like a project. It shouldn't be. On Kloudbean cron jobs are a form in the console rather than an SSH session and a crontab you'll forget you edited, which matters mostly because a drift sweep you can see and change is a drift sweep that still runs in six months.
+
 Tie ingest to your document lifecycle, so create, update, and delete each trigger the right index action. If your app can change a document without touching the index, the index will drift, and drift always shows up at the worst moment.
 
 ## Permissions: never hand back another user's data
@@ -138,6 +140,8 @@ The defensive kit is standard, it just has to actually be there:
 
 None of this is exotic. It's the difference between a pipeline that shrugs off a rough afternoon at your provider and one that silently corrupts your index during it.
 
+All of it also assumes the worker is still alive, which quietly rules out a lot of hosting. Backoff and checkpointing need a process that keeps running between requests, so a platform that spins your code up per HTTP request and tears it down again can't hold the retry loop for you. Kloudbean runs always-on Node and Python processes, with PM2 for multiple Node processes, so the ingest worker sits beside the app as a long-lived thing rather than something you fake with a queue of HTTP calls to yourself.
+
 ## Watch retrieval quality and the bill
 
 Two things you can't manage if you can't see them: whether retrieval is any good, and what it's costing you.
@@ -146,13 +150,22 @@ For quality, log what got retrieved for every answer. The chunk IDs, their simil
 
 For cost, embeddings and model calls are metered, and a naive pipeline wastes money in obvious ways. Cache embeddings for repeated or near-identical queries. Batch embedding calls during ingest instead of one HTTP round trip per chunk. Skip re-embedding chunks whose content hash hasn't changed. Cap your top-k so you're not shoving twenty chunks into a prompt when five would answer better and cheaper. And track spend per tenant, because the one customer who uploads their entire document management system will show up in the bill before they show up in a meeting.
 
-## Where Kloudbean fits
+Two of those savings need somewhere to live. The query and embedding cache wants Redis with a TTL, which is one of the seven managed engines on Kloudbean and is a launch rather than a new vendor. The content-hash trick needs the original document still sitting in object storage so you can re-embed just the changed chunks, and Kloudbean's built-in S3-compatible storage doesn't meter data transfer out, so reading your own corpus back for a re-embed doesn't add a cost on top of the embedding calls you're already paying for. That last point is specific to the built-in buckets; managed Google Cloud Storage bills egress and ingress like any hyperscaler bucket.
 
-Everything above is engineering you own. The reason it usually hurts is logistics: the vectors live on one service, the queue on another, the documents somewhere else, and each has its own console, its own bill, its own way to lock down access. Kloudbean's angle is putting the whole stack in one dashboard.
+## A user says the answer was wrong. Retrieval miss or generation miss?
 
-The pieces a RAG app leans on map cleanly onto what's there: a [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) database to keep your vectors beside your application data (pgvector is the standard Postgres extension for that, though enabling it depends on your Postgres version and setup, so check availability); [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/) to back the ingest queue and cache repeat queries; S3-compatible [object storage](https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/) for the source documents; and your embedding worker running as its own long-lived process right next to the app on the managed Node or Python runtime. You deploy from Git on every push, backups run automatically, SSL is free, and you lock the database down by whitelisting your app server's IP so only it can connect. No public database, no separate networking product to wrangle.
+This is the question you'll be asked most, and the one people answer worst. The instinct is to blame the model and start rewriting the prompt, which fixes maybe a third of these. Here's the cue I'd use, and it takes about a minute if you kept the retrieval log from the section above.
 
-The honest boundary, because it's the part that builds trust: managed means the platform runs the server, the stack, SSL, backups, and patching. Your application code, your data, and your retrieval logic stay yours. Kloudbean can keep Postgres, Redis, and your worker healthy and reachable. It can't make your chunking smart or your tenant filter correct. That's the work in this article, and it belongs to you. For the wider map of what changes when an AI app meets real users, see [the last mile of vibe coding](https://www.kloudbean.com/blog/last-mile-of-vibe-coding/).
+**Open the trace and read the chunks the model was handed.** Everything follows from that one look.
+
+- **The right chunk isn't in the list.** That's a retrieval miss, and the prompt is irrelevant. Work backwards: was the document ever ingested? Did the chunk survive the last update, or is it a stale version? Is your top-k cutting it off at five when it ranked seventh? Is your chunking splitting the answer across a boundary so neither half matches? Most retrieval misses are an ingest or chunking problem wearing a model costume.
+- **The right chunk is there, and the answer still isn't in it.** Now it's a generation miss, and prompt work is the right move. Tell the model to answer only from the provided context and to say it doesn't know otherwise. Check you're not burying the useful chunk under fifteen mediocre ones, because a smaller, better context usually beats a bigger one.
+- **The chunk is there, correct, and the model contradicted it.** Rare, and usually a sign the context is too long or the instruction is too vague. Cut top-k and tighten the instruction before you reach for a bigger model.
+- **The chunk belongs to someone else.** Stop. That's not a quality bug, it's the permission failure from earlier in this article, and it's the only item on this list that's an incident.
+
+Notice that three of those four branches lead back to your ingest pipeline, not your prompt. That's the useful bias to carry into RAG debugging.
+
+None of this is something a host can do for you, and I'd be suspicious of anyone selling it as such. No platform makes your chunking smart, writes your `tenant_id` filter, or decides your top-k, and Kloudbean doesn't either. What it does remove is the logistics that make the pieces above annoying to assemble: the vectors, the cache, the documents and the worker usually arrive from four vendors with four consoles and four bills. Here they're one dashboard. [Managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) holds your vectors beside your application data with pgvector where your Postgres version supports it, [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/) backs the queue and the cache, S3-compatible [object storage](https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/) keeps the source documents, and the embedding worker runs as a long-lived process next to the app. Git deploys, automatic backups, free SSL, and the database locked to your app server's IP. The retrieval logic stays yours, which is as it should be, because it's the part that's actually your product. For the wider map of what changes when an AI app meets real users, see [the last mile of vibe coding](https://www.kloudbean.com/blog/last-mile-of-vibe-coding/).
 
 **Give your RAG stack one home.** Run the vector store, the queue, the documents, and the worker in a single dashboard. Managed PostgreSQL and Redis, S3-compatible object storage, a background process beside your app, automatic backups, and free SSL, deployed straight from Git. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
 

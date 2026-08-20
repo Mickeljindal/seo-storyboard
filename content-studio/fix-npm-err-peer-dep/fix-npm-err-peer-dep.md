@@ -116,6 +116,8 @@ legacy-peer-deps=true
 
 A committed `.npmrc` with a dated note is a known compromise. A flag one developer types is a trap for everyone else.
 
+The same trap has a hosting-flavoured version. Any platform that lets you set environment variables for the build, Kloudbean's console included, makes it tempting to unblock a red deploy by adding `NPM_CONFIG_LEGACY_PEER_DEPS` there and walking away. Resist that specifically. It's the same undocumented flag as your shell history, just stored somewhere even fewer people will look, and the repo still doesn't build for anyone else. Put it in `.npmrc` where a reviewer trips over it.
+
 ### 4. Pin a transitive dependency with overrides
 
 When the conflict is deep in the tree and you can't upgrade the package that pulls it in, `overrides` in `package.json` forces one version of that dependency everywhere, and it stays in version control where reviewers see it:
@@ -184,6 +186,8 @@ npm ci
 # If that fails but "npm install" succeeds, your fix isn't committed.
 ```
 
+A Git-based deploy is CI whether you call it that or not. Kloudbean's managed CI/CD installs from your committed files on every push, so the deploy is a clean strict install by design, and that's a feature rather than an obstacle: it fails on the machine you can watch instead of succeeding by accident and drifting away from what you tested. The build log streams live in the console, which is where you'll read the full ERESOLVE block rather than a red badge.
+
 This class of "works here, breaks there" bug is everywhere in Node deploys. Same shape as the case-sensitivity trap behind [Error: Cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/), and a frequent cause of a [Node app crashing on deploy](https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/).
 
 ## npm ci versus npm install, and why the lockfile matters
@@ -231,9 +235,24 @@ The commit message matters. Six months from now it's the only explanation anyone
 7. Commit `package.json` and `package-lock.json`, then verify with a clean `npm ci`.
 8. Skip `--force`.
 
-## Most people meet this error in a build log, not a terminal
+## How to prove the conflict is fixed rather than just quiet
 
-Installs on your laptop are incremental, so a peer conflict often first shows up during a deploy, where the install runs clean and strict. What you need then is the raw install output, not a red "build failed" badge. Kloudbean's managed CI/CD deploys from your Git repo and streams live build logs into the console alongside deployment history, so you can read the failing build's actual ERESOLVE block and go straight to the `Found:` and `peer` lines. Resolving the conflict in `package.json` is still your job. You just get to see it.
+Almost every bad outcome on this page comes from stopping too early. The install printed no red text, so the work felt done. Quiet is not the same as resolved, and there are three specific tests that tell them apart.
+
+**First, reproduce the strict install locally.** Your warm `node_modules` is hiding the answer, so throw it away and let npm resolve from committed files only:
+
+```bash
+rm -rf node_modules
+npm ci
+```
+
+If that fails while `npm install` succeeds, whatever you did isn't in the repository. Stop and put it there.
+
+**Second, check that a reviewer can see the compromise.** Open the diff. A version bump, an `overrides` block, or an `.npmrc` line with a dated reason all survive a code review. A flag in your shell, in one machine's global npm config, or in a build environment variable does not, and a fix nobody can find is a fix that gets re-broken.
+
+**Third, let a clean machine be the judge.** This is the part where a Git-based deploy earns its keep: it installs from your committed files with no history, which is exactly the condition your laptop can't reproduce convincingly. On Kloudbean that install runs on every push with the build log streaming beside deployment history, so a conflict shows up as the actual `Found:` and `peer` lines you can act on, and a passing build is meaningful evidence rather than a hopeful sign. If you'd rather see it fail before it deploys, run the same clean install in a pre-push check.
+
+Now the part hosting cannot do, and this one is worth saying plainly because the temptation is real. No platform resolves a version conflict for you. If `react-fancy-widget@2` genuinely does not support React 18, that stays true on every build machine ever made, and a build that goes green because someone globally disabled peer checks is not a fixed dependency tree, it's an unobserved one. The decision, upgrade the complainer, align the versions, scope an override, or accept a dated stopgap, is a judgement about your own code. All a good platform does is show you the real error and run the strict install honestly.
 
 ![Live build logs from a Git deploy in the Kloudbean console showing the npm install step](../assets/console/git-deployment.png)
 

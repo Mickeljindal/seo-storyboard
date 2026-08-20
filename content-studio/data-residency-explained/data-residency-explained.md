@@ -74,9 +74,9 @@ Same move for the database. A managed engine launches into the region and networ
 
 This is where residency quietly goes wrong, and it's the part thin guides skip. You lock your primary database to a region, feel done, and forget that your data has been quietly copying itself somewhere else the whole time. Four copies catch people out.
 
-- **Backups.** A backup is a full copy of your data. If backups land in a different region than the primary, your data now lives in two places, and the second one might be somewhere you didn't intend. Always check where backups go. There's more on getting this right in the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/).
+- **Backups.** A backup is a full copy of your data. If backups land in a different region than the primary, your data now lives in two places, and the second one might be somewhere you didn't intend. Ask your provider, us included, which region the backup copy actually lands in, and get it in writing rather than assuming it matches the primary. It's a one-line question that saves an awkward answer later. There's more on getting this right in the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/).
 - **Logs and analytics.** Request logs, error traces, and product analytics carry personal data more often than people admit. IP addresses, emails, user IDs. And they frequently ship straight to a third party sitting in another country. That's data leaving your region through a side door.
-- **The CDN edge.** A CDN caches copies of your content at edge locations around the world. For public, static assets, fine, that's the whole point. But if you cache authenticated or personal responses, you've scattered copies of personal data across dozens of countries without meaning to. Know exactly what you let the edge cache.
+- **The CDN edge.** A CDN caches copies of your content at edge locations around the world. For public, static assets, fine, that's the whole point. But if you cache authenticated or personal responses, you've scattered copies of personal data across dozens of countries without meaning to. Know exactly what you let the edge cache. This applies to the Cloudflare add-on on a Kloudbean account exactly as it does anywhere else: turning on edge caching is a speed decision that quietly becomes a residency decision the moment a cached response contains someone's name.
 - **Third-party SaaS.** Every service you forward data to has its own residency. A payment processor, an email sender, an analytics tool, an LLM API. Your residency is only as tight as the vendors you hand data to, so their locations are your locations too.
 
 None of these are exotic. They're the default plumbing of a normal app. The mistake isn't using them. It's not knowing they hold copies. Map the copies before someone asks you to.
@@ -102,13 +102,25 @@ Say you run a small SaaS product, and you're about to close a deal with a German
 
 So you provision your server and managed database in an EU region, keep processing there, and when their security team asks where the data lives, you say "Frankfurt" and move on. Notice the speed. The moment a contract named a location, every other consideration fell away. That crisp answer does more for a security review than a page of policy ever will.
 
+Frankfurt is an easy one. The harder version of this conversation is when the clause names somewhere less obvious, and that's where breadth of regions stops being a spec-sheet item. Across its seven clouds Kloudbean can provision into 80-plus data centres, with in-country hosting available in around 35 countries, from Dammam and Dubai to São Paulo, Sydney, Seoul, and Johannesburg. Whether you can say yes to a clause is often just a question of whether anyone runs a region there.
+
 <!-- ADD IMAGE: a vendor security questionnaire with the "where is customer data stored?" row filled in confidently -->
 
-## Where Kloudbean fits, and where it stops
+## What it costs to fix this after the fact
 
-Kloudbean's part is the lever, and it's a real one. When you launch a server, a managed database, or an [object storage bucket](https://www.kloudbean.com/blog/s3-compatible-object-storage/), you pick the cloud and the region, so you control where your data physically lives across those seven providers. The database and its backups stay locked to your app server's IP. That region choice is the foundation of a data-residency strategy, and it's genuinely yours to control from day one.
+The reason to spend five minutes on the region at launch is that the retrofit is genuinely expensive, in ways that don't show up as a line on an invoice.
 
-It is not the whole of compliance, and I won't pretend it is. Compliance is shared. Kloudbean provides the infrastructure controls: the region, IP allow-listing, backups, access control. You still own the app-level work, which is most of it: what data you collect, your lawful basis for collecting it, how long you keep it, and what you tell users. Storing EU data in an EU region does not make you GDPR-compliant on its own. It clears the one obstacle that's actually about location and leaves the rest to you.
+You pay first in **calendar time**. Moving a live database between regions means a dump, a restore, a cutover window, and a period where you're either read-only or accepting write loss. That's a maintenance window negotiated with the customer who asked the question, which is a bad first impression to make while you're still selling to them.
+
+You pay again in **chasing copies**. The primary is the easy part. The backups, the log pipeline, the analytics vendor, the CDN cache, the queue that briefly persists payloads: each one needs finding, checking, and often replacing, and every miss is the same finding coming back at the next review.
+
+You pay in **paperwork**. Sub-processor lists, data processing agreements, and privacy notices all name locations. Change the location and those documents are wrong until someone updates and re-signs them.
+
+And you pay in **deal momentum**, which is usually the worst of it. A security questionnaire that stalls for three weeks on one row is three weeks the deal isn't closing. Compare that with the version where you already know the answer and type one word.
+
+Almost none of that is avoided by picking a good host. It's avoided by picking a region on purpose, once, before anything is in it. What a host owes you is the ability to make that choice cleanly, and on Kloudbean that means picking cloud and region when you launch a server, a managed database, or an [object storage bucket](https://www.kloudbean.com/blog/s3-compatible-object-storage/), with the database locked down by IP allow-listing so only your app server can reach it.
+
+Where every host stops, ours included: the region is the only part of this that's a hosting decision. Nobody's platform can tell you which of your log fields count as personal data, decide your lawful basis, set your retention period, or negotiate the clause in your contract. Compliance is shared, and honestly the smaller share sits with the infrastructure. Storing EU data in an EU region doesn't make you GDPR-compliant. It clears the one obstacle that's actually about location, and hands you back the rest.
 
 For the deeper regulatory angle, go to [GDPR-compliant hosting](https://www.kloudbean.com/blog/gdpr-compliant-hosting/), [SOC 2 hosting](https://www.kloudbean.com/blog/soc2-compliant-hosting/), and [PCI-compliant hosting](https://www.kloudbean.com/blog/pci-compliant-hosting/). If you're buying for a regulated org, [enterprise hosting](https://www.kloudbean.com/blog/enterprise-wordpress-hosting/) covers the audit-trail and access side. And treat this article as a plain-English map, not legal advice. For a high-stakes case, confirm the details with someone qualified.
 

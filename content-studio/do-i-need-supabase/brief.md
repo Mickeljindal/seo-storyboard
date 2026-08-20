@@ -34,7 +34,8 @@ starting on Supabase is reversible. Never claims Kloudbean "wins"; frames plain 
 the fit only when the reader already has a backend.
 
 ## Product mention (one light touch + CTA, grounded in kloudbean-facts.md)
-Kloudbean appears once, in "Where this leaves Kloudbean," plus the CTA. Grounded claims only: managed
+Kloudbean is woven into the storage and lock-in sections and the closing "count the pieces you'd
+actually use" tally, plus the CTA. Grounded claims only: managed
 PostgreSQL as its own product; automatic backups; access locked to the app server's IP (IP
 allow-listing, the correct default, NOT "private network"); one dashboard across several clouds;
 Supabase available as a one-click app; you own and can export your data; managed = server, stack,

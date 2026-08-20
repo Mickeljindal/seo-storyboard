@@ -33,6 +33,8 @@ This is the part worth internalising, because it tells you what really happened.
 
 You almost always meet this error right after the Node major version went up: a new laptop with a current Node, a server on a newer version than your old one, a CI runner that updated, or a deliberate upgrade. Nothing in your project changed. The runtime under it did. That is the signature of a whole class of "works on my machine" problems, and it is exactly why keeping your Node version consistent across environments matters so much, which is the subject of [Node.js version management](https://www.kloudbean.com/blog/node-version-management/). If your laptop is on Node 20 and your teammate is on 16, one of you sees this and the other doesn't, and you waste an afternoon before realising the runtime is the variable. Pin the version, and this error stops ambushing you.
 
+Production counts as one of those environments, and it's the one people forget to pin because they can't see it. If your host decides the Node version for you, or bakes it into an image you don't control, you get to meet this error for the first time during a deploy. On Kloudbean the app's Node version is a setting in the console, editable without SSH, so the version running the build and the version you tested against can be made to match on purpose rather than by luck.
+
 ## The real fix: update the build tooling
 
 The clean answer treats the cause, not the symptom.
@@ -58,17 +60,32 @@ export NODE_OPTIONS=--openssl-legacy-provider
 
 On Windows or in a cross-platform `package.json` script people often wire it in with `cross-env`. This works, and it is genuinely useful when you need the build running right now. But be honest with yourself about what it is: you are asking a modern crypto library to turn a deprecated feature back on so an outdated tool keeps working. It is a bridge, not a destination. The popular advice online stops at this flag, which is why so many projects are still carrying it years later. Set it if you must, then put "upgrade the bundler and delete this flag" on the list. The flag is the band-aid; updated tooling is the stitches.
 
+One practical trap with the flag: it has to be present for the process that runs the build, not just for the app afterwards. Exporting it in your shell fixes your laptop and does nothing for a deploy, which is why the same project builds locally and fails in CI. Set it where the build actually runs. In the Kloudbean console that means adding `NODE_OPTIONS` to the app's environment variables so it's in place before the build step, and you'll see in the live build log whether it took effect. Same principle on any platform: the flag lives with the builder.
+
 ## The fix to avoid: downgrading Node
 
 One suggestion you'll see is worse than the problem, so here is the plain warning.
 
-Rolling Node back to version 16 does make the error go away, because Node 16 used OpenSSL 1.1, which still had the old algorithm. But Node 16 is end of life, meaning no more security patches, so you would be trading a harmless build error for a runtime that no longer receives fixes. That is a bad trade on any server exposed to the internet. If you are tempted, use the `--openssl-legacy-provider` flag on a current, supported Node instead, which gets you the same working build without stranding yourself on an unsupported runtime. Choosing a version by "which one makes the error stop" is how projects drift onto end-of-life Node; choose a supported LTS and fix the tooling around it.
+Rolling Node back to version 16 does make the error go away, because Node 16 used OpenSSL 1.1, which still had the old algorithm. But Node 16 is end of life, meaning no more security patches, so you would be trading a harmless build error for a runtime that no longer receives fixes. That is a bad trade on any server exposed to the internet. If you are tempted, use the `--openssl-legacy-provider` flag on a current, supported Node instead, which gets you the same working build without stranding yourself on an unsupported runtime. Choosing a version by "which one makes the error stop" is how projects drift onto end-of-life Node; choose a supported LTS and fix the tooling around it. The signature of a runtime that has aged out, by the way, is not a nice warning message. It's your package manager returning 404s and security advisories nobody will patch.
 
-## Where Kloudbean fits
+## The durable fix isn't a command, it's pinning the runtime in three places
 
-On Kloudbean you set your app's Node version in the console, so production runs the version you intend rather than whatever a base image happened to include, and you can align it deliberately with the version you build and test against. That matters here, because this error is fundamentally about a version mismatch between where your build tooling was written and where it runs. Deploys come from your Git repository, and the build runs with the Node version you chose, so if it builds cleanly on your pinned version locally, it builds the same way on deploy, with live build logs to confirm it.
+Every fix above is a thing you type once. The reason this error keeps coming back to teams is that nobody wrote the version down anywhere binding, so each machine and each deploy is free to pick its own. Fix that and the whole class of "worked yesterday, broke today, code unchanged" bugs gets much quieter. There are three places, and you need all three to agree.
 
-The honest boundary: the platform gives you a controllable, consistent Node version and a patched stack, but upgrading your bundler, keeping your dependencies current, and deciding whether to carry the legacy flag are your application's hygiene, not something hosting does for you. What managed hosting removes is the surprise: the version in production is the version you picked, not a moving target. For where to run Node overall, see [the managed Node.js hosting guide](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/).
+```
+# 1. .nvmrc, so anyone running `nvm use` lands on the right one
+22
+
+# 2. package.json, so an install on the wrong version complains
+"engines": { "node": ">=22 <23" }
+
+# 3. production: whatever your host uses to select the runtime
+#    (on Kloudbean, the app's Node version in the console)
+```
+
+Miss the third one and you've pinned development while leaving production floating, which is the exact shape of this bug. That's the part a hosting choice actually decides: whether the production runtime is something you set and can see, or something you inherit. Kloudbean makes it an explicit setting alongside the app's environment variables, and deploys run from your Git repository with the build log streaming, so a version mismatch shows up in the log rather than as a mystery.
+
+Now the part no host solves, ours included. Nothing about where you deploy upgrades Webpack 4 for you, removes the legacy flag from your `package.json` scripts, or decides that this quarter is the quarter you finally move off Create React App. A platform can make the runtime predictable. It can't make your build tooling current. That work stays on your side of the line, and postponing it just moves the same afternoon further into the future. For where to run Node overall, see [the managed Node.js hosting guide](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/).
 
 ## Related reading
 

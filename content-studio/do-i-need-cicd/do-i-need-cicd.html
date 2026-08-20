@@ -52,13 +52,14 @@
     <li><strong>A clean Git story.</strong> Deploys map to commits and branches, so you always know exactly what's live. It pairs well with tidy branch habits, like knowing how to <a href="https://www.kloudbean.com/blog/git-delete-and-rename-branch/">delete and rename Git branches</a> without leaving stale mess behind.</li>
     <li><strong>Less fear.</strong> Boring deploys mean you ship small changes often, which is safer than saving up a scary big release.</li>
   </ul>
-  <p>None of that needs a test suite, a team, or a fancy tool. It just needs "when I push, the right thing happens." That's why the deploy half of CI/CD is the early win, and honestly the one I'd set up before writing much else.</p>
+  <p>None of that needs a test suite, a team, or a fancy tool. It just needs "when I push, the right thing happens." That's why the deploy half of CI/CD is the early win, and honestly the one I'd set up before writing much else. It's also usually a setting rather than a project now. Kloudbean's managed CI/CD is a repo connection: link the GitHub repo, and every push builds and deploys, so the "automate the deploy" half costs you an afternoon at most.</p>
 
   <h2>When you actually need CI (the automated-testing half)</h2>
   <p>CI is the other half, and it's genuinely worth waiting for. Not forever. Just until you have something for it to do.</p>
   <p>Automated testing on every push starts earning its keep when a few things become true. You have <strong>real tests</strong> worth running, not zero. You have <strong>more than one person</strong> pushing code, so "it works on my machine" stops being a reliable check. Your <strong>codebase is big enough</strong> that you can't hold the whole thing in your head anymore, so a change in one place quietly breaks another. Or you <strong>ship often enough</strong> that catching regressions by hand is a tax you keep paying.</p>
   <p>If none of those are true yet, a full CI setup is mostly decoration. And here's the anti-pattern I see constantly: someone wires up an elaborate multi-stage pipeline, matrix builds across five versions, lint gates, coverage thresholds, before they've written a single test. It looks professional and catches nothing. A pipeline with no tests is a very fast way to deploy bugs.</p>
   <p>My honest take: one smoke test that boots the app and hits the health endpoint catches more real outages than a ten-stage pipeline with an empty test folder. Start there. Add tests where things actually break, wire CI to run them, and let the pipeline grow to match the risk. The order is tests first, then CI around them, not the reverse.</p>
+  <p>Whatever runs your build, watch it out loud the first few times. Most early "CI is broken" tickets aren't test failures at all: a missing environment variable, a Node version mismatch, a devDependency stripped out by <code>NODE_ENV=production</code> at build time. Streaming build logs (Kloudbean shows them live in the console, alongside deployment history so you can see exactly which commit is live) turn that from a guessing game into a line you can read.</p>
 
   <h2>Manual deploy vs push-to-deploy vs a full pipeline</h2>
   <p>It helps to see the three options side by side, because "do I need CI/CD" is really a choice among these, not a yes or no.</p>
@@ -73,6 +74,7 @@
     </tbody>
   </table>
   <p>Notice the middle column is a fit for almost everything real. The right column is where you head as tests and teammates appear. The left column is fine for a weekend throwaway and a bad idea for anything you plan to keep. Most people asking this question belong in the middle, moving rightward over time.</p>
+  <p>The middle column is also the one people over-estimate. You don't have to stand up a build server for it. Most managed hosts do it natively (on Kloudbean it's built into the platform, not a separate tool you maintain), which means the cost of the high-value half is close to zero and the excuse for skipping it mostly isn't real.</p>
 
   <!-- ADD IMAGE: swap the SVG below for a polished version if desired. src -> images/cicd-flow.png -->
   <figure>
@@ -117,8 +119,16 @@
   <p><strong>How often do you ship, and how bad is a bad deploy?</strong> The more often you release, and the more it hurts when something breaks, the more a real pipeline (staging, gates, automated checks) pays for itself. A low-traffic side project needs far less than a paid product real people depend on.</p>
   <p>That's the framework: team size, test coverage, and release frequency. Push-to-deploy answers the first question for nearly everyone. The testing and gating grow to match the other two. When you're ready for the mechanics, the <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">step-by-step guide to auto-deploying from GitHub</a> covers the actual setup, so this page can stay about the decision.</p>
 
-  <h2>Where this leaves Kloudbean</h2>
-  <p>If your decision lands where most do, "I want push-to-deploy now, and room to add tests later," that's a setup any decent managed platform should make trivial. On Kloudbean, the managed CI/CD does exactly that shape: connect a Git repo and it builds and deploys on every push, with deployment history and live build logs in the console so you can see what shipped and when. That's the deploy half handled without you scripting servers by hand. Useful to know, and secondary to the real point here, which is the decision itself. If you're deploying something built with an AI tool, the same thinking applies in <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploying an AI-built app to production</a>.</p>
+  <h2>The cheapest version of this that actually protects you</h2>
+  <p>If you take one thing away, take this: there's a minimum setup that removes most of the risk, and it's much smaller than what "CI/CD" sounds like. Four things. You can have all four before lunch, and nothing here needs a test matrix, a staging environment, or a YAML file you'll be scared to touch in six months.</p>
+  <ol>
+    <li><strong>Deploys start from Git, never from your laptop.</strong> Push to a branch, the platform builds and ships that commit. This alone kills the "wrong build from the wrong folder" outage.</li>
+    <li><strong>The build and release steps live in the repo.</strong> Install, build, migrate, restart, in a file, not in your head. If it isn't written down it isn't repeatable, and if it isn't repeatable it isn't a deploy, it's a ritual.</li>
+    <li><strong>One smoke test.</strong> Boot the app, hit the health endpoint, assert a 200. That single test catches more real outages than a coverage threshold ever will, and it gives your future CI something honest to gate on.</li>
+    <li><strong>A rollback you have actually performed once, on purpose, when nothing was broken.</strong> Redeploy the previous commit on a quiet Wednesday and watch it work. Practising it calm is the difference between a quick recovery and a bad hour.</li>
+  </ol>
+  <p>Now the part no tooling covers. No platform writes your tests, and no pipeline knows whether your migration is reversible. Automated deploy makes shipping repeatable; it does not make the thing you shipped correct. Push-to-deploy will send a broken commit to production faster and more reliably than you ever could by hand, and that's the trade: you remove human error from the steps, not from the code. Kloudbean can't fix that for you either. What it can do is the boring machinery, connect the repo and it builds, deploys, and keeps the history and live logs so you know what's live. Steps 3 and 4 stay your job, and they're the two that decide how bad your worst deploy gets.</p>
+  <p>If you're shipping something built with an AI tool, where the code arrives faster than your confidence in it, that smoke test matters more than usual. <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">Deploying an AI-built app to production</a> picks up from there.</p>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Make deploys boring, then make them safe.</p>

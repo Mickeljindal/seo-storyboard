@@ -17,7 +17,7 @@ Be selective. A short, stateless endpoint that reads a row and returns JSON is g
 - **Database-heavy endpoints**: bursts of invocations can each open connections and exhaust your database's limit.
 - **High-volume API traffic**: this is the cost one, and it's the trigger a founder at an API company described plainly, saying a per-request pricing model was never going to work long term for a product with heavy ingest, since they wanted to pay for CPU, bandwidth, and memory instead of request count.
 
-If none of those describe your API, honestly, stay put. If two or more do, the split is worth doing.
+If none of those describe your API, the split isn't worth doing yet. If two or more do, the split is worth doing.
 
 ## Converting a route handler to Express
 

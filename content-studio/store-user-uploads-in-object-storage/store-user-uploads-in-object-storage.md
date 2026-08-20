@@ -47,6 +47,8 @@ The **metadata** goes in your database. Not the bytes, just a row: the object ke
 
 To show a user their file, you look up the key and hand back a URL to the object in the bucket. That's the model. The app server touches the bytes only long enough to pass them through, then forgets them. That's exactly why you can rebuild the server without losing a thing.
 
+Which is also why storage belongs beside your servers rather than inside them. On Kloudbean a bucket is its own resource in the same dashboard as your apps and managed databases (built-in S3-compatible storage landed in November 2024), so a bucket's lifetime has nothing to do with any app's. Delete the app, resize the server, rebuild from scratch: the objects don't notice. If you're standardised on Google Cloud there are managed [Google Cloud Storage buckets](https://www.kloudbean.com/blog/gcs-object-storage-buckets/) too.
+
 <figure>
   <svg viewBox="0 0 760 440" width="100%" role="img" aria-labelledby="uploadflow-title" xmlns="http://www.w3.org/2000/svg">
     <title id="uploadflow-title">A browser uploads to the app, the app writes the file bytes to a bucket and the object key plus metadata to the database, then serves the file back by URL</title>
@@ -181,7 +183,7 @@ await fetch(presignedUrl, {
 // then POST `key` back to your API so it saves the row
 ```
 
-Store the endpoint, bucket, and keys as environment variables on the server, not in the repo. On Kloudbean that's the Runtime Configuration screen, where you paste them once and redeploy.
+Store the endpoint, bucket, and keys as environment variables on the server, not in the repo. On Kloudbean they're fields in the console, no SSH involved, and the Node or Python runtime config sits on the same screen. Practical consequence: when you rotate a storage key, you paste the new one and restart the app, without a commit or a rebuild.
 
 ![The Kloudbean Environment Variables editor, where the S3 endpoint, bucket name, and keys are stored on the server](../assets/console/env-vars.png)
 
@@ -197,7 +199,7 @@ You rarely need to write raw SDK calls. Most frameworks ship a storage layer tha
 | **Node / Express** | `multer-s3` | `storage: multerS3({ s3, bucket, key })` |
 | **Next.js** | A route handler with `@aws-sdk/client-s3` | `PutObjectCommand` in a server route or action |
 
-The endpoint is the only piece that changes to point at a Kloudbean bucket instead of AWS, because underneath it's the same S3 API. There's more on that portability in [S3-compatible object storage explained](https://www.kloudbean.com/blog/s3-compatible-object-storage/).
+The endpoint is the only piece that changes to point at a Kloudbean bucket instead of AWS, because underneath it's the same S3 API. Kloudbean's buckets carry full AWS S3 SDK and CLI compatibility (since March 2025), so every snippet above runs unchanged with one `S3_ENDPOINT` swap, and `aws s3 cp` works against them for the migration. That cuts both ways, which is the point: the same portability that gets you in gets you out. There's more on it in [S3-compatible object storage explained](https://www.kloudbean.com/blog/s3-compatible-object-storage/).
 
 <!-- ADD IMAGE: a framework storage config (Laravel filesystems.php s3 disk or django-storages settings) with the endpoint, bucket, and keys filled in -->
 
@@ -209,7 +211,9 @@ A **public** bucket serves any object to anyone with the URL. That's correct for
 
 A **private** bucket keeps objects unreachable by a raw URL. To show one to an authorized user, your app generates a presigned `GET` URL that works for a set number of minutes, then expires. That's what you want for anything user-private: ID documents, invoices, medical records, paid downloads, private message attachments.
 
-The mistake I see most often: someone makes a whole bucket public just to get images rendering, when those images are actually private to each user. Now every user's uploads are one guessed URL away from a stranger, and search engines will happily index them. Don't flip a bucket public to fix a permissions problem. Keep it private and hand out presigned links.
+The mistake I see most often: someone makes a whole bucket public just to get images rendering, when those images are actually private to each user. Now every user's uploads are one guessed URL away from a stranger, and search engines will happily index them. Don't flip a bucket public to fix a permissions problem. Keep it private and hand out presigned links. On Kloudbean that's a per-bucket access control in the dashboard, so the honest advice is to create two buckets, one public for assets and one private for user files, rather than one bucket with a compromise setting.
+
+One cost input while you're deciding, because it changes how freely you serve files. Data transfer out of Kloudbean's built-in S3-compatible storage isn't metered, so a public bucket full of product images doesn't quietly generate an egress bill the way it can elsewhere. Scope that carefully though: it applies to the built-in storage only. Managed GCS buckets bill both egress and ingress, so if you choose GCS for residency or tooling reasons, model the transfer cost before you put your image-heavy pages behind it.
 
 | | Public bucket | Private bucket |
 | --- | --- | --- |
@@ -230,15 +234,21 @@ The architecture is the easy part. These details turn a working upload into a sa
 - **Keep credentials in env vars, never in Git.** Bucket keys are as sensitive as a database password. Load them from environment variables. If a key ever lands in a commit, rotate it immediately, because Git history remembers forever.
 - **Prefer least-privilege keys.** The key your app uses to write uploads does not need permission to delete every bucket in your account. Scope it down wherever your provider lets you.
 
-One honest caveat. Object storage durability is not the same as a backup of your app. Buckets are durable and replicated, but if your own code deletes the wrong object or a bad migration wipes a batch of keys, replication won't save you. Treat backups as a separate discipline, which we cover in the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/).
+## Reading upload bugs backwards: symptom to layer
 
-## Doing this on Kloudbean
+Upload bugs all look the same from the browser, a broken image or a failed request, so people rewrite the handler when the handler was fine. The symptom usually names the layer. Match yours here before you touch code.
 
-If your servers, apps, and databases already live in one place, your uploads should too. Kloudbean has built-in S3-compatible object storage (added in November 2024), with full AWS S3 SDK and CLI compatibility since March 2025. That compatibility is the whole point: the Node and Python snippets above run unchanged, you just set `S3_ENDPOINT` to your Kloudbean bucket. If you're on Google Cloud, there are also managed [Google Cloud Storage buckets](https://www.kloudbean.com/blog/gcs-object-storage-buckets/) (added December 2025).
+| What you see | The layer at fault | The move |
+| --- | --- | --- |
+| 404 on files that worked yesterday, right after a deploy | Ephemeral app disk | Bytes belong in a bucket. Nothing else on this list matters until that's true. |
+| Image loads on some refreshes, 404s on others | More than one app instance | Same fix. The file exists on one server only. |
+| File downloads instead of displaying | Object metadata | Set `ContentType` at upload time. It's stored with the object, so re-upload or copy it to fix existing ones. |
+| Browser cancels the upload before any bytes move | Bucket CORS | Allow `PUT` from your origin. Check the network tab for the failed preflight, not your server logs. |
+| 403 on a presigned link that worked five minutes ago | Expiry | Working as designed. Generate the URL when the user asks for the file, not when you render the list. |
+| A customer's document turns up in Google | Bucket access policy | The bucket is public. Make it private, hand out presigned GETs, and rotate the keys if they were ever in a repo. |
+| Uploads work, then a bad migration deletes a batch of keys | Your code | Durability isn't a backup. See below. |
 
-You create a bucket from the same dashboard as your servers, applications, and managed databases. You set it public or private with the access controls, and manage the objects right there. No second provider, no separate login, no stitching two billing accounts together. One dashboard for the whole stack.
-
-The workflow is short: create the bucket, copy its endpoint and keys, set them as environment variables on your app, and point your uploader at it. Then deploy, and your files stop caring whether the server lives or dies.
+That last row is the one no host fixes, ours included. Object storage is durable and replicated, which protects you from hardware dying, not from your own `DELETE`. If your worker loops over the wrong prefix, replication faithfully replicates the deletion. Versioning and a separate copy of anything irreplaceable are your call, and they sit alongside the [server backups](https://www.kloudbean.com/blog/server-backups-guide/) that cover the database rows pointing at those objects. Two other things nobody can do for you: validating what a user uploaded, and deciding which files were meant to be private in the first place.
 
 ![The Kloudbean console creating an S3-compatible bucket alongside servers, apps, and managed databases](../assets/console/s3-buckets.png)
 

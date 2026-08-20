@@ -45,7 +45,7 @@
   <p>Strip the branding away and a typical SaaS needs a short, boring list. Once you see how short it is, the "do I need AWS" question mostly answers itself.</p>
   <ul>
     <li><strong>A place to run your app.</strong> A server that keeps your backend process alive and reachable. One is plenty to start.</li>
-    <li><strong>A database.</strong> Almost always PostgreSQL or MySQL, ideally managed so you're not babysitting it.</li>
+    <li><strong>A database.</strong> Almost always PostgreSQL or MySQL, ideally managed so you're not babysitting it. On a managed platform this is a picker rather than a project. Kloudbean offers seven engines (PostgreSQL, MySQL, MariaDB, Redis, Memcached, MongoDB, Elasticsearch) with automatic backups already on, which is roughly the RDS decision minus the account setup around it.</li>
     <li><strong>Somewhere for secrets.</strong> API keys and credentials kept out of your code, in environment variables or a secrets store.</li>
     <li><strong>File storage, sometimes.</strong> If users upload files, an S3-compatible bucket. Plenty of SaaS apps don't need this on day one.</li>
     <li><strong>A domain with SSL.</strong> Your custom domain and an HTTPS certificate, which most platforms now handle for you.</li>
@@ -72,6 +72,7 @@
     </tbody>
   </table>
   <p>Neither column is "better" in the abstract. If you're a platform team running many services at scale, the left column is your world and a managed platform would feel constraining. If you're trying to launch, the right column gets you live faster and keeps your attention on the product. Most people reading this are in the second case, which is why the honest recommendation leans that way, not because AWS is bad. If you want that table filled in with two named products rather than two categories, <a href="https://www.kloudbean.com/blog/kloudbean-vs-aws/">the Kloudbean vs AWS head-to-head</a> goes row by row, including where AWS is the better answer.</p>
+  <p>One thing worth clearing up before you treat this as a fork in the road: the right column usually runs on the left column's metal. Kloudbean provisions across seven clouds and AWS and AWS Lightsail are two of them, so "I skipped AWS" often just means "I didn't hand-configure AWS." Same data centres, different amount of work on your desk.</p>
 
   <!-- ADD IMAGE: swap the SVG below for a polished version if desired. src -> images/aws-vs-managed.png -->
   <figure>
@@ -103,7 +104,7 @@
   <p>The reason "just use AWS" deserves a second look is that its costs are the kind you don't see until they've already landed.</p>
   <p>The first is <strong>time</strong>. Every hour spent on IAM policies and VPC subnets is an hour not spent on your product or your customers. Early on, your time is the scarcest thing you have, and raw infrastructure is very good at eating it.</p>
   <p>The second is <strong>bill surprise</strong>. AWS bills per service, per resource, with data-transfer charges that are easy to trigger and hard to predict. It's genuinely common to spin up resources for a test, forget them, and get a bill that has nothing to do with how many users you served. This is why <a href="https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/">the real cost of an unmanaged setup</a> is rarely just the sticker price.</p>
-  <p>The third is <strong>operational risk</strong>. On raw infrastructure, patching, backups, security hardening, and uptime are your job. Miss one and it's your outage. That's a fair trade when you have a team to carry it, and a heavy one when it's just you at 2am. A <a href="https://www.kloudbean.com/blog/what-is-a-managed-server/">managed server</a> exists precisely to take that weight off a small team.</p>
+  <p>The third is <strong>operational risk</strong>. On raw infrastructure, patching, backups, security hardening, and uptime are your job. Miss one and it's your outage. That's a fair trade when you have a team to carry it, and a heavy one when it's just you at 2am. A <a href="https://www.kloudbean.com/blog/what-is-a-managed-server/">managed server</a> exists precisely to take that weight off a small team. Concretely, on Kloudbean that means patching, automatic backups and free SSL are already someone's job, and you lock the database down by whitelisting your app server's IP rather than hand-building a network to hide it in.</p>
 
   <h2>A quick way to decide</h2>
   <p>You don't need a long deliberation. Run through this and you'll have your answer in a minute.</p>
@@ -112,8 +113,24 @@
   <p><strong>Are you trying to launch and iterate quickly with a small team?</strong> If yes, a managed platform will get you there faster and let you move to raw AWS later if you ever genuinely outgrow it. Moving up is a normal, well-trodden path, so you're not painting yourself into a corner by starting simple.</p>
   <p>That last point matters, so sit with it: starting on a managed platform does not lock you out of AWS forever. Your app is still your code and your data. If you hit the scale or the specific need that justifies raw AWS, you migrate then, with revenue and a team to back the move. Choosing simple now is reversible. Burning your launch on infrastructure you didn't need is not. The broader version of this call is in <a href="https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/">where to deploy your app</a> and the buyer's view in <a href="https://www.kloudbean.com/blog/best-hosting-for-ai-saas/">hosting for an AI SaaS</a>.</p>
 
-  <h2>Where this leaves Kloudbean</h2>
-  <p>If the honest answer is "you need a server, a managed database, secrets, and backups, without operating raw cloud yourself," that's the exact shape of a managed platform, and it's what Kloudbean does: managed servers and managed databases across several clouds, with backups and a custom domain and SSL handled, from one dashboard. If you later hit a reason to go to raw AWS, your code and data come with you. Useful to know, and secondary to the real point here, which is that most launches simply don't need the big-cloud complexity. The step-by-step is in <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploying an AI-built app to production</a>.</p>
+  <h2>So who ends up holding each job?</h2>
+  <p>Strip the brand argument out and this decision is really about one thing: which of these jobs sits on your desk on launch day. Read down the list and count how many you want to own while you're also writing the product.</p>
+  <table class="cmp">
+    <thead><tr><th>The job</th><th>Raw AWS</th><th>Managed platform</th><th>Can a host ever take it?</th></tr></thead>
+    <tbody>
+      <tr><td>OS patching and kernel updates</td><td>You</td><td>The platform</td><td>Yes</td></tr>
+      <tr><td>Database setup, backups, restores</td><td>You, or partly RDS</td><td>The platform</td><td>Yes</td></tr>
+      <tr><td>SSL certificates and renewals</td><td>You</td><td>The platform</td><td>Yes</td></tr>
+      <tr><td>Firewall and access rules</td><td>You, via security groups and IAM</td><td>The platform, with IP allow-listing you control</td><td>Mostly</td></tr>
+      <tr><td>Deploy process</td><td>You build it</td><td>Connect the repo, push</td><td>Yes</td></tr>
+      <tr><td>Sizing and cost control</td><td>You, across many line items</td><td>You, across few</td><td>Shared</td></tr>
+      <tr><td>Your schema, indexes, and slow queries</td><td>You</td><td>You</td><td>No</td></tr>
+      <tr><td>Your app code and its bugs</td><td>You</td><td>You</td><td>No</td></tr>
+      <tr><td>Your OpenAI, Stripe, and vendor bills</td><td>You</td><td>You</td><td>No</td></tr>
+    </tbody>
+  </table>
+  <p>The last three rows are the honest part, and they don't move. No host fixes them, Kloudbean included. If your app leaks memory, your one unindexed query melts the database under real traffic, or your model usage triples the week you get on Product Hunt, the hosting choice is irrelevant to all three. Changing clouds to fix an application problem is the most common wasted migration there is.</p>
+  <p>Everything above those rows, though, is genuinely tradeable, and that's the entire decision. Kloudbean holds the top six on any of seven clouds, AWS and Lightsail among them, which is why "not raw AWS" doesn't have to mean "not AWS." Migration onto a server above 4GB is free, and there's a 3-day trial for one service if you'd rather test the shape than read about it. And if you eventually want the AWS console in your own hands, the bottom three rows walk over with you, because they were always yours. The step-by-step of getting live either way is in <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploying an AI-built app to production</a>.</p>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Ship the product, not the infrastructure.</p>

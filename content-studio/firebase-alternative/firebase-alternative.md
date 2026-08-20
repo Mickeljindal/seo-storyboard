@@ -172,7 +172,7 @@ Yes. You run your own database and app server on infrastructure you control, whi
 Cloud Functions become routes on your own app server (Node, Django, FastAPI, Rails, whatever you prefer), running continuously instead of as isolated snippets. Firebase Authentication becomes auth in your app, either a framework auth library or a bundled solution like managed Supabase. You gain control and lose the zero-setup convenience, which is the honest trade.
 
 **Do I lose realtime updates if I leave Firebase?**
-You lose the built-in version, so you'd rebuild it. On your own stack, live updates come from WebSockets, Postgres LISTEN/NOTIFY, or a tool like managed Supabase's realtime features. If your app is realtime-first and that sync is doing heavy lifting, weigh this carefully. It's one of the better reasons to stay on Firebase.
+You lose the built-in version, so you'd rebuild it. On your own stack, live updates come from WebSockets, Postgres LISTEN/NOTIFY, or a tool like managed Supabase's realtime features. If your app is realtime-first and that sync is doing heavy lifting, weigh this carefully. It's the strongest thing Firebase has that a plain relational database doesn't.
 
 **How do I export my data out of Firestore?**
 Use the Google Cloud CLI: `gcloud firestore export` writes your data to a Cloud Storage bucket. From there you transform the exported documents into your target model (normalized tables for Postgres, or collections for MongoDB) and import them. The export is easy; the transform is the real work, and it's where free migration assistance helps.

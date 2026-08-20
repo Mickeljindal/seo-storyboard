@@ -170,6 +170,8 @@ PATH=/home/deploy/.nvm/versions/node/v20.11.1/bin:/usr/local/bin:/usr/bin:/bin
 0 3 * * * cd /var/www/app && pm2 reload api >> /var/log/app-reload.log 2>&1
 ```
 
+Notice what that PATH line really is: the Node version, written down in a second place. Every place you repeat it is a place that can go stale independently. That's the argument for the version living at the platform layer instead. On Kloudbean the Node version is runtime configuration on the application, set in the console, and scheduled jobs are defined in the dashboard rather than in a crontab carrying its own private PATH. One declaration, not three copies drifting apart.
+
 ### Install PM2 globally for the user that actually runs it
 
 If the deploy user genuinely has no PM2, install it there. As that user:
@@ -219,6 +221,8 @@ sudo env PATH=$PATH:/home/deploy/.nvm/versions/node/v20.11.1/bin \
 
 That unit hardcodes the Node version that was active when you ran it. Upgrade Node, remove the old version, reboot, and systemd tries to launch PM2 from a directory that no longer exists. Your apps don't come back. Nothing in the boot output looks like a PATH problem, but that's exactly what it is.
 
+This is the specific piece worth handing to somebody else. When the platform owns process supervision, there's no unit file of yours to regenerate after an upgrade: Kloudbean runs Node apps persistently under PM2, multi-process included, as part of the server it manages. The trade is real, though. You give up hand-editing the unit, and if you want unusual supervision behaviour you'll be working within what the platform does.
+
 Check the unit after any Node upgrade:
 
 ```
@@ -242,7 +246,17 @@ Two checks before you close the ticket. If `pm2 list` runs but your app isn't in
 
 Notice what every cause above has in common. None of them are about PM2. They're all about a hand-rolled deploy path where the shell, the user, and the Node version are implicit rather than declared, and each one drifts independently over months. That drift is the actual bug. PM2 is just the first command in the script unlucky enough to notice.
 
-Which is the practical case for not hand-rolling this part. On Kloudbean, applications run persistently under PM2 as part of the platform, deploys come from a Git repo with deployment history and live build logs, Node runtime configuration is set in the UI, and cron jobs are defined in the dashboard rather than in a crontab with its own private PATH, so there's no guessing about which shell or which user ran what. If you'd rather keep your own scripts, the rule from earlier still carries you: declare PATH, don't inherit it.
+## The smallest setup that makes this bug impossible
+
+Not a checklist of best practice. Three things, and once they're true the error can't return.
+
+1. **One place that decides the Node version.** Not `.nvmrc` and a crontab PATH and a systemd unit. One. If that's a script, put the export at the top where a reader trips over it. If it's platform runtime config, set it there and delete the copies.
+2. **A supervisor that isn't started by your deploy script.** The script's job is to put code on disk and ask the supervisor to reload. If the script is also responsible for the supervisor existing, a bad PATH takes your app down instead of failing a deploy.
+3. **Scheduled jobs with a declared environment.** Cron's PATH is `/usr/bin:/bin` and it will not change to suit you. Declare it, or run jobs somewhere that already knows which runtime the app uses.
+
+You can build all three by hand, and plenty of good teams do. Handing them over is the other option: Kloudbean sets the Node runtime on the app, runs it under PM2 itself, takes deploys from Git with live build logs so a failing step is readable rather than inferred, and keeps cron in the dashboard.
+
+Two things no host fixes, ours included. If your app crashes on boot, PM2 will be found and start it and it'll still be down, so `pm2 list` showing your process means the search for a PATH bug is over. And if your ecosystem file points at a script that no longer exists, or your build step passes while your app config is wrong, that's yours on any platform. Managed hosting removes the environment guesswork. It doesn't read your code.
 
 For the wider picture, [CI/CD auto deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) covers the deploy side, [running a cron job without SSH](https://www.kloudbean.com/blog/run-a-cron-job-without-ssh/) covers the scheduling side, and [deploying a Node app to managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) puts the whole flow together.
 

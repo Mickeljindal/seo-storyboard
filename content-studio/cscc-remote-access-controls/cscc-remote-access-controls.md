@@ -31,6 +31,8 @@ The distinction matters. A policy saying "do not connect from abroad" satisfies 
 - **Restriction at the entry point.** The VPN itself restricts where connections may originate, which is where the geographic requirement is actually enforced.
 - **Identity-layer conditions.** Access policies on the identity provider as a second gate, so a stolen VPN credential alone is not sufficient.
 
+That four-layer shape is what gets built on a managed enterprise engagement with Kloudbean, on a dedicated cloud account: VPN as the only route in, direct SSH from the internet blocked, and the administrative surface simply absent rather than firewalled. Worth being clear that this is enterprise architecture work, not a toggle on a standard plan. A self-serve database uses IP allow-listing, which is a real control but a different one.
+
 Two honest notes on the mechanics. Location enforcement based on network origin is not flawless, since a determined person can route traffic through an in-Kingdom relay. That is why the identity layer and monitoring matter, and why 2-2-1-2 asks for verification of each access attempt rather than a one-time configuration. Second, be careful with any always-on split tunnelling or third-party remote support tool that could create a second path in. Those are the routes people forget when documenting the control.
 
 ## The bastion pattern
@@ -38,6 +40,8 @@ Two honest notes on the mechanics. Location enforcement based on network origin 
 Once VPN is the only door, the standard next layer is a bastion, sometimes called a jump server. Rather than letting an authenticated engineer reach every machine, they land on one hardened host and move on from there. It concentrates the audit trail, reduces the number of machines exposed to any credential, and gives you a single place to record sessions.
 
 Layer 2-3-1-4 on top of that and the picture is complete. Highly privileged accounts should work from specific workstations on an isolated management network, separated from other networks and services including email and the internet. The reasoning is straightforward: the most common route to a privileged credential is a phishing link opened on the same machine that holds it, so the control removes the ability to do both from one device.
+
+Two pieces of that live in different places, which is why teams half-build it. The bastion, the private networking behind it, and the session logging are infrastructure a provider can stand up and keep patched, and Kloudbean does exactly that on enterprise engagements. The isolated management workstation in 2-3-1-4 is your endpoint estate. Nobody hosting your servers can hand you a laptop that doesn't read email.
 
 The resulting path: an in-Kingdom user passes through VPN with MFA, lands on a bastion where the session is logged, and from there reaches the critical system. Access from outside the Kingdom has no path at all, and there are no public SSH, RDP, or database ports.
 
@@ -63,9 +67,17 @@ Practical consequences to plan for: an offshore team can usually still develop, 
 
 Have ready: the network configuration showing no public administrative ports, the VPN configuration including its origin restrictions, MFA coverage reports for both ordinary and privileged accounts, bastion session logs, the management network separation, the mobile access approvals with their risk assessments, and dated access reviews from the last three months under 2-2-2. As with the rest of CSCC, the goal is to answer with configuration and records rather than with a policy document.
 
-## Where Kloudbean fits
+On a managed engagement the infrastructure half of that pack arrives as managed reports, because Kloudbean administers the cloud access on your behalf and raw console access isn't handed over. That's a deliberate trade: it's what keeps the privileged-access story clean, and it means you ask us for evidence rather than exporting it yourself.
 
-On managed enterprise engagements, Kloudbean builds the access layer: all remote access enforced through VPN with direct SSH from the internet blocked, a dedicated bastion host for privileged administrative access, MFA on console and VPN, least-privilege roles with access reviewed quarterly, encrypted administrative traffic, and databases on private addressing with no public endpoint. Session logging feeds the immutable log store. The organisational half stays with you: who is authorised, the SOC rota that performs verification, mobile access approvals, and the staffing decisions the framework implies.
+## Why every control in this group sits below the user
+
+Read the ten controls again and notice where each one is enforced. Not one of them relies on the person behaving correctly. No public administrative ports, so there's nothing to connect to. One VPN door, so there's one place to restrict origin. MFA, so a password alone is inert. A bastion, so a credential reaches one host instead of forty. An isolated management workstation, so the machine holding privileged access can't open a phishing link. Full disk encryption on any approved mobile device, so losing it isn't a breach of the system.
+
+That pattern is the design lesson, and it's the reason this group is worth building before the easier-looking ones. Controls placed below the user survive human error. Controls placed above it, in a policy stating what people should not do, produce a document at audit time and nothing at incident time. If you take one thing into your architecture review, take that: for every line in this subdomain, ask where it's enforced, and if the answer is "in the handbook", it isn't done.
+
+Where the line falls in practice. Kloudbean builds and runs the enforcement layer on managed enterprise engagements with a dedicated cloud account: VPN-only remote access with direct SSH from the internet blocked, a dedicated bastion for privileged administrative work, MFA on console and VPN, encrypted administrative traffic, least-privilege roles reviewed quarterly, private networking for the database tier, and session logs feeding the immutable store.
+
+Three things in this group no host fixes, ours included. Where your engineers physically sit, which is an operating-model decision that 2-2-1-1 and 4-1-1-2 make for you. Who is authorised, and the rota that verifies each access attempt under 2-2-1-2, which needs staffed hours whether that's your team, an MSSP, or a SOC engagement scoped with us. And the mobile approvals with their risk assessments, which are your cybersecurity function's signature, not a configuration. Infrastructure alignment is what a provider delivers. Certification is assessed against your organisation.
 
 ## Related reading
 

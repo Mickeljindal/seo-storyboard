@@ -186,7 +186,7 @@ Spin up Postgres or MySQL in the same account, export from your current database
 
 Add your domain, get free SSL, and switch on deploy-on-push. Test on the temporary URL first so you can compare behavior before you cut over. If you'd rather hand the migration to someone else, migration assistance is included.
 
-> **When you should stay on Cloud Run:** if your traffic is genuinely spiky or infrequent, if scale-to-zero is saving you real money, or if you're all-in on containers and want that exact image in production, Cloud Run is the better fit. Don't switch away from a strength you're actually using. Move only if you're running a steady, always-on app and paying for idle time, cold starts, and connection plumbing you never wanted.
+> **Where this comparison stops applying:** if your traffic is genuinely spiky or infrequent, if scale-to-zero is saving you real money, or if you're all-in on containers and want that exact image in production, Cloud Run is the better fit. Don't switch away from a strength you're actually using. Move only if you're running a steady, always-on app and paying for idle time, cold starts, and connection plumbing you never wanted.
 
 ---
 

@@ -30,6 +30,12 @@ export type ScoreInput = {
   wordCountTarget?: number | null;
   /** Resolved internal links (real) vs total internal: links in draft. */
   internalLinks?: { resolved: number; total: number };
+  /**
+   * Article slug. Used only by the competitor-hand-off check, to exempt the
+   * genres where pointing at an alternative is honest advice rather than a
+   * self-inflicted wound (self-host guides, head-to-head pages, compliance).
+   */
+  slug?: string | null;
 };
 
 export type ScoreResult = {
@@ -361,6 +367,134 @@ function depthSignals(md: string): { categories: number; found: string[] } {
   if (antipattern.some((p) => lower.includes(p))) found.push("anti-pattern");
   if (opinion.some((p) => lower.includes(p))) found.push("opinion");
   return { categories: found.length, found };
+}
+
+/**
+ * PRODUCT INTEGRATION — is Kloudbean connected to the problem, or bolted on?
+ *
+ * Why this check exists: an audit of the library found 91 articles ending on a
+ * product-named H2, and 74 of them used one of just three interchangeable stock
+ * titles ("Where Kloudbean fits" ×49, "Where Kloudbean fits, honestly" ×13,
+ * "Where this leaves Kloudbean" ×12). Readers described the result exactly:
+ * the product reads as a promotional insert near the end rather than something
+ * connected to the problems the article just explained.
+ *
+ * Two independent failure signals, because they have different causes:
+ *   1. A STOCK product heading. Always a fail, whatever its position. The title
+ *      itself is the template tell, and it is what makes 49 articles feel like
+ *      one author ran one template.
+ *   2. END-LOADED mentions. If most product mentions sit in the last quarter of
+ *      the document, the product was appended rather than woven in.
+ *
+ * The fix is never to delete the product or to soften the wording. It is to move
+ * the relevance up into the sections where the platform genuinely changes the
+ * outcome, and to give the closing section a reader-serving job (who fixes what,
+ * what to check next) instead of a promotional one.
+ */
+const STOCK_PRODUCT_H2 =
+  /^\s*(?:where\s+kloudbean\s+fits(?:\s*,\s*(?:honestly|and\s+where\s+it\s+stops))?|where\s+this\s+leaves\s+kloudbean|where\s+a\s+managed\s+cloud\s+fits(?:\s*,\s*honestly)?|how\s+kloudbean\s+does\s+it)\s*$/i;
+
+function productIntegration(md: string): {
+  stockHeading: string | null;
+  sections: number;
+  sectionsWithMention: number;
+} {
+  const headings = [...md.matchAll(/^##\s+(.+)$/gm)];
+  const stock = headings.find((h) => STOCK_PRODUCT_H2.test(h[1].trim()));
+
+  // SPREAD, not position. How many of the article's explanatory sections
+  // actually mention the product?
+  //
+  // A character-offset measure was tried first and abandoned, because it cannot
+  // tell "bolted on" from "has a CTA". Every article ends with a CTA and an FAQ
+  // that legitimately name the product, so measuring where mentions sit flagged
+  // either almost nothing (CTA included, mentions look spread) or almost
+  // everything (CTA excluded, so the CTA became the new end). Both readings
+  // were noise.
+  //
+  // Section spread asks the question the check actually cares about, and it is
+  // exactly what a fix has to change: is the product connected to the problems
+  // being explained, or confined to the closing? It is also immune to document
+  // length, CTA placement, and FAQ size.
+  const sections = md
+    .split(/^##\s+/m)
+    .slice(1)
+    .filter((s) => !/^\s*(?:FAQ|Frequently asked|Related reading)/i.test(s));
+  const withMention = sections.filter((s) => /kloudbean/i.test(s)).length;
+
+  return {
+    stockHeading: stock ? stock[1].trim() : null,
+    sections: sections.length,
+    sectionsWithMention: withMention,
+  };
+}
+
+/**
+ * COMPETITOR HAND-OFF — prose that actively sends the reader to a rival.
+ *
+ * This is Kloudbean's own blog. Being fair to a competitor is required; telling
+ * the reader to go buy from one is not the same thing, and the audit found 32
+ * articles doing it, 7 of them inside the .tldr where it is the first thing
+ * anyone reads. The worst cases conceded a segment Kloudbean genuinely serves
+ * (a "pick Cloudways if your world is WordPress and PHP" line, on a platform
+ * that runs WordPress, WooCommerce, Laravel, Magento, Drupal and Joomla with
+ * staging).
+ *
+ * IMPORTANT SCOPE LIMIT: three genres say "the hosted option is fine" or
+ * "responsibility stays with you" for honest reasons, and must not be flagged.
+ *   - self-host guides, where "just use the hosted version" is real advice;
+ *   - head-to-head "X vs Y" pages, which exist to help someone choose;
+ *   - compliance pages, where the customer genuinely owns obligations.
+ * The caller passes `allowsHandoff` for those. Everywhere else, a hand-off is a
+ * self-inflicted wound: state the trade-off honestly, then stop short of
+ * recommending the rival.
+ */
+/**
+ * A hand-off only counts when the thing being recommended is a real rival.
+ *
+ * VALIDATED against the library: matching a bare capitalised word after
+ * "stay on" produced six false positives out of eighteen hits, and every one
+ * was harmless technical or geographic prose: "stay on Full (strict)" (a
+ * Cloudflare SSL mode), "stay on React 18" (a version pin), "stay on Saudi
+ * soil" (data residency, ×3), and "pick DigitalOcean if you want to stay on the
+ * same infrastructure" — which is Kloudbean's own console offering one of its
+ * seven clouds, so flagging it was exactly backwards. Requiring a named
+ * competitor removes all six without weakening the real signal.
+ */
+const RIVAL =
+  "(?:Cloudways|Heroku|Vercel|Netlify|Render|Railway|Fly\\.io|Fly|Replit|Supabase|Firebase|Upstash|Neon|PlanetScale|MongoDB\\s+Atlas|Atlas|Aiven|RDS|Kinsta|WP\\s+Engine|WPEngine|SiteGround|Bluehost|Hostinger|DreamHost|Hetzner|Cloud\\s+Run|App\\s+Platform|Amplify|Platform\\.sh|Koyeb|Deta|Glitch|n8n\\s+Cloud|Shopify)";
+// NOTE: DigitalOcean, Linode, Lightsail, Vultr, AWS, GCP and UpCloud are
+// deliberately ABSENT. They are Kloudbean's own seven clouds, so "pick
+// DigitalOcean if you want to stay on the same infrastructure" is the console
+// offering a provider, not a hand-off to a competitor. Their managed PaaS
+// layers, which ARE rivals, are listed separately (App Platform, Cloud Run,
+// Amplify).
+
+const HANDOFF_PATTERNS: { re: RegExp; label: string }[] = [
+  { re: new RegExp(`\\b(?:pick|choose|go\\s+with)\\s+${RIVAL}\\s+if\\b`), label: "'pick <rival> if'" },
+  { re: new RegExp(`\\bstick\\s+with\\s+${RIVAL}\\b`), label: "'stick with <rival>'" },
+  { re: new RegExp(`\\bstay\\s+on\\s+${RIVAL}\\b`), label: "'stay on <rival>'" },
+  {
+    re: new RegExp(`\\b(?:honestly|frankly),\\s+stay\\s+(?:on\\s+${RIVAL}|put)\\b`, "i"),
+    label: "'honestly, stay put'",
+  },
+  {
+    re: /\bno\s+reason\s+to\s+(?:move|switch|leave|migrate)\b/i,
+    label: "'no reason to switch'",
+  },
+];
+
+function findHandoffs(md: string): { label: string; inOpening: boolean }[] {
+  const out: { label: string; inOpening: boolean }[] = [];
+  // The opening = everything before the first H2, which is where the lead and
+  // the TL;DR live. A hand-off there frames the entire page.
+  const opening = md.split(/^##\s+/m)[0] ?? "";
+  for (const { re, label } of HANDOFF_PATTERNS) {
+    const bare = new RegExp(re.source, re.flags.replace("g", ""));
+    if (!bare.test(md)) continue;
+    out.push({ label, inOpening: bare.test(opening) });
+  }
+  return out;
 }
 
 /** Ratio of prose (paragraph words) to total body words. Low = too listy/AI. */
@@ -802,6 +936,46 @@ export function scoreContent(input: ScoreInput): ScoreResult {
     detail: `${tables} table(s)${commercial ? " — commercial intent" : ""}`,
   });
 
+  // --- 19. Product woven into the problem, not bolted on at the end ---
+  const pi = productIntegration(md);
+  // Only judge spread on articles long enough for it to mean something. Below
+  // about five sections, "two of them" is not evidence of anything.
+  const tooNarrow = pi.sections >= 5 && pi.sectionsWithMention < 2;
+  const piFail = !!pi.stockHeading || tooNarrow;
+  checks.push({
+    id: "product_woven",
+    label: "Product connected to the problem, not appended as a promo section",
+    weight: 8,
+    earned: piFail ? (pi.stockHeading ? 0 : 3) : 8,
+    pass: !piFail,
+    detail: pi.stockHeading
+      ? `stock heading "${pi.stockHeading}" (used across dozens of articles)`
+      : `mentioned in ${pi.sectionsWithMention} of ${pi.sections} body sections`,
+  });
+
+  // --- 20. No hand-off that sends the reader to a competitor ---
+  // Self-host guides, head-to-head comparisons and compliance pages are exempt:
+  // there, "the hosted option is fine" / "you own this obligation" is honest.
+  const slug = String(input.slug ?? "");
+  const allowsHandoff =
+    /^self-host-/.test(slug) ||
+    /-vs-/.test(slug) ||
+    /(compliance|pdpl|csf|cscc|gdpr|soc2|hipaa|pci|nis2|dpdp|pdpa)/i.test(slug);
+  const handoffs = allowsHandoff ? [] : findHandoffs(md);
+  const handoffInOpening = handoffs.some((h) => h.inOpening);
+  checks.push({
+    id: "no_competitor_handoff",
+    label: "No hand-off telling the reader to pick a competitor",
+    weight: 6,
+    earned: handoffs.length === 0 ? 6 : handoffInOpening ? 0 : 2,
+    pass: handoffs.length === 0,
+    detail: allowsHandoff
+      ? "exempt genre (self-host / head-to-head / compliance)"
+      : handoffs.length
+        ? `${handoffs.map((h) => h.label).join(", ")}${handoffInOpening ? " — IN THE OPENING/TLDR" : ""}`
+        : "clean",
+  });
+
   // --- BANNED CLAIMS (hard rules) ---
   const bannedClaims: string[] = [];
   const unsupported = detectUnsupportedProviders(md);
@@ -989,6 +1163,16 @@ export function buildRevisionInstructions(result: ScoreResult, input: ScoreInput
       case "data_table":
         fixes.push(
           `Add at least one genuine markdown comparison/data table (e.g. plans, specs, features, or before/after metrics) with a header row and a separator row (currently ${c.detail}).`,
+        );
+        break;
+      case "product_woven":
+        fixes.push(
+          `The product currently reads as a promotional insert rather than something connected to the problems the article explains (${c.detail}). Fix it STRUCTURALLY, do not just soften the wording, and do not delete the product. Three things: (1) never use a stock heading like "Where Kloudbean fits", "Where Kloudbean fits, honestly", or "Where this leaves Kloudbean" — dozens of articles already use those and they are the reason the library reads like one template; write a heading that names the reader's actual question. (2) Move the platform's relevance UP into the two or three sections where it genuinely changes the outcome, at the moment that problem is being explained. (3) Give the closing section a reader-serving job instead of a selling one, for example splitting the problems into which ones the reader's own code owns versus which ones the host owns. Where a problem is NOT something any host can fix, say so plainly, ours included. That honesty is what makes the rest credible.`,
+        );
+        break;
+      case "no_competitor_handoff":
+        fixes.push(
+          `This is Kloudbean's own blog and the draft actively sends the reader to a competitor (${c.detail}). Being fair to a rival is required; recommending one is not the same thing. Remove the hand-off. Give the competitor at most ONE honest, measured line about its real strength, then pivot to what it does not settle. Critically, never concede a segment Kloudbean actually serves: it runs WordPress, WooCommerce, Laravel, Magento, Drupal and Joomla with staging, plus Node, Python, Ruby, Java and Go, so "pick them if you only need WordPress and PHP" is both factually wrong and self-defeating. Reframe the choice on SCOPE rather than quality: state what each one covers, and let the reader see which fits.`,
         );
         break;
       case "quick_answer":

@@ -83,8 +83,8 @@ It's a fair question, and there are two honest answers sitting on top of each ot
 
 Enough people got burned that a category grew up around fixing it. Zero egress object storage (and its low-egress cousins) simply don't meter data leaving the bucket, or cap it generously. A couple of options that take this approach:
 
-- **Kloudbean** doesn't charge egress on its built-in S3-compatible object storage, so serving your files out never turns into a transfer bill, and the buckets sit in the same dashboard as your servers, databases, and apps.
-- **Backblaze B2** offers free egress up to a generous multiple of what you store, which covers most real workloads.
+- **Kloudbean** doesn't meter data transfer out on its built-in S3-compatible object storage, so serving your files never turns into a transfer bill, and the buckets sit in the same dashboard as your servers, databases, and apps. Scope that precisely, because it's a fact about one product and not a platform-wide promise: managed Google Cloud Storage buckets on Kloudbean are a separate premium option running in a dedicated cloud project, and those bill both egress *and* ingress. If the no-egress number is what you're optimising for, it's the built-in buckets you want.
+- **Backblaze B2** doesn't bill egress up to a multiple of what you store, then meters beyond it.
 
 Run the same 1,000 GB scenario against a store that doesn't bill egress and the shape of the bill changes completely:
 
@@ -104,16 +104,27 @@ Egress hurts most in exactly the situations you'd reach for object storage in th
 
 - **Media and video.** Large files, served constantly. High egress by nature.
 - **Frequent downloads.** Installers, datasets, exports, anything users pull again and again.
-- **CDN origin.** Every time your CDN misses its cache and fetches from the origin bucket, that's egress. A global audience means many origin pulls.
+- **CDN origin.** Every time your CDN misses its cache and fetches from the origin bucket, that's egress. A global audience means many origin pulls, so the edge cache is doing cost work as well as latency work. Kloudbean sells a Cloudflare CDN add-on from the same dashboard as the buckets, paid on standard plans, with the first 1TB of bandwidth included on Enterprise and $5 per 100GB after that. Check the current figure on the pricing page rather than trusting this paragraph in six months.
 - **Backup restores.** Pulling a big backup out to restore it is egress, so the day you most need the backup is the day it costs the most on an egress-billed store. Worth remembering when you plan a [backup strategy](https://www.kloudbean.com/blog/server-backups-guide/).
 
 ## How to think about it before you pick a store
 
 My honest advice: treat data-transfer-out as a first-class number, not a footnote. Before you commit to any storage, estimate roughly how many gigabytes will leave the bucket per month (visitors times page weight, downloads times file size) and price that against the egress rate. If the answer is scary, you've got options short of switching. A [CDN](https://www.kloudbean.com/blog/speed-up-wordpress/) in front of the bucket caches files at the edge so the origin is hit far less often, which cuts origin egress. Compressing files and serving right-sized images trims the gigabytes going out. Neither eliminates egress, but both soften it while you weigh a move. If serving files out is central to what you do, a zero or low-egress store is worth seeking out on purpose, and [the object-storage alternatives, compared](https://www.kloudbean.com/blog/cloud-storage-alternatives/), lays out the options side by side. All of this feeds the broader goal of [cutting your cloud bill](https://www.kloudbean.com/blog/how-to-cut-your-cloud-bill/) before it surprises you, the way one team did when they [took a runaway bill from thousands to about a hundred](https://www.kloudbean.com/blog/cut-saas-bill-4000-to-100/).
 
-## Where Kloudbean fits
+## Six questions to ask before you trust any zero-egress claim
 
-So where does Kloudbean sit in all this? Two things. First, Kloudbean doesn't meter egress on its built-in [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/), so serving your files out doesn't turn into a transfer bill that scales with traffic. Second, it's consolidation: that storage lives in the same dashboard as your servers, managed databases, and apps, so your files and your stack share one login and one bill instead of being scattered across five providers. The storage is standard S3, the objects stay yours to export anytime, and it sits next to everything else you run rather than off in a separate account you forget about.
+"No egress fees" is a marketing phrase attached to wildly different terms. Read it as a claim to verify, not a feature. Six questions, and they take about ten minutes on any provider's pricing page.
+
+1. **Which product does the claim cover?** This is the one people skip, and it's where the disappointment lives. A no-egress line almost always describes one specific storage product, not everything the vendor sells. Ours is a live example: Kloudbean's built-in [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/) isn't metered on data transfer out, while managed Google Cloud Storage buckets are a separate premium product in a dedicated cloud project and bill both directions. Same vendor, opposite answer. Ask the question per product.
+2. **Unmetered, or capped?** "Free egress up to three times your stored volume" is a cap, and a media library blows through it in a busy month. A cap is fine, but budget against the rate past it, not against zero.
+3. **Does it cover copies as well as reads?** Cross-region replication and provider-to-provider transfers are frequently billed even where visitor traffic isn't.
+4. **What about request pricing?** Bandwidth can be free while `GET` operations are metered per ten thousand. Thumbnail-heavy sites make a lot of very small requests.
+5. **What's the exit path?** If the API is standard S3 and the objects come out with the ordinary CLI, you can leave. That matters more than any per-gigabyte figure, because it's the thing data gravity actually exploits.
+6. **Is your source current?** Storage terms move, and every table in this article is illustrative. Price it on the provider's own pricing page on the day you decide.
+
+Two things no storage product fixes, and that includes ours. A bucket that doesn't meter egress doesn't make your application's bandwidth free, so read what your compute plan covers as a separate question. And nothing on the storage side rescues an app that ships a 4MB hero image to every visitor: right-sizing images and compressing files is your code's job, and it's still the highest-leverage change available whatever the transfer rate is. Zero egress removes a variable from the bill. It doesn't remove the bytes.
+
+![The Kloudbean console showing S3-compatible buckets in one dashboard with the rest of the stack](../assets/console/s3-buckets.png)
 
 ![The Kloudbean console showing S3-compatible buckets in one dashboard with the rest of the stack](../assets/console/s3-buckets.png)
 
@@ -150,7 +161,7 @@ Put a CDN in front of the bucket so files are cached at the edge and the origin 
 No. Egress pricing varies significantly between providers and can change, so always check the specific data-transfer-out rate rather than assuming. The pattern holds wherever it's charged: egress scales with traffic and is easy to overlook. Zero and low-egress options remove that variable and make the bill predictable.
 
 **Does Kloudbean charge egress fees?**
-No. Kloudbean's built-in S3-compatible object storage doesn't charge egress fees, so serving your files out doesn't add a data-transfer line that grows with traffic. You get it in one dashboard alongside your servers, apps, and managed databases, with the standard S3 API and objects you can export anytime.
+Not on its built-in S3-compatible object storage, which isn't metered for data transfer out, so serving your files doesn't add a line that grows with traffic. Scope it to that product: managed Google Cloud Storage buckets are a separate premium option in a dedicated cloud project and do bill both egress and ingress. The built-in buckets use the standard S3 API, sit in the same dashboard as your servers and databases, and the objects stay exportable anytime.
 
 ---
 

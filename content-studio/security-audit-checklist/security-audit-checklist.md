@@ -41,19 +41,19 @@ Most breaches start with someone getting in as a legitimate user, so this layer 
 
 Before anything reaches your app, decide what can reach the server at all, and from where.
 
-- **Deny-by-default firewall.** Close every port you are not using so the internet's constant scanning finds nothing. This is the host firewall half of [Fail2ban and Shorewall](https://www.kloudbean.com/blog/fail2ban-and-shorewall-guide/).
+- **Deny-by-default firewall.** Close every port you are not using so the internet's constant scanning finds nothing. This is the host firewall half of [Fail2ban and Shorewall](https://www.kloudbean.com/blog/fail2ban-and-shorewall-guide/). On Kloudbean both are applied to every server automatically, so these two rows are usually true before you start auditing; the rules you add on top are still yours to get right.
 - **Brute-force banning.** Automatically ban IPs that hammer login on the doors you must keep open, like SSH, which is the Fail2ban half of the same guide.
 - **Restrict admin surfaces by address.** Lock dashboards, database GUIs, and admin panels to your office and VPN with [IP allowlisting](https://www.kloudbean.com/blog/ip-allowlisting-guide/), so they are not open to the world.
 - **Gate non-public environments.** Put staging and pre-launch sites behind a [Basic Auth gate](https://www.kloudbean.com/blog/basic-auth-gate-guide/) so they stay private and out of search results.
-- **App-layer and volumetric protection.** Filter malicious requests with [a WAF](https://www.kloudbean.com/blog/what-a-waf-does/) and absorb floods with [DDoS protection](https://www.kloudbean.com/blog/ddos-protection-explained/) at the edge. These are different layers from the host firewall, and you want them too.
+- **App-layer and volumetric protection.** Filter malicious requests with [a WAF](https://www.kloudbean.com/blog/what-a-waf-does/) and absorb floods with [DDoS protection](https://www.kloudbean.com/blog/ddos-protection-explained/) at the edge. These are different layers from the host firewall, and you want them too. Notice the commercial shape of this row: edge protection is nearly always a paid add-on rather than a default, the Cloudflare add-on on Kloudbean included, where it's free only on enterprise accounts. Budget for it instead of assuming it.
 
 ## 3. Data protection
 
 Protect the data itself, in both the states it lives in, and make sure you can get it back.
 
-- **Encryption in transit, everywhere.** HTTPS on all traffic with HTTP redirected to HTTPS, so nothing travels in the clear. Free auto-renewing SSL removes the excuse.
+- **Encryption in transit, everywhere.** HTTPS on all traffic with HTTP redirected to HTTPS, so nothing travels in the clear. Free auto-renewing SSL removes the excuse, and on a managed platform like Kloudbean issuing and renewing the certificate is a click, so an expired cert becomes a non-event rather than a Monday morning.
 - **Encryption at rest.** Disks, databases, backups, and object storage encrypted, so stolen media is unreadable, remembering it protects the media, not the live app. Both states are in [encryption at rest and in transit](https://www.kloudbean.com/blog/data-encryption-at-rest-and-in-transit/).
-- **Backups that are automatic and tested.** A backup you have never restored is a guess; take them automatically, ship them off the server, and actually test a restore, per the [backups guide](https://www.kloudbean.com/blog/server-backups-guide/).
+- **Backups that are automatic and tested.** A backup you have never restored is a guess; take them automatically, ship them off the server, and actually test a restore, per the [backups guide](https://www.kloudbean.com/blog/server-backups-guide/). Kloudbean runs automatic backups and lets you take an on-demand one right before a risky change, which is the version of this checkbox people actually use. Nobody, us included, can tell you your restore works until you've run one.
 - **Know where your data lives.** For regulated or regional obligations, be clear on [data residency](https://www.kloudbean.com/blog/data-residency-explained/), because "somewhere in the cloud" is not an answer an auditor accepts.
 
 ## 4. Secrets
@@ -73,7 +73,7 @@ The layers above protect the server; this one is the app you actually wrote, whi
 - **Guard the OWASP basics.** Validate and sanitise input, use parameterised queries against SQL injection, and escape output against cross-site scripting.
 - **Security headers set.** A Content-Security-Policy and friends reduce whole classes of client-side attack; see the [security headers guide](https://www.kloudbean.com/blog/security-headers-guide/).
 - **Scan container images.** If you ship containers, scan them for known vulnerabilities before they run, as in [container security scanning](https://www.kloudbean.com/blog/container-security-scanning/).
-- **Patch the OS.** The operating system and web stack need patching on a cadence; on a managed platform this is handled for you, which is a real load off.
+- **Patch the OS.** The operating system and web stack need patching on a cadence; on a managed platform this is handled for you, which is a real load off. Be precise about the line, though. Kloudbean patches the OS and the stack, while the packages in your `package.json` or `requirements.txt` stay entirely yours. Plenty of teams read managed as covering both and get bitten by a two-year-old library.
 
 ## 6. Monitoring and evidence
 
@@ -101,11 +101,18 @@ A recurring confusion is assuming the host secures everything, or that you must 
 
 The pattern is consistent: the platform hardens the infrastructure, and you own the application and the decisions. Neither side can do the other's job, which is why "is it secure?" is always a shared answer.
 
-## Where Kloudbean fits, honestly
+## What an unticked box costs you later
 
-Reading down the checklist, a good number of items are handled at the infrastructure layer on Kloudbean by default: the Shorewall firewall and Fail2ban baseline, free auto-renewing SSL, automatic backups, OS patching, IP Access Control and a Basic Auth gate for the network items, social login and HttpOnly sessions for access, environment variables and scoped API tokens for secrets, and an enterprise Audit Trail for evidence. That removes a meaningful chunk of the list before you start.
+Checklists get skipped because the cost of skipping is invisible right up until it isn't. So here's the incident each layer produces when it's left undone. Use it to argue for time, and to decide what to fix first when you can't fix everything.
 
-The honest boundary is the right-hand column of that table. The platform cannot update your dependencies, write input validation, decide who gets access, avoid committing a secret, or review the audit trail for you. Those are yours, and they are where most breaches actually originate. Use the platform to make the infrastructure layer close to automatic, then spend your attention on the application and process items that only you can own. The overview of that division is [the secure and compliant hosting guide](https://www.kloudbean.com/blog/secure-compliant-hosting/).
+- **Access.** Skipped, you get account takeover using a password that leaked somewhere else entirely, months ago, with no second factor to stop it. This is the cheapest layer to fix and the one that shows up in incident write-ups most often.
+- **Network.** Skipped, you get an SSH login attempt every few seconds forever, an admin panel indexed by a scanner, and eventually a staging database someone found because nothing gated it.
+- **Data.** Skipped, the outage that would have cost you an hour costs you the business, because the backup nobody tested turns out to be empty, partial, or on the same disk that died.
+- **Secrets.** Skipped, a key in a public repo becomes a five-figure cloud bill overnight, or quiet access to your production database that nobody notices for weeks.
+- **Application.** Skipped, a known vulnerability in a dependency you never updated does the work for the attacker. Nothing exotic, just a CVE published a year ago against a version you're still running.
+- **Monitoring.** Skipped, the breach still happens, but you can't say when it started, what was taken, or who did it. Which is the difference between an incident and an unbounded liability.
+
+Now the honest part, and it applies to us as much as anyone. No host fixes the right-hand column of that table. Kloudbean cannot update your dependencies, write your input validation, decide which contractor still needs access, stop a key going into git, or read the audit trail on your behalf. Those aren't features anyone can ship, and they're where most breaches actually begin. What the infrastructure layer can do is stop being your problem, so the attention you have left goes to the items only you can own. Same division, seen from the platform side, in [the secure and compliant hosting guide](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 
 ## Related reading
 

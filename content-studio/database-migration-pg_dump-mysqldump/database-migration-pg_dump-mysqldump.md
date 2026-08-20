@@ -35,6 +35,18 @@ Standing up a brand-new database instead of moving one? The companion guide on [
 
 Version skew is the quietest cause of a failed restore. For Postgres, run `pg_dump` and `pg_restore` from a client at least as new as the destination server. `pg_dump` reads older servers fine; the failure is the reverse, an old `pg_dump` against a newer one. For MySQL, dump with a `mysqldump` that matches your target, and remember MariaDB and MySQL are close cousins, not identical, so a dump from one can need a tweak to load into the other.
 
+## Create the target before you dump anything
+
+Do this first, not third. Half the flags below depend on facts about the destination: its major version, its charset, whether the extension you need exists, whether the app user is there yet. Knowing those before you dump saves you running the dump twice.
+
+On Kloudbean the destination comes from the same dashboard as the app: managed PostgreSQL, MySQL, and MariaDB are three of seven engines, with Redis, Memcached, Elasticsearch, and MongoDB rounding out the set. Name it, pick the version, create it. A minute or two later it's provisioned and patched, and you have a connection string to point `pg_restore` or the `mysql` client at.
+
+![The Kloudbean console launching a managed PostgreSQL, MySQL, or MariaDB database as the migration target](../assets/console/launch-database.png)
+
+_Launch the target first. The version you pick here decides which client version you should dump with._
+
+Two practical notes while you're there. The database is reachable only from IP addresses you allow-list, so add your app server's address, and add whatever machine is running the restore, otherwise your first `pg_restore` will hang and you'll blame the dump. And if the target sits in the same account as your app, the transfer runs over a short internal hop, which matters a lot on a 40GB dump.
+
 ## Migrate a PostgreSQL database with pg_dump
 
 Two formats are worth knowing, and they solve different problems.
@@ -234,6 +246,12 @@ When staging looks right, the real cutover goes like this:
 5. **Monitor** logs and error rates for a few minutes. Watch for connection and auth errors first.
 6. Leave the old database **read-only** for a day or two. That's your rollback: if something's wrong, point the connection string back and you've lost nothing.
 
+Step six is the one people skip, and it's the cheapest insurance in the list. Worth knowing that the new side gets a second safety net without you doing anything: automatic backups begin on a Kloudbean managed database as soon as it exists, so the freshly loaded data has a restore point from minute one. You can also take an on-demand backup right after the final restore, which is the exact moment you want a marked snapshot rather than whatever the schedule happens to give you.
+
+![The Kloudbean console showing automatic backups on a managed database, giving an immediate restore point after migration](../assets/console/manage-backups.png)
+
+_The new database has a restore point from minute one, so the rollback plan has two directions instead of one._
+
 Making a database read-only is a one-liner on either engine:
 
 ```
@@ -271,23 +289,25 @@ Those are estimates, so for the tables that really matter, run an exact `SELECT 
 
 **Run the app against it in staging.** Point your staging app at the new database and exercise the real flows: sign up, log in, place an order, whatever your app does. If the app is happy and the counts match, you're clear to cut over. The connection wiring lives in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
 
-## Where the target database comes from
+## Should you run this yourself, or hand it over?
 
-All of this needs somewhere to land. On Kloudbean you launch the destination from one dashboard: managed **PostgreSQL, MySQL, and MariaDB** are three of seven engines (Redis, Memcached, Elasticsearch, and MongoDB round out the set). Pick one, name it, create it. A minute or two later it's provisioned, patched, and being backed up.
+Kloudbean includes free migration assistance on servers above 4GB, which means you can send the source details and have the team run the move with you. Useful. But it's worth knowing exactly where the seam is, because a handover with a fuzzy seam is how a migration ends up half-done at midnight.
 
-![The Kloudbean console launching a managed PostgreSQL, MySQL, or MariaDB database as the migration target](../assets/console/launch-database.png)
+**Hand it over when** the database is large enough that the freeze window is a real negotiation, when it's production and you'd rather have a second pair of eyes on the cutover, or when you're moving several databases at once and the sequencing is the hard part. The free trial is there to stand up the target and dry-run before you commit anything.
 
-_Launch the target database in a click, then point pg_restore or the mysql client at it._
+**Run it yourself when** the database is small, the dump takes minutes, and you'd learn something. Honestly, the first time you do this on a database you can afford to break is worth more than any guide, including this one.
 
-Two things make a migration here less nerve-wracking. The database is locked down with **IP allow-listing**, reachable only from your whitelisted app server instead of exposed to the internet, and it sits right next to your app in the same account, which is also the fastest path for streaming a big dump across. And **automatic backups** start immediately, so the moment your data lands you have a restore point, a safety net most people bolt on later, if ever. More in the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/).
+**Either way, these stay with you.** Not because of a policy, but because nobody else has the information:
 
-![The Kloudbean console showing automatic backups on a managed database, giving an immediate restore point after migration](../assets/console/manage-backups.png)
+- **Knowing what the data should look like.** Row counts can match perfectly while every accented name is mangled. Only someone who knows the data can look at a record and say "that's wrong". That's the single most common way a migration is declared successful and isn't.
+- **Your app's flows.** Sign-up, checkout, the report that joins six tables. Someone has to exercise those against the new database, and it has to be someone who knows what correct looks like.
+- **The connection string and the deploy.** The database can be perfect and the app still down, because the environment variable never changed or the new host wants `sslmode=require`. Fix the config, not the database.
+- **Choosing the freeze window.** Which hour is quiet, which customer must not notice, whether read-only is acceptable or you need a full stop. That's a business call.
+- **Application-level fixes the migration exposes.** Code that assumes latin1, a query that only works on the old major version, a schema that depends on an extension you've decided not to carry over. No host fixes those, ours included. We can tell you the extension isn't there. We can't rewrite the query that needs it.
 
-_Automatic backups mean the freshly migrated database has a restore point from minute one._
+The infrastructure half is the part that's genuinely someone else's job: provisioning and patching the target, the access controls in front of it, backups from minute one, and a hand on the cutover if you want one. For the engine deep-dives, see [managed MySQL hosting](https://www.kloudbean.com/blog/managed-mysql-hosting/) and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/), and the restore-point side in the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/).
 
 <!-- ADD IMAGE: the new connection details you paste into your app's environment variables. -->
-
-Rather not run the cutover alone? Kloudbean offers **free migration assistance**: send your source details and the team helps move it, which is genuinely useful for a large or production database where the freeze window has to be short. A **free trial** lets you stand up the target, dry-run, and verify before committing. For the engine deep-dives, see [managed MySQL hosting](https://www.kloudbean.com/blog/managed-mysql-hosting/) and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/).
 
 ---
 

@@ -86,9 +86,11 @@ An agent that forgets everything on restart feels broken to the person mid-conve
 - ☐ **Conversation history and agent memory live in the database.** In-memory state vanishes the moment the process restarts, which in production is often (a deploy, a crash, a scale event). Durable patterns are in [AI agent memory in production](https://www.kloudbean.com/blog/ai-agent-memory-production/).
 - ☐ **Redis handles the fast, short-lived layer.** Sessions, recent context, rate-limit counters, cached answers. Postgres stays the durable record; Redis is the speed in front of it. See [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/). Set TTLs so it stays small.
 
+Both of those are one-click engines on Kloudbean (two of seven, alongside MySQL, MariaDB, Memcached, Elasticsearch, and MongoDB), which matters here for a dull reason: the durable layer and the fast layer end up as two tiles behind one login rather than two vendors, two bills, and two consoles to remember the passwords for.
+
 ## Secrets and config: nothing sensitive in the repo
 
-- ☐ **Secrets live in environment variables set in the dashboard, not in code.** Per-environment values, what belongs in an env var and what doesn't, all covered in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
+- ☐ **Secrets live in environment variables set in the dashboard, not in code.** Per-environment values, what belongs in an env var and what doesn't, all covered in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). Worth checking your host actually lets you edit them from a screen; Kloudbean exposes Node and Python runtime config and env vars in the console with no SSH, which is what turns rotating a key into a config change instead of a commit.
 - ☐ **Nothing sensitive is committed. Check git history too, since a deleted file still lives in old commits.** A key that was ever committed is compromised, even after you delete it. Bots scan public repos for exactly this within minutes.
 - ☐ **You have a rotation plan.** You can swap a key without a code change and a redeploy. If rotating a secret means editing code, that's backwards. [Secrets management](https://www.kloudbean.com/blog/secrets-management/) covers the how.
 
@@ -104,6 +106,8 @@ You need to debug and watch spend without turning your logs into a liability.
 
 ## Reliability and ops: it stays up and ships cleanly
 
+This group is decided by what you deployed onto more than by anything you write. A persistent process has no cold start to engineer around, and automatic backups plus a Git pipeline with live build logs are either included or they're your weekend. Those all come with the app on Kloudbean, and staging environments are available for WordPress and Laravel.
+
 - ☐ **The app is always-on, so there's no cold start on the first request.** A model call is slow enough without also waiting for the process to wake up. Why serverless hurts a steady, connection-heavy AI backend: [move your AI app off serverless](https://www.kloudbean.com/blog/move-ai-app-off-serverless/).
 - ☐ **A health check endpoint** that a monitor or load balancer can poll to ask "are you alive?" and get a straight answer.
 - ☐ **Automatic backups, and you've tested a restore.** A backup you've never restored is a hope, not a backup.
@@ -118,6 +122,8 @@ Skip this group if you're a hobby project or your users genuinely don't care whe
 
 - ☐ **Data is stored in-region.** For a Saudi audience that means in-Kingdom. The residency and latency case is in [hosting AI apps in Saudi Arabia](https://www.kloudbean.com/blog/hosting-ai-apps-saudi-arabia/).
 - ☐ **Deletion reaches every store.** A delete request has to clear the database, the vector store, object storage, logs, caches, and backups. Clearing the main table alone leaves copies behind, which is a real compliance gap. Background in [Saudi PDPL for AI apps](https://www.kloudbean.com/blog/saudi-pdpl-for-ai-apps/).
+
+Region is the one item on this page that's genuinely painful to retrofit, because it's a provisioning decision rather than a code change. Kloudbean can provision in any region its seven clouds offer, in-Kingdom included via Google Cloud's Dammam region, which is what puts managed databases and Saudi data residency in the same dashboard. It's aligned with frameworks like GDPR and the NCA controls and supports the technical half of your compliance work. It does not make your organisation compliant. That half stays yours and no vendor can take it.
 
 ## How far down do you need to go?
 
@@ -135,13 +141,27 @@ If you only do three things before launch, do these: put the model key behind yo
 
 And the anti-pattern to avoid at all costs: treating a demo as production because it "works." It works in the sense that it responds when you type. It also has the key in the frontend, an in-memory store that resets on the next restart, and no cap on spend. "It responds" and "it's ready for strangers" are different claims. The gap between them is this checklist.
 
-## Where Kloudbean fits
+## What skipping each group actually costs you
 
-The reason this list feels like a chore is that the pieces usually live in different places: one host for the app, another for the database, a third for Redis, a separate console to learn for each. Kloudbean puts them in one dashboard. You run an always-on server (Node or Python, so no cold starts), add a managed Postgres (with `pgvector` where your plan enables it) and a managed Redis, get built-in S3-compatible object storage with no egress fees, automatic backups, and free SSL, set your secrets as environment variables right in the dashboard, and deploy from Git on every push. You lock the database down by whitelisting your app server's IP, so only your app can reach it and everything else is refused. Staging environments are available for WordPress and Laravel. Plans start from $8/mo. We run our own tools this way, so it's the setup we actually use.
+A checklist is easy to nod at and easier to defer. So here's the invoice on each group, in the currency it gets paid in and roughly when it lands.
 
-If you serve a regulated market, Kloudbean can run in-region, including in-Kingdom on Google Cloud's Dammam region, which makes it one of the few managed-cloud platforms delivering managed databases with in-Kingdom data sovereignty. It's aligned with frameworks like GDPR and the NCA controls and supports your compliance work. It does not make your organisation compliant on its own; that part is yours.
+| What you skipped | What it costs | When you find out |
+|---|---|---|
+| Data in SQLite or memory | Every signup and conversation, gone, unrecoverably | The first redeploy. Often within a week. |
+| Key in the frontend | Your provider balance, spent by strangers | Minutes, if the repo is public. Bots watch for this. |
+| No spend cap | One runaway retry loop turns into a four-figure invoice | When the bill closes, which is far too late. |
+| No auth on model routes | Same as no spend cap, but faster and repeatable | Whenever somebody finds the endpoint. |
+| No streaming | Users abandoning a frozen screen mid-answer | Never explicitly. It hides inside your churn number. |
+| No retries or fallback | Your app looks broken every time the provider has a bad hour | The first provider incident. There will be one. |
+| Raw prompts in logs | A growing pile of personal data with obligations attached | When someone asks you to delete it, or when it leaks. |
+| Cold starts | The slowest request is the first one any new user makes | Every single first impression. |
+| Untested backups | You learn the backup was unusable at the exact wrong moment | Mid-incident, with everyone watching. |
+| No staging | Your users are the test environment | On the deploy you were most confident about. |
+| Wrong region, regulated market | A rebuild rather than a fix | During procurement or an audit, when you can least afford it. |
 
-The honest boundary: managed means the platform handles the server, the stack, SSL, backups, and patching. Your app's code, your prompts, and your data stay yours. Kloudbean won't run model inference for you (call a provider API for that), and full network isolation in a private VPC is an Enterprise capability, not a default. On a standard plan, IP allow-listing is how the database stays off the open internet.
+Read the third column and a split appears. Some of these bills arrive because of a decision inside your repo. Others arrive because of the shape of the thing you deployed onto, and no amount of careful code changes them. That's why the platform came up in the memory, secrets, ops, and residency groups above instead of waiting until now: those are the four where the host genuinely moves the number.
+
+Now the part no host fixes, and ours is squarely included. Rows two through seven are code and configuration in your repo. Nobody provisions a retry with backoff on your behalf, decides your rate limit, sets your provider's spend cap, or chooses not to log the prompt. If your key is in a bundled JavaScript file, it's public on every platform in existence, and the most managed server on earth will serve it cheerfully. Backups we take; testing the restore is still a thing you have to actually do. Two scope notes while we're being exact: private networking and a VPC are part of the Enterprise package, so on a standard plan IP allow-listing on the database is your access model, and an account-wide immutable audit trail is Enterprise as well. And one thing people assume wrongly: if you'd rather self-host an open model than call a provider API, GPU servers are available and you can run your own model on one. DeepSeek installs one-click and support will install another model on request. You still choose and own the model; we run the box it sits on.
 
 **Tick the whole list in one dashboard.** Run your AI app on an always-on server with managed Postgres and Redis, built-in object storage, automatic backups, free SSL, and secrets set right in the dashboard, deployed from Git. No cold starts, so the first request is quick. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
 

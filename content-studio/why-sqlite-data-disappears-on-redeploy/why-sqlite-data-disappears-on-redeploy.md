@@ -68,11 +68,15 @@ The difference isn't SQLite versus Postgres as engines. It's where the data phys
 
 The scale-out row is the quiet killer people forget. Even if a host somehow kept your disk between deploys, the moment you run a second copy of the app to handle traffic, each copy gets its own SQLite file. Half your users write to one, half to the other, and neither has the whole picture. Local files just don't have a story for more than one instance.
 
+Worth being concrete about what that split looks like on a real platform. On Kloudbean the application's disk is what a redeploy replaces, and a managed database isn't part of that, because it's a separate service with its own lifecycle. Seven engines launch that way (PostgreSQL, MySQL, MariaDB, Redis, Memcached, MongoDB, and Elasticsearch), which matters here because "where does this state live" needs an answer for sessions and caches too, not just your main tables.
+
 ## The fix: move state out of the app process
 
 The permanent fix is one idea: state that has to survive a deploy must not live inside the thing you redeploy. Move your data to a managed Postgres or MySQL database that runs as its own service, and now deploying only ever ships code. The database sits still while versions come and go, exactly like the bottom timeline in the diagram.
 
 In practice this is smaller than it sounds. You provision a managed database, you get a connection string, and you point your app at it through a `DATABASE_URL` environment variable instead of a file path. Most ORMs (Prisma, Drizzle, Sequelize, Django's ORM, ActiveRecord) change one line of config and a dialect setting. Your queries barely move. The full walkthrough is in [how to add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), and if you're weighing the engine, [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) covers why Postgres is the safe default for most apps. Once you're on it, spend ten minutes on [production database design for AI apps](https://www.kloudbean.com/blog/production-database-design-for-ai-apps/) so the schema you carry over is one you'll want to keep.
+
+There's one step people skip, and it's the one that turns a working connection into a safe one. On Kloudbean the database launch is a one-click tile and the connection string comes with it, then you whitelist your application server's IP on the database so that server is the only thing allowed to connect and everything else gets refused. That's IP Access Control, it's self-serve on a standard plan, and it's the lock you actually get. Private networking inside a VPC is an Enterprise feature, so don't plan around it on an $8/mo server. The allow-list plus real credentials is enough.
 
 Here's my one firm opinion on this: SQLite is great in dev and wrong for anything you write to in production. It's a brilliant embedded database, genuinely, but the moment real users depend on data persisting, it belongs behind you. Switch to a managed database the day you have your first real user, not the day after you lose them.
 
@@ -90,7 +94,7 @@ Notice the common thread: nothing important is being written to that file at run
 
 ## The same bug wears other disguises
 
-Once you see the ephemeral-disk pattern, you start spotting it everywhere, and that's the real value here. User uploads are the classic sibling. Someone uploads a profile photo, your app saves it to `/uploads` on local disk, and it works great until the next deploy makes every image 404 with an `ENOENT`. Exact same mechanism, different file. The fix is the same shape too: put uploads in object storage that lives outside the app, which is covered in [how to store user uploads in object storage](https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/).
+Once you see the ephemeral-disk pattern, you start spotting it everywhere, and that's the real value here. User uploads are the classic sibling. Someone uploads a profile photo, your app saves it to `/uploads` on local disk, and it works great until the next deploy makes every image 404 with an `ENOENT`. Exact same mechanism, different file. The fix is the same shape too: put uploads in object storage that lives outside the app, which is covered in [how to store user uploads in object storage](https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/). Kloudbean's built-in S3-compatible buckets are in the same dashboard as the app and speak the full AWS SDK and CLI, so on the code side this is swapping a `fs.writeFile` for an S3 client you've probably already used, not onboarding a new vendor.
 
 So generalise the rule and you'll never get bitten by this class of bug again: nothing that must survive a deploy lives on the app's local disk. Databases go to a managed database. Files go to object storage. Sessions and caches go to Redis. Which kind of data belongs in which store is laid out in [persistent storage for AI apps](https://www.kloudbean.com/blog/persistent-storage-for-ai-apps/). The app process itself stays disposable, which is the whole point of being able to redeploy it fearlessly.
 
@@ -104,11 +108,17 @@ When the panic sets in, two workarounds show up a lot. Both feel like fixes. Bot
 
 **Writing the SQLite file to a different path.** People move `app.db` to `/data` or `/var/db` hoping some folder is magically persistent. Usually it isn't. Unless the platform gives you an explicitly mounted persistent volume (and most app platforms don't, by design), every path is on the same ephemeral disk. You've moved the deck chair. The disk still resets. Chasing the "right" folder wastes an afternoon and ends where it started.
 
-## Where Kloudbean fits
+## The contract a redeployable app has to keep
 
-This is squarely the problem Kloudbean is built to make boring. You run your app on an always-on server, and you add a managed database (Postgres, MySQL, and more) that runs as its own service, outside the app. So a redeploy only ever changes code, and your data sits right where it was. You deploy from Git on every push, automatic backups run on a schedule, and SSL is free. The database is locked down by IP allow-listing: you whitelist your app server's address so only your app can connect, and everything else is refused. Plans start at $8/mo, and it's all in one dashboard rather than three separate consoles.
+Step back one level, because this bug is a symptom of an architectural rule that's worth carrying into every project after this one. Redeploying without fear requires the app process to be genuinely disposable. Which means everything that can't be thrown away has to live somewhere with three properties, and it's worth checking your current setup against each:
 
-The honest boundary, because it builds trust: managed means Kloudbean handles the server, the stack, SSL, backups, and patching. Your app code and your data stay yours. Moving off SQLite is a change you make in your app; the platform's job is to give the managed database a stable home so the move actually sticks. Full network isolation in a private VPC is an Enterprise capability; on a standard plan, the IP allow-list is how you keep the database off the open internet.
+- **Its own lifecycle.** The store gets created, upgraded, and destroyed on a different schedule from your code. If shipping a CSS fix can affect it, it's inside the deploy unit and it isn't safe. This is the property SQLite-on-local-disk fails, and the only one that actually explains the bug.
+- **Backups it takes without you remembering.** State you have to manually snapshot is state you'll lose on the week you're busy. Scheduled and on-demand backups both matter, because the scheduled one covers your bad Tuesday and the on-demand one covers the migration you're about to run.
+- **Reachable by more than one process at once.** The day you run a second app instance or add a background worker, anything file-local silently splits in half. Design for two processes even while you have one, and you never have to revisit it.
+
+A managed database clears all three by definition, which is the whole reason the category exists. Object storage clears them for files. Redis clears them for sessions. On Kloudbean the three sit in one dashboard next to the always-on server running your code, deploys come from Git with build logs and history, backups run automatically and on demand, and SSL is free. From $8/mo.
+
+Now the part no host fixes, and I'd rather say it than let you find out. If your SQLite file is already gone from a disk that got replaced, there's nothing for anyone to restore. Not us either. The platform was told that disk was scratch space, so it never kept a copy, and backups protect a managed database from the moment you create it rather than retroactively covering last week. Managed covers the server, the stack, SSL, patching, and the backup schedule. Choosing what your app writes and where is your call, and it always was. That's the one decision this whole article is asking you to make on purpose instead of by default.
 
 ## Stop losing data on every deploy
 

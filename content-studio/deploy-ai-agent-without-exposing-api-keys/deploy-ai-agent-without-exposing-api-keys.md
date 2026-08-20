@@ -65,6 +65,8 @@ To close it: drop the `NEXT_PUBLIC_` / `VITE_` prefix so the key stops shipping 
 
 The pattern is a thin proxy. Your backend exposes one endpoint, holds the key, forwards the request to the provider, and returns the answer. The browser only ever talks to your server. This is why you want a real server-side runtime for your agent, Node or Python running as an always-on process, not a static frontend calling a third party.
 
+That requirement quietly rules some hosts out. A static-site host has nowhere for the key to live, which is exactly how people end up with `NEXT_PUBLIC_` in front of a secret: the platform gave them no server, so they shipped the key to the browser. If your app is currently deployed as a static bundle, this fix starts with moving to something that runs a persistent Node or Python process. Kloudbean runs both as always-on managed apps, and the browser-to-backend hop gets free SSL, which matters here because you're now sending user prompts to your own endpoint instead of straight to a provider over their TLS.
+
 ```
 BLOCKED · leaks the key
 [ Browser: carries the sk-... key ] --X--> [ Model provider ]
@@ -127,7 +129,7 @@ Notice both endpoints already have an auth check and a rate limit wrapped around
 
 Once the call is server-side, the key belongs in an environment variable, loaded at runtime. Not typed into a source file. Not sitting in a config that gets committed. The reason is simple: code goes into Git, and Git remembers. A key pasted into a file and pushed once is in the history even after you delete it, and bots scan public commits for exactly that. Providers now watch for it too, and can auto-revoke a key they spot in a public repo, which is a mercy but not a plan.
 
-So `.env` goes in `.gitignore`, and the real values live wherever you run the app. Locally that's a `.env` file you never commit. In production you set them on the server, outside the codebase entirely. If you want the full treatment, our guides on [secrets management](https://www.kloudbean.com/blog/secrets-management/) and [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) go deeper than I can here.
+So `.env` goes in `.gitignore`, and the real values live wherever you run the app. Locally that's a `.env` file you never commit. In production you set them on the server, outside the codebase entirely. On Kloudbean that's a dashboard screen: you set `OPENAI_API_KEY` there and it's injected into the app's environment at runtime, so the value never enters the repo the Git deploy pulls from. The practical benefit isn't the screen, it's that the key and the code now live in two different places, which is what makes the next section painless. If you want the full treatment, our guides on [secrets management](https://www.kloudbean.com/blog/secrets-management/) and [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) go deeper than I can here.
 
 ![Setting an API key as an environment variable in the Kloudbean dashboard so it stays on the server and out of the codebase](../assets/console/env-vars.png)
 
@@ -136,6 +138,8 @@ So `.env` goes in `.gitignore`, and the real values live wherever you run the ap
 Assume it will happen. A key ends up in a screenshot, a log file, a Slack message, an old commit. Rotation is the muscle that turns a scary leak into a shrug. In your provider's dashboard you create a new key, deploy it to your server's environment variables, confirm the app is using it, then revoke the old one. The exposed key becomes worthless.
 
 Two habits make this painless. Give each app or environment its own key, so rotating one doesn't take down the others. And never hard-code a key anywhere, so rotation is only ever an environment change and a redeploy, not a code hunt. If rotating a key means grepping your codebase, the key was in the wrong place to begin with.
+
+Order matters in that sequence, and the step people rush is "confirm the app is using it." Revoke the old key before the new one is actually live and you've taken your own agent down. Watch the deploy finish first. Kloudbean streams live build logs in the console, which is the cheap way to know the restart picked up the new environment variable rather than assuming it did.
 
 ## A proxy with no auth is just a slower leak
 
@@ -170,13 +174,27 @@ If I had to name the pattern that burns people, it's treating "the key isn't in 
 
 Work through the broader [AI app security checklist](https://www.kloudbean.com/blog/ai-built-app-security-checklist/) before you call it done, especially if your agent takes user input and hands it to a model with real permissions. Key exposure is the most common way to get hurt, not the only one.
 
-## Where Kloudbean fits
+## Which of these can anything else take off your hands?
 
-You can run this pattern anywhere that gives you a real server-side process. The reason it's worth mentioning Kloudbean here is that the safe setup wants a few boring things in one place, and that's the whole idea of the platform. You deploy your Node or Python backend as an always-on app, set `OPENAI_API_KEY` and the rest as environment variables in the dashboard so they stay off your repo and off the client, and get free SSL so the browser-to-backend hop is encrypted by default.
+Nine things have to be true before an agent's key is genuinely safe. Sorting them by who owns each one is the most useful thing you can do with the list, because it tells you which items are a pull request and which are a property of where you deployed.
 
-On the lock-down side, every server ships with a **Shorewall firewall and Fail2ban** running from the start, so brute-force attempts get throttled without setup. If your agent uses a managed database, you close it off with **IP Access Control**, whitelisting your app server's IP so only that server can connect. For teams that need full network isolation, a private network (VPC) is available on Enterprise; it isn't the default, and you don't need it to keep an API key safe.
+| The control | Who owns it | Why it lands there |
+| --- | --- | --- |
+| The key never runs in the browser | Your code | You decide where the `fetch` lives. No platform can relocate that call for you. |
+| The key never enters Git | Both | You add `.env` to `.gitignore`; your host has to give you somewhere else to put the real value. |
+| A persistent process to hold the key | Your host | Either there's an always-on server-side runtime or there isn't. A static host has no answer here. |
+| An encrypted browser-to-backend hop | Your host | Your frontend now posts prompts to your own domain, so that endpoint needs SSL. |
+| Authentication on the endpoint | Your code | Your session logic, your user model. Nothing external knows who your users are. |
+| Per-user quotas and rate limits | Your code | Nobody writes your rate limiter. This is the row people most want to outsource and can't. |
+| A hard spend cap | Your model provider | Set in OpenAI's or Anthropic's billing settings, not in any hosting dashboard. |
+| Brute-force noise against the server itself | Your host | A firewall and log-watching ban list, running whether you configured them or not. |
+| The agent's database not open to the internet | Both | You whitelist the app server's IP; the platform has to offer that control. |
 
-The honest boundary: managed means the platform handles the server, the stack, SSL, backups, and patching. Your agent's code, your auth logic, your quotas, and your data stay yours. Kloudbean gives the key a safe place to live and the endpoint a hardened server to run on. It can't write your rate limiter for you. If your agent also needs somewhere durable for chat history or user data, see [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
+Count the rows. Five of the nine are yours no matter where you deploy, and that's worth being blunt about: no host fixes them, ours included. A missing auth check on `/api/chat` is a missing auth check on any infrastructure on earth. Move your key to a server, feel relieved, forget the quota, and the bill still arrives. That's the failure I'd bet on before any of the others.
+
+The host rows are the ones a deployment choice actually settles, which is why they came up earlier rather than being saved for here. Kloudbean runs Node and Python as always-on apps, holds your keys as environment variables set in the dashboard and injected at runtime, issues free SSL on the endpoint your frontend calls, and starts every server with Shorewall and Fail2ban already running. For the last row, managed databases have IP Access Control, so you whitelist your app server's address and everything else is refused.
+
+Where that stops: managed covers the server, the stack, SSL, backups, and patching. Your agent's code, your auth, your quotas, and your data stay yours. And you don't need a private network for any of this. A VPC is part of the Enterprise package, it isn't the default on a standard plan, and an API key kept server-side behind an authenticated endpoint is safe without one. Anyone selling you network isolation as the answer to a leaked key is solving a different problem. If your agent also needs somewhere durable for chat history or user data, see [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
 
 ---
 

@@ -72,6 +72,8 @@ A few of these deserve more than a table row.
 
 You capture at the edges and at the model call, then push the metadata down to somewhere you can query it. Assign a request id the moment a request arrives. Wrap the model call so tokens, latency, TTFT, model, and status get recorded whether it succeeds or throws. Then send that metadata to your logs and metrics store through one deliberate gate that strips anything you shouldn't keep.
 
+That last step quietly assumes two things you may not have. Something reading stdout, and a process that lives long enough for a request id to be worth propagating. On Kloudbean the app runs as an always-on Node or Python process and its stdout lands in the console beside deployment history, so "send it to your logs" is one line of code rather than a pipeline you build before you can instrument anything.
+
 <figure>
   <svg viewBox="0 0 780 440" role="img" aria-label="The observation points along an AI request. A request arrives and is assigned a request id, flows into your app, then retrieval, then the model call where tokens in and out, cost, model and version, latency, time to first token, and 429s are captured. The streamed response returns to the user. Metadata from each step flows down through a redact gate that keeps metadata only and blocks raw prompts and outputs, into a logs and metrics store you can query by request id, route, model, and user." xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -138,7 +140,7 @@ So default to logging metadata, and treat raw content as the exception. The tech
 - **Metadata by default.** Log the fields from the table above, not the words. You can debug the vast majority of incidents from timing, tokens, model, route, and status alone.
 - **Redact or hash identifiers.** If you must keep a user id, keep it as an opaque hash, not an email. Strip obvious identifiers before anything is written.
 - **Sample, don't hoard.** If you genuinely need some full traces for quality work, keep a tiny percentage, make it opt-in, and label it clearly. A small honest sample beats storing everything.
-- **Short retention.** Set a window and let old data age out on its own. Data you deleted last week can't leak next month.
+- **Short retention.** Set a window and let old data age out on its own. Data you deleted last week can't leak next month. If you keep aggregates yourself rather than in a third-party tool, a [managed Postgres](https://www.kloudbean.com/blog/managed-postgresql-hosting/) beside the app makes retention a delete job you control, and whitelisting your app server's IP on it means the metrics store isn't reachable from anywhere else.
 - **Full-content capture is a toggle, not a default.** When you truly need to see prompts to chase a bug, turn on content capture explicitly, time-box it, and turn it back off. It is a debugging mode, never the standing behaviour.
 
 Here's my one firm opinion for this whole page: never log raw prompts by default. The debugging convenience is small and the liability is not. If a teammate wants prompts "just for now," that's the exact sentence that becomes a PII lake with no retention policy a year later.
@@ -189,6 +191,8 @@ A single AI request rarely touches just the model. It hits your app, maybe a ret
 
 Do that and one filter reconstructs the whole request in order. You can see retrieval took 120ms, the model call took 1.9s, TTFT was 430ms, and a tool call timed out and got retried. Without the shared id you're guessing, correlating timestamps by eye across three systems at 2am. With it, tracing LLM requests is a single query.
 
+How much work this is depends on your runtime more than people expect. In a long-lived process the id lives in one place for the whole request and every hop inherits it. Split the same request across short-lived functions that spin up and vanish and you're stitching the trail back together from an external store instead. That's part of why persistent app processes (what Kloudbean runs) make tracing cheap rather than a project.
+
 The mechanics of generating and propagating the id (middleware, a child logger, honoring an incoming header) are the same as any Node service, so I'll point you at [structured logging in Node.js](https://www.kloudbean.com/blog/structured-logging-nodejs/) rather than repeat the Pino code. The AI-specific part is what you attach to that id at each hop: retrieval score and count, the model and version, token counts, TTFT, and the final status. Log the timings per hop, not just one total, or you'll know the request was slow without knowing where.
 
 ## From signals to alerts that actually matter
@@ -214,13 +218,19 @@ The second is the mean hiding the p95. If you average latency, one fast path can
 
 The third is the dashboard nobody set an alert on. A screen you go and look at after a customer complains is a nice screen, not monitoring. If a signal matters, it needs a threshold and a place to page. If it doesn't warrant an alert, ask why you're paying to collect it.
 
-## Where Kloudbean fits
+## If you have none of this today, add it in this order
 
-Observability is code you write, and it needs somewhere to run that doesn't fight you. On Kloudbean your app runs as an always-on process (Node or Python), so a request id can follow one request through one long-lived process instead of scattering across short-lived functions that spin up and vanish. Write your structured log lines to stdout, the twelve-factor way, and the platform captures them. You read them in the console next to your deployment history and live build logs, all in one dashboard. When you want to keep aggregated metrics or your own event log, add a [managed Postgres](https://www.kloudbean.com/blog/managed-postgresql-hosting/) on the same platform and write to it from your app. Lock that database down by whitelisting your app server's IP so only your app can reach it.
+Nobody instruments ten signals in an afternoon, and you don't have to. There's a clear order of return, and the first two steps carry most of the value.
 
-Let me be straight about the boundary. Kloudbean gives you the always-on process, the log stream, and a database to put data in if you want one. It is not a built-in APM that reads your mind. The instrumentation itself, deciding what to measure and what to never log, is your code. If you want charts and long-term dashboards, external tools plug in the normal way, and that stays your choice. Enterprise engagements can add more on top (an immutable, searchable, account-wide audit trail with CSV export, managed monitoring alert policies, and longer log retention), but treat those as an Enterprise conversation, not a checkbox on a standard plan.
+1. **A request id and one structured log line per model call.** The JSON shape above, with no prompt field. This turns "it's slow sometimes" into a query you can run. Every step below depends on it.
+2. **Tokens in and out, times the model's rate.** Cost per request, rolled up per feature and per user. It's arithmetic on fields you're already logging, and it's what catches a retry loop before the invoice does.
+3. **p95 TTFT and p95 total, per route.** Percentiles, not averages. Skip this and your dashboard will keep reassuring you while a tenth of your users watch a spinner.
+4. **Two alerts: a spend spike and a climbing 429 rate.** Both cost you money or users specifically while nobody's looking at the screen.
+5. **Retrieval hit quality, if you do RAG.** Without it you can't separate a bad answer from bad context, and you'll spend a week tuning the wrong component.
 
-The line worth stating plainly: managed covers the server, the stack, SSL, backups, and patching. What you measure, what you decide to log, your prompts, and your users' data stay yours. That last part is the whole point of good observability, and it's yours to own. If you're still mapping out everything an AI builder leaves for you to finish, [the last mile of vibe coding](https://www.kloudbean.com/blog/last-mile-of-vibe-coding/) is the wider checklist this page fits into.
+Steps 1 and 2 are where the hosting choice stops being incidental, which is why it came up above rather than here for the first time. An always-on Node or Python process on Kloudbean gives the request id something to live inside, its stdout stream is readable in the same console as your deployment history and live build logs, and a managed Postgres beside the app is somewhere to keep step 3's aggregates on your own retention rules.
+
+Now the honest part, and it applies to us as firmly as to anyone. No host writes your instrumentation. Nothing about the infrastructure wraps your model call to record TTFT, picks your p95 threshold, or decides not to log the prompt. Kloudbean is not a built-in APM and won't pretend to be one: you get a process that stays alive, a log stream, and a place to write data. Steps 1 through 5 are commits in your repo, and if you never wrap the model call, the best-run server in the world hands you CPU graphs and a shrug. Two scope notes so nothing here reads bigger than it is. An immutable, searchable account-wide audit trail with CSV export, plus managed alert policies and longer retention, are part of the Enterprise package rather than a standard-plan toggle. And if you want long-horizon charts, external APM tools connect the ordinary way, which stays your call, not ours. What you measure and what you refuse to store is the part that was always going to be yours. If you're still mapping everything an AI builder leaves unfinished, [the last mile of vibe coding](https://www.kloudbean.com/blog/last-mile-of-vibe-coding/) is the wider checklist this page sits inside.
 
 ## See what your AI app is doing, without hoarding prompts
 

@@ -122,6 +122,7 @@
   <h2>Uptime SLA vs real reliability (they're not the same thing)</h2>
   <p>Here's the shift in thinking that matters most, and the one the sales page will never make for you. A provider's uptime SLA usually covers <em>their</em> infrastructure being available. But your users don't experience "the infrastructure." They experience your whole app. And a flawless infrastructure SLA does nothing for you if your <strong>single server</strong> reboots, or your one database falls over, or you ship a bad deploy at 4pm on a Friday.</p>
   <p>I'll say it plainly: most outages I've watched teams live through weren't the provider missing its SLA. They were a single server with no plan B. The way you actually raise real-world uptime is architecture. Run more than one server behind a <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">load balancer</a>, so when one node dies, traffic keeps flowing to the others. Keep <a href="https://www.kloudbean.com/blog/server-backups-guide/">tested backups</a> so a bad day is a restore, not a rebuild.</p>
+  <p>Whether you get round to that depends mostly on how much work it is. On Kloudbean the Flexible Load Balancer sits in every account, off until you enable it, so a second node behind a balancer is a thing you switch on in the same dashboard as the servers rather than a week of wiring. Cheap redundancy is redundancy that actually gets built.</p>
 
   <figure>
     <img src="../assets/console/flb-load-balancer.png" alt="The Kloudbean console: a load balancer spreading traffic across multiple servers for redundancy">
@@ -136,6 +137,7 @@
   <h2>A real example: the EC2 SLA</h2>
   <p>People search "EC2 SLA" for a reason. They've learned to read the document, not the ad. As AWS commonly documents it, the EC2 service targets around <strong>99.99% at the region level</strong> when you run across multiple availability zones. And notice the condition: the strong commitment assumes <em>you</em> spread your workload for redundancy. Run everything in one zone and the promise you actually qualify for is lower.</p>
   <p>That's the whole lesson in one example. The best uptime numbers are earned jointly. The provider offers a strong SLA <em>if</em> you architect for it. (Always read the current SLA document for exact terms. These figures shift and carry conditions.)</p>
+  <p>Spreading a workload is easier than it sounds now. A Kloudbean app can run compute in more than one data centre, and across more than one of the seven clouds, wired together through the load balancer from a single dashboard. One honest limit while you plan: the primary database is single-region. Read replicas can sit elsewhere, but the primary doesn't float, so your failover story has to account for that rather than assume it away.</p>
 
   <h2>How many nines do you actually need?</h2>
   <p>Don't chase five nines by reflex. Each extra nine costs real money, real engineering, and real ongoing effort. Most apps don't need it. Match the target to the stakes:</p>
@@ -155,9 +157,16 @@
     <li><strong>Never claiming the credit.</strong> No monitoring, no proof, no claim, no refund. The SLA only protects the people paying attention.</li>
   </ul>
 
-  <h2>Where Kloudbean fits</h2>
-  <p>Kloudbean's uptime foundation is straightforward, and I want to be careful not to oversell it. Your servers run on tier-1 cloud infrastructure across <strong>seven providers</strong>: AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud. That's the same hardware and network the biggest names on the internet run on, which is a strong floor to build from.</p>
-  <p>But the floor was never the whole point of this article. The reliability you actually feel comes from what you build on top. On Kloudbean that means the <strong>Flexible Load Balancer is built into every account</strong>, so running redundant servers is a feature you switch on, not a project you assemble. It means automatic backups you can restore. It means one dashboard for the servers, the databases, and the balancer, so the redundancy is easy enough that you'll actually set it up. We won't quote you a magic number on a banner. We'd rather give you the parts that make a good SLA turn into an app that's genuinely, dependably up.</p>
+  <h2>So what do you do with the number once you've read it?</h2>
+  <p>Work it in this order. Each step is cheap and each one changes what happens on a bad day, which is more than the percentage does.</p>
+  <ol>
+    <li><strong>Read the definitions before the percentage.</strong> Find how the provider measures "unavailable", what the exclusions are (maintenance windows, your own misconfiguration, network outside their edge), and whether the measurement is per-minute or per-month. The exclusions tell you what the number is really worth.</li>
+    <li><strong>Price an hour of your own downtime.</strong> Roughly is fine. That figure, not the marketing tier, decides how much redundancy is rational for you.</li>
+    <li><strong>Remove your single points of failure, cheapest first.</strong> A second app node behind a load balancer usually buys more real availability than any SLA upgrade. On Kloudbean the balancer is already in the account, tier-1 infrastructure sits under all seven clouds, and automatic backups are on, so this step is mostly configuration rather than procurement.</li>
+    <li><strong>Monitor from outside, and keep the evidence.</strong> No independent record means no credit claim, and no honest idea of your own uptime. This one is yours to own; a host's status page is not your monitoring.</li>
+    <li><strong>Rehearse the restore.</strong> Pick a quiet afternoon and actually do one. Teams discover their backup gaps during incidents, which is the worst possible classroom.</li>
+  </ol>
+  <p>The part no provider closes, us included: a bad deploy at 4pm Friday, a migration that locks a table, an expired third-party API key, an unindexed query under load. None of those are SLA events, and none of them get better because you moved to a provider with an extra nine on the banner. We deliberately don't put a percentage on a banner. What we can hand you is the infrastructure floor and the redundancy parts. The architecture decision, and the deploy discipline, stay yours.</p>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Read the nines. Then build above them.</p>

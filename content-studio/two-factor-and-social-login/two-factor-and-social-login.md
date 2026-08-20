@@ -35,6 +35,8 @@ The classic framing is something you know (the password) plus something you have
 
 Not all second factors are equal, and this is the part worth having an opinion about. SMS codes are far better than nothing, but they are the weakest common option, because attackers can hijack a phone number through SIM-swapping and receive the codes themselves. An authenticator app generating time-based codes (TOTP) is stronger and works offline, and a passkey or hardware security key is stronger still, resisting phishing outright. So the honest ranking is: passkey or hardware key first, authenticator app next, SMS only if it is the only choice. Use the strongest your accounts support, and reserve SMS for the logins that offer nothing better.
 
+Sequence it by blast radius rather than doing every account at once. The login that can delete a server or read a production database earns a second factor before your newsletter tool does. For a hosting account specifically, the quickest route is usually to sign in through a provider you've already hardened, which is why Kloudbean supports Google, GitHub, and LinkedIn sign-in. On enterprise engagements MFA is enforced on console and VPN access as part of the managed access controls, so it stops being an individual's good intention and becomes a rule.
+
 <!-- ADD IMAGE: diagram, password-only lets a stolen password in, password+second-factor stops the attacker at the second step -->
 
 ## Social login: borrow a stronger door
@@ -45,17 +47,33 @@ With social login, you do not create yet another password for a site. Instead th
 
 The honest tradeoffs, because there are some. You are now dependent on that provider: if you lose access to your Google account, you lose the sites you gated behind it, so the provider account itself must be well secured, which loops back to putting strong 2FA on it. There is a privacy dimension, since the provider sees which services you sign into. And it concentrates risk: that one account becomes a master key worth protecting fiercely. None of these outweigh the benefits for most people, but they are the reason "just use social login everywhere" deserves a moment's thought rather than a reflex.
 
+Worth separating from all of this: a strong login says who someone is, not what they're allowed to do. If a contractor signs into your hosting account with a hardened Google account and then deletes the wrong server, authentication worked perfectly. The control for that is authorisation, which on Kloudbean means subusers with per-resource, per-action permissions, so the person who only needs to deploy one app can't touch anything else. Pair the two. Strong doors, small rooms.
+
 ## The piece everyone forgets: the session cookie
 
 You can nail the login and still lose the account at the next step, because authentication does not end when the password and second factor check out.
 
 Once you are logged in, the server gives your browser a session cookie that proves you are authenticated for subsequent requests. If an attacker steals that cookie, they are you, no password or second factor required. The single most important protection here is marking session cookies HttpOnly, which means page JavaScript cannot read them. That matters because it neutralises the most common way cookies get stolen: a cross-site scripting (XSS) flaw that runs malicious script in your page and reads your cookies. Pair HttpOnly with the Secure flag (only send the cookie over HTTPS) and a sensible SameSite setting (limit cross-site sending, which helps against CSRF), and the session becomes far harder to hijack. Strong login plus a weak session cookie is a strong door with the key left under the mat, so treat the session as part of authentication, not an afterthought.
 
-## Where Kloudbean fits, honestly
+This is the flag most people never check on the tools they use, so it's fair to ask a vendor directly. Kloudbean's own console sessions use HttpOnly cookies, which is the specific hardening above. Ask the same question of anything holding your production access, then go set the same three flags on your own app's session cookie, because that's the one you control.
 
-Two of these levers are built into how you sign in to Kloudbean, and the third is how sessions are handled. You can log in with Google, GitHub, or LinkedIn, so you do not need a separate Kloudbean password and, if your provider account has 2FA on, your Kloudbean sign-in inherits it. Sessions use HttpOnly cookies, which is the hardening described above, aimed at keeping a session token out of reach of page scripts. On enterprise engagements, MFA is enforced on console and VPN access as part of the managed access controls.
+## You have two logins, and they fail differently
 
-The honest boundary: this is about securing your access to the platform. The authentication inside the application you build and host is yours to implement, and it should meet the same bar, a second factor, sane session cookies, and ideally social login or passkeys. The platform can host a rock-solid app with a weak login you wrote, and no host can fix that for you. For the account layer Kloudbean gives you strong options; for your app's own login, this article is the standard to build to. The wider map of who secures what is in [the secure and compliant hosting guide](https://www.kloudbean.com/blog/secure-compliant-hosting/).
+Here's the structural point the whole article rests on, and it's the thing people conflate. There are two separate front doors in your setup, sitting at different layers, guarding very different blast radii. Hardening one does nothing for the other.
+
+| | Your infrastructure login | Your app's own login |
+| --- | --- | --- |
+| What's behind it | Servers, databases, DNS, backups, billing | Your users' accounts and their data |
+| Who built it | Your hosting provider | You, or a library you picked |
+| What you get to use | Google, GitHub or LinkedIn sign-in, HttpOnly sessions, subusers with granular permissions, enforced MFA on enterprise engagements | Whatever you implement: TOTP, passkeys, OAuth, session flags |
+| Worst case if it's weak | Everything at once, backups included | Every user's data, plus a disclosure obligation |
+| Cost to fix | Minutes. Switch on the strongest option offered. | An afternoon at least, and retrofitting only gets harder |
+
+Look at that last row, because it's the reason people get this backwards. The infrastructure login is cheap to harden and catastrophic to neglect, so go do it today whoever hosts you. The app login is the one that takes real work, and it's the one nobody else can touch. That's the plain limit: a host can hand you social sign-in, HttpOnly console sessions and per-resource permissions for the account layer, then watch you ship an app whose "admin only" check runs in the browser. No platform reads your auth middleware. Ours doesn't either.
+
+Treat this page as the standard for the door you're building, and go turn on the strongest option available on the door you merely use.
+
+Same bar for both doors: a second factor, sane session cookies, and social login or passkeys where you can get them. Who secures what across the rest of the stack is mapped in [the secure and compliant hosting guide](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 
 ## Related reading
 

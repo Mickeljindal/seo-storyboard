@@ -35,6 +35,8 @@ Anywhere you need a whole site hidden fast, with no per-user identity required, 
 
 **Staging and pre-launch sites.** This is the classic use, and it prevents a genuinely common disaster: an unprotected staging site getting crawled and indexed by search engines, so your half-finished duplicate starts showing up in results and competing with, or replacing, your real site. A Basic Auth gate stops that cold, because search engines hit the 401 and see nothing to index. **Internal tools and dashboards** that a small team shares and that have no need for individual accounts. **Coming-soon and holding pages** you want a client or a stakeholder to preview privately. **Anything not ready for the public** that you need to lock quickly while you finish it. In all of these the requirement is the same: keep the world out, let a few known people in, and do it in minutes.
 
+Worth noticing that the first case has two halves, and people usually only solve one. Creating the staging copy is one job, gating it is another, and an ungated staging copy is worse than no staging copy at all. Kloudbean handles both in the same place: staging environments for WordPress and Laravel, and a Basic Auth gate you switch on in front of an app rather than hand-editing a server config. If your staging site exists today with nothing in front of it, that's the thing to go fix before you finish reading.
+
 > **The staging-site SEO trap.** An indexable staging site is one of the quiet ways teams damage their own search presence: Google finds `staging.yoursite.com`, indexes the duplicate, and now two versions of your content compete. A Basic Auth gate is the simplest reliable fix, because the crawler never gets past the 401.
 
 ## The one rule: it must be over HTTPS
@@ -42,6 +44,8 @@ Anywhere you need a whole site hidden fast, with no per-user identity required, 
 There is a real security caveat, and it is not optional, so here it is plainly.
 
 Basic Auth credentials are only Base64-encoded, which is encoding, not encryption. Anyone who can read the raw traffic can trivially decode them. Over plain HTTP that means the username and password travel in effectively readable form, which is unacceptable. Over HTTPS, the entire connection including those credentials is encrypted in transit, so the encoding detail stops mattering. The rule is therefore simple and firm: only ever put a Basic Auth gate on a site served over HTTPS. Since a modern site should be on HTTPS anyway, with free auto-renewing certificates this is not an extra chore, just a box that must be ticked before you rely on the gate.
+
+The practical trap is the certificate expiring on a staging domain nobody's watching, which quietly turns the gate into theatre without anyone noticing. Free auto-renewing SSL is the fix, and it's included on Kloudbean, so the HTTPS precondition holds by default rather than depending on someone remembering a renewal on an environment they only visit before a release.
 
 ## What it is not (don't use it for user login)
 
@@ -55,11 +59,27 @@ For staging and internal tools, the strongest simple setup combines two blunt co
 
 A Basic Auth gate asks "do you have the password?" and [IP allowlisting](https://www.kloudbean.com/blog/ip-allowlisting-guide/) asks "are you coming from a trusted network?" Put both in front of a staging site and an attacker needs to be on your allowlisted network and hold the credential, which for a non-public environment is ample. The two controls fail in different ways, so together they cover each other: if the password leaks, the allowlist still blocks outsiders, and if someone reaches an allowlisted network, they still need the password. Neither is real user authentication, but for the job of keeping the public out of something unfinished, the pair is genuinely hard to get past.
 
-## Where Kloudbean fits, honestly
+Both live at the same layer, and it helps if they live in the same place too. On Kloudbean the gate and IP Access Control (allow or deny, CIDR ranges) are two settings on the same app rather than a proxy config and a firewall rule you maintain separately, which matters mostly because a control you have to SSH in to change is a control that drifts out of date.
 
-On Kloudbean, a Basic Auth gate is available to place in front of an app without wiring it up by hand, so you can lock a staging or pre-launch site behind a shared username and password in a couple of clicks. It pairs with free auto-renewing SSL, which satisfies the HTTPS-only rule automatically, and with staging environments for WordPress and Laravel, so the thing you most often want to hide is easy to both create and gate. Combine it with IP Access Control for the belt-and-braces setup above.
+## Sort your requirements by which control actually does the job
 
-The honest boundary: a Basic Auth gate hides an environment behind a shared credential; it is not your application's user authentication, and it does not replace login, roles, or the rest of your security. Used for staging, internal tools, and pre-launch, it is exactly right and takes minutes. Used as production user auth, it is the wrong tool. The platform gives you the gate and the HTTPS it needs; deciding what to hide, and building real login where real login belongs, stays yours.
+Most of the trouble with Basic Auth comes from asking it to do work that belongs somewhere else. So take whatever you're actually trying to prevent, find it in the left column, and note where the answer lives.
+
+| What you want | What actually delivers it | Why |
+|---|---|---|
+| Search engines never index staging | The gate | A `robots.txt` rule is a polite request. A 401 is a refusal, and there is no page behind it to index. |
+| A client previews privately | The gate | One shared credential, shared once. No accounts to create for people who will never come back. |
+| Only your office or VPN can connect | IP allow-listing, at the host | The gate cannot see where a request came from. Different question, different control. |
+| The credential is safe in transit | TLS, at the host | Base64 is encoding. Without HTTPS the gate is decoration. |
+| Know which individual did what | Your app's auth | A shared password attributes nothing. Everyone is the same person to the gate. |
+| Give one person more access than another | Your app's auth, with roles | The gate is all-or-nothing by design. There is no partial pass. |
+| Revoke one person's access | Your app's auth | Rotating the shared password locks out the whole team, which is why nobody ever does it. |
+| A clean log-out | Your app's auth | Browsers cache Basic credentials for the session and there is no tidy way to clear them. |
+| Filter hostile traffic to a public site | A firewall or WAF layer | The gate blocks everybody or nobody, which is no use on a site that has to stay open. |
+
+The top four rows are the host's half, and they're the reason the platform came up in the staging, HTTPS, and allow-list sections above rather than as a closing pitch: on Kloudbean the gate is a setting on the app, free auto-renewing SSL satisfies row four without you scheduling anything, IP Access Control covers row three, and staging for WordPress and Laravel means the environment you want to hide is created in the same place you hide it.
+
+The bottom five rows are the part no host supplies, and that includes us. There is no hosting plan anywhere that turns a shared credential into accounts, roles, or an audit of who did what, because none of that information exists at the gate. If you find yourself wanting any of those five, stop stretching Basic Auth and go build real authentication, ideally with a second factor. The gate is excellent at exactly one thing: making a whole environment invisible to everyone who does not hold the key. Ask it for anything more and it will fail quietly, which is the worst way for a security control to fail.
 
 ## Related reading
 

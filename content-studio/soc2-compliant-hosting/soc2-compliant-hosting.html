@@ -100,6 +100,7 @@
     </tbody>
   </table>
   <p>Two of those are worth dwelling on. Change management is where a lot of teams flail, because "we deploy from Git" only counts if you can show the history. A managed <a href="https://www.kloudbean.com/blog/server-backups-guide/">backup</a> schedule plus deploy logs give you that for free. And the audit trail is the single most auditor-friendly thing on the list: it answers "who touched this, and when" without anyone reconstructing it from memory.</p>
+  <p>Be careful reading the second row, though, because vendors blur it. On Kloudbean the immutable, searchable, CSV-exportable audit trail is an Enterprise capability, not something on a standard plan. The rest of that table, subusers with per-resource permissions, Git deployment history, automatic and on-demand backups, free SSL, Shorewall and Fail2ban, is standard. If your buyer's questionnaire specifically asks for a tamper-resistant activity log, that's the line to check on any platform you're evaluating, before you promise it in a security review.</p>
 
   <figure>
     <img src="../assets/console/git-deployment.png" alt="The Kloudbean console showing Git deployment history, useful as change-management evidence for SOC 2">
@@ -111,7 +112,7 @@
 
   <h2>Then what's still your job?</h2>
   <p>The bigger half, and it's the half your customers' data flows through. Your own access policies (who gets production access, and how they lose it). How you store secrets. How your code handles and protects user data. Your logging of application-level events. Your onboarding and offboarding. Your risk assessment and the policies that back all of it. The platform hands you the tools, managed secrets, access control, backups, monitoring. Using them correctly is the work only you can do.</p>
-  <p>The most basic control here is unglamorous: don't scatter credentials through your codebase. Keep them in managed environment variables with least-privilege access, so who can reach what is a setting you control, not a guess.</p>
+  <p>The most basic control here is unglamorous: don't scatter credentials through your codebase. Keep them in managed environment variables with least-privilege access, so who can reach what is a setting you control, not a guess. Two console-level habits make this easy to evidence: set the values as environment variables rather than in code, so rotating one is a config change nobody has to commit, and put IP allow-listing on the managed database so only your app server's address can connect. Both are things you can screenshot and hand to an auditor in about a minute.</p>
 
   <figure>
     <img src="../assets/console/env-vars.png" alt="The Kloudbean console managing secrets as environment variables with least-privilege access">
@@ -132,15 +133,35 @@
   <p>The Type II detail catches people out. It checks that your controls <em>worked over a period</em>, which means you cannot backfill it the week before the audit. If your audit trail only starts the day you got serious, you have no history to show. So the practical move is to run on infrastructure that has been quietly logging access, changes, and backups all along, before you ever needed it. That accumulated evidence is the thing you can't fake and can't rush.</p>
 
   <div class="note">
-    <b>The mistake we see most.</b> A team lands a big customer, gets asked for a SOC 2 Type II, and only then goes looking for evidence of the last six months. There isn't any, because nothing was recording it. The fix is boring and it works: turn on the audit trail, deploy through tracked CI/CD, and keep backups from day one, so the evidence exists before anyone asks.
+    <b>The mistake we see most.</b> A team lands a big customer, gets asked for a SOC 2 Type II, and only then goes looking for evidence of the last six months. There isn't any, because nothing was recording it. The fix is boring and it works: deploy through tracked CI/CD so every release is logged, keep automatic backups running, and if you're on an Enterprise account turn the audit trail on well before anyone asks. Evidence you didn't collect is evidence you can't produce, and no amount of budget in month seven buys back month one.
   </div>
 
   <h2>What about "WordPress hosting with SOC 2 certification"?</h2>
   <p>People search that exact phrase, and always for the same reason: a client asked. Two honest notes. First, SOC 2 is technically an attestation report, not a pass or fail "certification," so the word is a little off even though everyone uses it. Second, the same split applies with a WordPress twist. The host's controls can cover the servers and stack your site runs on. They can't cover your plugins, your theme, or the data your forms collect, and WordPress risk usually lives right there in third-party plugins. So your side of the work is keeping plugins updated, limiting who has admin access, and being careful what personal data you collect. Solid infrastructure gives your site a clean foundation to point at. See <a href="https://www.kloudbean.com/blog/secure-wordpress-hosting/">secure WordPress hosting</a> and <a href="https://www.kloudbean.com/blog/enterprise-wordpress-hosting/">enterprise WordPress hosting</a> for the WordPress-specific angle.</p>
 
   <h2>So what is "SOC 2 compliant hosting"?</h2>
-  <p>It's hosting whose own controls are run and documented well, ideally with the provider's own attestation covering that layer, and that gives you the evidence your audit needs. It shrinks your work because the entire infrastructure layer is handled, so you're left proving your application-layer controls rather than the whole stack. It's still real effort. You still pick your scope, write your policies, run your controls over the window, and bring in an auditor. You're just not starting from bare ground.</p>
-  <p>Where Kloudbean fits: it gives you the evidence trail your SOC 2 stands on. Subusers and granular access control for least privilege, an immutable audit trail on enterprise accounts (searchable, CSV export), CI/CD deployment history for change management, automatic backups for availability, free SSL for encryption in transit, and Shorewall plus Fail2ban hardening, all on tier-1 clouds whose data centers carry the major certifications. What it won't do, and no honest host will, is hand you your own report or make your app pass an audit on its own. If you need to know the platform's own current attestation status, ask Kloudbean directly and read what they share, rather than taking a marketing line for it. Working through several frameworks at once? The siblings pair well: <a href="https://www.kloudbean.com/blog/gdpr-compliant-hosting/">GDPR compliant hosting</a>, <a href="https://www.kloudbean.com/blog/pci-compliant-hosting/">PCI compliant hosting</a>, and sensible <a href="https://www.kloudbean.com/blog/security-headers-guide/">security headers</a> on the app itself.</p>
+  <p>It's hosting whose own controls are run and documented well, and that leaves behind the evidence your audit needs. It shrinks your work because the infrastructure layer is handled, so you're left proving your application-layer controls rather than the whole stack. It's still real effort. You still pick your scope, write your policies, run your controls over the window, and bring in an auditor. You're just not starting from bare ground.</p>
+
+  <h2>Who actually has to own each control</h2>
+  <p>Print this and argue about it with your team, because most SOC 2 panic comes from a row nobody had claimed. Three owners, and only one of them is your host.</p>
+  <table class="cmp">
+    <thead><tr><th>Control area</th><th>Owner</th><th>What that looks like in practice</th></tr></thead>
+    <tbody>
+      <tr><td>Scope, policies, risk register</td><td>You, alone</td><td>Written documents. No product generates these, and an auditor reads them first.</td></tr>
+      <tr><td>People: vetting, onboarding, offboarding, training</td><td>You, alone</td><td>HR process and records, entirely outside any hosting account.</td></tr>
+      <tr><td>Application code and data handling</td><td>You, alone</td><td>Input validation, field-level encryption, app-level event logging, session logic.</td></tr>
+      <tr><td>Commissioning and paying for the audit</td><td>You, alone</td><td>You choose the auditor, the window, and the Trust Services Criteria in scope.</td></tr>
+      <tr><td>Who can reach production</td><td>Shared</td><td>Subusers and per-resource access control exist in the console; the grant and the quarterly review are your call.</td></tr>
+      <tr><td>Change management</td><td>Shared</td><td>Git deployment history records every release. Reviewing and approving changes is your process.</td></tr>
+      <tr><td>Availability and recovery</td><td>Shared</td><td>Automatic and on-demand backups run for you. Testing a restore, and writing down that you did, is yours.</td></tr>
+      <tr><td>Encryption in transit</td><td>Host</td><td>Free SSL with HTTP redirected to HTTPS, on by default.</td></tr>
+      <tr><td>Server hardening and patching</td><td>Host</td><td>Shorewall and Fail2ban on every server, OS and stack patching handled.</td></tr>
+      <tr><td>Tamper-resistant activity record</td><td>Host, Enterprise only</td><td>The searchable, CSV-exportable audit trail. Confirm your plan includes it before you cite it.</td></tr>
+      <tr><td>Physical data centre security</td><td>The underlying cloud</td><td>You're running on one of seven major providers, each of which publishes its own compliance documentation.</td></tr>
+    </tbody>
+  </table>
+
+  <p>Two things no host fixes, ours firmly included. Nobody can write your policies or run your offboarding for you, so the top four rows never move however much you spend on infrastructure. And a platform's own posture is not your report: Kloudbean is built to align with SOC 2 and supports the infrastructure controls in that table, but it isn't SOC 2 certified, and certification is assessed against an organisation rather than granted to a hosting account. Anyone selling "compliant hosting" as a shortcut to your own attestation is selling you the wrong thing. What you can reasonably expect from a host is that the shared rows produce evidence without you screenshotting anything by hand. Working through several frameworks at once? The siblings pair well: <a href="https://www.kloudbean.com/blog/gdpr-compliant-hosting/">GDPR compliant hosting</a>, <a href="https://www.kloudbean.com/blog/pci-compliant-hosting/">PCI compliant hosting</a>, and sensible <a href="https://www.kloudbean.com/blog/security-headers-guide/">security headers</a> on the app itself.</p>
 
   <!-- Author: replace with your own screenshot. src -> images/audit-trail-export.png -->
   <figure class="img-slot"><span><b>Add image</b><em>An export of your audit trail or activity log, the kind of evidence an auditor asks for over the observation window.</em><small>Or the cover page of a policies document index.</small></span></figure>
@@ -153,13 +174,13 @@
 
   <h2>SOC 2 hosting FAQ</h2>
   <div class="faq">
-    <h3>What does "SOC 2 compliant hosting" mean?</h3>
+    <h3>What does SOC 2 compliant hosting mean?</h3>
     <p>It means the provider has been examined by an independent auditor and has a report describing how it protects data at the infrastructure level: data centres, staff access, monitoring, change management. It's not a sticker you buy. It's an outside review of the provider's controls that you can read, covering the infrastructure layer only.</p>
 
     <h3>Does running on SOC 2 hosting make my application SOC 2 compliant?</h3>
     <p>No. Compliance follows a shared-responsibility model. The host's report covers the infrastructure layer. Your application, access controls, and data handling are still your responsibility. Well-run infrastructure is a real head start, but your own controls and your own audit are still up to you.</p>
 
-    <h3>What's the difference between SOC 2 Type I and Type II?</h3>
+    <h3>What is the difference between SOC 2 Type I and Type II?</h3>
     <p>Type I checks that the right controls are designed and in place at a single point in time, a snapshot. Type II checks that those controls actually operated effectively over a period, usually three to twelve months. Type II is stronger and more respected because it shows the controls are lived, and it's what most buyers ask for.</p>
 
     <h3>Do I need SOC 2 for my app?</h3>
@@ -174,7 +195,7 @@
     <h3>Is SOC 2 a certification?</h3>
     <p>Not exactly. SOC 2 is an attestation: an auditor examines your controls and issues a report with their opinion, rather than granting a pass or fail certificate. People say certified as shorthand, but the deliverable is a report you share with customers, not a badge.</p>
 
-    <h3>What does "WordPress hosting with SOC 2 certification" actually get me?</h3>
+    <h3>What does WordPress hosting with SOC 2 certification actually get me?</h3>
     <p>The host's controls can cover the servers your WordPress site runs on, but not your plugins, theme, or the data your forms collect. WordPress risk usually lives in third-party plugins, so keeping them updated, limiting admin access, and minimising the personal data you collect stays your job. The infrastructure is a clean foundation, not a finished result.</p>
 
     <h3>What evidence does an auditor actually want?</h3>

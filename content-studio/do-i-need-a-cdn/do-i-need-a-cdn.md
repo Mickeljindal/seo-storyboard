@@ -58,9 +58,9 @@ There are situations where a CDN is an easy yes, and it's worth being just as cl
 
 **Your audience is spread across the world.** If people load your site from different continents, the distance to a single origin is a genuine drag. Edge nodes near your users cut that round trip, and the further-flung your audience, the bigger the win. This is the classic case a CDN was built for.
 
-**Your site is heavy on images, video, or downloads.** Big static files are exactly what edge caching handles best. Serving them from the edge is faster for the visitor and takes a real load off your origin. If you keep those assets in [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/), a CDN in front of the bucket is a natural pairing, and it can cut repeat transfer costs too (worth reading alongside [zero-egress object storage](https://www.kloudbean.com/blog/zero-egress-object-storage/) if media bandwidth is a concern).
+**Your site is heavy on images, video, or downloads.** Big static files are exactly what edge caching handles best. Serving them from the edge is faster for the visitor and takes a real load off your origin. If you keep those assets in [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/), a CDN in front of the bucket is a natural pairing. Note that the two save you different things. The CDN saves the round trip; cheap or unmetered egress saves the bandwidth bill. Kloudbean's built-in S3-compatible buckets don't meter data transfer out, which changes the maths for a media-heavy site (that applies to the built-in S3 storage specifically, not to managed GCS buckets, which do bill egress and ingress). Read [zero-egress object storage](https://www.kloudbean.com/blog/zero-egress-object-storage/) if bandwidth is your actual pain rather than latency.
 
-**You run a static site.** Marketing sites, documentation, blogs, and most JAMstack builds are nearly all static. When almost everything is cacheable, a CDN speeds up almost everything. For this kind of site the decision is close to automatic.
+**You run a static site.** Marketing sites, documentation, blogs, and most JAMstack builds are nearly all static. When almost everything is cacheable, a CDN speeds up almost everything. For this kind of site the decision is close to automatic. It's also the case where the cost calculation is easiest: Kloudbean's static site hosting is free, with a custom domain and SSL included, so if you host the site there the only question left is whether the edge add-on is worth its own line. For a docs site with an international readership, usually yes.
 
 **Your traffic is spiky.** Launches, campaigns, a post that takes off. If your traffic arrives in sudden waves, the edge fleet absorbs the surge and shields your origin from the worst of it. That protection alone can be worth it even for a regional audience.
 
@@ -102,11 +102,24 @@ You don't need a long analysis. Find the row that sounds like you and you have y
 | Mostly dynamic, per-user app or API | Little speed gain, though the traffic buffer can still help |
 | You just want the app to feel faster | Fix the origin and database first, then reconsider |
 
+Practically, on most managed platforms this is a switch rather than a project. On Kloudbean it's the Cloudflare add-on: paid on standard plans, included for Enterprise accounts. That shape matters for the decision, because it means you're not committing to an architecture. You're turning something on and can turn it off if your traffic says it wasn't the problem.
+
 One more honest note on the security angle. A CDN does add a basic buffer against traffic floods, and for a public site that alone can justify it. But treat that as a helpful side effect, not a security plan. If flood protection is your actual worry, read [DDoS protection explained](https://www.kloudbean.com/blog/ddos-protection-explained/) and decide on that basis rather than assuming a CDN has it fully covered.
 
-## Where this leaves Kloudbean
+## The threshold: add a CDN the day one of these turns true
 
-If your site is mostly static, the simplest good CDN decision is often the one bundled with your host. Kloudbean, for what it's worth here, offers free static site hosting with a custom domain and SSL, plus a Cloudflare CDN add-on you can switch on when edge caching actually earns its place (it's a paid add-on on standard plans and included for Enterprise). Cloudflare bundles far more than edge caching, so if you're weighing the whole product rather than the CDN slice of it, work through [whether you actually need Cloudflare, feature by feature](https://www.kloudbean.com/blog/do-i-need-cloudflare/). The point isn't the product, though. It's that a CDN should follow a real need, a global audience or heavy static assets, rather than being switched on out of habit. Decide from your traffic and your content, not from a default.
+If you want one line to carry away, make it this. Don't add a CDN because you have a website. Add it the day one of these four crosses over, and until then leave it alone.
+
+1. **Your analytics show real traffic from more than one region.** Not "we might go global one day." Actual sessions from another continent, in numbers you'd miss if they bounced. That's the latency you'd be buying back.
+2. **Static assets are a visible share of your page weight or your bandwidth bill.** Images, video, fonts, big JavaScript bundles. If you can see them in a waterfall or on an invoice, the edge has something to do.
+3. **You've had a traffic spike that hurt.** A launch, a campaign, a post that travelled. One bad afternoon is enough evidence.
+4. **You want the flood buffer specifically.** A legitimate reason on its own, even for a purely local audience. Just decide it on that basis rather than filing it under speed.
+
+None of those true yet? You don't need a CDN. That's a real answer, not a hedge, and it's the answer for most sites in their first year.
+
+Here's the trap on the other side of the threshold, and it's the expensive one: none of those four is "the app feels slow." If a logged-in page takes three seconds to render, that time is being spent in your origin, on a query or a template or a cold connection pool, and a CDN cannot cache a page built for one user. No CDN on earth fixes an unindexed query. You'd add a layer, pay for it, and watch the number not move. Fix the origin, then reconsider whether the edge has anything left to do.
+
+And if you're weighing a bundled edge product rather than the CDN slice of one, [whether you actually need Cloudflare, feature by feature](https://www.kloudbean.com/blog/do-i-need-cloudflare/) takes it apart properly. There's a lot in those bundles you may never touch.
 
 ---
 

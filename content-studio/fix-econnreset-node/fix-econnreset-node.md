@@ -105,7 +105,7 @@ const agent = new http.Agent({
 
 To pick the number, find the peer's idle timeout and go under it. On a Node HTTP server the relevant knob is `server.keepAliveTimeout`, which defaults to 5 seconds. On MySQL it's `wait_timeout`. Behind nginx it's `keepalive_timeout`. Read the real value rather than guessing, then subtract a margin.
 
-More on the pool side of this in [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/).
+Finding the peer's number is easy when you can see the peer. With a managed database instance, the engine and its settings are in the same dashboard as the app, so `wait_timeout` on managed MySQL or the idle settings on managed Postgres are values you look up rather than guess at. That's the practical reason this cause is quicker to close on a managed setup: both timers are visible from one place instead of one being in your code and the other on a box you have to SSH into. More on the pool side of this in [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/).
 
 ### 2. A proxy or load balancer in the middle
 
@@ -118,6 +118,8 @@ The tell is that resets cluster around a suspiciously round duration. Quick requ
 When a process dies, the kernel resets its open connections, so every in-flight request becomes an ECONNRESET on the client side. If you're seeing resets and your app is also restarting, stop debugging sockets. You have a crash, and the reset is just the shrapnel.
 
 Deploys do the same thing on purpose. A restart kills the old process, and anything it was serving gets cut off unless that process winds down properly: stop accepting new connections, drain what's in flight, then exit. That's what [graceful shutdown in Node.js](https://www.kloudbean.com/blog/graceful-shutdown-nodejs/) is for. If the restarts aren't deliberate, [why your Node app keeps crashing on deploy](https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/) is the better thread to pull. Either way, tell a crash from a network event by timing: correlate reset timestamps against process start times and deploy history.
+
+That correlation is only as easy as your access to both timelines. It's the reason Kloudbean runs Node apps as persistent processes under PM2 with app and build logs streaming in the console beside deployment history: a restart reads as a restart, at a timestamp you can line up against the reset burst, instead of appearing as an unexplained network incident. On a setup where you have neither, this cause is the one people misdiagnose longest.
 
 <!-- ADD IMAGE: diagram of the four reset authors, client, proxy, server process, database, with an RST arrow from each. src -> images/who-reset-it.png -->
 
@@ -220,11 +222,25 @@ function shouldRetry(err, method) {
 
 Resets are awkward to debug remotely because the cause usually sits outside your code: an intermediary's timer, or a process that restarted. Two pieces of evidence settle most of them. Your app's own logs at the moment of the reset, streamed rather than fished out afterwards. And a straight answer to "did the process restart?", which turns a mysterious burst of resets into an obvious cause. Whatever platform you're on, make sure you can see both.
 
-Practical note: On Kloudbean, app and build logs stream live in the console next to deployment history, and Node apps run as persistent processes under PM2, so a restart shows up as a restart instead of an unexplained wave of resets, and managed databases keep access controlled while you're poking at connection settings.
-
-Also worth checking on the database side: whether the server-side idle or wait timeout is shorter than your pool's, which is the same rule from earlier applied to whatever you're connecting to. [Managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) covers where those settings live.
+Also worth checking on the database side: whether the server-side idle or wait timeout is shorter than your pool's, which is the same rule from earlier applied to whatever you're connecting to. [Managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) covers where those settings live. And while you're changing connection settings, resist the urge to widen access to make a reset stop. A reset is not a permission problem, so opening the database to a broader address range fixes nothing and costs you something. Keep the allow-list to your app server's IP.
 
 <!-- ADD IMAGE: screenshot of live streaming app logs beside deployment history, showing a restart lined up with a reset burst. src -> images/live-logs.png -->
+
+## What the reset already proved, and what that leaves you
+
+Come back to the one fact from the top, because it's the most useful thing on this page. A reset can only arrive on a connection that existed. So before you touch anything, ECONNRESET has already told you the following, and you can stop checking all of it:
+
+- DNS resolved. The hostname is fine.
+- The host was reachable and something was listening on that port.
+- Nothing in between blocked you. Not the firewall, not the security group, not an IP allow-list. A blocked connection times out or gets refused, it doesn't get reset.
+- If the endpoint is TLS, the handshake completed, unless the failure is instant and every single time.
+- Credentials, in most cases, were accepted. You were talking.
+
+Which is why the usual first moves are wasted effort here. Re-reading the connection string, widening the allow-list, restarting the database "just in case": none of those address a connection that worked and then stopped. What's left is a question about lifetime and limits, not reachability. Whose timer expired first, whose process died mid-request, whose size limit you crossed. Every remaining cause on this page is one of those three.
+
+Two of them are decided by where the app runs. Whether a deploy severs in-flight requests depends on process management and draining, and whether you can prove a restart happened depends on having logs and deployment history in front of you. Kloudbean covers both of those by default. The intermediary timers usually belong to a proxy or load balancer someone configured, which may or may not be yours.
+
+The rest is code, and no platform writes it for you, ours included. Nobody else attaches your `pool.on("error")` listener, and an `'error'` event with no listener will still take your process down on the most managed host in the world. Nobody else decides that a POST which charges a card must not be blindly retried. Nobody else stops a 40MB upload going through your app process instead of straight to object storage. The reset tells you who hung up. What you do about it is yours.
 
 ## Related reading
 

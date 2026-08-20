@@ -10,7 +10,7 @@ secondary_keywords:
   - container security
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 9 — Security, Scaling & Load Balancing
+cluster: 9 - Security, Scaling & Load Balancing
 ---
 
 ![Container security scanning: catch vulnerabilities before you ship](images/hero.png)
@@ -84,7 +84,7 @@ That `--exit-code 1` is the whole game. Without it, CI stays green and the repor
 
 <!-- ADD IMAGE: your CI build log showing the scan step running and the build going red on a CRITICAL finding -->
 
-Where does the scan step live? Wherever your build runs. If you deploy from Git with a managed pipeline, it's a build command like any other, and the output streams into your build log next to the install and compile steps. More on that flow in [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/), and on running containers themselves in [Docker container hosting](https://www.kloudbean.com/blog/docker-container-hosting/).
+Where does the scan step live? Wherever your build runs. If you deploy from Git with a managed pipeline, it's a build command like any other, and the output streams into your build log next to the install and compile steps. Kloudbean's managed CI/CD works that way, with live build logs, so a failing scan is something you watch go red rather than something you find in an email later. One scope note before you plan around it: containers aren't part of the standard plan here, they come in under premium and enterprise customisation, so a container pipeline is a conversation rather than a checkbox. More on that flow in [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/), and on running containers themselves in [Docker container hosting](https://www.kloudbean.com/blog/docker-container-hosting/).
 
 ![The Kloudbean console: deploying from a Git repository with build commands and a live build log](../assets/console/git-deployment.png)
 
@@ -132,6 +132,8 @@ USER appuser
 CMD ["node", "dist/server.js"]
 ```
 
+One distinction that trips teams up here: the packages inside your image are not the packages on your host. A managed platform patches the server's OS, and Kloudbean does that on its servers, but nothing outside your build touches the Debian or Alpine packages baked into your image. Those only change when you rebuild. So a patched host and a patched image are two separate claims, and only one of them is somebody else's job.
+
 Rebuild, re-scan, confirm the criticals are gone. Bake that loop into the pipeline and staying clean becomes routine instead of a fire drill. If you want to go further, pin the base image by digest (`node:20-slim@sha256:...`) so a rebuild can't silently pull a different image than the one you scanned.
 
 <!-- ADD IMAGE: before and after, the same app scanned on a full base image versus a slim or distroless base, side by side -->
@@ -144,9 +146,21 @@ First, scanning finds *known* vulnerabilities, the ones already disclosed and gi
 
 Scanning also isn't the whole of container security. It won't catch a hard-coded secret in your app logic (some tools flag obvious ones, but don't rely on it), a misconfigured volume mount, or a container you accidentally gave far more privileges than it needs. Pair scanning with secure code, least privilege, and the layers in front of your app, like [security headers](https://www.kloudbean.com/blog/security-headers-guide/) and [a web application firewall](https://www.kloudbean.com/blog/what-a-waf-does/). A green scan is a floor, not a ceiling.
 
-## Where Kloudbean fits, honestly
+## What skipping this actually costs you
 
-I'll be straight with you: Kloudbean doesn't ship a magic "scan" button, and I'm not going to pretend it does. What it gives you is the natural home for the scan. Deployments run through **managed CI/CD from Git with live build logs**, so a `trivy image` step is just another line in your build, and you watch it run in real time. Underneath, the server's OS and stack are **managed and patched** for you, which quietly keeps the host side of the equation current, and **Shorewall plus Fail2ban** sit on the box as a baseline. You still own the choices that shrink the list: a lean, current base image, up-to-date dependencies, and a non-root container. That's the honest division of labor, and it's the same on [managed versus unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) generally.
+Not a moral argument. A cost one, because the bill for ignoring image scanning always arrives, just later and in a worse currency.
+
+**You pay in emergency rebuilds.** A critical CVE you'd have caught in a two-second build step becomes an unplanned Friday: rebuild, retest, redeploy, under time pressure, on the version of the app you happened to have in production rather than the one you were working on.
+
+**You pay in drift.** Base images left alone for a year don't take one small upgrade to fix, they take a big one, because the runtime moved, a library's API changed, and now the security fix is a migration project. Teams that scan on every build never accumulate that debt in the first place.
+
+**You pay in questionnaires.** Sell to anyone with a security team and you'll be asked how you manage vulnerabilities in your images. A scan on every build that blocks criticals is a two-line answer. Having nothing to point at is where a deal slows down.
+
+**You pay in blast radius.** An exploited package in a root container reaches further than the same package in an unprivileged one, and that's decided by one line in a Dockerfile.
+
+Where a platform can help is narrower than the marketing in this space suggests, so here's the split plainly. Kloudbean gives you managed CI/CD from Git with live build logs, which is where the scan step naturally lives; a managed and patched host OS and stack; Shorewall and Fail2ban on the box by default; free SSL; automatic backups. Container workloads themselves sit under premium and enterprise customisation rather than the standard plan, and image scanning is not a button we ship. Nor is a managed WAF, whatever a comparison table somewhere tells you.
+
+And the part no host closes, ours very much included: choosing a lean current base image, keeping your dependencies bumped, dropping root in your Dockerfile, and deciding what severity blocks a build. Those are four decisions inside your repository. A platform can run them for you on a schedule. It cannot make them for you, and a provider claiming to secure your image is describing a machine that doesn't exist. Same division of labour as [managed versus unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) generally.
 
 **Fix it while it's still cheap.** Ship from Git on a managed pipeline, drop your scan step into the build, and read the results in the live build log at [kloudbean.com](https://www.kloudbean.com/). Managed CI/CD from Git · Live build logs · Managed OS patching · Shorewall + Fail2ban · Automatic backups · Free trial. Plans on [pricing](https://www.kloudbean.com/pricing/).
 

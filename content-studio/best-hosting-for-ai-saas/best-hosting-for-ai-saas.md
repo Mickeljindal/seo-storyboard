@@ -55,11 +55,15 @@ AI workloads make it worse than average. Model calls are already slow, so you ha
 
 Serverless isn't wrong, to be clear. It's a good fit for spiky, occasional work and for the frontend. It's just a poor default for a steady backend that holds sessions and talks to a database on every request. More on that split in the comparison below.
 
+Practically, this is why the managed-cloud shape suits an AI backend. On Kloudbean your Node or Python app runs as a long-lived process on a server you sized yourself, so there's nothing to wake up, and PM2 lets you run a second process beside the web app for the queue worker you'll need by week three.
+
 ## A database that survives every redeploy, and where vector search lives
 
 Your data belongs in a managed database that runs outside the app. This is the most common way an AI SaaS loses real user data, and it's entirely avoidable. AI builders love to scaffold a project on SQLite or an in-memory array because it's the fastest thing that works on a laptop. It keeps working right up to your first redeploy, when the file the app was writing to gets replaced along with the code, and every account, conversation, and upload disappears. A managed database lives in its own place, so shipping new code only ever changes code. Start with [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), and if this pattern already caught you, [why AI apps fail in production](https://www.kloudbean.com/blog/why-ai-apps-fail-in-production/) walks through the whole failure class.
 
 Then there's the AI-specific bit: vector search. If your SaaS does retrieval, semantic search, or a recommendation feature, you need somewhere to store and query embeddings. The good news is you probably don't need a separate vector database on day one. The `pgvector` extension stores embeddings right inside Postgres, next to your normal data, which keeps the stack to one database instead of two. Check that pgvector is available on the plan you're considering, since not every managed Postgres enables it. When it's there, one database covers both your app tables and your vectors, and that's one fewer console, one fewer bill, and one fewer thing to keep in sync.
+
+Check how the host launches that database, because it decides how much of this is your problem. Kloudbean runs seven managed engines as their own service next to the app (Postgres, MySQL, MariaDB, MongoDB, Redis, Memcached, Elasticsearch), each with automatic backups, and you lock one down by whitelisting your app server's IP so nothing else can connect. A redeploy touches the app and never the data, which is the whole point.
 
 <!-- ADD IMAGE: launch-database console screenshot (one-click managed Postgres), src -> ../assets/console/launch-database.png -->
 
@@ -78,7 +82,7 @@ Two line items almost nobody prices at signup, and both can dwarf the monthly st
 
 Which leads straight to the anti-pattern I see most: the five-vendor AI SaaS. App on one platform, Postgres on another, a vector database on a third, Redis on a fourth, file storage on a fifth. It feels modular and clever. It bills like a taxi meter with the engine running. Every service is a separate console to learn, a separate invoice to reconcile, and a separate status page to check when something's slow, and a request that hops between them can pay egress for the privilege. Debugging one slow endpoint means five browser tabs. The convenience you bought at signup becomes the tax you pay every month and every incident.
 
-You don't fix that by buying the cheapest of each. You fix it by keeping the pieces close, ideally in one place, so data moves over a local network instead of the public internet, and so there's one dashboard and one bill. That's a real, checkable advantage, not a vibe. Worth noting: some object storage doesn't meter egress at all, which quietly removes one of the scariest variable costs from the equation.
+You don't fix that by buying the cheapest of each. You fix it by keeping the pieces close, ideally in one place, so data moves over a local network instead of the public internet, and so there's one dashboard and one bill. That's a real, checkable advantage, not a vibe. Some object storage doesn't meter egress at all, which quietly removes one of the scariest variable costs from the equation. Kloudbean's own built-in S3-compatible buckets are in that group: data-transfer-out isn't metered on them. Read that narrowly, since it's about those buckets, not a platform-wide promise about every byte your app ever sends.
 
 ## The three ways to host an AI SaaS, compared
 
@@ -94,7 +98,7 @@ On the serverless and PaaS side, the tools are genuinely good at what they're fo
 
 The DIY VPS is the honest opposite. You rent a raw box, you get the cheapest headline price and total control, and some engineers genuinely enjoy running their own server. The catch is that everything becomes your job: OS patching, firewall rules, installing and tuning Postgres, connection pooling, SSL renewal, monitoring, backups, and being the person who gets paged at 2am. It's a real, ongoing job, not a one-time setup. Great if that's the work you want. Rough if you'd rather build the product.
 
-Managed cloud is the middle path, and for a steady AI SaaS it's usually the right one: the app, database, cache, and storage in a single dashboard, running always-on, with the operational chores handled for you. You trade some low-level control for a lot less to juggle. That's the category Kloudbean is in, and we'll get specific about it below.
+Managed cloud is the middle path, and for a steady AI SaaS it's usually the right one: the app, database, cache, and storage in a single dashboard, running always-on, with the operational chores handled for you. You trade some low-level control for a lot less to juggle. That's the category Kloudbean sits in, alongside the other managed platforms.
 
 ## A decision framework: which one fits you
 
@@ -104,13 +108,19 @@ You can settle this with one honest question about what you're actually hosting,
 
 And here's my one firm opinion for this whole page: once your AI SaaS has steady traffic, it wants an always-on managed setup, not serverless. Serverless earns its keep for the frontend and for spiky, bursty jobs. But a SaaS backend that holds sessions, hits a database on every request, streams model output, and runs background workers is the steady, connection-heavy case that serverless fights hardest and a managed always-on box handles most naturally. Start managed and always-on for the core, and reach for serverless at the edges where it shines. Not the other way round.
 
-## Where Kloudbean fits
+## The smallest setup that actually holds up
 
-Kloudbean is the managed-cloud path, and it's built around exactly the criteria above. One dashboard for the whole stack: you launch an always-on server running Node or Python (so no cold starts on that first request), add a managed Postgres, MySQL, MariaDB, MongoDB, Redis, Memcached, or Elasticsearch, and get S3-compatible object storage, automatic backups, and free SSL. Postgres can carry your embeddings through the `pgvector` extension where your plan enables it, so retrieval often needs no separate vector database. You deploy from Git on every push, and migration onto the platform is free for servers above a certain size. Pricing is flat and starts from $8/mo, so the bill doesn't surprise you the way usage-metered stacks can. That built-in object storage isn't metered for data-transfer-out either, which takes one of the scarier variable costs off the table.
+Whatever you pick, you need less than the five-vendor stack implies. Here's the minimum an AI SaaS can run on without setting a trap for itself, roughly in the order you'd add each piece.
 
-The part that answers the console-sprawl problem directly: because the app, database, cache, and storage live together, they talk over a local network instead of hopping between providers, and there's one login and one invoice instead of five. You lock the database down by whitelisting your app server's IP, so only your app can reach it and everything else is refused. Full private networking in a VPC is an Enterprise capability, not the default on a standard plan, so on a standard plan the IP allow-list is how you keep the database off the open internet.
+1. **One always-on app server** holding your Node or Python process. Not scale-to-zero. This is the piece your first paying user judges.
+2. **One managed database, living outside the app.** Postgres if you want `pgvector` to carry embeddings in the same place. MySQL or MariaDB are fine if your framework leans that way.
+3. **Object storage for anything a user uploads.** The app server's disk isn't storage. It's scratch space that gets replaced.
+4. **Redis, once sessions or rate limits exist.** Not before. Adding it early just gives you another thing to monitor.
+5. **Automatic backups plus one restore you have personally done.** An untested backup is a hope, not a plan.
 
-The honest boundary, because it builds trust: managed means the platform handles the server, the stack, SSL, backups, and patching. Your application code, your prompts, and your data stay yours. Kloudbean makes the running easy. It doesn't make a leaky endpoint safe or a bad prompt smart. We run our own tools this way, so it's the setup we actually use, not a brochure.
+That's a short list and it carries most AI products a long way. On Kloudbean it's a handful of tiles behind one login: a server, one of the seven managed database engines, an S3-compatible bucket, Redis when you want it, with automatic backups and free SSL already on, Git deploys with live build logs, and free migration on servers above 4GB. The same list elsewhere is the same list, just spread over more invoices and more status pages. And a note on ambition: autoscaling and Kubernetes are Enterprise territory here, not a standard-plan toggle, so on a standard plan you grow by resizing the server up, which is self-serve.
+
+Then the part hosting genuinely can't close, ours included. An endpoint that hands back another tenant's rows is your authorisation logic. A prompt-injection hole is your prompt design. A model bill that triples overnight is your missing rate limit. A query with no index will be slow on every provider on earth. Managed covers the server, stack, SSL, backups, and patching; the application and its data stay yours. Any host that pitches itself as the fix for that shorter list is selling, and you should read the rest of their page more slowly.
 
 ## Host your AI SaaS in one place, not five
 

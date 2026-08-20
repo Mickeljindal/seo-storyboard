@@ -28,6 +28,8 @@ This is where plans quietly fail. Cloud logging services typically retain logs f
 
 The fix is a dedicated log bucket with an explicit retention period rather than the default sink. Eighteen months means 548 days as a minimum, and it is worth configuring slightly above the floor so month-boundary arithmetic never puts you under it. Archive-class storage keeps the cost of that window reasonable, since old logs are written once and read rarely.
 
+This is the first thing we set explicitly on a managed enterprise engagement, on a dedicated cloud account: retention configured at the bucket, archive export wired up, and the short default sink taken out of the path. Not because it's clever, but because it's the failure nobody notices until an auditor asks for month fourteen.
+
 ## Retention is not the same as immutability
 
 Two different controls, often conflated. Retention (2-11-2) is about how long records exist. Protection (2-11-1-5) is about whether anyone can change or remove them, and it names tampering, illegitimate modification, and deletion explicitly.
@@ -35,6 +37,8 @@ Two different controls, often conflated. Retention (2-11-2) is about how long re
 A bucket with a 548-day lifecycle rule satisfies the first and fails the second, because someone with the right permission can still delete the objects. What satisfies both is write-once-read-many storage with a retention lock applied, so the platform itself refuses deletion or modification before the period expires. That property is the difference between logs you keep and logs that count as evidence. If a privileged account could erase the trail of its own actions, an auditor is right to discount the whole log set.
 
 Worth stating plainly: once a retention lock is applied, you cannot shorten it or delete the data early either. That is the point, and it is also a decision to make deliberately rather than discover later.
+
+Write-once storage with bucket lock is what Kloudbean applies on enterprise engagements, and it lives on a dedicated cloud account rather than being a switch on a standard plan. The reason it has to sit at the platform layer is simple: if the control were implemented in your application, your application's credentials could undo it.
 
 ## What a log line needs to contain
 
@@ -52,7 +56,7 @@ Structured, machine-readable output makes this far easier to query later. If you
 
 Control 2-11-1-2 asks for alerts and logs specifically for file integrity management. This is a distinct capability, not a byproduct of ordinary logging. An agent watches critical directories and binaries, and raises an alert when something changes unexpectedly. It is how you notice an unauthorised modification to a configuration file or a planted binary that no application log would mention.
 
-Note the wording includes monitoring, not just activation. A file integrity alert that nobody reads satisfies the letter and misses the purpose.
+Note the wording includes monitoring, not just activation. A file integrity alert that nobody reads satisfies the letter and misses the purpose. On enterprise engagements we run a FIM agent on the critical machines and route its alerts into the same policy set as firewall and IAM changes, so integrity events land where someone is already looking rather than in their own forgotten console.
 
 ## Around-the-clock monitoring, and the honest boundary
 
@@ -78,9 +82,22 @@ Control 2-11-1-3 asks for monitoring and analysis of user behaviour, which NCA's
 8. Confirm who is watching, and when. If the answer is nobody at 3am, 2-11-1-4 is not met yet.
 9. Test the retrieval path. Being able to produce a specific event from twelve months ago is the thing an audit actually asks for.
 
-## Where Kloudbean fits
+## Who owns each of these six controls
 
-On managed enterprise engagements, Kloudbean builds this layer: logging agents on all machines, audit logs across cloud services, database data-access logging, file integrity monitoring on critical machines, a library of alert policies for the event types above, immutable log storage with a write-once retention lock, and 18-month retention with archive export. Evidence is delivered as managed reports. This is an enterprise engagement rather than a self-serve toggle, and as noted above, around-the-clock human response is scoped collaboratively rather than assumed.
+Before you scope any of this, work out row by row who can actually close each control. "Infrastructure" means the layer a managed provider can build and keep running on your behalf. "Yours" means it needs your people, your policies, or your application code, and buying hosting does nothing for it.
+
+| Control | Infrastructure layer can deliver | Stays yours |
+|---|---|---|
+| 2-11-1-1 logs on all components | Agents on every machine, cloud audit logs, database data-access logging, network and firewall logs | Declaring which systems are in scope, and emitting the application-level events only your code knows about |
+| 2-11-1-2 file integrity | FIM agent on critical machines, alerts routed into the shared policy set | Deciding which paths and binaries count as critical, and acting on the alert |
+| 2-11-1-3 user behaviour | Anomaly signals on identity and administrative access patterns | Behavioural analytics across application activity, which needs a SIEM and someone tuning it |
+| 2-11-1-4 around-the-clock | Collection, alert policies, threat detection on access patterns | Investigation, severity calls, escalation, regulator reporting. SOC and SIEM work is available, but scoped with you rather than sold as a fixed package |
+| 2-11-1-5 protect the logs | Write-once storage with bucket lock, centralised sink, consistent timestamps and identity fields | What your application chooses to write into a log line in the first place |
+| 2-11-2 eighteen months | 548-day retention with a retention lock, archive export | The retention decision itself, and legal review of anything longer or shorter |
+
+Two of those rows need saying bluntly, because no host closes them. Nobody's platform, Kloudbean's included, can decide which of your systems are critical, and nobody's platform can be the human who picks up an alert at 3am unless that response is explicitly scoped and staffed. A provider that implies otherwise is selling you detection and calling it monitoring.
+
+Everything in the left column, Kloudbean builds and maintains on managed enterprise engagements running on a dedicated cloud account, with evidence delivered as managed reports. Be precise about what that buys you: infrastructure alignment, not a certificate. Certification is assessed against your organisation, and the governance, staffing, and application work in the right column is what an assessor will look at next.
 
 ## Related reading
 

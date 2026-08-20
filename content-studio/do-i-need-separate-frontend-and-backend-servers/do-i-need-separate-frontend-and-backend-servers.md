@@ -50,7 +50,7 @@ There are really three shapes an app can take. Knowing which one you are picking
 
 Same origin is the quiet superpower here. When the browser loads your front end and your API from the same origin, there is no CORS. Cookies get sent automatically. Sessions and auth behave the way the tutorials show, because the tutorials assume same-origin. You skip a whole class of bugs by never creating them.
 
-The ops story is just as calm. One server means one thing to monitor, one SSL certificate, one set of logs, one deploy to reason about, one bill. When something breaks at 2am, there is exactly one place to look. That is worth more than most architecture diagrams admit.
+The ops story is just as calm. One server means one thing to monitor, one SSL certificate, one set of logs, one deploy to reason about, one bill. When something breaks at 2am, there is exactly one place to look. That is worth more than most architecture diagrams admit. On a managed platform this is mostly already assembled for you: a Kloudbean app server hands out the static bundle and proxies your API paths to the Node or Python process behind it, with the free SSL certificate covering the single origin, and PM2 keeping several Node processes alive on the same box if you need them.
 
 And the network hop between front end and back end is basically free, because there barely is one. The request goes to the same machine. No cross-region latency, no extra TLS handshake to another host.
 
@@ -60,13 +60,13 @@ My honest opinion after watching a lot of small apps grow: most of them never ou
 
 To be fair, there are real reasons to split, and when one of these is true you should not feel bad about the extra moving parts. It is buying you something.
 
-**You want a static front end delivered from a CDN.** If your UI is a static build, putting it on a CDN gets it cached close to users around the world, and the API can sit on its own server. This is probably the most legitimate split for a content-heavy or globally used app, because static delivery and dynamic compute genuinely want different homes.
+**You want a static front end delivered from a CDN.** If your UI is a static build, putting it on a CDN gets it cached close to users around the world, and the API can sit on its own server. This is probably the most legitimate split for a content-heavy or globally used app, because static delivery and dynamic compute genuinely want different homes. It is also the cheapest split to make: Kloudbean's static site hosting is free, with a custom domain and SSL included, so the front end costs you nothing while the API keeps its managed server. You pay for the split in CORS, not in money.
 
 **The front end and back end scale differently.** Maybe your API does heavy compute while the front end is light static assets, or the reverse. When the two halves have very different load profiles, giving each its own server lets you scale the part that actually needs it instead of oversizing one box for both.
 
 **Separate teams ship on separate schedules.** A front-end team pushing several times a day and a back-end team releasing weekly will step on each other in a single deploy. Independent deploys let each side move at its own pace with its own pipeline. This is an organizational reason, not a technical one, and it is completely valid.
 
-**The stacks are clearly different.** A Python machine-learning back end and a Node server-side-rendered front end do not share a build or a runtime cleanly. When the two sides have little in common, separate servers stop being overhead and start being honest. The common version of that pairing is written up in [the Next.js, FastAPI, and PostgreSQL production architecture](https://www.kloudbean.com/blog/nextjs-fastapi-postgres-production-architecture/), which shows where each piece runs once you do split. If your back end is really turning into several services, that is a different question, covered in [do I need microservices for my SaaS](https://www.kloudbean.com/blog/do-i-need-microservices-for-my-saas/).
+**The stacks are clearly different.** A Python machine-learning back end and a Node server-side-rendered front end do not share a build or a runtime cleanly. When the two sides have little in common, separate servers stop being overhead and start being honest. The common version of that pairing is written up in [the Next.js, FastAPI, and PostgreSQL production architecture](https://www.kloudbean.com/blog/nextjs-fastapi-postgres-production-architecture/), which shows where each piece runs once you do split. Worth noting that different stacks do not have to mean different providers: Node and Python are both first-class runtimes on Kloudbean, with their runtime settings editable in the UI, so a split like that stays two applications in one dashboard rather than two vendors and two invoices. If your back end is really turning into several services, that is a different question, covered in [do I need microservices for my SaaS](https://www.kloudbean.com/blog/do-i-need-microservices-for-my-saas/).
 
 Notice what is not on that list: "it feels more professional," "big companies do it," or "the diagram had two boxes." Those are not reasons. They are vibes.
 
@@ -111,9 +111,22 @@ You can settle this in about a minute. Walk down these questions and stop at the
 
 The thing to hold onto: starting together is reversible. Your front end and API are still your code. If a real reason to split shows up next quarter, you split then, with a working product and users behind the decision. Splitting on day one to avoid a migration you may never need is the trade going the wrong way.
 
-## Where this leaves Kloudbean
+## So what would actually force them apart?
 
-If your answer landed on "keep them together for now," that maps cleanly to a single managed server. One Kloudbean server can run a full-stack app, or serve a static front end and an API together on one origin, so you skip CORS entirely while you are small. When a part genuinely earns its own home, you add another server or application from the same dashboard and wire them together, rather than rebuilding from scratch. Backups, free SSL, and Git deploys come with it either way. That is the useful bit here, and it is secondary to the real point: most apps do not need the split yet.
+Strip everything else away and this comes down to a single test. Not "will I scale one day." The question is whether something outside your control already puts a boundary between your front end and your API. If it does, the split is describing reality and you should make it. If it doesn't, you'd be inventing a boundary and then paying to maintain it.
+
+Four things count as a real boundary. Read them and be strict with yourself:
+
+- **A second team with its own release cadence.** Not "we might hire." Two people who would actually be blocked by each other's deploy this month.
+- **Two runtimes that can't share a build.** A Python model service and a server-rendered Node front end is a real one. A React bundle and an Express API is not, they share a machine happily.
+- **Global static delivery you specifically want.** You've decided the UI belongs on a CDN for users on other continents. That's a decision about physics, and it's legitimate on its own.
+- **Two genuinely different machine sizes.** Your API needs memory the static assets never will, and you can point at the metric that says so.
+
+If you had to imagine yourself into all four, the boundary isn't there yet. Keep them together. That's not a hedge, it's the answer for most apps, and it stays the answer for longer than the diagrams suggest.
+
+Now the part no host touches. CORS is application config, not infrastructure. `SameSite`, `credentials: 'include'`, the allowed-origins list, the preflight handler, all of that lives in your code, and switching platform changes precisely none of it. Same for version skew: if your front end deploys a field the API hasn't shipped yet, users see a broken screen, and no provider sequences your two releases for you. Kloudbean doesn't fix either one. What it does is keep the choice cheap in both directions. One app server can serve the bundle and the API on one origin today, and if a real boundary turns up, the static front end moves to free static hosting or another application in the same dashboard, with the API left where it is.
+
+Which is the whole point. The split should follow a boundary you can name, and until you can name one, one server and one origin is the setup that lets you spend the week on the product instead of on preflight headers.
 
 ---
 

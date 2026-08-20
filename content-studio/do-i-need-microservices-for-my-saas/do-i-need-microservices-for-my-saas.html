@@ -45,13 +45,14 @@
   <p>The monolith has a bad reputation it mostly doesn't deserve. People picture a tangled ball of mud. But a monolith just means your application ships as one deployable unit. It can be clean or messy, same as any codebase. The good version is a modular monolith: one app, one deploy, but internally divided into clear modules (billing, auth, projects, notifications) with defined boundaries between them.</p>
   <p>That structure gives you most of what people think they need microservices for, minus the distributed-system tax. Clear ownership of code. Boundaries you can enforce. The ability to reason about one module at a time. And the big one: calling from one module to another is a plain function call. Fast, reliable, easy to debug. Not a network request that can time out on you.</p>
   <p>A clean monolith also fits a boringly simple deployment. Your app, your API, and your database can sit together, and you can <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">host your app, API, and database on one server</a> for a long time before that's a problem. The <a href="https://www.kloudbean.com/blog/ai-app-reference-architecture/">reference architecture for a production app</a> is mostly this: one app process, one managed database, backups, SSL. Not a mesh of services calling each other.</p>
+  <p>In practice that's one server and one managed database on Kloudbean, with the database whitelisted to your app server's IP so nothing else can reach it, plus scheduled jobs from the UI for the work you'd otherwise be tempted to spin out into a "service." A surprising number of premature microservices are really just cron jobs that wanted a home.</p>
 
   <h2>The real cost of microservices when you're small</h2>
   <p>Here's what you actually sign up for the moment you split one app into several. None of it is hypothetical.</p>
   <ul>
     <li><strong>A network between your own code.</strong> What used to be a function call becomes a request over the network, and networks fail. You now handle timeouts, retries, and partial failures between your own services. That's real code you write, test, and maintain.</li>
     <li><strong>Data consistency across services.</strong> When each service owns its own data, a single user action can touch several of them, and you can't wrap it in one database transaction anymore. Now you're reasoning about eventual consistency and half-finished operations. This is the hardest part, and it never fully goes away.</li>
-    <li><strong>More to deploy and observe.</strong> One app becomes many. Each needs deploying, monitoring, and logging, plus a way to trace one request as it hops across services. The operational surface multiplies with every service you add.</li>
+    <li><strong>More to deploy and observe.</strong> One app becomes many. Each needs deploying, monitoring, and logging, plus a way to trace one request as it hops across services. A managed platform softens half of this: on Kloudbean each app is its own Git-connected deploy with its own build logs, so five services means five repos wired up rather than five pipelines you built. The tracing half stays yours, and that's the half that hurts at 2am.</li>
     <li><strong>Harder local dev and debugging.</strong> Running the whole app on your laptop used to mean starting one process. Now it means orchestrating several, plus their databases. A bug that crosses service boundaries is far harder to chase than a stack trace in a single codebase.</li>
   </ul>
   <p>Every one of those is worth paying when microservices are solving a real problem for you. Every one is pure cost when they aren't. That's the trade, stated plainly.</p>
@@ -70,6 +71,7 @@
     </tbody>
   </table>
   <p>Neither is "correct" in the abstract. If you're a large org with many teams tripping over each other, the right column is your world and a monolith would feel like a bottleneck. If you're a small team trying to ship, the left column gets you live faster and stays easier to run. Most people reading this are the second case, which is why the honest lean is toward the monolith, not because microservices are bad.</p>
+  <p>Worth knowing before you decide: nothing in the left column stops you doing a partial split later. Adding a second managed server for the one hungry component, and putting the pair behind Kloudbean's built-in load balancer, is a provisioning step in the same dashboard rather than a migration. So "monolith now" isn't a bet against ever splitting. It's declining to split everything today.</p>
 
   <!-- ADD IMAGE: swap the SVG below for a polished version if desired. src -> images/monolith-vs-microservices.png -->
   <figure>
@@ -109,8 +111,22 @@
   <p><strong>Are you splitting to solve a problem you have today, or one you imagine having?</strong> If it's today's real pain, go. If it's a someday-maybe, write it down and revisit when it's real. In the meantime you can run several apps or services on one machine cheaply, and <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">hosting multiple apps on one server</a> is a far smaller step than a service mesh.</p>
   <p>The reassuring part: starting as a monolith doesn't lock you in. A well-modularized monolith is the easiest thing to peel services off later, because the boundaries already exist. You extract the one module that needs to be a service, when it needs to be, with customers and a team behind the call. Choosing simple now is reversible. Rebuilding a premature microservices tangle back into something you can ship is a lot harder.</p>
 
-  <h2>Where this leaves Kloudbean</h2>
-  <p>If the honest answer is "start as one well-structured app with one database, and split a piece out only when a real signal appears," then your infrastructure should make both the start and the later split easy. That's the shape Kloudbean fits: a single managed server can host your app, your API, and a managed database together, with backups and SSL handled from one dashboard. And when a component genuinely earns its own home, you can add another server for it without leaving the platform or re-doing your whole stack. Useful to know, and secondary to the real point, which is that most SaaS should stay a monolith far longer than the hype suggests.</p>
+  <h2>Split later is cheap. Un-splitting is not.</h2>
+  <p>Sort this decision by whether you can take it back, because that asymmetry is the whole argument and almost nobody puts it on the table. Some of these doors swing both ways. Two of them don't.</p>
+  <table class="cmp">
+    <thead><tr><th>The move</th><th>Can you undo it?</th><th>What reversing actually costs</th></tr></thead>
+    <tbody>
+      <tr><td>Start as a modular monolith</td><td>Yes, easily</td><td>Extract the one module that earns it. The seams are already cut.</td></tr>
+      <tr><td>Pull one hungry component out later</td><td>Yes</td><td>A second app server with the pair behind a load balancer. Provisioning, not rearchitecting.</td></tr>
+      <tr><td>Split into six services on day one</td><td>Barely</td><td>Unwinding retries, queues, and duplicated logic back into one app. Months of work, and no customer notices.</td></tr>
+      <tr><td>Give each service its own database</td><td>No, not cheaply</td><td>Rejoining split data is a migration with downtime attached, and it's the one people underestimate.</td></tr>
+      <tr><td>Containerise early</td><td>Yes, and do it</td><td>Costs you almost nothing, buys most of your portability. You can still deploy the plain process.</td></tr>
+      <tr><td>Resize the single server up</td><td>Up, yes</td><td>Down, not really. Disk downgrades aren't supported on Kloudbean, so grow disk in steps you mean.</td></tr>
+    </tbody>
+  </table>
+  <p>Read the second column. The cheap-to-reverse rows are the ones people call naive, and the expensive-to-reverse rows are the ones that feel sophisticated on a whiteboard. If you're not sure which shape your product needs, and at this stage you can't be, pick the mistake you can undo in an afternoon.</p>
+  <p>Two honest limits before you file this away. No host fixes a data split. Once billing and projects live in separate databases, eventual consistency is in your application code forever, and no platform, ours included, has a setting for that. And if you do go down the services road, the tooling that usually comes with it isn't a standard-plan thing on Kloudbean: Docker sits under premium and enterprise customisation, and Kubernetes is Enterprise. Read that as a signal rather than a limitation. If your architecture needs an orchestrator, you've arrived at enterprise-sized operations, and you should be buying the team to run it, not just the cluster.</p>
+  <p>Meanwhile the boring version keeps working: one server running your app and API, one managed database beside it, backups and SSL handled, cron jobs from the UI, and a second server plus the built-in load balancer waiting for the day one component genuinely outgrows the rest. That day comes later than the conference talks suggest. Sometimes it never comes, and that's a perfectly good outcome.</p>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Build the simple thing well.</p>
