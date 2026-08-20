@@ -5,15 +5,51 @@
 
 export const SUPPORT_KB_BASE = "https://support.kloudbean.com";
 
-/** Canonical doc paths (extend as support site grows). */
+/**
+ * Canonical doc paths, verified against the live sitemap (Aug 2026 crawl).
+ *
+ * These are now only convenience anchors for linking and for narrow re-fetches.
+ * The support KB no longer depends on this list: `support-kb.ts` discovers every
+ * page from /sitemap.xml, which is what stops the list going stale silently.
+ *
+ * It went stale badly once. Six of the seven previous entries
+ * (/docs/cloud-providers/google-cloud, /docs/regions/gcp-dammam-me-central2,
+ * /docs/enterprise/enterprise-plan, /docs/security/bitninja-cloudflare,
+ * /docs/migrations/free-migration, /docs/applications/self-hosted-catalog) had
+ * been renamed or removed. Because the docs site answers unknown paths with a
+ * 200 and a generic shell rather than a 404, the crawler cached the navigation
+ * menu for all six and the writer prompt presented it as source of truth.
+ *
+ * If you add a path here, confirm it appears in the sitemap first:
+ *   npm run kb:crawl -- --dry
+ */
 export const SUPPORT_DOC_PATHS = {
+  intro: "/docs/intro",
   postgresLaunch: "/docs/database-launch/launching-postgres",
-  gcpHosting: "/docs/cloud-providers/google-cloud",
-  dammamPricing: "/docs/regions/gcp-dammam-me-central2",
-  enterprise: "/docs/enterprise/enterprise-plan",
-  security: "/docs/security/bitninja-cloudflare",
-  migrations: "/docs/migrations/free-migration",
-  selfHostedApps: "/docs/applications/self-hosted-catalog",
+  selectingCloudProvider: "/docs/getting-started/selecting-cloud-provider",
+  selectingServerLocation: "/docs/getting-started/selecting-server-location",
+  enterpriseIncluded: "/docs/enterprise/what-is-included",
+  enterpriseUpgrade: "/docs/enterprise/upgrading-to-enterprise",
+  enterpriseCompliance: "/docs/enterprise/compliance-support",
+  enterpriseSiem: "/docs/enterprise/siem-security-logging",
+  enterpriseSecretManager: "/docs/enterprise/secret-manager",
+  enterpriseDatabases: "/docs/enterprise/mission-critical-databases",
+  enterpriseRegionalBuckets: "/docs/enterprise/regional-storage-buckets",
+  bitninja: "/docs/server-management/enabling-bitninja-security",
+  backups: "/docs/server-management/managing-server-backups",
+  migrationsOverview: "/docs/migrations/overview",
+  ipAccessControl: "/docs/application-management/restricting-access-by-ip",
+  redirects: "/docs/application-management/configuring-redirects",
+  responseHeaders: "/docs/application-management/adding-response-headers",
+  securityHeaders: "/docs/security-maintenance/adding-security-headers",
+  objectStorage: "/docs/s3-object-storage/overview",
+  loadBalancer: "/docs/flexible-load-balancers/overview",
+  staticSites: "/docs/static-site-hosting/overview",
+  subscriptionTier: "/docs/getting-started/subscription-tier",
+  freeTrial: "/docs/getting-started/starting-free-trial",
+  // Note: "/docs/faqs" is NOT a real page. The live paths are the ones below.
+  faqs: "/docs/faqs/general",
+  faqsIndex: "/docs/category/faqs",
 } as const;
 
 /**

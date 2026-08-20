@@ -335,8 +335,23 @@ export async function runContentEngine(
     }
   }
 
+  // Support KB — the crawled product documentation from support.kloudbean.com.
+  //
+  // This was previously reaching the BRIEF prompt only, so the writer producing
+  // the actual prose never saw the docs and had to rely on the RAG round-trip
+  // plus hardcoded facts. Scoped to the topic, because the KB is 130-plus docs.
+  let supportKbBlock = "";
+  try {
+    const { getSupportKnowledgeContext } = await import("./support-kb");
+    supportKbBlock = await getSupportKnowledgeContext(4000, `${title} ${keyword}`);
+    if (supportKbBlock) log.push("Support KB: injected matching product docs");
+  } catch {
+    /* optional — never blocks generation */
+  }
+
   const grounding = [
     geoBlock,
+    supportKbBlock,
     competitorBlock,
     kloudgraphBlock,
     marketMapBlock,

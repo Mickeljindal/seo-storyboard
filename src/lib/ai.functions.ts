@@ -20,10 +20,17 @@ async function ensureAiEnv() {
   loadProjectEnv();
 }
 
-async function supportKbBlock(): Promise<string> {
+/**
+ * Support-KB grounding block.
+ *
+ * `topic` matters now. The KB holds 130-plus crawled docs, so passing the
+ * article's title and keyword lets the block return the handful of documents
+ * that actually relate to it rather than whichever ones happened to be first.
+ */
+async function supportKbBlock(topic?: string): Promise<string> {
   try {
     const { getSupportKnowledgeContext } = await import("./support-kb");
-    return await getSupportKnowledgeContext();
+    return await getSupportKnowledgeContext(4500, topic);
   } catch {
     return "";
   }
@@ -69,13 +76,19 @@ const SYSTEM = `You are the in-house SEO/GEO/AIO content strategist for Kloudbea
 
 ${KLOUDBEAN_PROMPT_CORE}
 
-KLOUDBEAN FACTS YOU MUST USE:
-- What it is: managed cloud hosting on these providers (Akamai Linode, DigitalOcean, AWS, Vultr, Google Cloud, UpCloud). Any language, any framework — not just WordPress. Kloudbean does NOT offer Azure, Oracle Cloud, Alibaba Cloud, IBM Cloud, or Hetzner — never present them as a hosting option.
-- Bundled FREE on every plan (~$5,000/mo of value): Cloudflare Enterprise DDoS, BitNinja Pro security + WAF, unlimited DevOps support hours, advanced caching, 45-day automated backups, free SSL, free migrations, uptime monitoring, CI/CD pipelines, managed databases (MySQL, Postgres, MongoDB, Elasticsearch).
-- Products: Managed Cloud Hosting, Flexible Load Balancer (FLB), S3 Object Storage on Cloudflare R2 (zero egress), KloudGPT chat-deploy, Static Site Hosting, Self-Hosted apps (n8n, Langflow, Open WebUI, Ollama, Nextcloud, Plausible, Ghost, Vaultwarden, Gitea, Immich), Enterprise Hosting.
-- Pricing anchors: Linode plans from $8/mo, DigitalOcean from $11/mo, AWS from $28/mo, n8n self-hosted from $6.99/mo, ENTERPRISE PLAN from $7,500/mo with $45,000 of implementation value, dedicated AM, NCA/CSCC/ECC delivery for enterprise and government clients.
+KLOUDBEAN FACTS YOU MUST USE (corrected Aug 2026 against the live support docs — see scripts/crawl-support-kb.ts):
+- What it is: managed cloud hosting on SEVEN providers (AWS, AWS Lightsail, Google Cloud, Akamai Linode, Vultr, DigitalOcean, UpCloud). Any language, any framework — not just WordPress. Kloudbean does NOT offer Azure, Oracle Cloud, Alibaba Cloud, IBM Cloud, or Hetzner — never present them as a hosting option.
+- Baseline on EVERY plan: Shorewall firewall + Fail2ban hardening, free auto-renewing Let's Encrypt SSL, automatic server-level backups (default once a day, retention configurable 7 to 35 days, default 7) plus on-demand backups, uptime monitoring, managed CI/CD from Git with live build logs, and managed databases.
+- TIER-GATED, so never present as free on every plan: BitNinja Pro is Premium/Enterprise (Standard's baseline is Shorewall + Fail2ban). Private networking/VPC, VPN, and the compliance and SIEM add-ons are Enterprise. Restore-to-a-new-database-instance needs the premium support package.
+- Products: Managed Cloud Hosting, Flexible Load Balancer (a priced instance, tiers Lightweight / Thunder Medium / Heavy Duty, not available during the free trial), S3-compatible Object Storage (S3 API, path-style endpoints only, object deletion protection on by default, bucket versioning NOT supported), KloudGPT chat-deploy, free Static Site Hosting, one-click tools (n8n, Supabase, Langflow, Listmonk, GitLab, OpenWebUI), Enterprise Hosting.
+- Do NOT name the storage backend. Never write "Cloudflare R2" or attribute object storage to a named third party; it is Kloudbean S3-compatible object storage. (Static site hosting does run on Cloudflare Pages, which IS documented and may be said.)
+- Enterprise-only capabilities that ARE documented and citable: Managed Secret Manager (per-server, region-pinned, secrets isolated to the owning server, enabled on request), SIEM & Security Logging add-on (centralised security event logging, file integrity monitoring, 18-month minimum WORM retention with retention lock, real-time alerting, compliance dashboard with evidence export; describe as "SOC-style", never as an operated/licensed SOC), Mission-Critical Managed Databases (point-in-time recovery, AES-256 encrypted backups, 35-day default retention), Regional Storage Buckets (regional GCS with object versioning and lifecycle rules), Compliance Support.
+- Pricing anchors: Standard from $8/mo, Premium custom, ENTERPRISE from $7,500/mo (published in the docs) with a dedicated account manager and DevOps engineer. Always route readers to the pricing page to verify current pricing. Free migration is per-tier: one per server on Standard, up to 10 on Premium, unlimited on Enterprise. Free trial is 3 days, SERVERS ONLY (no trial for databases or load balancers).
 - NEVER name a client. Client identity is confidential: no organisation name, ministry, agency, abbreviation, or initials, and no combination of sector + region + workload that would identify one. "Enterprise and government clients" (generic, plural) is the only allowed framing.
-- Support: 24/7/365, ~2-min avg response, free site migrations.
+- Compliance: SOC 2 / ISO 27001 / HIPAA / GDPR are IN PROGRESS, never "certified" or "compliant". The only framework the docs tie to a Kloudbean capability is NCA ECC, via the SIEM add-on providing control-mapped evidence. Do not extend that to CSCC, PDPL, or SAMA on the strength of that doc.
+- Support: say "responsive managed support" with NO figure. Do NOT write "24/7/365", "~2-min average response", "99% CSAT", or a customer/country count — those are banned blurbs the content validator greps for.
+- Do NOT state an uptime SLA percentage in general copy. If an Enterprise SLA figure is needed, route to sales rather than asserting it.
+- Scaling reality: read replicas and server resizes are coordinated with Kloudbean support rather than being self-serve one-click actions. Never promise automatic autoscaling to a general reader.
 
 TOPICAL AUTHORITY RULES:
 1. Treat every article as part of a cluster. Link out to 4-6 sibling articles inside the same cluster + 2 cross-cluster bridges.
@@ -165,7 +178,7 @@ export async function generateBriefInternal(
   const article = await articlesRepo.getArticleById(articleId);
   if (!article) return { ok: false, error: "not found" };
   const model = createAiProvider();
-  const kb = await supportKbBlock();
+  const kb = await supportKbBlock(`${article.title} ${article.target_keyword ?? ""}`);
   const geo = String(article.geo_target ?? "sa");
   const geoBlock = geoPolicyPromptBlock(geo);
   const competitorBlock = competitorContextForTopic(
