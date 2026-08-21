@@ -140,7 +140,9 @@ Laravel's opening-night failures are short and predictable, and each maps to som
 - **A bug you fixed is still happening.** The queue worker never restarted. Add `queue:restart` to the deploy.
 - **Config changes that don't take effect.** Cached config is stale, or you're calling `env()` outside a config file. Rebuild the cache; move the read into config.
 
-Below the app, the server's own logs sit at `/home/admin/hosted-sites/<app_system_user>/app-logs/app.error.log`. Read that before you start changing code on a hunch. The full walkthrough for a stubborn one is [fixing a 503 after deploying your app](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
+Below your app sits the platform's own capture of whatever the process printed, and you read it in the dashboard under **Application Administration → Logs Viewer**. It's split into tabs. **App Errors** is the one to open when the site returns a 503, because a 503 means the application isn't running, so the reason it died is sitting in there. **App Info** holds the informational output. **Web Requests Logs** is the web server's access log of every request served, which tells you whether a request even reached the box. Use the search field to jump to an exception class instead of scrolling.
+
+Two logs, not one, and mixing them up wastes an evening. `storage/logs/laravel.log` is Laravel's own logger, written by your code. App Errors is what the process wrote to stderr, which is where a fatal boot error lands before Laravel's logger ever gets to run. If you'd rather read files, the same platform logs are on disk at `/home/admin/hosted-sites/<app_system_user>/app-logs/` as `app.info.log` and `app.error.log`, and the File Manager opens them too. The full walkthrough for a stubborn one is [fixing a 503 after deploying your app](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
 
 ## What you run, what Kloudbean runs
 

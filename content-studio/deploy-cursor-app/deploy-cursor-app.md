@@ -180,15 +180,17 @@ No. Not for a single Cursor app. A Dockerfile and a Kubernetes cluster solve pro
 
 ## When it still won't go green
 
-First deploy shows a **503**? The process didn't start. Nine times out of ten it's a missing environment variable or a wrong start command. Read the app's own log, which is where the real reason sits:
+First deploy shows a **503**? A 503 means the app isn't running, so the real reason is in its own log. You read that in the dashboard: **Application Administration → Logs Viewer**, then the **App Errors** tab. Search it if the file is long. The other tabs are **App Info** for the app's informational output and **Web Requests Logs** for the web server's access log, which is handy for telling "the app crashed" apart from "the request never got there". A build that failed instead of a process that died shows up in **Build and Deployment History**, output and all.
+
+Same files, on disk, if you'd rather stay in a terminal or use the File Manager:
 
 ```
 /home/admin/hosted-sites/<app_system_user>/app-logs/app.error.log
 ```
 
-Open it in the File Manager or over SSH. One less obvious cause with AI-built TypeScript projects: the build fails because the tools it needs (the TypeScript compiler, Vite, Tailwind) are in `devDependencies`, and something set `NODE_ENV=production` before install, so `npm` skipped them. Either move the build-time tools where they belong or make sure install runs before that variable is set. Cheapest way to catch this class of failure before the server does: clone your repo into an empty folder and build it there, which is exactly the test behind [whether an AI editor project builds from a clean clone](https://www.kloudbean.com/blog/deploy-windsurf-app/). There's also `sudo adm`, the deploy utility, which runs the whole build-and-ship in one command over SSH. The full 503 playbook is [here](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
+One less obvious cause with AI-built TypeScript projects: the build fails because the tools it needs (the TypeScript compiler, Vite, Tailwind) are in `devDependencies`, and something set `NODE_ENV=production` before install, so `npm` skipped them. Either move the build-time tools where they belong or make sure install runs before that variable is set. Cheapest way to catch this class of failure before the server does: clone your repo into an empty folder and build it there, which is exactly the test behind [whether an AI editor project builds from a clean clone](https://www.kloudbean.com/blog/deploy-windsurf-app/). There's also `sudo adm`, the deploy utility, which runs the whole build-and-ship in one command over SSH. The full 503 playbook is [here](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
 
-<!-- ADD IMAGE: app.error.log open in the File Manager, showing the missing-variable line behind the 503. -->
+<!-- ADD IMAGE: the Logs Viewer open on the App Errors tab, showing the missing-variable line behind the 503. -->
 
 ## What you own, and what you don't
 

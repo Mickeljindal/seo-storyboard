@@ -177,7 +177,11 @@ Three symptoms cover almost everything, and each points at one of the two halves
 
 - **Blank white page.** A `VITE_` variable (usually the Supabase URL or anon key) wasn't set when you built. Rebuild with them in place.
 - **Login does nothing, or data returns a `401`.** Either a Row Level Security policy is missing, the frontend is pointed at the wrong Supabase project, or the auth redirect URL still points at your old Lovable address. Add your new domain to Supabase's list of allowed redirect and site URLs. This last one trips up nearly every Supabase move, and it's a quick fix once you know to look for it.
-- **A `503` on a Node-server build.** The process didn't start, usually a missing env var or a wrong start command. Read the app's own log at `/home/admin/hosted-sites/<app_system_user>/app-logs/app.error.log`. The full playbook is in [fixing a 503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
+- **A `503` on a Node-server build.** A 503 means the process isn't running, usually a missing env var or a wrong start command. Go to **Application Administration → Logs Viewer** and open the **App Errors** tab, which is where the crash is recorded. The full playbook is in [fixing a 503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
+
+That Logs Viewer is worth a minute of your time before you start editing code. Tabs split it up: **App Errors** for your app's error output, **App Info** for its informational output, and **Web Requests Logs** for the web server's record of every request served. There's a search box, so if the browser console gave you a status code or an error string, look for it there rather than reading top to bottom. Build output is somewhere else again: it streams live while a deploy runs and stays in **Build and Deployment History**.
+
+The same files also sit on disk at `/home/admin/hosted-sites/<app_system_user>/app-logs`, as `app.info.log` and `app.error.log`, if you'd rather read them in the File Manager or a terminal.
 
 ## What you own, and what's managed
 

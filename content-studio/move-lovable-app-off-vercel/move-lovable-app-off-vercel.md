@@ -68,7 +68,7 @@ Recreate your environment variables under **Runtime Configuration, Environment V
 
 Now test on the app's temporary `*.kloudbeansite.com` URL, before you go anywhere near your domain. Click through every real flow: log in, read data, write data, hit each API route, submit any form. This is the whole point of the temp URL. It's where you catch the things that only worked because they were on Vercel, while the old site is still safely serving your users.
 
-My honest opinion: the flip is the safe part. The scary part is discovering, an hour *after* cutover, that something depended on Vercel. That's exactly why you verify on the temp URL now, not later. If a route 503s, read the app's own log at `/home/admin/hosted-sites/<app_system_user>/app-logs/app.error.log`. The full triage is in [fixing a 503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
+My honest opinion: the flip is the safe part. The scary part is discovering, an hour *after* cutover, that something depended on Vercel. That's exactly why you verify on the temp URL now, not later. If a route 503s, the app isn't running, and it will have said why. Open **Application Administration**, then **Logs Viewer**, and read the **App Errors** tab, which is `app.error.log`. The search box gets you to the failing variable fast. **App Info** (`app.info.log`) and **Web Requests Logs**, the access log for every request served, are tabs in the same viewer. If you'd rather read files, both logs sit at `/home/admin/hosted-sites/<app_system_user>/app-logs` in the File Manager. The full triage is in [fixing a 503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
 
 ## The Vercel-only assumptions to hunt for on the temp URL
 

@@ -106,7 +106,7 @@ Add your custom domain under **Domain Aliases**, point DNS at the server, instal
 
 ## If it 503s anyway
 
-If you ran the clean-room test, a **503** is now unlikely, and when it happens it's almost always a missing environment variable or a database URL still pointing at your local machine. Read `app.error.log` at `/home/admin/hosted-sites/<app_system_user>/app-logs`; the reason is named there. The full [503 playbook](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/) has the rest.
+If you ran the clean-room test, a **503** is now unlikely, and when it happens it's almost always a missing environment variable or a database URL still pointing at your local machine. A 503 means the process isn't running, and the reason is written down. Go to **Application Administration**, then **Logs Viewer**, and open the **App Errors** tab, which is your `app.error.log`. Use the search box if you already have a guess. **App Info** (`app.info.log`) sits alongside it, and **Web Requests Logs** holds the access log for every request served. Those two files are also on disk at `/home/admin/hosted-sites/<app_system_user>/app-logs` if you prefer the File Manager. The full [503 playbook](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/) has the rest.
 
 ## The honest limits
 

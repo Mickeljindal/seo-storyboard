@@ -144,6 +144,8 @@ You can't respond to what you can't see. Basic monitoring tells you when auth fa
 
 A sudden flood of failed logins is a brute-force attempt in progress. A disk quietly filling to 100% takes your app down as surely as any attacker, and that's a preventable outage. Monitoring is how the small problem stays small.
 
+One thing here is a security decision dressed up as a convenience: who has to log into the server just to read a log. On Kloudbean you view application logs in the UI, under **Application Administration**, then **Logs Viewer**, with separate tabs for **Web Requests Logs** (the web server access logs for every request served), **App Info** (`app.info.log`), and **App Errors** (`app.error.log`), plus a search box for locating one error. So a developer chasing a 503 reads the App Errors tab and gets their answer. No shell account, no key issued, nothing added to your SSH surface. That's least privilege in practice, and it's the version people actually stick to, because the secure path is also the faster one. The files remain at `/home/admin/hosted-sites/<app_system_user>/app-logs` for anyone who wants them directly, but nobody needs root on a box to read a stack trace.
+
 ![The Kloudbean console server health view showing CPU, memory, and disk usage over time](../assets/console/server-health.png)
 
 *Server health at a glance: CPU, memory, and disk. On a managed dashboard the graphs and alerts are already wired up, so you're watching trends instead of building a monitoring stack from scratch.*

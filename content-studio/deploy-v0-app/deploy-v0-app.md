@@ -143,7 +143,7 @@ A **503** means the process didn't start. For a v0 or Next.js app, check in this
 - **A missing environment variable**, often the database URL or a `NEXT_PUBLIC_` value the app reads at startup.
 - **Port binding.** Standard `next start` respects `process.env.PORT`; a custom server must honor it too.
 
-Read `/home/admin/hosted-sites/<app_system_user>/app-logs/app.error.log`, where the cause is almost always named, or watch the live build under Build and Deployment History. The full playbook is in [fixing a 503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
+All three name themselves in the logs, and you read those in the dashboard: **Application Administration**, then **Logs Viewer**, then the **App Errors** tab, which is `app.error.log`. Search it for the variable or module you suspect. **App Info** (`app.info.log`) carries the ordinary startup chatter, and **Web Requests Logs** is the access log for every request served, useful for confirming the proxy is even reaching your app. Build output is separate and streams live under **Build and Deployment History**. If you'd rather read the files, they're at `/home/admin/hosted-sites/<app_system_user>/app-logs` through the File Manager. The full playbook is in [fixing a 503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
 
 ## What you own, and what's managed
 
@@ -171,7 +171,7 @@ No. shadcn/ui components are copied into your repo as source files rather than p
 On your server. Launch a managed Postgres or MySQL from the console, connect through environment variables, and it runs next to the app. Handy, since v0 focuses on the UI and leaves the data layer to you.
 
 **My v0 app builds but won't start: why?**
-Usually the start command isn't running next start, or an environment variable is missing (often the database URL or a NEXT_PUBLIC_ value), or the port isn't respected. Check app.error.log and redeploy.
+Usually the start command isn't running next start, or an environment variable is missing (often the database URL or a NEXT_PUBLIC_ value), or the port isn't respected. Open Logs Viewer under Application Administration and read the App Errors tab, then fix the config and redeploy.
 
 **Do I lose Vercel's preview deployments?**
 You can reproduce them. Run a second application from a staging branch on the same server for a stable preview URL. You keep git-driven deploys and add previews without the platform lock-in.

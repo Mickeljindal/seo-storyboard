@@ -11,10 +11,10 @@ secondary_keywords:
   - Bolt.new WebContainer
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 1 — Deploy AI / Vibe-Coded Apps
+cluster: 1 - Deploy AI / Vibe-Coded Apps
 ---
 
-![Deploy your Bolt.new app — from an in-browser WebContainer preview to a server you own](images/hero.png)
+![Deploy your Bolt.new app, from an in-browser WebContainer preview to a server you own](images/hero.png)
 
 # Deploy Your Bolt.new App: Get It Out of the Browser First
 
@@ -131,7 +131,7 @@ A **503** means the process didn't start. In Bolt-exported apps the order of lik
 - **A missing environment variable.** The build succeeds, then the app crashes on startup looking for a key that isn't set.
 - **A start command that doesn't start a long-running server.** A static Vite build needs to be served; a Node app needs its real entry point.
 
-Read the reason straight from `/home/admin/hosted-sites/<app_system_user>/app-logs/app.error.log`, or watch it live under Build and Deployment History. The full checklist is in [fixing a 503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
+The reason is in the app's own logs, and you don't need a terminal to read them. In the dashboard, open **Application Administration → Logs Viewer** and go to the **App Errors** tab. That's where the crash gets written, so for a 503 it's the first tab to open. **App Info** and **Web Requests Logs** sit beside it in their own tabs, and there's a search box for pulling one error out of a noisy file. If the failure happened during the build instead, the build output streams live and stays in **Build and Deployment History**. Prefer a terminal or the File Manager? The same files are on disk at `/home/admin/hosted-sites/<app_system_user>/app-logs/`, as `app.error.log` and `app.info.log`. The full checklist is in [fixing a 503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
 
 ## Full-stack Bolt apps: one server, not three services
 
@@ -164,7 +164,7 @@ Because the WebContainer is more forgiving than a Linux server. A fresh git clon
 Give the app a real one. Launch a managed Postgres or MySQL on your server and connect through environment variables, or bring an existing hosted database over with an export and import.
 
 **Why won't my Bolt app start after deploying?**
-Most often it isn't listening on the assigned process.env.PORT, or an environment variable is missing, or the start command doesn't launch a long-running server. Check app.error.log, where the cause is usually named, then redeploy.
+Most often it isn't listening on the assigned process.env.PORT, or an environment variable is missing, or the start command doesn't launch a long-running server. Open Application Administration then Logs Viewer and read the App Errors tab, where the cause is usually named. Fix that one thing and redeploy.
 
 **Do I have to redeploy manually every time?**
 No. Turn on automated deployment and every push to your branch rebuilds and ships. Your loop becomes: build in Bolt, push to GitHub, production updates itself.

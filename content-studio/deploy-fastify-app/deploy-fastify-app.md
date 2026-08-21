@@ -232,7 +232,9 @@ First deploys break in predictable places. Read the app error log before touchin
 - **Route throws at boot.** A plugin decorator or DB connection was used before `app.ready()`. Await readiness, or await listen.
 - **Redeploys drop requests.** No `SIGTERM` handler, so the old process dies mid-flight. Add the `app.close()` handler above.
 
-The log lives at a predictable path on the managed stack, and a Node crash writes its stack trace there:
+Where's the log? In the dashboard, under **Application Administration → Logs Viewer**, split into tabs. **App Errors** is the one you want for a crash: a 503 means the process isn't running, and that tab is where Node's stack trace lands. **App Info** carries the app's informational output, which with `logger: true` is your pino JSON, and **Web Requests Logs** is the web server's access log for every request served. Search is built in, so you can filter to the error instead of scrolling.
+
+The same files sit on disk at a predictable path, for a terminal or the File Manager:
 
 ```
 /home/admin/hosted-sites/<app_system_user>/app-logs/app.error.log
@@ -277,7 +279,7 @@ You need some supervisor so the app restarts on a crash and comes back after a r
 Read them straight from process.env at runtime, for example Number(process.env.PORT) for the port and process.env.DATABASE_URL for the database. Keep a local .env file for development and out of Git, and set the same keys as real environment variables on the server in production. The code does not change, only where the values come from.
 
 **How do I set up logging in Fastify for production?**
-Fastify ships with the pino logger, so set logger true when you create the instance and it writes structured JSON to stdout. Let the platform collect stdout rather than writing your own log files. Keep pino-pretty for local development only, because it is slower and exists to make logs readable for a human watching a terminal.
+Fastify ships with the pino logger, so set logger true when you create the instance and it writes structured JSON to stdout. Let the platform collect stdout rather than writing your own log files, then read it from Application Administration then Logs Viewer, where App Info holds that output and App Errors holds crashes. Keep pino-pretty for local development only, because it is slower and exists to make logs readable for a human watching a terminal.
 
 **Do I need Docker to deploy a Fastify app?**
 No. A single Fastify app is one Node process, and a managed server runs it directly, restarts it on crash, and puts it behind a proxy with SSL. Docker and Kubernetes solve orchestration across many services at scale. For shipping one API they are extra moving parts you do not need yet.

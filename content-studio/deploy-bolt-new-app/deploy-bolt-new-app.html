@@ -21,7 +21,7 @@
   <span class="eyebrow">Shipping a Bolt.new app</span>
   <h1>Deploy Your Bolt.new App: Get It Out of the Browser First</h1>
 
-  <figure><img src="images/hero.png" alt="Deploy your Bolt.new app — from an in-browser WebContainer preview to a server you own"></figure>
+  <figure><img src="images/hero.png" alt="Deploy your Bolt.new app, from an in-browser WebContainer preview to a server you own"></figure>
 
   <p class="lead">Bolt.new feels like magic on the first run. You describe an app, and it appears in a browser tab: installing packages, running, previewing, all without a terminal. It looks live. So the natural next thought is "great, how do I deploy my Bolt.new app for real?" And that's where a small but important fact bites: the thing running in your Bolt tab was never on a server. It's a preview running inside your browser.</p>
 
@@ -157,7 +157,7 @@ app.listen(port, () =&gt; console.log(`listening on ${port}`));</code></pre>
     <li><strong>A missing environment variable.</strong> The build succeeds, then the app crashes on startup looking for a key that isn't set.</li>
     <li><strong>A start command that doesn't start a long-running server.</strong> A static Vite build needs to be served; a Node app needs its real entry point.</li>
   </ul>
-  <p>Read the reason straight from <code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code>, or watch it live under Build and Deployment History. The full checklist is in <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploying</a>.</p>
+  <p>The reason is in the app's own logs, and you don't need a terminal to read them. In the dashboard, open <strong>Application Administration &rarr; Logs Viewer</strong> and go to the <strong>App Errors</strong> tab. That's where the crash gets written, so for a 503 it's the first tab to open. <strong>App Info</strong> and <strong>Web Requests Logs</strong> sit beside it in their own tabs, and there's a search box for pulling one error out of a noisy file. If the failure happened during the build instead, the build output streams live and stays in <strong>Build and Deployment History</strong>. Prefer a terminal or the File Manager? The same files are on disk at <code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/</code>, as <code>app.error.log</code> and <code>app.info.log</code>. The full checklist is in <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploying</a>.</p>
 
   <h2>Full-stack Bolt apps: one server, not three services</h2>
   <p>Bolt is happy to generate a full-stack app: a React front end, a Node/Express API, and a database schema, all in one project. That's more than a static host can run, and it's exactly what one owned server is built for. The front end is served, the API runs as part of the same Node process (or as its own application if you'd rather split them), and the database sits on the same box, reachable over the local network. Instead of stitching a static host to a serverless API to a hosted database (three bills, three dashboards), you've got one place to look when something breaks and one server to back up. The mechanics are in <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">app, API, and database on one server</a>.</p>
@@ -188,13 +188,13 @@ app.listen(port, () =&gt; console.log(`listening on ${port}`));</code></pre>
     <p>Give the app a real one. Launch a managed Postgres or MySQL on your server and connect through environment variables, or bring an existing hosted database over with an export and import.</p>
 
     <h3>Why won't my Bolt app start after deploying?</h3>
-    <p>Most often it isn't listening on the assigned process.env.PORT, or an environment variable is missing, or the start command doesn't launch a long-running server. Check app.error.log, where the cause is usually named, then redeploy.</p>
+    <p>Most often it isn't listening on the assigned process.env.PORT, or an environment variable is missing, or the start command doesn't launch a long-running server. Open Application Administration then Logs Viewer and read the App Errors tab, where the cause is usually named. Fix that one thing and redeploy.</p>
 
     <h3>Do I have to redeploy manually every time?</h3>
     <p>No. Turn on automated deployment and every push to your branch rebuilds and ships. Your loop becomes: build in Bolt, push to GitHub, production updates itself.</p>
   </div>
 
-  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale, Faster Than Ever.</p>
 </article>
 
 <script type="application/ld+json">
@@ -205,7 +205,7 @@ app.listen(port, () =&gt; console.log(`listening on ${port}`));</code></pre>
 {"@type":"Question","name":"Isn't my app already live in Bolt.new?","acceptedAnswer":{"@type":"Answer","text":"No. Bolt runs your app in an in-browser WebContainer, which is a sandbox for building and previewing. It stops when you close the tab and nobody else can reach it. Production needs the code running as an always-on process on a real server, with a database, a domain, and SSL."}},
 {"@type":"Question","name":"Why should I do a clean install before deploying?","acceptedAnswer":{"@type":"Answer","text":"Because the WebContainer is more forgiving than a Linux server. A fresh git clone plus npm install and build on your machine surfaces missing dependencies, case-sensitive import paths, and missing env vars while they are easy to fix, instead of during a failed first deploy."}},
 {"@type":"Question","name":"What about my database?","acceptedAnswer":{"@type":"Answer","text":"Give the app a real one. Launch a managed Postgres or MySQL on your server and connect through environment variables, or bring an existing hosted database over with an export and import."}},
-{"@type":"Question","name":"Why won't my Bolt app start after deploying?","acceptedAnswer":{"@type":"Answer","text":"Most often it isn't listening on the assigned process.env.PORT, or an environment variable is missing, or the start command doesn't launch a long-running server. Check app.error.log, where the cause is usually named, then redeploy."}},
+{"@type":"Question","name":"Why won't my Bolt app start after deploying?","acceptedAnswer":{"@type":"Answer","text":"Most often it isn't listening on the assigned process.env.PORT, or an environment variable is missing, or the start command doesn't launch a long-running server. Open Application Administration then Logs Viewer and read the App Errors tab, where the cause is usually named. Fix that one thing and redeploy."}},
 {"@type":"Question","name":"Do I have to redeploy manually every time?","acceptedAnswer":{"@type":"Answer","text":"No. Turn on automated deployment and every push to your branch rebuilds and ships. Your loop becomes: build in Bolt, push to GitHub, production updates itself."}}
 ]}
 ]}

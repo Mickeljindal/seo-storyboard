@@ -157,7 +157,9 @@ Almost nobody nails a first deploy, and that's fine, because the failures are pr
 - The Start command doesn't actually launch the server, or points at the wrong file.
 - A dependency is imported but missing from `package.json` (or got dropped as a devDependency in a production install).
 
-Don't guess. Read the app's error log, where a Node crash writes its stack trace and usually names the exact line:
+Don't guess. Read the app's error log, where a Node crash writes its stack trace and usually names the exact line. In the dashboard that's **Application Administration → Logs Viewer**, on the **App Errors** tab. A 503 means the app isn't running, so start there. The neighbouring tabs are **App Info** for the app's own informational log and **Web Requests Logs** for the access log the web server writes for every request, which is how you tell a crashed process apart from a request that never reached one. Use the search box to jump to the exception. If the deploy itself failed, that output streams live during the build and stays in **Build and Deployment History**.
+
+The same files are on disk if you prefer a terminal or the File Manager:
 
 ```
 /home/admin/hosted-sites/<app_system_user>/app-logs/app.error.log
@@ -179,7 +181,7 @@ Seven clouds, one dashboard · Git deploy with live logs · PM2 process manageme
 Make the app read `process.env.PORT`, bind to `0.0.0.0`, set `trust proxy`, and add a health route. Then push to GitHub, launch a managed Node server, deploy from the repo with your install, build, and start commands, add your env vars and a managed database, and point a domain with SSL. PM2 keeps the process alive and the reverse proxy sends HTTPS traffic to it.
 
 **Why does my Express app work locally but 502 in production?**
-A 502 means the proxy reached the server but your app answered nothing. Usually the app isn't listening on `process.env.PORT`, a required environment variable is missing so it crashed on boot, or the start command doesn't launch the server. Read `app.error.log` for the stack trace, fix that one thing, and redeploy. It's config, not your routes.
+A 502 means the proxy reached the server but your app answered nothing. Usually the app isn't listening on `process.env.PORT`, a required environment variable is missing so it crashed on boot, or the start command doesn't launch the server. Open the App Errors tab in Logs Viewer for the stack trace, fix that one thing, and redeploy. It's config, not your routes.
 
 **Do I need to set process.env.PORT in Express?**
 Yes. In production the platform assigns the port and the reverse proxy forwards to it, so a hardcoded `app.listen(3000)` leaves the proxy talking to nothing. Use `const port = process.env.PORT || 3000` so your local run is unchanged and production gets the real port. This single line prevents the most common first-deploy failure.

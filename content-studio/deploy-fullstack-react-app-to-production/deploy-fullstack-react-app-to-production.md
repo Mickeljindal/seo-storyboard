@@ -10,10 +10,10 @@ secondary_keywords:
   - full-stack React hosting
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 1 — Deploy AI / Vibe-Coded Apps
+cluster: 1 - Deploy AI / Vibe-Coded Apps
 ---
 
-![Deploy a full-stack React app to production — SPA, API, and database on one server](images/hero.png)
+![Deploy a full-stack React app to production: SPA, API, and database on one server](images/hero.png)
 
 # How to Deploy a Full-Stack React App to Production
 
@@ -124,8 +124,12 @@ Splitting on purpose? Add the second app from **Applications → Add Application
 
 When a full-stack React deploy misbehaves, the symptom tells you where to look, so don't confuse the two.
 
-- **A 503, nothing loads.** The API process didn't come up. Usual causes: not listening on `process.env.PORT`, a missing environment variable (often the database URL), or a Start command that doesn't launch the server. Read `app.error.log` at `/home/admin/hosted-sites/<app_system_user>/app-logs`. Details in [fixing a 503](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
+- **A 503, nothing loads.** The API process didn't come up. Usual causes: not listening on `process.env.PORT`, a missing environment variable (often the database URL), or a Start command that doesn't launch the server. Open **Application Administration → Logs Viewer** and read the **App Errors** tab. That's where the crash lands. Details in [fixing a 503](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
 - **The page loads but data fails, or refresh 404s.** That's not a 503 and not a server crash. It's the API base URL (still pointing at localhost) or a missing catch-all route. Both are the SPA gotchas above.
+
+The Logs Viewer groups output into tabs, so pick the right one before you start guessing. **App Errors** holds your app's error output, which is the tab that answers a 503. **App Info** holds the informational log. **Web Requests Logs** is the web server's access log, every request your app served, which is how you tell "the request never arrived" apart from "the request arrived and blew up." There's a search box in there too, handy when you know the error string and don't want to scroll. Build output is separate: that streams live during a deploy and stays in **Build and Deployment History**.
+
+Prefer a terminal? The same two files sit on disk at `/home/admin/hosted-sites/<app_system_user>/app-logs`, as `app.info.log` and `app.error.log`. The File Manager opens them as well. Same content, different door.
 
 ## The honest note on SEO
 

@@ -21,7 +21,7 @@
   <span class="eyebrow">Deploy full-stack React</span>
   <h1>How to Deploy a Full-Stack React App to Production</h1>
 
-  <figure><img src="images/hero.png" alt="Deploy a full-stack React app to production — SPA, API, and database on one server"></figure>
+  <figure><img src="images/hero.png" alt="Deploy a full-stack React app to production: SPA, API, and database on one server"></figure>
 
   <p class="lead">A full-stack React app is three parts: a React SPA (built with Vite or Create React App), a Node API that serves data, and a database. Deploying a full-stack React app to production isn't hard, but there's a real architecture decision hiding in it that nobody warns you about. Do you serve the built SPA from the same Node process that runs your API, or split them into two apps? That one choice shapes your domains, your CORS, and how many things you deploy. Let's make it deliberately.</p>
 
@@ -176,9 +176,12 @@ fetch(`${base}/api/things`);</code></pre>
   <h2>Two different failures, two different fixes</h2>
   <p>When a full-stack React deploy misbehaves, the symptom tells you where to look, so don't confuse the two.</p>
   <ul>
-    <li><strong>A 503, nothing loads.</strong> The API process didn't come up. Usual causes: not listening on <code>process.env.PORT</code>, a missing environment variable (often the database URL), or a Start command that doesn't launch the server. Read <code>app.error.log</code> at <code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs</code>. Details in <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503</a>.</li>
+    <li><strong>A 503, nothing loads.</strong> The API process didn't come up. Usual causes: not listening on <code>process.env.PORT</code>, a missing environment variable (often the database URL), or a Start command that doesn't launch the server. Open <strong>Application Administration → Logs Viewer</strong> and read the <strong>App Errors</strong> tab. That's where the crash lands. Details in <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503</a>.</li>
     <li><strong>The page loads but data fails, or refresh 404s.</strong> That's not a 503 and not a server crash. It's the API base URL (still pointing at localhost) or a missing catch-all route. Both are the SPA gotchas above.</li>
   </ul>
+
+  <p>The Logs Viewer groups output into tabs, so pick the right one before you start guessing. <strong>App Errors</strong> holds your app's error output, which is the tab that answers a 503. <strong>App Info</strong> holds the informational log. <strong>Web Requests Logs</strong> is the web server's access log, every request your app served, which is how you tell "the request never arrived" apart from "the request arrived and blew up." There's a search box in there too, handy when you know the error string and don't want to scroll. Build output is separate: that streams live during a deploy and stays in <strong>Build and Deployment History</strong>.</p>
+  <p>Prefer a terminal? The same two files sit on disk at <code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs</code>, as <code>app.info.log</code> and <code>app.error.log</code>. The File Manager opens them as well. Same content, different door.</p>
 
   <h2>The honest note on SEO</h2>
   <p>One thing specific to a client-rendered SPA: because the browser renders it, the initial HTML is close to empty, so it isn't server-rendered for SEO the way a Next.js page is. For app-style products, behind a login or where SEO isn't the point, that's completely fine and this setup is ideal. If search visibility of public content pages matters, server-render or pre-render those pages. That's a framework decision, not a hosting one, and a server runs a client-rendered or a server-rendered React app equally well. If SEO is central to your project, the <a href="https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/">Next.js self-host guide</a> covers the server-rendered path.</p>
@@ -213,7 +216,7 @@ fetch(`${base}/api/things`);</code></pre>
     <p>For app-style products behind a login, or where SEO isn't the priority, it's fine. If search visibility of content pages matters, server-render or pre-render those pages. That's a framework choice, and a managed server runs a client-rendered or server-rendered app equally well.</p>
   </div>
 
-  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale. Faster Than Ever.</p>
 </article>
 
 <script type="application/ld+json">

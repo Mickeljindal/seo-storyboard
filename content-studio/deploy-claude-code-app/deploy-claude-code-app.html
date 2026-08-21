@@ -9,7 +9,7 @@
 <link rel="canonical" href="https://www.kloudbean.com/blog/deploy-claude-code-app/">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Deploy a Claude Code App: Read the Diff, Then Ship It">
-<meta property="og:description" content="Claude Code is an agent in your terminal that touches real files everywhere. Deploying is easy. Reviewing what it changed first is the part that saves you — here's both.">
+<meta property="og:description" content="Claude Code is an agent in your terminal that touches real files everywhere. Deploying is easy. Reviewing what it changed first is the part that saves you, and here's both.">
 <meta property="og:image" content="images/hero.png">
 <meta property="og:site_name" content="Kloudbean">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,7 +21,7 @@
   <span class="eyebrow">Shipping a Claude Code app</span>
   <h1>Deploy a Claude Code App: Read the Diff, Then Ship It</h1>
 
-  <figure><img src="images/hero.png" alt="Deploy a Claude Code app — review what the terminal agent built, then ship it to a server you own"></figure>
+  <figure><img src="images/hero.png" alt="Deploy a Claude Code app, review what the terminal agent built, then ship it to a server you own"></figure>
 
   <p class="lead">Claude Code is an agentic coding tool that lives in your terminal. It edits real files across your whole repository, runs commands, installs packages, and commits as it goes. So when you set out to deploy a Claude Code app, you're starting from a good place: the code is standard, and it's already yours in Git, the same as if you'd typed every line.</p>
 
@@ -168,9 +168,11 @@ SESSION_SECRET=a-long-random-string</code></pre>
   <figure class="img-slot"><span><b>Add image</b><em>Your Claude Code app live on its custom domain with the SSL padlock, next to the console showing a green deployment.</em><small>The payoff shot.</small></span></figure>
 
   <h2>If it 503s on the first deploy</h2>
-  <p>A <strong>503</strong> means the process didn't start. The usual suspects, in rough order: a missing environment variable, the app not binding <code>process.env.PORT</code>, a start command that doesn't launch the real server, or a build that dropped its tools because <code>NODE_ENV=production</code> was set before install and skipped <code>devDependencies</code>. Read the app's own error log:</p>
+  <p>A <strong>503</strong> means the process didn't start. The usual suspects, in rough order: a missing environment variable, the app not binding <code>process.env.PORT</code>, a start command that doesn't launch the real server, or a build that dropped its tools because <code>NODE_ENV=production</code> was set before install and skipped <code>devDependencies</code>. Either way the app wrote down why, so read that before you touch code.</p>
+  <p>Start in the dashboard. <strong>Application Administration &rarr; Logs Viewer</strong> gives you the logs grouped into tabs, and for a 503 you want <strong>App Errors</strong>, which is the app's own error log. There's a search box, so you can jump straight to the exception instead of scrolling. <strong>App Info</strong> and <strong>Web Requests Logs</strong> have their own tabs next to it, and if the deploy itself failed rather than the process, that output streams live and stays in <strong>Build and Deployment History</strong>.</p>
+  <p>Now the part that's nicer with a terminal-native tool. The same files sit on disk at a predictable path:</p>
   <pre><code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code></pre>
-  <p>Open it in the File Manager, or here's the trick that's unique to a terminal-native tool: SSH into the server and have Claude Code read <code>app.error.log</code> with you, interpret the error, and make the fix. Then commit and push to redeploy. You're debugging with the agent that wrote the code, not alone with a manual open in the other window. The full playbook is in <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploying</a>.</p>
+  <p>So SSH in and have Claude Code read <code>app.error.log</code> with you, interpret the error, and make the fix. Then commit and push to redeploy. You're debugging with the agent that wrote the code, not alone with a manual open in the other window. The File Manager opens the same two files (<code>app.error.log</code> and <code>app.info.log</code>) if you'd rather just look. The full playbook is in <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploying</a>.</p>
 
   <h2>What you own, and what you don't</h2>
   <p>Kloudbean runs Linux stacks: Node, Python, PHP, Ruby, and Java, plus the frameworks on top (React, Next.js, Vue, Django, FastAPI, Laravel). That's essentially everything Claude Code builds for the web. If you had it write a Windows or .NET app expecting IIS, that's a port, not a deploy. "Managed" means the server, the stack, SSL, backups, and patching are handled. Your code and your data stay yours, on a standard Linux box you can move whenever you like. No per-app tax as you grow. For the tool-agnostic version that also covers Cursor, Lovable, Bolt, and v0, there's the <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy an AI-built app</a> pillar.</p>
@@ -198,13 +200,13 @@ SESSION_SECRET=a-long-random-string</code></pre>
     <p>Keys belong in environment variables, never the code. Set them under Runtime Configuration, Environment Variables. If your review found a key pasted into a source file, move it to an env var and rotate it, since anything committed to Git should be treated as exposed.</p>
 
     <h3>Can Claude Code help me deploy and debug, not just build?</h3>
-    <p>Yes, that's the advantage of a terminal-native tool. Before deploying, ask it for your exact build and start commands and the environment variables the code reads. After deploying, SSH in and have it read <code>app.error.log</code> with you, diagnose the failure, and push a fix.</p>
+    <p>Yes, that's the advantage of a terminal-native tool. Before deploying, ask it for your exact build and start commands and the environment variables the code reads. After deploying, the App Errors tab in the dashboard's Logs Viewer shows the crash, and you can also SSH in and have it read <code>app.error.log</code> with you, diagnose the failure, and push a fix.</p>
 
     <h3>Do I need Docker to deploy a Claude Code app?</h3>
     <p>No. A single app is a Node or Python process, and a managed server runs it directly and restarts it if it falls over. Docker and Kubernetes solve orchestration problems that appear at much larger scale. For getting your app in front of users, you can skip them.</p>
   </div>
 
-  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale, Faster Than Ever.</p>
 </article>
 
 <script type="application/ld+json">
@@ -216,7 +218,7 @@ SESSION_SECRET=a-long-random-string</code></pre>
 {"@type":"Question","name":"My Claude Code app works locally but fails on the server. Why?","acceptedAnswer":{"@type":"Answer","text":"Usually the build is not reproducible. The agent may have installed something globally or left a dependency out of your lockfile, or you built on a different runtime version than the server uses. Commit your lockfile, pin your Node or Python version, and confirm a fresh npm ci or pip install builds cleanly."}},
 {"@type":"Question","name":"Does Claude Code build Python apps too, and how do I deploy those?","acceptedAnswer":{"@type":"Answer","text":"Yes, it builds Node and Python backends. The deploy flow is identical; only the commands change. For Python, install with pip install -r requirements.txt and start with a real server like gunicorn or uvicorn bound to the assigned port, rather than the dev server. Set those in the Deploy Code runtime fields."}},
 {"@type":"Question","name":"Where do my API keys go, and what if the agent inlined one?","acceptedAnswer":{"@type":"Answer","text":"Keys belong in environment variables, never the code. Set them under Runtime Configuration, Environment Variables. If your review found a key pasted into a source file, move it to an env var and rotate it, since anything committed to Git should be treated as exposed."}},
-{"@type":"Question","name":"Can Claude Code help me deploy and debug, not just build?","acceptedAnswer":{"@type":"Answer","text":"Yes, that is the advantage of a terminal-native tool. Before deploying, ask it for your exact build and start commands and the environment variables the code reads. After deploying, SSH in and have it read app.error.log with you, diagnose the failure, and push a fix."}},
+{"@type":"Question","name":"Can Claude Code help me deploy and debug, not just build?","acceptedAnswer":{"@type":"Answer","text":"Yes, that is the advantage of a terminal-native tool. Before deploying, ask it for your exact build and start commands and the environment variables the code reads. After deploying, the App Errors tab in the dashboard's Logs Viewer shows the crash, and you can also SSH in and have it read app.error.log with you, diagnose the failure, and push a fix."}},
 {"@type":"Question","name":"Do I need Docker to deploy a Claude Code app?","acceptedAnswer":{"@type":"Answer","text":"No. A single app is a Node or Python process, and a managed server runs it directly and restarts it if it falls over. Docker and Kubernetes solve orchestration problems that appear at much larger scale. For getting your app in front of users, you can skip them."}}
 ]}
 ]}

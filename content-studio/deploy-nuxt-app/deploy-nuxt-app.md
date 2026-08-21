@@ -199,9 +199,13 @@ if (import.meta.client) {
 
 **Hydration mismatch.** You'll see `Hydration completed but contains mismatches` in the console when the HTML the server rendered doesn't match what the client expects. Usual culprits: rendering `new Date()` or `Math.random()` that differ between server and client, or invalid HTML nesting like a block element inside a paragraph. It often looks fine but flickers or misbehaves. Render deterministic markup, and push time-sensitive or random bits to the client.
 
-**A 503 right after deploy.** A 503 means the proxy is up but your process isn't answering. Nine times out of ten it's the start command running `nuxt dev` instead of the built server, a missing env var the app reads at startup, or the app not listening on the assigned port. There's one more that bites Node apps generally: if the build failed because your build tooling sits in `devDependencies` and something set `NODE_ENV=production` before install ran, npm skipped those packages and the build never happened. Read the app's `app.error.log` first; it almost always names the real cause.
+**A 503 right after deploy.** A 503 means the proxy is up but your process isn't answering. Nine times out of ten it's the start command running `nuxt dev` instead of the built server, a missing env var the app reads at startup, or the app not listening on the assigned port. There's one more that bites Node apps generally: if the build failed because your build tooling sits in `devDependencies` and something set `NODE_ENV=production` before install ran, npm skipped those packages and the build never happened. A 503 tells you the application isn't running, so read its errors first. In the console: **Application Administration → Logs Viewer**, then the **App Errors** tab. It almost always names the real cause.
 
-<!-- ADD IMAGE: app.error.log open in the File Manager showing a ReferenceError: window is not defined line highlighted -->
+The tabs matter here. **App Errors** holds your app's error log, which is where a `window is not defined` from server-side rendering turns up. **App Info** holds the informational log, so a successful boot line lands there. **Web Requests Logs** is the web server's access log of every request served, which is how you tell a request that never arrived from one that arrived and crashed. Search is built in, so paste the error string instead of scrolling. Build failures are a different place again: build output streams live during the deploy and stays in **Build and Deployment History**, which is where the skipped-devDependencies case is visible.
+
+If you'd rather work in a terminal or the File Manager, the same files sit at `/home/admin/hosted-sites/<app_system_user>/app-logs`, named `app.info.log` and `app.error.log`.
+
+<!-- ADD IMAGE: The Logs Viewer on the App Errors tab showing a ReferenceError: window is not defined line highlighted -->
 
 ## The honest limits
 

@@ -12,6 +12,14 @@ Production strips all of that away. The server is a fresh Linux box that knows n
 
 <!-- ADD IMAGE: bespoke SVG diff diagram, localhost (implicit) vs production (explicit): local SQLite to managed DB, .env to server env vars, localhost:3000 to 0.0.0.0 + PORT, local disk uploads to object storage, laptop runtime to pinned version -->
 
+## First move: open the Logs Viewer, not your editor
+
+Before you change a line of code, read what the app said on its way down. On Kloudbean you can view your application logs directly from the UI: open **Application Administration**, then **Logs Viewer**. The logs are split into tabs. **Web Requests Logs** holds the web server access logs that record every request served by your app. **App Info** holds your app's informational output (`app.info.log`). **App Errors** holds its error output (`app.error.log`), and that's the tab that explains a crash or a 503. Start there.
+
+There's a search box in the viewer, which matters more than it sounds. Filter for `ECONNREFUSED`, `EADDRINUSE`, or the name of the module it says it cannot find, instead of scrolling through a wall of requests. Build and deploy output is separate: it streams live while a deploy runs and stays in **Build and Deployment History**, so a failed install or build step is still on the record afterwards.
+
+Prefer files? The same two logs sit at `/home/admin/hosted-sites/<app_system_user>/app-logs`, as `app.info.log` for information and `app.error.log` for errors, and you can open them from the File Manager. Same content, longer route. One documented shortcut worth memorising: if the site answers with a **503**, the application isn't running, so the app error log is where the reason is written.
+
 ## The seven usual culprits, most common first
 
 These are the failures that turn "it worked five minutes ago" into a deployed app that won't load. I've ordered them by how often they bite. Scan the table, find the symptom on your screen, jump to the fix.
@@ -178,7 +186,7 @@ Managed databases · Environment variables in the UI · Object storage · Live b
 Because production is a different environment and the conveniences your laptop provided are gone. The database was a local file, the secrets were in a .env that never reached the server, and the app assumed localhost. It's almost always config and state, not the code the AI wrote. Fix the environment and the same code runs.
 
 **My app works on localhost but not when deployed. What do I check first?**
-Read the logs before touching code. On a Kloudbean server that's app.error.log, plus the live build log. They almost always name the exact problem, whether it's a missing environment variable, a port it cannot bind, or a module it cannot find. Guessing wastes the most time.
+Read the logs before touching code. On Kloudbean that's Application Administration then Logs Viewer, where the App Errors tab holds app.error.log, and build failures stay in Build and Deployment History. The log almost always names the exact problem, whether it's a missing environment variable, a port it cannot bind, or a module it cannot find. Guessing wastes the most time.
 
 **Why did all my data disappear after I redeployed?**
 Your app is using SQLite or a local file database on an ephemeral filesystem. When the app redeploys, the disk is reset and the data goes with it. Move to a managed Postgres or MySQL that lives independently and survives deploys, then wire it in through a DATABASE_URL environment variable.

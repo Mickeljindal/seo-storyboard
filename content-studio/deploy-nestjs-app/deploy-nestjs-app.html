@@ -249,9 +249,12 @@ npx prisma migrate deploy</code></pre>
     <li><strong>The app boots but every request 500s on the database</strong> is nearly always a missing or wrong <code>DATABASE_URL</code>, or migrations that never ran. Check the env var, then your migration step.</li>
     <li><strong>Columns quietly disappearing</strong> is <code>synchronize: true</code> doing its thing. Turn it off and move to migrations.</li>
   </ul>
-  <p>When something's down, read the app's error log before you guess. On Kloudbean it's at:</p>
-  <pre><code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code></pre>
-  <p>A Nest crash writes its stack trace there and usually names the exact provider or module that failed to resolve. Fix the one line it points at and deploy again. Nine times out of ten a broken NestJS deploy is config, not code.</p>
+  <p>When something's down, read the log before you guess. In the Kloudbean console that's <strong>Application Administration → Logs Viewer</strong>, and the tab you want is <strong>App Errors</strong>. A Nest crash writes its stack trace there and usually names the exact provider or module that failed to resolve. If the site is returning a 503, that's your first stop, because a 503 means the application isn't running at all. Search the tab for <code>Nest can't resolve dependencies</code> or the module name and you'll land on it in seconds.</p>
+  <p>Two other tabs sit beside it. <strong>App Info</strong> is your app's informational output, so <code>Nest application successfully started</code> showing up there tells you the boot actually completed. <strong>Web Requests Logs</strong> is the web server's access log of every request served, which settles whether a request reached your process or died in front of it. Build and deploy output is separate: it streams live during the deploy and stays in <strong>Build and Deployment History</strong>, which is where <code>sh: nest: not found</code> shows up rather than in App Errors.</p>
+  <p>If you'd rather grep from a terminal, the same files are on disk:</p>
+  <pre><code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.info.log
+/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code></pre>
+  <p>The File Manager opens them too. Either way, fix the one line the trace points at and deploy again. Nine times out of ten a broken NestJS deploy is config, not code.</p>
 
   <h2>What you own, and what's handled</h2>
   <p>Kloudbean runs NestJS on Linux managed cloud: the Node runtime, PM2, Nginx, SSL, and backups are provisioned and maintained on whichever of the seven clouds you choose. It isn't for Windows or .NET workloads, but NestJS is a Node framework, so it's squarely in the sweet spot. "Managed" means the platform keeps the server and its stack healthy while you own the application: your modules, your data, your config (the port, the env vars, the build and start commands). Because it's a standard Linux box running standard compiled Node, you can move hosts whenever you like, with no per-app tax as you add more. Deploying a plain Express service instead of Nest? See <a href="https://www.kloudbean.com/blog/deploy-express-app/">deploy an Express app</a>. Want the production concerns for Node in general (crash-restart, cluster mode, SIGTERM) in more depth? That's <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app to managed cloud</a>. And if you want the framework-agnostic mental model behind all of this, start at <a href="https://www.kloudbean.com/blog/how-to-deploy-any-app/">how to deploy an app</a>.</p>
@@ -267,7 +270,7 @@ npx prisma migrate deploy</code></pre>
     <h3>How do I deploy a NestJS app to production?</h3>
     <p>Compile it with <code>nest build</code> so plain JavaScript lands in <code>dist/</code>, set <code>NODE_ENV=production</code>, and start it with <code>node dist/main.js</code> under a process manager like PM2, behind Nginx with SSL. Read config from environment variables via <code>@nestjs/config</code> and connect a managed database over a <code>DATABASE_URL</code>. On Kloudbean you connect a Git repo, set the install, build, and start commands, add env vars, and deploy.</p>
 
-    <h3>What's the difference between nest start and node dist/main.js?</h3>
+    <h3>What is the difference between nest start and node dist/main.js?</h3>
     <p><code>nest start</code> (and <code>start:dev</code>) is for development. It compiles TypeScript through ts-node and can watch for changes, which is slower and depends on dev tooling. <code>node dist/main.js</code> runs the already-compiled output from <code>nest build</code>, which is what you want in production: faster, lighter, and pure Node with no TypeScript at runtime.</p>
 
     <h3>Do I need to run nest build before deploying?</h3>
@@ -285,7 +288,7 @@ npx prisma migrate deploy</code></pre>
     <h3>How do I connect a managed database to NestJS with TypeORM or Prisma?</h3>
     <p>Set a <code>DATABASE_URL</code> environment variable and read it in your config. TypeORM takes it as <code>url</code> in <code>TypeOrmModule.forRoot</code> with <code>synchronize: false</code>; Prisma reads it automatically. Run migrations as a deploy step (<code>migration:run</code> for TypeORM, <code>prisma migrate deploy</code> for Prisma). Launch the database as a managed engine so it's backed up and reachable over the local network.</p>
 
-    <h3>Why does my NestJS deploy fail with "nest: not found"?</h3>
+    <h3>Why does my NestJS deploy fail with nest: not found?</h3>
     <p>The Nest CLI is a devDependency, and it was missing when the build ran, usually because dev dependencies were skipped with something like <code>npm ci --omit=dev</code> before building. Install all dependencies first, run <code>npm run build</code>, and only prune dev deps afterward if you want a leaner runtime.</p>
 
     <h3>Do I need Docker to deploy a NestJS app?</h3>

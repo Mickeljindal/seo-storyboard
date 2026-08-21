@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Deploy Flask in 10 Minutes — Then the Reference You'll Keep</title>
+<title>Deploy Flask in 10 Minutes, Then the Reference You'll Keep</title>
 <meta name="description" content="Flask is a micro-framework, so deploying it comes down to one question: what runs it in production? The answer is Gunicorn. Here's the fast path, then a reference for workers, static files, and the usual gotchas.">
 <meta name="author" content="Kloudbean">
 <link rel="canonical" href="https://www.kloudbean.com/blog/deploy-flask-app/">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Deploy Flask in 10 Minutes — Then the Reference You'll Keep">
+<meta property="og:title" content="Deploy Flask in 10 Minutes, Then the Reference You'll Keep">
 <meta property="og:description" content="The fast path to a live Flask app with Gunicorn, plus a reference for workers, static files, secrets, and the usual gotchas.">
 <meta property="og:image" content="images/hero.png">
 <meta property="og:site_name" content="Kloudbean">
@@ -21,7 +21,7 @@
   <span class="eyebrow">App deployment</span>
   <h1>Deploy Flask in 10 Minutes: Then the Reference You'll Keep</h1>
 
-  <figure><img src="images/hero.png" alt="Deploy a Flask app — Gunicorn out front, on a small server you own"></figure>
+  <figure><img src="images/hero.png" alt="Deploy a Flask app, Gunicorn out front, on a small server you own"></figure>
 
   <p class="lead">Flask is a micro-framework. It hands you just enough to build a web app and then gets out of your way. If you are still at the stage of staring at <a href="https://www.kloudbean.com/blog/what-is-127-0-0-1-5000/">the localhost URL in your terminal</a> and wondering why nobody else can open it, start there. That minimalism is a joy while you build, and it leaves one honest question when it's time to deploy a Flask app for real: <em>what actually runs it?</em> The command you've been using won't do. Flask itself tells you so, right there in the terminal.</p>
   <p>Run <code>flask run</code> and it prints a warning in plain English: this is a development server, don't use it in a production deployment, use a production WSGI server instead. That's the whole article in one line. The production WSGI server is <strong>Gunicorn</strong>. Below is the fast path to live, then a reference you'll come back to.</p>
@@ -167,7 +167,7 @@ app = create_app()
     <li><strong>"ModuleNotFoundError" for a package you use.</strong> It's missing from <code>requirements.txt</code>. Add it and redeploy; the build installs only what's listed.</li>
     <li><strong>"WORKER TIMEOUT", workers being killed.</strong> A slow request is exceeding Gunicorn's default 30-second limit. Raise <code>--timeout</code>, or move the slow work to a background task.</li>
   </ul>
-  <p>Gunicorn logs to standard output, which the platform captures, and the app's own errors land in <code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code>. Read those first, before changing code on a hunch. The full 503 playbook is <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">here</a>.</p>
+  <p>Every one of those tells shows up in the log, and you read it from the dashboard: <strong>Application Administration &rarr; Logs Viewer</strong>. The logs are grouped into tabs. <strong>App Errors</strong> is where Gunicorn's tracebacks and worker-timeout lines land, so it's the first tab to open on a 503, because a 503 means the app isn't running. <strong>App Info</strong> holds the app's informational output, the "Starting gunicorn" and "Booting worker" lines included, and <strong>Web Requests Logs</strong> is the access log for requests the web server handled. Search is built in, which is how you find one <code>ModuleNotFoundError</code> without reading a whole file. Deploy-time failures are kept separately in <strong>Build and Deployment History</strong>, streaming live as the build runs. The same two files are on disk at <code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/</code> (<code>app.error.log</code> and <code>app.info.log</code>) if you'd rather use a terminal or the File Manager. Read the log first, before changing code on a hunch. The full 503 playbook is <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">here</a>.</p>
 
   <!-- ADD IMAGE: swap this slot for a real <figure> with an <img> (src -> images/gunicorn-boot.png) and a <figcaption>. -->
   <figure class="img-slot"><span><b>Add image</b><em>Terminal showing Gunicorn's boot log: "Starting gunicorn", the bound address, and Booting worker lines for each worker PID.</em><small>Makes the master-plus-workers model concrete.</small></span></figure>
@@ -185,13 +185,13 @@ app = create_app()
     <h3>How do I deploy a Flask app to production?</h3>
     <p>Add <code>gunicorn</code> to <code>requirements.txt</code>, push to GitHub, connect the repo, set Install to <code>pip install -r requirements.txt</code> and Start to <code>gunicorn app:app --bind 0.0.0.0:$PORT</code>, add your environment variables, and deploy. The platform serves it over HTTPS.</p>
 
-    <h3>What does <code>app:app</code> mean in the Gunicorn command?</h3>
+    <h3>What does app:app mean in the Gunicorn command?</h3>
     <p>It's <code>module:object</code>. The first <code>app</code> is your <code>app.py</code> file; the second is the Flask object inside it (<code>app = Flask(__name__)</code>). If your file or variable is named differently, adjust it, for example <code>wsgi:app</code> for an app factory exposed in <code>wsgi.py</code>.</p>
 
     <h3>What's the app factory pattern, and how do I run it with Gunicorn?</h3>
     <p>An app factory is a <code>create_app()</code> function that builds and returns the Flask app. Expose the result in a small <code>wsgi.py</code> (<code>app = create_app()</code>) and start it with <code>gunicorn wsgi:app --bind 0.0.0.0:$PORT</code>. Gunicorn just needs a module and a WSGI callable to import.</p>
 
-    <h3>Why shouldn't I use <code>flask run</code> in production?</h3>
+    <h3>Why shouldn't I use flask run in production?</h3>
     <p><code>flask run</code> is a single-threaded development server not built for real traffic, and it even prints a warning saying so. Running with <code>debug=True</code> exposes a debugger that lets visitors execute code on your server. Use Gunicorn as the production server and keep debug off.</p>
 
     <h3>How many Gunicorn workers should I use?</h3>
@@ -209,7 +209,7 @@ app = create_app()
 
 <script type="application/ld+json">
 {"@context":"https://schema.org","@graph":[
-{"@type":"Article","headline":"Deploy Flask in 10 Minutes — Then the Reference You'll Keep","description":"The fast path to a live Flask app with Gunicorn, plus a reference for workers, static files, secrets, and the usual gotchas.","image":"https://www.kloudbean.com/blog/deploy-flask-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-flask-app/"},
+{"@type":"Article","headline":"Deploy Flask in 10 Minutes, Then the Reference You'll Keep","description":"The fast path to a live Flask app with Gunicorn, plus a reference for workers, static files, secrets, and the usual gotchas.","image":"https://www.kloudbean.com/blog/deploy-flask-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-flask-app/"},
 {"@type":"FAQPage","mainEntity":[
 {"@type":"Question","name":"How do I deploy a Flask app to production?","acceptedAnswer":{"@type":"Answer","text":"Add gunicorn to requirements.txt, push to GitHub, connect the repo, set Install to pip install -r requirements.txt and Start to gunicorn app:app --bind 0.0.0.0:$PORT, add your environment variables, and deploy. The platform serves it over HTTPS."}},
 {"@type":"Question","name":"What does app:app mean in the Gunicorn command?","acceptedAnswer":{"@type":"Answer","text":"It's module:object. The first app is your app.py file; the second is the Flask object inside it (app = Flask(__name__)). If your file or variable is named differently, adjust it, for example wsgi:app for an app factory exposed in wsgi.py."}},

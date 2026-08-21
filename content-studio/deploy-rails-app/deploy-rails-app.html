@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Deploying a Rails App: The Questions Everyone Actually Asks</title>
-<meta name="description" content="You want to deploy a Rails app and it already runs with rails server. Production raises real questions — RAILS_MASTER_KEY, assets:precompile, migrations, Puma, Sidekiq. Plain answers to each.">
+<meta name="description" content="You want to deploy a Rails app and it already runs with rails server. Production raises real questions: RAILS_MASTER_KEY, assets:precompile, migrations, Puma, Sidekiq. Plain answers to each.">
 <meta name="author" content="Kloudbean">
 <link rel="canonical" href="https://www.kloudbean.com/blog/deploy-rails-app/">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Deploying a Rails App: The Questions Everyone Actually Asks">
-<meta property="og:description" content="Plain answers to the real questions a Rails deploy raises — the master key, assets, migrations, Puma, and background jobs.">
+<meta property="og:description" content="Plain answers to the real questions a Rails deploy raises: the master key, assets, migrations, Puma, and background jobs.">
 <meta property="og:image" content="images/hero.png">
 <meta property="og:site_name" content="Kloudbean">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,7 +21,7 @@
   <span class="eyebrow">App deployment</span>
   <h1>Deploying a Rails App: The Questions Everyone Actually Asks</h1>
 
-  <figure><img src="images/hero.png" alt="Deploy a Ruby on Rails app — the ordered deploy sequence, Puma, Postgres and Sidekiq, on a server you own"></figure>
+  <figure><img src="images/hero.png" alt="Deploy a Ruby on Rails app: the ordered deploy sequence, Puma, Postgres and Sidekiq, on a server you own"></figure>
 
   <p class="lead">Your Rails app runs locally. You type <code>rails server</code>, open localhost, and it works. Then you go to deploy your Rails app to a production server and a small pile of questions lands all at once: what does the server need, why does it refuse to boot over some encryption key, how do assets work, do you need that background jobs thing?</p>
   <p>None of it is hard once someone answers it straight. So that's the format here: the real questions, in the order they tend to hit, with short answers and the commands that go with them.</p>
@@ -141,7 +141,7 @@ RAILS_MAX_THREADS=5</code></pre>
   <p>More on why secrets belong in the environment and not the codebase: <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
 
   <!-- Swap this slot for a real screenshot. src -> images/rails-boot-error.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The boot failure in context: a production.log tail showing the "Missing encryption key" error, or the app-error log with the same message.</em><small>Makes the number-one Rails first-deploy failure recognizable.</small></span></figure>
+  <figure class="img-slot"><span><b>Add image</b><em>The boot failure in context: a production.log tail showing the Missing encryption key error, or the Logs Viewer App Errors tab with the same message.</em><small>Makes the number-one Rails first-deploy failure recognizable.</small></span></figure>
 
   <h2>What about the database and migrations?</h2>
   <p>Launch a managed Postgres and connect it with a single <code>DATABASE_URL</code> environment variable. Rails reads that automatically, no config file editing needed.</p>
@@ -180,7 +180,8 @@ RAILS_MAX_THREADS=5</code></pre>
     <li><strong>Database errors.</strong> <code>DATABASE_URL</code> is wrong or missing, or the pool is too small for Puma.</li>
     <li><strong>Uploads disappear.</strong> Active Storage is still on local disk. Move it to object storage.</li>
   </ol>
-  <p>Rails writes to <code>log/production.log</code>, and the server keeps an app error log at <code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code>. Read those before you touch code. Nearly every first-deploy problem is one of the five above, and each is a one-line fix once you've seen it. The step-by-step for a stubborn boot is <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploying your app</a>.</p>
+  <p>Read the logs before you touch code. On Kloudbean they're in the dashboard: <strong>Application Administration → Logs Viewer</strong>. Open <strong>App Errors</strong> first, especially if the site is answering with a 503, because a 503 means the app isn't running and the reason it died is in that tab. <strong>App Info</strong> is the informational log next to it, and <strong>Web Requests Logs</strong> is the web server's access log of every request served. Search is built in, so paste <code>Missing encryption key</code> or the exception class and go straight to it.</p>
+  <p>Keep two things apart, because Rails muddies this. <code>log/production.log</code> is Rails' own logger, written by your app, and it's the one with the request-by-request detail and the full backtrace. App Errors is the platform's capture of what the process wrote to stderr, which is where a failure that happens before Rails finishes booting shows up, the missing master key being the classic. If Rails never got far enough to log, look in App Errors. Those platform logs are also on disk at <code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/</code> as <code>app.info.log</code> and <code>app.error.log</code>, if you'd rather tail them. Nearly every first-deploy problem is one of the five above, and each is a one-line fix once you've seen it. The step-by-step for a stubborn boot is <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploying your app</a>.</p>
 
   <h2>What you own, what Kloudbean runs</h2>
   <p>Rails is a Ruby app, and Ruby on Linux is exactly what a managed server runs, so nothing here fights the platform. Kloudbean keeps the box healthy: the Ruby stack, the web server in front of Puma, free SSL, the firewall, and server-level backups, on any of its seven clouds. You own the Rails app: its credentials, its migrations, its Active Storage config, any Sidekiq workers. It's a standard Linux server running standard Ruby, so you can move hosts whenever you like. Working in other frameworks too? The Python checklist is <a href="https://www.kloudbean.com/blog/deploy-django-app/">deploy a Django app</a>, and running app plus database on one box is covered in <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">host your app, API, and database on one server</a>.</p>
@@ -195,7 +196,7 @@ RAILS_MAX_THREADS=5</code></pre>
     <h3>How do I deploy a Ruby on Rails app?</h3>
     <p>Push it to GitHub, connect the repo, and set the ordered sequence: a build step (<code>bundle install</code> plus <code>assets:precompile</code>), a release step (<code>rails db:migrate</code>), and a start command (<code>bundle exec puma</code>). Add your environment variables first, especially <code>RAILS_MASTER_KEY</code>, <code>SECRET_KEY_BASE</code>, <code>RAILS_ENV=production</code> and <code>DATABASE_URL</code>, then deploy.</p>
 
-    <h3>Why does my Rails app say "Missing encryption key" on boot?</h3>
+    <h3>Why does my Rails app say Missing encryption key on boot?</h3>
     <p>Rails can't decrypt <code>config/credentials.yml.enc</code> because the master key isn't present in production. That key is gitignored, so you provide it as an environment variable. Set <code>RAILS_MASTER_KEY</code> to the contents of your local <code>config/master.key</code> and the app boots.</p>
 
     <h3>What is the difference between RAILS_MASTER_KEY and SECRET_KEY_BASE?</h3>

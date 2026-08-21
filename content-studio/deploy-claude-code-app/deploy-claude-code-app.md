@@ -10,10 +10,10 @@ secondary_keywords:
   - Claude Code server
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 1 — Deploy AI / Vibe-Coded Apps
+cluster: 1 - Deploy AI / Vibe-Coded Apps
 ---
 
-![Deploy a Claude Code app — review what the terminal agent built, then ship it to a server you own](images/hero.png)
+![Deploy a Claude Code app, review what the terminal agent built, then ship it to a server you own](images/hero.png)
 
 # Deploy a Claude Code App: Read the Diff, Then Ship It
 
@@ -29,7 +29,7 @@ With a UI-first tool you get a bounded artifact: the screen it generated, roughl
 
 Here's the honest version, and it's not a knock on the tool. An agent that can refactor forty files in one turn can also, in one turn, paste your `OPENAI_API_KEY` straight into a config file because that made the thing run right now. It can hard-code `/Users/you/project/uploads` as a path. It can `npm install` a package and forget to save it. None of that shows up when you hit run locally, because locally all of it happens to work. Read the agent's changes before you trust them. That one habit prevents most of what goes wrong later.
 
-<!-- ADD IMAGE: original SVG diagram of the three review gates — SEE (git diff), SCRUB (grep for keys and paths), LOCK (commit lockfile, pin runtime), then SHIP -->
+<!-- ADD IMAGE: original SVG diagram of the three review gates, SEE (git diff), SCRUB (grep for keys and paths), LOCK (commit lockfile, pin runtime), then SHIP -->
 
 The three gates, in order: **1. See** what changed (`git diff --stat`, read it). **2. Scrub** for inlined keys and absolute paths, keep `.env` untracked. **3. Lock** the build with a committed lockfile and a pinned runtime. Then ship.
 
@@ -132,13 +132,17 @@ Add your custom domain under **Domain Aliases**, point its DNS at the server, an
 
 ## If it 503s on the first deploy
 
-A **503** means the process didn't start. The usual suspects, in rough order: a missing environment variable, the app not binding `process.env.PORT`, a start command that doesn't launch the real server, or a build that dropped its tools because `NODE_ENV=production` was set before install and skipped `devDependencies`. Read the app's own error log:
+A **503** means the process didn't start. The usual suspects, in rough order: a missing environment variable, the app not binding `process.env.PORT`, a start command that doesn't launch the real server, or a build that dropped its tools because `NODE_ENV=production` was set before install and skipped `devDependencies`. Either way the app wrote down why, so read that before you touch code.
+
+Start in the dashboard. **Application Administration → Logs Viewer** gives you the logs grouped into tabs, and for a 503 you want **App Errors**, which is the app's own error log. There's a search box, so you can jump straight to the exception instead of scrolling. **App Info** and **Web Requests Logs** have their own tabs next to it, and if the deploy itself failed rather than the process, that output streams live and stays in **Build and Deployment History**.
+
+Now the part that's nicer with a terminal-native tool. The same files sit on disk at a predictable path:
 
 ```
 /home/admin/hosted-sites/<app_system_user>/app-logs/app.error.log
 ```
 
-Open it in the File Manager, or here's the trick that's unique to a terminal-native tool: SSH into the server and have Claude Code read `app.error.log` with you, interpret the error, and make the fix. Then commit and push to redeploy. You're debugging with the agent that wrote the code, not alone with a manual open in the other window. The full playbook is in [fixing a 503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
+So SSH in and have Claude Code read `app.error.log` with you, interpret the error, and make the fix. Then commit and push to redeploy. You're debugging with the agent that wrote the code, not alone with a manual open in the other window. The File Manager opens the same two files (`app.error.log` and `app.info.log`) if you'd rather just look. The full playbook is in [fixing a 503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
 
 ## What you own, and what you don't
 
@@ -164,7 +168,7 @@ Yes, it builds Node and Python backends. The deploy flow is identical; only the 
 Keys belong in environment variables, never the code. Set them under Runtime Configuration, Environment Variables. If your review found a key pasted into a source file, move it to an env var and rotate it, since anything committed to Git should be treated as exposed.
 
 **Can Claude Code help me deploy and debug, not just build?**
-Yes, that's the advantage of a terminal-native tool. Before deploying, ask it for your exact build and start commands and the environment variables the code reads. After deploying, SSH in and have it read `app.error.log` with you, diagnose the failure, and push a fix.
+Yes, that's the advantage of a terminal-native tool. Before deploying, ask it for your exact build and start commands and the environment variables the code reads. After deploying, the App Errors tab in the dashboard's Logs Viewer shows the crash, and you can also SSH in and have it read `app.error.log` with you, diagnose the failure, and push a fix.
 
 **Do I need Docker to deploy a Claude Code app?**
 No. A single app is a Node or Python process, and a managed server runs it directly and restarts it if it falls over. Docker and Kubernetes solve orchestration problems that appear at much larger scale. For getting your app in front of users, you can skip them.

@@ -1,7 +1,7 @@
 ---
 title: "Deploying a Rails App: The Questions Everyone Actually Asks"
 slug: deploy-rails-app
-meta_description: "You want to deploy a Rails app and it already runs with rails server. Production raises real questions — RAILS_MASTER_KEY, assets:precompile, migrations, Puma, Sidekiq. Plain answers to each."
+meta_description: "You want to deploy a Rails app and it already runs with rails server. Production raises real questions: RAILS_MASTER_KEY, assets:precompile, migrations, Puma, Sidekiq. Plain answers to each."
 target_keyword: deploy rails app
 secondary_keywords:
   - rails production server
@@ -10,10 +10,10 @@ secondary_keywords:
   - rails puma production
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 3 — App Deployment Tutorials
+cluster: 3 - App Deployment Tutorials
 ---
 
-![Deploy a Ruby on Rails app — the ordered deploy sequence, Puma, Postgres and Sidekiq, on a server you own](images/hero.png)
+![Deploy a Ruby on Rails app: the ordered deploy sequence, Puma, Postgres and Sidekiq, on a server you own](images/hero.png)
 
 # Deploying a Rails App: The Questions Everyone Actually Asks
 
@@ -83,7 +83,7 @@ RAILS_MAX_THREADS=5
 
 More on why secrets belong in the environment and not the codebase: [environment variables, done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
-<!-- ADD IMAGE: The boot failure in context: a production.log tail showing the "Missing encryption key" error, or the app-error log with the same message. -->
+<!-- ADD IMAGE: The boot failure in context: a production.log tail showing the Missing encryption key error, or the Logs Viewer App Errors tab with the same message. -->
 
 ## What about the database and migrations?
 
@@ -126,7 +126,9 @@ In rough order of likelihood, the first-deploy failures are:
 4. **Database errors.** `DATABASE_URL` is wrong or missing, or the pool is too small for Puma.
 5. **Uploads disappear.** Active Storage is still on local disk. Move it to object storage.
 
-Rails writes to `log/production.log`, and the server keeps an app error log at `/home/admin/hosted-sites/<app_system_user>/app-logs/app.error.log`. Read those before you touch code. Nearly every first-deploy problem is one of the five above, and each is a one-line fix once you've seen it. The step-by-step for a stubborn boot is [fixing a 503 after deploying your app](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
+Read the logs before you touch code. On Kloudbean they're in the dashboard: **Application Administration → Logs Viewer**. Open **App Errors** first, especially if the site is answering with a 503, because a 503 means the app isn't running and the reason it died is in that tab. **App Info** is the informational log next to it, and **Web Requests Logs** is the web server's access log of every request served. Search is built in, so paste `Missing encryption key` or the exception class and go straight to it.
+
+Keep two things apart, because Rails muddies this. `log/production.log` is Rails' own logger, written by your app, and it's the one with the request-by-request detail and the full backtrace. App Errors is the platform's capture of what the process wrote to stderr, which is where a failure that happens before Rails finishes booting shows up, the missing master key being the classic. If Rails never got far enough to log, look in App Errors. Those platform logs are also on disk at `/home/admin/hosted-sites/<app_system_user>/app-logs/` as `app.info.log` and `app.error.log`, if you'd rather tail them. Nearly every first-deploy problem is one of the five above, and each is a one-line fix once you've seen it. The step-by-step for a stubborn boot is [fixing a 503 after deploying your app](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
 
 ## What you own, what Kloudbean runs
 
@@ -139,7 +141,7 @@ Rails is a Ruby app, and Ruby on Linux is exactly what a managed server runs, so
 **How do I deploy a Ruby on Rails app?**
 Push it to GitHub, connect the repo, and set the ordered sequence: a build step (`bundle install` plus `assets:precompile`), a release step (`rails db:migrate`), and a start command (`bundle exec puma`). Add your environment variables first, especially `RAILS_MASTER_KEY`, `SECRET_KEY_BASE`, `RAILS_ENV=production` and `DATABASE_URL`, then deploy.
 
-**Why does my Rails app say "Missing encryption key" on boot?**
+**Why does my Rails app say Missing encryption key on boot?**
 Rails can't decrypt `config/credentials.yml.enc` because the master key isn't present in production. That key is gitignored, so you provide it as an environment variable. Set `RAILS_MASTER_KEY` to the contents of your local `config/master.key` and the app boots.
 
 **What is the difference between RAILS_MASTER_KEY and SECRET_KEY_BASE?**

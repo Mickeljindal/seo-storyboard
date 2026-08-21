@@ -139,7 +139,7 @@ Test on the temporary `*.kloudbeansite.com` URL, then add your custom domain und
 
 ## If it won't come up
 
-A **503** after a Replit move is almost always one of the rows you half-finished. In order of likelihood: a Secret that didn't get recreated as an environment variable, the app not binding `process.env.PORT` (Replit handled ports for you), or the database code still pointing at `REPLIT_DB_URL` instead of your new connection string. Read `app.error.log` at `/home/admin/hosted-sites/<app_system_user>/app-logs`, and the failure is usually named plainly. The deeper [503 playbook](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/) covers the rest.
+A **503** after a Replit move is almost always one of the rows you half-finished. In order of likelihood: a Secret that didn't get recreated as an environment variable, the app not binding `process.env.PORT` (Replit handled ports for you), or the database code still pointing at `REPLIT_DB_URL` instead of your new connection string. A 503 means the app isn't running, so go read why. Open **Application Administration**, then **Logs Viewer**, and pick the **App Errors** tab, which holds `app.error.log`. The failure is usually named plainly there, and the built-in search saves you scrolling if you already suspect a variable name. The other tabs are **App Info** (`app.info.log`) and **Web Requests Logs**, the access logs for every request served. The same two files are also readable through the File Manager at `/home/admin/hosted-sites/<app_system_user>/app-logs`, if you'd rather look at them directly. The deeper [503 playbook](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/) covers the rest.
 
 ## When this move isn't worth making yet
 

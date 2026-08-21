@@ -115,15 +115,20 @@ The failures are boringly consistent, and none of them are about hosting being h
 
 ## When it 503s after deploying Next.js
 
-A 503 means the process didn't come up. Read the app's own error log, which names the real reason:
+A 503 means the application isn't running, so don't debug the proxy. Go read the app's error output, which names the real reason. In the Kloudbean console it's **Application Administration → Logs Viewer**, then the **App Errors** tab.
+
+The Logs Viewer keeps the types in separate tabs. **App Errors** is your app's error log, the one that answers a 503. **App Info** is the informational log, where a healthy boot leaves its `ready on` line. **Web Requests Logs** is the web server's access log for every request served. There's a search box, so if you already know the string (`EADDRINUSE`, `next dev`, the name of a missing env var) type it in rather than scrolling. Build failures aren't in here at all: build output streams live while the deploy runs and stays in **Build and Deployment History**.
+
+Nine times out of ten it's the `next dev` mixup above, a missing environment variable the app reads at startup, or a build that failed because the build tools live in `devDependencies` and something set `NODE_ENV=production` before install ran, so npm skipped them. If you prefer files, the same logs are on disk at:
 
 ```
+/home/admin/hosted-sites/<app_system_user>/app-logs/app.info.log
 /home/admin/hosted-sites/<app_system_user>/app-logs/app.error.log
 ```
 
-Open it in the File Manager or over SSH. Nine times out of ten it's the `next dev` mixup above, a missing environment variable the app reads at startup, or a build that failed because the build tools live in `devDependencies` and something set `NODE_ENV=production` before install ran, so npm skipped them. There's also `sudo adm`, our deploy utility, which runs the whole build-and-ship over SSH in one command. The full walkthrough is in [fixing a 503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
+The File Manager opens those, and so does a terminal. There's also `sudo adm`, our deploy utility, which runs the whole build-and-ship over SSH in one command. The full walkthrough is in [fixing a 503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
 
-<!-- ADD IMAGE: app.error.log open in the File Manager with the line that reveals a Start command stuck on next dev. -->
+<!-- ADD IMAGE: The Logs Viewer open on the App Errors tab, with the line that reveals a Start command stuck on next dev. -->
 
 ## The one honest limit: you're in a region, not on the edge
 

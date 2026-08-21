@@ -10,7 +10,7 @@ secondary_keywords:
   - NestJS production build
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 2 — Deploy any app (spoke)
+cluster: 2 - Deploy any app (spoke)
 ---
 
 ![Deploy a NestJS app to production: nest build compiles to dist, then node dist/main.js runs under PM2 behind Nginx with free SSL](images/hero.png)
@@ -226,13 +226,18 @@ Most first deploys break, and for NestJS the failures are predictable. Here's wh
 - **The app boots but every request 500s on the database** is nearly always a missing or wrong `DATABASE_URL`, or migrations that never ran. Check the env var, then your migration step.
 - **Columns quietly disappearing** is `synchronize: true` doing its thing. Turn it off and move to migrations.
 
-When something's down, read the app's error log before you guess. On Kloudbean it's at:
+When something's down, read the log before you guess. In the Kloudbean console that's **Application Administration → Logs Viewer**, and the tab you want is **App Errors**. A Nest crash writes its stack trace there and usually names the exact provider or module that failed to resolve. If the site is returning a 503, that's your first stop, because a 503 means the application isn't running at all. Search the tab for `Nest can't resolve dependencies` or the module name and you'll land on it in seconds.
+
+Two other tabs sit beside it. **App Info** is your app's informational output, so `Nest application successfully started` showing up there tells you the boot actually completed. **Web Requests Logs** is the web server's access log of every request served, which settles whether a request reached your process or died in front of it. Build and deploy output is separate: it streams live during the deploy and stays in **Build and Deployment History**, which is where `sh: nest: not found` shows up rather than in App Errors.
+
+If you'd rather grep from a terminal, the same files are on disk:
 
 ```
+/home/admin/hosted-sites/<app_system_user>/app-logs/app.info.log
 /home/admin/hosted-sites/<app_system_user>/app-logs/app.error.log
 ```
 
-A Nest crash writes its stack trace there and usually names the exact provider or module that failed to resolve. Fix the one line it points at and deploy again. Nine times out of ten a broken NestJS deploy is config, not code.
+The File Manager opens them too. Either way, fix the one line the trace points at and deploy again. Nine times out of ten a broken NestJS deploy is config, not code.
 
 ## What you own, and what's handled
 
@@ -249,7 +254,7 @@ Git deploy with live logs · PM2 process manager · Free auto-renewing SSL · Se
 **How do I deploy a NestJS app to production?**
 Compile it with `nest build` so plain JavaScript lands in `dist/`, set `NODE_ENV=production`, and start it with `node dist/main.js` under a process manager like PM2, behind Nginx with SSL. Read config from environment variables via `@nestjs/config` and connect a managed database over a `DATABASE_URL`. On Kloudbean you connect a Git repo, set the install, build, and start commands, add env vars, and deploy.
 
-**What's the difference between nest start and node dist/main.js?**
+**What is the difference between nest start and node dist/main.js?**
 `nest start` (and `start:dev`) is for development. It compiles TypeScript through ts-node and can watch for changes, which is slower and depends on dev tooling. `node dist/main.js` runs the already-compiled output from `nest build`, which is what you want in production: faster, lighter, and pure Node with no TypeScript at runtime.
 
 **Do I need to run nest build before deploying?**
@@ -267,7 +272,7 @@ Yes. PM2 keeps the process alive, restarting it in about a second if it crashes 
 **How do I connect a managed database to NestJS with TypeORM or Prisma?**
 Set a `DATABASE_URL` environment variable and read it in your config. TypeORM takes it as `url` in `TypeOrmModule.forRoot` with `synchronize: false`; Prisma reads it automatically. Run migrations as a deploy step (`migration:run` for TypeORM, `prisma migrate deploy` for Prisma). Launch the database as a managed engine so it's backed up and reachable over the local network.
 
-**Why does my NestJS deploy fail with "nest: not found"?**
+**Why does my NestJS deploy fail with nest: not found?**
 The Nest CLI is a devDependency, and it was missing when the build ran, usually because dev dependencies were skipped with something like `npm ci --omit=dev` before building. Install all dependencies first, run `npm run build`, and only prune dev deps afterward if you want a leaner runtime.
 
 **Do I need Docker to deploy a NestJS app?**

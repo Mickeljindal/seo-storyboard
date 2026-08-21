@@ -1,5 +1,5 @@
 ---
-title: "Deploy Flask in 10 Minutes — Then the Reference You'll Keep"
+title: "Deploy Flask in 10 Minutes, Then the Reference You'll Keep"
 slug: deploy-flask-app
 meta_description: "Flask is a micro-framework, so deploying it comes down to one question: what runs it in production? The answer is Gunicorn. Here's the fast path, then a reference for workers, static files, and the usual gotchas."
 target_keyword: deploy flask app
@@ -10,10 +10,10 @@ secondary_keywords:
   - flask deployment
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 3 — App Deployment Tutorials
+cluster: 3 - App Deployment Tutorials
 ---
 
-![Deploy a Flask app — Gunicorn out front, on a small server you own](images/hero.png)
+![Deploy a Flask app, Gunicorn out front, on a small server you own](images/hero.png)
 
 # Deploy Flask in 10 Minutes: Then the Reference You'll Keep
 
@@ -102,7 +102,7 @@ Most first-deploy failures fall into a short list, and each has a clear tell in 
 - **"ModuleNotFoundError" for a package you use.** It's missing from `requirements.txt`. Add it and redeploy; the build installs only what's listed.
 - **"WORKER TIMEOUT", workers being killed.** A slow request is exceeding Gunicorn's default 30-second limit. Raise `--timeout`, or move the slow work to a background task.
 
-Gunicorn logs to standard output, which the platform captures, and the app's own errors land in `/home/admin/hosted-sites/<app_system_user>/app-logs/app.error.log`. Read those first, before changing code on a hunch. The full 503 playbook is [here](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
+Every one of those tells shows up in the log, and you read it from the dashboard: **Application Administration → Logs Viewer**. The logs are grouped into tabs. **App Errors** is where Gunicorn's tracebacks and worker-timeout lines land, so it's the first tab to open on a 503, because a 503 means the app isn't running. **App Info** holds the app's informational output, the "Starting gunicorn" and "Booting worker" lines included, and **Web Requests Logs** is the access log for requests the web server handled. Search is built in, which is how you find one `ModuleNotFoundError` without reading a whole file. Deploy-time failures are kept separately in **Build and Deployment History**, streaming live as the build runs. The same two files are on disk at `/home/admin/hosted-sites/<app_system_user>/app-logs/` (`app.error.log` and `app.info.log`) if you'd rather use a terminal or the File Manager. Read the log first, before changing code on a hunch. The full 503 playbook is [here](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
 
 <!-- ADD IMAGE: Terminal showing Gunicorn's boot log: "Starting gunicorn", the bound address, and Booting worker lines for each worker PID. -->
 
