@@ -73,6 +73,27 @@ Section renamed from "What Kloudbean charges extra for, and what it leaves to yo
 
 **Docs action for the owner:** the support-docs row "Application Limit: Standard Limits" reads as a cap to anyone outside the company, including AI summarisers ingesting the docs. It should say unlimited, or state that the constraint is server resources. It misled this article and it will mislead customers.
 
+## v7: FULL CLAIM AUDIT after the Redis fabrication was caught
+
+The owner caught an unsourced claim (see the Redis entry below) and asked what else was made up. Every checkable claim in the article was then re-checked against its source. Six problems found and fixed. Recording all of them, including the ones that turned out fine, so this audit does not have to be redone from scratch.
+
+### Fixed: things that were wrong or overstated
+
+1. **"the audience Cloudways names FIRST in its own announcement is agencies" — FACTUALLY WRONG.** Their launch post names five audiences in this order: Developers and Engineers, Agencies, SaaS startups, AI builders, Non-technical founders. Agencies are second. I had invented an emphasis that supported my argument. Now reads "one of the five audiences Cloudways names".
+2. **The Velocity menu list was incomplete.** I listed Overview, Monitoring, Database, Backup and Restore, Deployment Management, Settings, and used that list as evidence for "no credentials section". It also has Manage Services (article 16160257), which I had already read. Omitting a menu item while using the menu as evidence is exactly the kind of selective completeness that discredits a page. Added.
+3. **Absolute absence claims I had not actually established.** "Cloudways publishes no object storage product at all, on any of its plans" and "Nothing in their Velocity documentation offers SSH or SFTP" were both stated as facts about the world when what I had was a search of their pricing pages and docs. Rewritten to claim only what was checked: no such product appears on their pricing pages or in their docs; their Velocity documentation describes no SSH or SFTP access. Also noted the S3 feedback request sits in their Flexible forum, which I knew and had left out.
+4. **Kloudbean managed PostgreSQL prices ($18 / $30 / $60) came from a single search snippet I could not re-verify.** kloudbean.com is JS-rendered so the page returns no prices to a fetcher, and a later search did not surface them again. Specific figures REMOVED from both places they appeared; the article now says a managed database is priced by size as its own subscription and points readers at the pricing page. OWNER ACTION: supply confirmed managed-database pricing if it should appear.
+5. **Kubernetes tier claim was imprecise.** "Kubernetes, autoscaling, VPC and VPN are Enterprise" conflicts with `kloudbean-facts.md`, which says Premium gets limited Kubernetes features. Now: full Kubernetes and autoscaling are Enterprise, Premium gets a limited subset.
+6. **Redis.** See the Redis entry in the verified-facts section below for the full account.
+
+### Re-verified as correct, no change needed
+Velocity as "a JavaScript runtime" (15550368, verbatim). Twelve framework presets and Node LTS 22.x/24.x (pricing page FAQ). One-app-per-server, verbatim including "Not at GA" and "Each app runs on its own isolated server". Lightning Stack on DigitalOcean infrastructure (launch post, verbatim). "Select Server Location" step (15550368). All four launch-post framings of SSH as unnecessary, plus "without running server commands" (16160257) — each checked word by word. Price ladder $20/$30/$50/$100/$150 with RAM, vCPU and CDN bandwidth (pricing page). $0.02/GB bandwidth overage and $0.033/GB offsite backup. The $21-versus-$20 discrepancy. GA dated Aug 31. Public preview, no invite required. Velocity GA trial 3 days on Starter and Professional. Postgres install irreversible and "only creates the database" (16188001, verbatim). Pricing-page-versus-support-doc database contradiction. Flexible from $11/mo, 5 clouds, "No restriction on the number of applications", MySQL 8.4 and MariaDB 10.11, WordPress/Magento/Laravel/PHP, and the 3-day no-card trial (re-verified via support article 10061830). Cloudways as a DigitalOcean subsidiary. DigitalOcean Block Storage one-click (5121274). Kloudbean side: MariaDB in the default new-server stack (deploying-nextjs), 9+ engines, migration 1/10/unlimited, 3-day trial servers only, 7 clouds, Logs Viewer and App Errors tab, changelog dates for the Node timeline, two years of GA Node as of Aug 2026.
+
+### The failure mode, named so it can be checked for
+**A sourced fact plus an unsourced consequence, written as one sentence.** The first half makes the second half feel cited. Three of the six problems above are this shape: Redis runs, "so queues are covered"; the menu exists, "so there is no credentials section"; no object storage found, "so Cloudways publishes none". The validator cannot catch any of it, because it is grammatically and structurally fine.
+
+**Rule going forward for competitor claims:** every sentence gets one of three labels before it ships. Quoted from their page. Absence of evidence, and said as such. Or my inference, and marked as mine. Anything that cannot take a label does not go in.
+
 ## Verified competitor facts (source: Cloudways' own pages, all rephrased or short-quoted)
 Sources: cloudways.com/en/managed-nodejs-hosting.php (pricing + FAQ), cloudways.com/blog/cloudways-managed-node-js-hosting-is-here/ (launch), support.cloudways.com articles 15550368 (launch flow), 15550860 (app overview), 16188001 (database), 16160257 (manage services), cloudways.com/en/pricing.php (Flexible), feedback.cloudways.com (customer voice portal).
 
@@ -144,7 +165,7 @@ Hero images/hero.png (author supplies). Real console screenshot ../assets/consol
 where-to-deploy-nodejs-app, deploy-node-app-to-managed-cloud, deploy-express-app, deploy-nestjs-app, s3-compatible-object-storage, how-agencies-host-20-client-apps, kloudbean-vs-cloudways, cloudways-alternatives, managed-postgresql-hosting.
 
 ## Gate
-`node _val.mjs cloudways-velocity-alternative` -> [OK]. words=4927, em-dash html=0, md=0, FAQ parity 12, H2 count 13, blurbs 0, 10 internal links resolve.
+`node _val.mjs cloudways-velocity-alternative` -> [OK]. words=4981, em-dash html=0, md=0, FAQ parity 12, H2 count 13, blurbs 0, 10 internal links resolve.
 
 ## Freshness triggers (this page dates faster than anything else in the library)
 GA on Aug 31: preview language, trial terms and the $20 versus $21 entry price all change. Multi-app-per-server shipping as the post-GA fast-follow they logged. CI/CD, multi-region or extra clouds shipping. Shell access appearing in their docs. Object storage appearing. The database contradiction being resolved either way. Kloudbean publishing a numeric application limit per tier.
