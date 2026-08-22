@@ -17,7 +17,7 @@ If you're evaluating Cloudways Velocity, start with what it will not do, because
 
 None of that is my characterisation. It's all on Cloudways' own pages, and it rules out more than a feature table reveals.
 
-> **Short answer:** Cloudways Velocity is JavaScript only, so no WordPress, PHP, Python, Ruby, Java or Go. It runs one application per isolated server, which Cloudways confirms is not changing at general availability, so billing is effectively per app from $20/month. It runs on DigitalOcean only, has no documented SSH or SFTP path, and Cloudways offers no object storage bucket for uploads. Its own pricing page and its own support docs currently disagree about which databases you can provision. Kloudbean starts at $8/month, puts as many applications on one server as its RAM will hold with no per-app fee, runs many languages across seven clouds, gives you shell access and S3-compatible buckets, and has been generally available since 2023 with managed Node.js since August 2024. One honest caveat against us: managed databases are separate subscriptions rather than bundled with the server.
+> **Short answer:** Cloudways Velocity is JavaScript only, so no WordPress, PHP, Python, Ruby, Java or Go. It runs one application per isolated server, which Cloudways confirms is not changing at general availability, so billing is effectively per app from $20/month. It runs on DigitalOcean only, has no documented SSH or SFTP path, and Cloudways offers no object storage bucket for uploads. Its own pricing page and its own support docs currently disagree about which databases you can provision. Kloudbean starts at $8/month, puts as many applications on one server as its RAM will hold with no per-app fee, runs many languages across seven clouds, gives you shell access and S3-compatible buckets, and has been generally available since 2023 with managed Node.js since August 2024. One honest caveat against us: a separately managed database is a second subscription here, though the server stack ships MariaDB if you'd rather keep the database on the box.
 
 ## Five boundaries, all from Cloudways' own pages
 
@@ -103,7 +103,7 @@ I can't resolve that from outside, so treat the support doc as the operational t
 
 Redis, credit where it's genuinely due, is in the stack and is restartable from the dashboard, and their docs sensibly warn you it may be holding sessions or queues rather than just cache. So sessions and BullMQ are covered without a third-party vendor. That's a real point in Velocity's favour and I'd rather say it than let you find out I'd left it out.
 
-For contrast, Kloudbean's managed databases are standalone subscriptions you size, back up and connect to independently: MySQL, PostgreSQL, MariaDB, MongoDB, Redis, Memcached and Elasticsearch, with the support docs listing nine or more engines. Removable, resizable, and not welded to one app server.
+For contrast, a Kloudbean server ships with MariaDB in the stack, so the simple case needs nothing extra. Beyond that, managed databases are standalone subscriptions you size, back up and connect to independently: MySQL, PostgreSQL, MariaDB, MongoDB, Redis, Memcached and Elasticsearch, with the support docs listing nine or more engines. Removable, resizable, and not welded to one app server.
 
 ## Real pricing, from both vendors' own pages
 
@@ -131,7 +131,7 @@ Now the three-way view:
 | **Clouds** | DigitalOcean only | 5 (DigitalOcean, Vultr, Linode, AWS, Google Cloud) | 7 (AWS, Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, UpCloud) |
 | **Languages** | JavaScript only | PHP, WordPress, Magento, Laravel | PHP, WordPress, WooCommerce, Laravel, Magento, Drupal, Joomla, Node, Python, Ruby, Java, Go, static |
 | **Shell access** | Not documented | SSH, SFTP, browser terminal | SSH and SFTP |
-| **Databases** | PostgreSQL in-environment or external Supabase, per the support docs; the pricing page also claims MySQL and MongoDB | MySQL and MariaDB with the app | 9+ documented, standalone and separately sized |
+| **Databases** | PostgreSQL in-environment or external Supabase, per the support docs; the pricing page also claims MySQL and MongoDB | MySQL and MariaDB with the app | MariaDB in the server stack, plus 9+ managed engines as standalone, separately sized subscriptions |
 | **Object storage** | None | None | S3-compatible buckets and managed GCS, transfer out not metered |
 | **Availability** | Public preview, GA dated Aug 31 on their pricing page | Generally available | Generally available |
 | **Free trial** | Free during public preview; from GA, 3 days on Starter and Professional | 3 days, no card required | 3 days, servers only |
@@ -146,19 +146,21 @@ On Kloudbean the three apps go on one server and there's no per-application fee,
 
 Then it compounds. A fourth service, a staging copy of the API, a client's second site. On per-app billing each of those is another plan at the floor price, whether or not it does any meaningful traffic. Staging environments are where this bites hardest, since a staging copy is a full-price application that serves nobody.
 
-## What Kloudbean charges extra for, and what it leaves to you
+## What the tiers actually change
 
-If this page only listed the other product's constraints it would be marketing, so here's the other side. One thing is deliberately absent from the list, because it doesn't exist: there's no cap on how many applications a server runs, at any price. Moving up a tier buys capability, things like VPC and VPN, Kubernetes, autoscaling, the audit trail, enterprise support and a dedicated account manager. It never buys permission to run more apps. What it does buy is worth being straight about.
+If this page only listed the other product's constraints it would be marketing, so here's our side. One thing is absent because it doesn't exist: there's no cap on how many applications a server runs, at any price. What the tiers change is capability, and how much of the work we do with you. Never permission.
 
-**Databases cost extra.** A server plus a managed Postgres is two subscriptions. Managed PostgreSQL starts at $18/month for a 1GB Starter instance, $30/month for 2GB, and $60/month for 4GB. Velocity bundles Postgres inside the application plan, so for a single small app that bundling is a genuine total-cost advantage for them, and any comparison hiding it isn't worth reading.
+**You don't need a managed database at all.** A new server arrives with the stack already on it, and our deployment docs list the default: Node 20.x, NPM 10.x, NVM, and MariaDB 10.6 or later as an option. So a JavaScript app can talk to a database on its own server without a second subscription. Managed databases are a separate product, for when you want the database sized, backed up and scaled independently of the app, and those are priced on their own: $18/month for a 1GB PostgreSQL Starter, $30 for 2GB, $60 for 4GB. Velocity bundling Postgres into the app plan is still a fair point for one small app. It just isn't a case of theirs included and ours extra.
 
-**Free migration is per tier**, not unlimited: one per server on Standard, up to 10 on Premium, unlimited on Enterprise.
+**Free migration is per tier.** One per server on Standard, up to 10 on Premium, unlimited on Enterprise. Per server rather than per account, so in practice it's rarely the thing that stops anyone.
 
-**BitNinja Pro security is Premium and Enterprise.** Standard's baseline is the Shorewall firewall plus Fail2ban. Real hardening, not the same thing.
+**BitNinja is available on any plan,** enabled from server management, and it's included at no cost on Premium and Enterprise. Standard's baseline is the Shorewall firewall plus Fail2ban, with BitNinja as a layer you can add on top. One caveat from our own docs that's worth more than the marketing line: it wants headroom. Check memory and CPU before you switch it on, and keep memory under roughly 80 to 85 percent afterwards, because a security layer that starves the app it's protecting isn't a win.
 
-**The free trial is servers only.** Databases and load balancers bill from creation.
+**Cloudflare is a paid add-on, and that's parity rather than an edge.** Cloudways resells a Cloudflare Enterprise add-on as well, so nobody should sell you that as a differentiator. On Kloudbean it's free for Enterprise users. On Velocity, Cloudflare CDN comes in the plan, with bandwidth metered past your allocation.
 
-**Kubernetes, autoscaling, VPC and VPN are Enterprise**, not standard-plan toggles. On a standard plan you scale by resizing and by adding nodes behind the load balancer yourself.
+**The trial is scoped on both sides.** Ours covers servers, so databases and load balancers bill from creation. Velocity's own trial at general availability is 3 days on Starter and Professional only. Neither is generous. Neither is unusual.
+
+**Kubernetes, autoscaling, VPC and VPN are Enterprise.** The useful way to read the tiers isn't a feature checklist though. On Standard nothing is restricted and the architecture is yours to run: you resize, you add nodes behind the load balancer, you decide when to split. Premium and Enterprise are where our team does that work with you, implementing, managing and monitoring alongside your developers, in your Slack or on WhatsApp, closer to an extended in-house infrastructure team than a support queue. That's the actual difference you're buying, and it's a service level rather than an unlock.
 
 ## So which one, and when
 
@@ -226,7 +228,7 @@ No. Cloudways publishes no object storage product on any plan. What exists is Di
 It depends on how narrow your needs are. For one JavaScript app on DigitalOcean with Postgres and no uploads, Velocity is coherent. For a mixed stack, several apps on one server, file uploads, or work that needs a shell, Kloudbean is the closer fit: seven clouds, many languages, SSH access, S3-compatible buckets and managed databases in one dashboard, generally available from $8 a month, and running managed Node.js since August 2024.
 
 **Does Kloudbean have application limits too?**
-No. There's no cap on the number of applications on a server, and it isn't a billing lever at any tier, so an $8 server and a much larger one are both limited by their own RAM and CPU rather than by a count. Premium and Enterprise add capabilities such as VPC and VPN, Kubernetes, autoscaling, the audit trail, enterprise support and a dedicated account manager, not headroom you were being denied. The honest constraint is sizing: watch memory, then resize or split. Managed databases are separate subscriptions rather than bundled with the server.
+No. There's no cap on the number of applications on a server, and it isn't a billing lever at any tier, so an $8 server and a much larger one are both limited by their own RAM and CPU rather than by a count. Premium and Enterprise add capabilities such as VPC and VPN, Kubernetes, autoscaling, the audit trail, enterprise support and a dedicated account manager, not headroom you were being denied. The honest constraint is sizing: watch memory, then resize or split. A separately managed database is a second subscription, though the server stack ships MariaDB if you want to keep the database on the box.
 
 ---
 

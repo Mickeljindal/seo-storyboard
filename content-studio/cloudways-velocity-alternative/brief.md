@@ -53,6 +53,24 @@ The section closes by declining to oversell ("a 2023 platform, not a decade-old 
 
 The FAQ question "Does Kloudbean have application limits too?" is deliberately kept, because people search that objection, and the answer now opens with "No."
 
+## v6: tier section rewritten on owner corrections. Two of these contradict our own docs and steering.
+
+Section renamed from "What Kloudbean charges extra for, and what it leaves to you" to **"What the tiers actually change"**, because the owner's point is that tiers are capability plus service level, never permission or quota.
+
+**1. "Databases cost extra" was overstated. VERIFIED against our own docs.** `/docs/application-deployment/deploying-nextjs` states that by default a new server gives you `Node 20.X, NPM 10.X, NVM (latest), MariaDB > 10.6 (optional)`. So the server stack already carries MariaDB and a JS app can use it with no second subscription. Managed databases are an OPTIONAL separate product for when you want the DB sized, backed up and scaled independently. The $18/$30/$60 PostgreSQL figures stay, correctly scoped. Velocity's bundled Postgres is still conceded as fair for one small app, but the framing "theirs included, ours extra" was wrong and is gone. Also fixed in the tldr, the pricing table row and the final FAQ.
+
+**2. BitNinja: our steering and the tier docs were wrong, or at least misleading.** `kloudbean-facts.md` says BitNinja is "not the baseline" and the subscription-tier doc shows `❌ [Standard] · ✅ Free ($24/month value) [Premium/Ent]`. Owner states it is available on Standard, Premium and Enterprise. Checked `/docs/server-management/enabling-bitninja-security`: it contains NO plan gating and NO pricing at all, just how to enable it on your server plus resource guidance. Reconciled honestly as: available on any plan, enabled from server management, included at no cost on Premium and Enterprise, with Shorewall plus Fail2ban as the Standard baseline. The `✅ Free` marker is about inclusion, not availability.
+
+**3. New information gain from that same doc**, and it's the kind of thing no competitor publishes: BitNinja needs resource headroom. Check memory and CPU before enabling and keep memory under roughly 80 to 85 percent after, because a security layer that starves the app is not a win. Straight from our docs, genuinely useful, and it makes the section read like operators wrote it.
+
+**4. Cloudflare stated as parity, explicitly.** Both Cloudways and Kloudbean resell a Cloudflare Enterprise add-on, so it is NOT presented as an edge, per the standing rule in `kloudbean-facts.md`. Free for Kloudbean Enterprise users. Noted that Velocity includes Cloudflare CDN in-plan with metered bandwidth beyond allocation.
+
+**5. Trial scoping made two-sided instead of a one-way concession.** Ours covers servers only. Velocity's own GA trial is 3 days on Starter and Professional only, which is verified from their pricing FAQ. Neither is generous, neither is unusual.
+
+**6. The tier difference is reframed as SERVICE LEVEL, and this is the strongest addition.** On Standard nothing is restricted and the architecture is the customer's to run: resize, add nodes behind the load balancer, decide when to split. On Premium and Enterprise the Kloudbean team implements, manages and monitors alongside the customer's developers, in their Slack or on WhatsApp, closer to an extended in-house infrastructure team than a support queue. Owner-stated, and consistent with the in-house-team positioning in `kloudbean-enterprise-compliance.md`. No SLA percentage, response time or outcome promised.
+
+**Steering updated** (`kloudbean-facts.md`, left unstaged): BitNinja availability corrected, MariaDB-in-the-stack recorded, and the tiers-are-capability-and-service rule written down.
+
 **Docs action for the owner:** the support-docs row "Application Limit: Standard Limits" reads as a cap to anyone outside the company, including AI summarisers ingesting the docs. It should say unlimited, or state that the constraint is server resources. It misled this article and it will mislead customers.
 
 ## Verified competitor facts (source: Cloudways' own pages, all rephrased or short-quoted)
@@ -123,7 +141,7 @@ Hero images/hero.png (author supplies). Real console screenshot ../assets/consol
 where-to-deploy-nodejs-app, deploy-node-app-to-managed-cloud, deploy-express-app, deploy-nestjs-app, s3-compatible-object-storage, how-agencies-host-20-client-apps, kloudbean-vs-cloudways, cloudways-alternatives, managed-postgresql-hosting.
 
 ## Gate
-`node _val.mjs cloudways-velocity-alternative` -> [OK]. words=4529, em-dash html=0, md=0, FAQ parity 12, H2 count 13, blurbs 0, 10 internal links resolve.
+`node _val.mjs cloudways-velocity-alternative` -> [OK]. words=4831, em-dash html=0, md=0, FAQ parity 12, H2 count 13, blurbs 0, 10 internal links resolve.
 
 ## Freshness triggers (this page dates faster than anything else in the library)
 GA on Aug 31: preview language, trial terms and the $20 versus $21 entry price all change. Multi-app-per-server shipping as the post-GA fast-follow they logged. CI/CD, multi-region or extra clouds shipping. Shell access appearing in their docs. Object storage appearing. The database contradiction being resolved either way. Kloudbean publishing a numeric application limit per tier.
