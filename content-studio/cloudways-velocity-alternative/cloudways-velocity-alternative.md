@@ -1,6 +1,6 @@
 ---
-title: "Cloudways Velocity Alternative: A Narrow, Early Product and What It Costs You"
-description: "Cloudways Velocity runs JavaScript only, on one cloud, with one database, and is still invite-only. What that rules out, how its per-application pricing works, and an honest alternative comparison."
+title: "Cloudways Velocity Alternative: One App Per Server, No Shell, One Cloud"
+description: "Cloudways Velocity runs JavaScript only, one app per isolated server, on DigitalOcean, with no documented shell access and no object storage. The verified boundaries, the real price ladder, and an honest alternative comparison."
 slug: cloudways-velocity-alternative
 canonical: https://www.kloudbean.com/blog/cloudways-velocity-alternative/
 cluster: 4. Comparisons
@@ -9,91 +9,160 @@ money_page: cloudways-alternatives
 byline: Read the boundaries before the feature list. They decide this one.
 ---
 
-# Cloudways Velocity Alternative: A Narrow, Early Product and What It Costs You
+# Cloudways Velocity Alternative: One App Per Server, No Shell, One Cloud
 
-By Kloudbean Engineering · Four boundaries, and every one of them is in Cloudways' own documentation.
+By Kloudbean Engineering · Five boundaries, every one of them published by Cloudways.
 
-If you're evaluating Cloudways Velocity, start with what it will not do, because that's what decides this. Velocity is Cloudways' managed Node.js product, renamed. By Cloudways' own description it is "a JavaScript runtime", it runs on DigitalOcean infrastructure, it provisions PostgreSQL, and it is still in invite-only private preview. Those four facts rule out more than most feature tables reveal, and none of them is my characterisation. They're all published by Cloudways.
+If you're evaluating Cloudways Velocity, start with what it will not do, because that's what decides this. Velocity is Cloudways' managed Node.js product, renamed. By their own description it is "a JavaScript runtime". It runs on DigitalOcean infrastructure. Their pricing FAQ answers the question "Can I host multiple apps on one server?" with "Not at GA", and adds that each app runs on its own isolated server. Nothing in their Velocity documentation offers SSH or SFTP. And Cloudways publishes no object storage product at all, on any of its plans.
 
-This isn't a "both are great, pick your favourite" comparison. Velocity is an early, deliberately narrow product, and if your stack is anything other than JavaScript, it isn't a candidate at all.
+None of that is my characterisation. It's all on Cloudways' own pages, and it rules out more than a feature table reveals.
 
-> **Short answer:** Cloudways Velocity is JavaScript only, so it will not host WordPress, PHP, Python, Ruby, Java or Go. It runs on DigitalOcean infrastructure, provisions PostgreSQL, and is invite-only in private preview, with CI/CD pipelines, multi-region and broader cloud support listed by Cloudways as still on the way. Pricing starts from $21/month at general availability, and you choose a plan per application rather than packing apps onto a server. Kloudbean starts at $8/month, runs seven clouds and many languages, and is generally available now. One honest caveat both ways: Kloudbean's own plan table lists "Standard Limits" on application count for Standard and Premium, with unlimited only on Enterprise.
+> **Short answer:** Cloudways Velocity is JavaScript only, so no WordPress, PHP, Python, Ruby, Java or Go. It runs one application per isolated server, which Cloudways confirms is not changing at general availability, so billing is effectively per app from $20/month. It runs on DigitalOcean only, has no documented SSH or SFTP path, and Cloudways offers no object storage bucket for uploads. Its own pricing page and its own support docs currently disagree about which databases you can provision. Kloudbean starts at $8/month, runs many languages across seven clouds, and gives you shell access and S3-compatible buckets. One honest caveat against us: Kloudbean's plan table lists "Standard Limits" on application count for Standard and Premium, with unlimited only on Enterprise, and managed databases are separate subscriptions.
 
-## The four boundaries, straight from Cloudways' documentation
+## Five boundaries, all from Cloudways' own pages
 
-Before any comparison, here's what Velocity is. Each row is Cloudways' own published position, not an inference.
+Each row is Cloudways' published position. Where their pages contradict each other, I've said so rather than picking the convenient one.
 
-| Boundary | What Cloudways says | What it rules out |
+| Boundary | What Cloudways publishes | What it rules out |
 | --- | --- | --- |
-| **Language** | "Velocity is a JavaScript runtime used to build fast and scalable web applications, APIs, and backend services." Supported workloads named: Astro, React, Angular, Express, Fastify. | WordPress. PHP. Python. Ruby. Java. Go. Anything not JavaScript. |
-| **Cloud** | "It runs on the Cloudways Lightning Stack on DigitalOcean infrastructure." | The other four clouds Cloudways offers on its own Flexible product. |
-| **Database** | "Provision PostgreSQL alongside your application." | MySQL. MariaDB. MongoDB. Redis. Anything but Postgres. |
-| **Availability** | "Currently in Private Preview", "invite-only", with a waitlist. CI/CD pipelines, multi-region deployments and broader cloud provider support are described as "on the way". | Deploying today without an invite. Planning around CI/CD or multi-region now. |
+| **Language** | "Velocity is a JavaScript runtime used to build fast and scalable web applications, APIs, and backend services." Twelve framework presets, Node LTS 22.x and 24.x. | WordPress. PHP. Python. Ruby. Java. Go. Anything not JavaScript. |
+| **Apps per server** | Pricing FAQ, verbatim: "Can I host multiple apps on one server? Not at GA. Logged in customer feedback as a post-GA fast-follow. Each app runs on its own isolated server." | Packing several small services onto one box. Every app is its own plan. |
+| **Cloud** | "It runs on the Cloudways Lightning Stack on DigitalOcean infrastructure." You pick a server location, not a provider. | The other four clouds Cloudways offers on its own Flexible product. |
+| **Shell** | No SSH or SFTP section exists in the Velocity application docs. Every mention of a terminal in their launch material frames it as something you no longer need. | Running a one-off script, a migration command, or `npm` by hand. Debugging from inside the box. |
+| **Object storage** | Cloudways publishes no object storage product. What exists is DigitalOcean Block Storage (a larger disk) and off-site backup storage billed at $0.033/GB. | A bucket for user uploads. Anything you'd normally hand to S3. |
 
-Read the first row twice, because it's the one people miss. Velocity does not host WordPress. Not as a limitation to work around, but by design: it's a JavaScript runtime. WordPress on Cloudways lives on a different product entirely, Cloudways Flexible. So if your company has a marketing site on WordPress and an API in Node, Velocity covers exactly one of those two, and the other one is a separate product, a separate plan, and a separate place to log in.
+Read the language row twice, because it's the one people miss. Velocity does not host WordPress. Not as a limitation to work around, but by design: it's a JavaScript runtime. WordPress on Cloudways lives on a different product, Cloudways Flexible. So if your company has a marketing site on WordPress and an API in Node, Velocity covers one of those, and the other is a separate product, a separate plan, and a separate place to log in.
+
+## One app per server, in their own words
+
+This is the constraint most reviews miss entirely, and it's the one that shows up on the invoice.
+
+On Cloudways Flexible, the economics are per server, and their pricing FAQ is explicit: "There is no restriction on the number of applications you can launch on a single server." You buy a server and pack it. Five small client sites on one $11 box is normal practice.
+
+Velocity inverts that. Their Velocity pricing FAQ answers the multiple-apps question with "Not at GA", notes it's logged as customer feedback for a post-GA fast-follow, and states that each app runs on its own isolated server. So this isn't a limit you can raise by buying a bigger plan, and it isn't a preview-only restriction they've said will lift at launch. It's the architecture, and they've told you it survives general availability.
+
+Isolation is a real benefit, to be fair. One app cannot starve another of CPU, and a bad deploy is contained. That's a defensible engineering choice. It just costs what it costs, and the audience Cloudways names first in its own announcement is agencies managing multiple client applications, which is exactly the audience that pays for it most.
 
 ## Why "Cloudways is mature" isn't the argument here
 
-You'll see this comparison written as "Cloudways is an established host, so weigh that against the newer option." That framing doesn't survive contact with the facts, and it's worth saying why plainly.
+You'll see this comparison written as "Cloudways is an established host, so weigh that against the newer option." That framing doesn't survive contact with the facts.
 
-Cloudways the company is established. Velocity the product is in private preview. Those are not the same claim, and the maturity of the parent product transfers less than the marketing implies, because Velocity is a separate stack on a separate footprint with a separate feature set. Cloudways Flexible gives you five clouds; Velocity gives you one. Flexible states there is no restriction on applications per server; Velocity sells a plan per application. Flexible runs WordPress, Magento, Laravel and PHP; Velocity runs none of them.
+Cloudways the company is established. Velocity the product is in public preview with general availability dated Aug 31 on their pricing page. Those are not the same claim, because Velocity is a separate stack on a separate footprint with a separate feature set. Flexible gives you five clouds; Velocity gives you one. Flexible has no restriction on apps per server; Velocity is one app per server, confirmed for GA. Flexible has documented SSH, SFTP, master credentials and a browser terminal; Velocity's docs have none of those. Flexible runs WordPress, Magento, Laravel and PHP; Velocity runs none of them.
 
-So when someone tells you Velocity inherits a decade of platform maturity, ask which part. The CI/CD pipelines aren't shipped. Multi-region isn't shipped. The additional clouds aren't shipped. Cloudways says so themselves, in the launch announcement, under the heading of what's coming at general availability.
+So when someone tells you Velocity inherits a decade of platform maturity, ask which part. Their launch post lists broader cloud provider support, CI/CD pipelines and multi-region deployments as still on the way. Cloudways is a DigitalOcean subsidiary, which probably explains the single-cloud footprint, though it's worth being clear that's my reading of why and not a statement of their roadmap.
 
-## The pricing model inverts, and that's the expensive part
+## No shell, by design
 
-This is the part that actually shows up on an invoice, and it's structural rather than a matter of a few dollars.
+Here's the part I'd want to know before signing anything, and it's worth stating precisely rather than loudly.
 
-On Cloudways Flexible, the economics are per server. Their pricing FAQ is explicit: "There is no restriction on the number of applications you can launch on a single server." So you buy a server and pack it. Five small client sites on one $11 box is a normal, sensible move.
+Cloudways documents SSH and SFTP thoroughly for its other products: master versus application credentials, a browser-based SSH terminal, SSH keys, per-user access toggles. None of that documentation covers Velocity. The Velocity application menu, as their own overview guide lays it out, is Overview, Monitoring, Database, Backup and Restore, Deployment Management, and Settings. No credentials section. No terminal.
 
-On Velocity, you choose a plan per application. The launch flow is: pick your Velocity plan, then connect one repository. To add another app, their overview guide says to "click Add Application if you want to launch another Velocity application", and that one gets its own plan, its own database credentials, its own monitoring and its own backups. So the unit of billing moved from the server to the app.
+Meanwhile their launch material sells the absence as the feature, four separate times: no need for FTP or SSH sessions to push an update, process control "without opening a terminal", environment variables with no need to "initiat[e] an SSH session to source a file", and deploying "without ... ever needing to SSH into a server". Their services guide makes the same promise, describing troubleshooting "without running server commands".
 
-That inversion matters most to exactly the audience Cloudways names in its own announcement: agencies managing multiple client applications. Three small Node services that would have shared one server now sit on three plans. Nothing about that is hidden, but it's easy to miss when you're reading a feature list rather than a billing model.
+For a lot of workflows that's genuinely fine, even pleasant. Dashboard restarts of PM2, NGINX, Redis and Imunify360 are documented and they cover the common cases. But there's a category of work that a dashboard cannot do:
+
+- Running a one-off data migration or backfill script.
+- `npm ls` to find out which transitive dependency actually got installed.
+- Inspecting a file the build produced, or didn't.
+- A heap snapshot when a process leaks memory.
+- Anything a runbook says to do at 2am that isn't a restart button.
+
+Cloudways hasn't published a statement that shell access is unavailable, so if you need it, ask them directly before you commit rather than trusting my reading of the docs. What I can say is that no path to it is documented, and their design intent is clearly a dashboard-only product.
+
+Kloudbean's position is the opposite one: you get the server. SSH access, your own processes, cron from the UI or the shell, and files you can go look at. That's a real trade, not a free win, because a shell is also how people break production. But the boundary of what you're allowed to do is much further out.
+
+## Nowhere to put your uploads
+
+Every Node app that accepts a file needs somewhere to put it that isn't the application server's disk. Avatars, invoices, CSV exports, generated PDFs. On Velocity, the documented storage surfaces are the plan's disk space, a Disk Cleanup tool, and off-site backup storage at $0.033/GB. There's no bucket.
+
+Cloudways offers DigitalOcean Block Storage as a one-click add-on on its servers, and it's worth being precise about why that isn't a substitute: block storage is a bigger disk attached to one machine. Object storage is an HTTP API with its own durability, public and private access control, and no dependency on any single server staying alive. You cannot serve a public avatar URL from a block device without your app in the request path. Their own customer feedback portal carries an open request for native one-click S3 object storage integration, which tells you both that it doesn't exist and that customers want it.
+
+So the practical outcome is that uploads land on the app disk, and that's the classic quiet failure. It usually looks fine for months. Then a rebuild, a restore, or a move to a bigger plan happens and the files aren't there, because nothing in the deploy pipeline ever treated that directory as data. If you're on a platform without buckets, wire uploads to an external object store on day one, before there's anything to lose.
+
+Kloudbean ships S3-compatible buckets and managed Google Cloud Storage in the same account as the app, with public and private access controls, and data transfer out isn't metered.
+
+## The database story, where their own two pages disagree
+
+Worth flagging carefully, because I found a straight contradiction.
+
+Their Velocity pricing FAQ says PostgreSQL, MySQL and MongoDB can all be provisioned from the dashboard. Their Velocity database support article, published more recently, documents exactly two options: install PostgreSQL inside the Cloudways environment, or connect Supabase and host the database externally. No MySQL. No MongoDB.
+
+I can't resolve that from outside, so treat the support doc as the operational truth and verify in the dashboard before you plan around MySQL or Mongo. Two further details from that support article that matter more than the engine count:
+
+**The Postgres install is a one-way door.** Their own FAQ: "Can PostgreSQL be removed after installation? No." It states the installation is irreversible and cannot be uninstalled from the environment. Given one app per server, that means a decision you make in the first ten minutes is permanent for the life of that server.
+
+**It installs a database, not a connection.** Their words: installing PostgreSQL "only creates the database. It does not automatically update your application code." It writes environment variables, they apply on the next deploy, and if your app expects different variable names it won't connect. Fair enough, but "provisioned" is doing some work in the marketing copy.
+
+Redis, credit where it's genuinely due, is in the stack and is restartable from the dashboard, and their docs sensibly warn you it may be holding sessions or queues rather than just cache. So sessions and BullMQ are covered without a third-party vendor. That's a real point in Velocity's favour and I'd rather say it than let you find out I'd left it out.
+
+For contrast, Kloudbean's managed databases are standalone subscriptions you size, back up and connect to independently: MySQL, PostgreSQL, MariaDB, MongoDB, Redis, Memcached and Elasticsearch, with the support docs listing nine or more engines. Removable, resizable, and not welded to one app server.
 
 ## Real pricing, from both vendors' own pages
 
-Verified figures only. Check both pricing pages before you commit, because these move and promotional rates come and go.
+Verified figures only. Check both pricing pages before you commit, because preview pricing and promotional rates move.
+
+Velocity's published ladder, per application:
+
+| Velocity plan | Price | RAM | vCPU | CDN bandwidth |
+| --- | --- | --- | --- | --- |
+| Starter | $20/mo | 2GB | 2 | 100GB |
+| Professional | $30/mo | 4GB | 2 | 200GB |
+| Growth | $50/mo | 8GB | 4 | 300GB |
+| Scale | $100/mo | 16GB | 8 | 400GB |
+| Plus | $150/mo | 32GB | 8 | 500GB |
+
+Bandwidth past the plan allocation is $0.02/GB and off-site backup storage is $0.033/GB, so it isn't purely flat. Their launch post says pricing starts from $21/month at general availability while the pricing page lists Starter at $20, so treat the exact entry figure as unsettled.
+
+Now the three-way view:
 
 | | Cloudways Velocity | Cloudways Flexible | Kloudbean |
 | --- | --- | --- | --- |
-| **Entry price** | From $21/mo at general availability | From $11/mo (2GB RAM, 1 vCPU, 50GB storage) | From $8/mo |
+| **Entry price** | $20/mo (2GB, 2 vCPU) | From $11/mo (2GB, 1 vCPU, 50GB storage) | From $8/mo |
 | **Billing unit** | Per application | Per server | Per server |
-| **Apps per server** | Plan is per app | "No restriction on the number of applications" | "Standard Limits" on Standard and Premium; unlimited on Enterprise |
-| **Clouds** | DigitalOcean | 5 (DigitalOcean, Vultr, Linode, AWS, Google Cloud) | 7 (AWS, Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, UpCloud) |
+| **Apps per server** | One. "Each app runs on its own isolated server" | "No restriction on the number of applications" | "Standard Limits" on Standard and Premium; unlimited on Enterprise |
+| **Clouds** | DigitalOcean only | 5 (DigitalOcean, Vultr, Linode, AWS, Google Cloud) | 7 (AWS, Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, UpCloud) |
 | **Languages** | JavaScript only | PHP, WordPress, Magento, Laravel | PHP, WordPress, WooCommerce, Laravel, Magento, Drupal, Joomla, Node, Python, Ruby, Java, Go, static |
-| **Databases** | PostgreSQL | MySQL and MariaDB with the app | 9+ documented, including MySQL, PostgreSQL, MongoDB, Redis, MariaDB, Elasticsearch |
-| **Availability** | Private preview, invite-only | Generally available | Generally available |
-| **Free trial** | Complimentary during preview, terms apply | 3 days, no card required | 3 days, servers only |
+| **Shell access** | Not documented | SSH, SFTP, browser terminal | SSH and SFTP |
+| **Databases** | PostgreSQL in-environment or external Supabase, per the support docs; the pricing page also claims MySQL and MongoDB | MySQL and MariaDB with the app | 9+ documented, standalone and separately sized |
+| **Object storage** | None | None | S3-compatible buckets and managed GCS, transfer out not metered |
+| **Availability** | Public preview, GA dated Aug 31 on their pricing page | Generally available | Generally available |
+| **Free trial** | Free during public preview; from GA, 3 days on Starter and Professional | 3 days, no card required | 3 days, servers only |
 
-Two observations worth drawing out. First, Velocity's entry price is roughly double Cloudways' own Flexible entry, for a product that runs one language instead of four, on one cloud instead of five. You pay more to be able to do less. That's a defensible trade if the Node-native tooling is what you're buying, and it's worth being clear-eyed that it is the trade.
+## What three small services actually cost
 
-Second, an honest one against us: Kloudbean's managed databases are separately priced subscriptions, not bundled with the server. Managed PostgreSQL starts at $18/month for a 1GB Starter instance, $30/month for 2GB, and $60/month for 4GB. Velocity provisions Postgres as part of the application. For a single small app where you'd take the smallest database anyway, that bundling is a genuine point in Velocity's favour on total cost, and any comparison that hides it isn't worth reading.
+Arithmetic, not opinion. Say you run three modest Node services: an API, a scheduled worker, and a small SSR front end. Nothing exotic, 2GB each is plenty.
+
+On Velocity that's three applications, so three isolated servers, so three Starter plans. $60 a month, and each one wants its own irreversible Postgres if it needs a database. On Cloudways' own Flexible product the same three apps on one server would be $11, except Flexible won't run Node. So Cloudways' Node product is the one where packing is forbidden, and their PHP product is the one where it's explicitly allowed.
+
+On Kloudbean it's one server, and the three apps sit on it subject to your tier's application limit, with a managed database beside them if you want one that you can resize and remove. I'm not going to pretend that's unlimited on an $8 plan, because it isn't; see the next section.
+
+Then it compounds. A fourth service, a staging copy of the API, a client's second site. On per-app billing each of those is another plan at the floor price, whether or not it does any meaningful traffic. Staging environments are where this bites hardest, since a staging copy is a full-price application that serves nobody.
 
 ## Where Kloudbean has limits too
 
 If this page only listed the other product's constraints it would be marketing, so here are ours, from our own documentation.
 
-**Application count is capped below Enterprise.** Kloudbean's plan comparison lists "Application Limit: Standard Limits" for both Standard and Premium, and unlimited only on Enterprise. So "host as many apps as you like on one server" is not a promise we get to make on an $8 plan either. If packing a large number of apps onto one box is the whole plan, get the specific number for your tier before you build around it.
+**Application count is capped below Enterprise.** Kloudbean's plan comparison lists "Application Limit: Standard Limits" for both Standard and Premium, and unlimited only on Enterprise. So "pack as many apps as you like" is not a promise we get to make on an $8 plan. Our docs give a label rather than a number, which is not good enough; get the specific figure for your tier before you build around it. It is comfortably more than one.
 
-**Databases cost extra.** As above. A server plus a managed Postgres is two subscriptions.
+**Databases cost extra.** A server plus a managed Postgres is two subscriptions. Managed PostgreSQL starts at $18/month for a 1GB Starter instance, $30/month for 2GB, and $60/month for 4GB. Velocity bundles Postgres inside the application plan, so for a single small app that bundling is a genuine total-cost advantage for them, and any comparison hiding it isn't worth reading.
 
-**Free migration is per tier**, not unlimited: one migration per server on Standard, up to 10 on Premium, unlimited on Enterprise.
+**Free migration is per tier**, not unlimited: one per server on Standard, up to 10 on Premium, unlimited on Enterprise.
 
-**BitNinja Pro security is Premium and Enterprise.** Standard's baseline is the Shorewall firewall plus Fail2ban, which is real hardening but it isn't the same thing.
+**BitNinja Pro security is Premium and Enterprise.** Standard's baseline is the Shorewall firewall plus Fail2ban. Real hardening, not the same thing.
 
-**The free trial is servers only.** Databases and load balancers bill from creation, with no trial.
+**The free trial is servers only.** Databases and load balancers bill from creation.
 
-None of that changes the shape of the comparison, and stating it is the only way the rest of the page earns any credibility.
+**Kubernetes, autoscaling, VPC and VPN are Enterprise**, not standard-plan toggles. On a standard plan you scale by resizing and by adding nodes behind the load balancer yourself.
 
 ## So which one, and when
 
-The decision is unusually clean here, because the boundaries do most of the work.
+The boundaries do most of the work here, so this is unusually clean.
 
-**Velocity fits** if your application is JavaScript, you are happy on DigitalOcean, Postgres is your database, you can get an invite, and the per-application billing suits how many apps you actually run. For a single Node or Astro app from a team that wants Node-native tooling and nothing else, that's a coherent product and the framework presets and dashboard process management are the point of it.
+**Velocity fits** a single JavaScript application, on DigitalOcean, with Postgres, run by a team that never wants a terminal and has nowhere it needs to put files. For one Next.js or Astro app with no uploads and no siblings, the framework presets and dashboard process control are a coherent product and the isolation is a genuine plus.
 
-**Velocity does not fit** the moment a second language appears. A WordPress site next to the API. A Python service doing the data work. A Laravel admin panel. Any of those and you are running two Cloudways products, or looking elsewhere.
+**Velocity stops fitting** at the second app, the second language, the first file upload, and the first task that needs a shell. A WordPress site next to the API. A Python service doing the data work. Avatars. A migration script. Any one of those means a second platform or a second product.
 
-**Kloudbean fits** when the stack is mixed or expected to become mixed, when you want more than one cloud on the table, when you want the database, object storage and load balancer in the same dashboard as the app, and when you'd rather not wait for an invite. WordPress, WooCommerce, Laravel, Magento, Drupal and Joomla run alongside Node, Python, Ruby, Java, Go and static sites, with staging available for WordPress and Laravel.
+**Kloudbean fits** when the stack is mixed or heading that way, when several apps should share a server, when you want the database, buckets and load balancer in the same dashboard, and when you want the option of logging in and looking. WordPress, WooCommerce, Laravel, Magento, Drupal and Joomla run alongside Node, Python, Ruby, Java, Go and static sites, with staging on WordPress and Laravel, across seven clouds.
 
 Write down every service your product will need in six months, then mark each one "in the platform" or "somewhere else". That list, not a feature table, is the answer.
 
@@ -101,51 +170,57 @@ Write down every service your product will need in six months, then mark each on
 
 Undramatic, which is the point. A Node app is a repository, a set of environment variables and a database.
 
-Point a Kloudbean server at the same GitHub repository, copy the environment variables into the dashboard, move the database with a standard dump and restore, swap the connection string, then redeploy and verify before you cut any traffic over. Your app runs as an always-on process under PM2, deploys come from Git with the build log streaming live, and application logs are readable in the dashboard under Application Administration then Logs Viewer, where the App Errors tab holds the error log.
+Point a Kloudbean server at the same GitHub repository, copy the environment variables into the dashboard, move the database with a standard dump and restore, swap the connection string, then redeploy and verify before you cut traffic over. Your app runs always-on under PM2, deploys come from Git with the build log streaming live, and application logs are readable in the dashboard under Application Administration then Logs Viewer, where the App Errors tab holds the error log. If uploads are currently sitting on a disk somewhere, that's the moment to move them into a bucket.
 
 Free migration assistance covers one migration per server on Standard, and there's a 3-day trial on one service if you'd rather prove it than take my word for it.
 
 ## How it fits the rest of your stack
 
-Start with [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/) for the architectural options, then the hands-on [deploy a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/), [deploy an Express app](https://www.kloudbean.com/blog/deploy-express-app/) and [deploy a NestJS app](https://www.kloudbean.com/blog/deploy-nestjs-app/). Weighing Cloudways more broadly? See [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/) and [Cloudways alternatives](https://www.kloudbean.com/blog/cloudways-alternatives/). For the database beside the app, [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/).
+Start with [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/) for the architectural options, then the hands-on [deploy a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/), [deploy an Express app](https://www.kloudbean.com/blog/deploy-express-app/) and [deploy a NestJS app](https://www.kloudbean.com/blog/deploy-nestjs-app/). For uploads, [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). Weighing Cloudways more broadly? See [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/) and [Cloudways alternatives](https://www.kloudbean.com/blog/cloudways-alternatives/). For the database beside the app, [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/).
 
 ---
 
-**Run every language your product needs, in one dashboard.** Deploy from GitHub, run always-on under PM2, and put a managed PostgreSQL, MySQL, MongoDB or Redis beside the app, with object storage, static sites and a load balancer across seven clouds. Generally available, no waitlist. Start from $8/mo at [kloudbean.com](https://www.kloudbean.com/), and verify current pricing on [pricing](https://www.kloudbean.com/pricing/).
+**Several apps, several languages, one server, one dashboard.** Deploy from GitHub, run always-on under PM2, keep shell access, and put managed PostgreSQL, MySQL, MongoDB or Redis beside the app with S3-compatible buckets, static sites and a load balancer across seven clouds. Generally available. Start from $8/mo at [kloudbean.com](https://www.kloudbean.com/), and verify current pricing on [pricing](https://www.kloudbean.com/pricing/).
 
-Seven clouds · Many languages · Managed databases beside the app · Object storage and load balancer · From $8/mo · Free migration
+Seven clouds · Many languages · Shell access · Managed databases and buckets in one account · From $8/mo · Free migration
 
 ## FAQ
 
 **What is Cloudways Velocity?**
-Cloudways Velocity is Cloudways' managed Node.js hosting, renamed. Their documentation notes it is a product name change only. Cloudways describes it as a JavaScript runtime for web applications, APIs and backend services, running on the Cloudways Lightning Stack on DigitalOcean infrastructure, with Git-based deployment from the Cloudways platform.
+Cloudways Velocity is Cloudways' managed Node.js hosting, renamed. Their documentation notes it is a product name change. Cloudways describes it as a JavaScript runtime for web applications, APIs and backend services, running on the Cloudways Lightning Stack on DigitalOcean infrastructure, deployed from a connected Git repository with twelve framework presets and Node LTS 22.x or 24.x.
 
 **Does Cloudways Velocity support WordPress?**
 No. Velocity is a JavaScript runtime, so it does not run WordPress or any other PHP application. WordPress on Cloudways runs on their separate Flexible product. If you need WordPress and a Node app together, that is two different Cloudways products rather than one platform.
 
 **Can Velocity run PHP, Python, or Ruby apps?**
-No. Velocity is JavaScript only. The workloads Cloudways names are Astro for server-side rendering, React and Angular for client-side rendering, and Express and Fastify for backend APIs. PHP, Python, Ruby, Java and Go are outside its scope, so a mixed-language stack needs another platform alongside it.
+No. Velocity is JavaScript only. Their framework presets cover Next.js, Remix, TanStack, React, Astro, Nuxt, Svelte, Vite, Express, Fastify, Angular and n8n. PHP, Python, Ruby, Java and Go are outside its scope, so a mixed-language stack needs another platform alongside it.
+
+**Can I host multiple apps on one Cloudways Velocity server?**
+No. Their pricing FAQ answers this directly: not at general availability, logged as customer feedback for a post-GA fast-follow, and each app runs on its own isolated server. So you cannot pack several small services onto one box, and each application carries its own plan from $20 a month.
 
 **How much does Cloudways Velocity cost?**
-Cloudways states that pricing starts from $21 per month at general availability, with access complimentary during the preview period subject to terms. You select a plan per application rather than per server, so the cost scales with the number of applications you run. Check Cloudways' own pricing page for current figures.
+Their published ladder runs Starter $20 per month for 2GB and 2 vCPU, Professional $30 for 4GB, Growth $50 for 8GB, Scale $100 for 16GB and Plus $150 for 32GB, each priced per application. Bandwidth beyond the plan allocation is $0.02 per GB and off-site backup storage is $0.033 per GB. Their launch post cites a $21 starting price, so verify the current figure.
 
 **Is Cloudways Velocity generally available?**
-Not at the time of writing. Cloudways describes it as being in private preview and invite-only, with a waitlist to join. Their announcement lists broader cloud provider support, CI/CD pipelines and multi-region deployments as still on the way at general availability, so those are not features you can plan around today.
+Not yet at the time of writing. It launched in invite-only private preview, is now in public preview with no invite required, and their pricing page dates general availability to Aug 31. Broader cloud provider support, CI/CD pipelines and multi-region deployments are listed as still on the way, so those are not features you can plan around today.
 
-**How many applications can I run on one Velocity plan?**
-Velocity plans are chosen per application. Their overview guide directs you to click Add Application to launch another Velocity application, which gets its own plan and its own database credentials. That differs from Cloudways Flexible, where their pricing FAQ states there is no restriction on the number of applications per server.
+**Does Cloudways Velocity give you SSH access?**
+Not that they document. Cloudways documents SSH, SFTP and a browser terminal for its other products, but the Velocity application menu has no credentials or terminal section, and their launch material repeatedly frames the terminal as something you no longer need. They have not published an explicit statement either way, so ask their support directly if shell access matters to you.
 
 **Which cloud providers does Cloudways Velocity support?**
-One. Cloudways states that Velocity runs on the Cloudways Lightning Stack on DigitalOcean infrastructure. Their Flexible product supports five clouds, so choosing Velocity narrows your provider choice compared with the rest of the Cloudways platform. Broader cloud support is listed as coming at general availability.
+One. Cloudways states that Velocity runs on the Cloudways Lightning Stack on DigitalOcean infrastructure, and the launch flow lets you pick a server location rather than a provider. Their Flexible product supports five clouds, so choosing Velocity narrows your provider choice compared with the rest of the Cloudways platform.
 
 **Which database can I use with Cloudways Velocity?**
-PostgreSQL. Cloudways describes provisioning PostgreSQL alongside your application, and notes you can skip database provisioning if your app uses an external database or none at all. If your application needs MySQL, MariaDB, MongoDB or Redis, you would connect to something outside Velocity.
+Their own pages disagree. The Velocity pricing FAQ claims PostgreSQL, MySQL and MongoDB, while their more recent support article documents only PostgreSQL installed inside the Cloudways environment or an externally hosted Supabase database. That article also states the PostgreSQL install is irreversible and cannot be uninstalled. Verify in the dashboard before planning around MySQL or MongoDB. Redis does run as a stack service.
+
+**Does Cloudways offer object storage for file uploads?**
+No. Cloudways publishes no object storage product on any plan. What exists is DigitalOcean Block Storage, which is a larger disk attached to one server rather than a bucket, and off-site backup storage billed per GB. Their own customer feedback portal carries an open request for native S3 bucket integration, so plan on an external object store for uploads.
 
 **What is the best Cloudways Velocity alternative?**
-It depends on how narrow your needs are. If you only ever run JavaScript on DigitalOcean with Postgres, Velocity is coherent. If your stack is mixed or likely to become mixed, Kloudbean is the closer fit: seven clouds, many languages, managed databases, object storage and a load balancer in one dashboard, generally available from $8 a month.
+It depends on how narrow your needs are. For one JavaScript app on DigitalOcean with Postgres and no uploads, Velocity is coherent. For a mixed stack, several apps on one server, file uploads, or work that needs a shell, Kloudbean is the closer fit: seven clouds, many languages, SSH access, S3-compatible buckets and managed databases in one dashboard, generally available from $8 a month.
 
 **Does Kloudbean have application limits too?**
-Yes, and it's worth knowing. Kloudbean's plan comparison lists "Standard Limits" on application count for the Standard and Premium tiers, with unlimited applications only on Enterprise. So if hosting a large number of apps on one server is central to your plan, confirm the specific limit for your tier first. Managed databases are also separate subscriptions rather than bundled with the server.
+Yes, and it's worth knowing. Kloudbean's plan comparison lists "Standard Limits" on application count for Standard and Premium, with unlimited only on Enterprise, and it gives a label rather than a number, so confirm the figure for your tier. It is comfortably more than one. Managed databases are also separate subscriptions rather than bundled with the server.
 
 ---
 
