@@ -5,7 +5,7 @@
 
 ## X / Twitter
 ```
-If you run only WordPress and you're happy on Google Cloud, Kinsta is a strong, genuine choice.
+If you run only WordPress, Kinsta is a strong, genuine choice, and since February 2026 that really is all it does: apps, databases, static sites and object storage moved to Sevalla, its separate PaaS. Its infrastructure also moved from Google Cloud to Oracle Cloud Infrastructure, a per-site upgrade customers can't opt out of.
 
 https://www.kloudbean.com/blog/kloudbean-vs-kinsta/
 #Kloudbean #WordPress #WebHosting
@@ -13,7 +13,7 @@ https://www.kloudbean.com/blog/kloudbean-vs-kinsta/
 
 ## LinkedIn
 ```
-If you run only WordPress and you're happy on Google Cloud, Kinsta is a strong, genuine choice.
+If you run only WordPress, Kinsta is a strong, genuine choice, and since February 2026 that really is all it does: apps, databases, static sites and object storage moved to Sevalla, its separate PaaS. Its infrastructure also moved from Google Cloud to Oracle Cloud Infrastructure, a per-site upgrade customers can't opt out of.
 
 If you run more than WordPress, want to choose your cloud, or want databases, object storage, apps, and load balancing in one place, that's Kloudbean, which also does managed WordPress, WooCommerce, and WordPress staging. Same managed promise. Very different reach.
 
@@ -29,7 +29,7 @@ Read the full guide: https://www.kloudbean.com/blog/kloudbean-vs-kinsta/
 Quick thread 🧵
 ```
 ```
-2/6  If you run only WordPress and you're happy on Google Cloud, Kinsta is a strong, genuine choice.
+2/6  If you run only WordPress, Kinsta is a strong, genuine choice, and since February 2026 that really is all it does: apps, databases, static sites and object storage moved to Sevalla, its separate PaaS. Its infrastructure also moved from Google Cloud to Oracle Cloud Infrastructure, a per-site upgrade customers can't opt out of.
 ```
 ```
 3/6  If you run more than WordPress, want to choose your cloud, or want databases, object storage, apps, and load balancing in one place, that's Kloudbean, which also does managed WordPress, WooCommerce, and WordPress staging.

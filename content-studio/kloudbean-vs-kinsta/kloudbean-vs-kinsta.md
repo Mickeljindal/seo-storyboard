@@ -1,7 +1,7 @@
 ---
 title: "Kloudbean vs Kinsta: It Comes Down to Scope"
 slug: kloudbean-vs-kinsta
-meta_description: "Kloudbean vs Kinsta is really a question of scope. Kinsta is premium managed WordPress on Google Cloud. Kloudbean runs WordPress plus apps, six databases, storage, and a load balancer across seven clouds. Here's how to pick."
+meta_description: "Kloudbean vs Kinsta is really a question of scope. Kinsta is premium managed WordPress, now on Oracle Cloud Infrastructure, with apps and databases moved out to Sevalla. Kloudbean runs WordPress plus apps, seven managed databases, storage and a load balancer across seven clouds. How to pick."
 target_keyword: kloudbean vs kinsta
 secondary_keywords:
   - kinsta alternative
@@ -18,21 +18,33 @@ cluster: 4, vs Competitors
 
 # Kloudbean vs Kinsta: It Comes Down to Scope
 
-You probably met Kinsta through its docs before you ever thought about hosting with it. Half the web-dev questions you've typed into a search bar surface a Kinsta article. They earned that. Kinsta is a genuinely good premium managed WordPress host, built on Google Cloud.
+You probably met Kinsta through its docs before you ever thought about hosting with it. Half the web-dev questions you've typed into a search bar surface a Kinsta article. They earned that. Kinsta is a genuinely good premium managed WordPress host. Two things about it changed recently though, and both bear on this comparison, so they come first.
 
-So Kloudbean vs Kinsta isn't a fight about quality. Both are polished, both are managed, both take the server off your plate. The honest way to choose is scope. Kinsta does one thing extremely well: WordPress, on one cloud. Kloudbean does a wider job: WordPress and WooCommerce, plus apps in many languages, six managed databases, object storage, and a load balancer, across seven clouds, in one dashboard. If you can name your scope, the pick almost makes itself.
+So Kloudbean vs Kinsta isn't a fight about quality. Both are polished, both are managed, both take the server off your plate. The honest way to choose is scope. Kinsta does one thing extremely well: WordPress, on one cloud. Kloudbean does a wider job: WordPress and WooCommerce, plus apps in many languages, seven managed databases, object storage, and a load balancer, across seven clouds, in one dashboard. If you can name your scope, the pick almost makes itself.
 
-> **Short answer:** If you run only WordPress and you're happy on Google Cloud, Kinsta is a strong, genuine choice. If you run more than WordPress, want to choose your cloud, or want databases, object storage, apps, and load balancing in one place, that's Kloudbean, which also does managed WordPress, WooCommerce, and WordPress staging. Same managed promise. Very different reach.
+> **Short answer:** If you run only WordPress, Kinsta is a strong, genuine choice, and since February 2026 that really is all it does: apps, databases, static sites and object storage moved to Sevalla, its separate PaaS. Its infrastructure also moved from Google Cloud to Oracle Cloud Infrastructure, a per-site upgrade customers can't opt out of. If you run more than WordPress, want to choose your cloud, or want databases, object storage, apps, and load balancing in one place, that's Kloudbean, which also does managed WordPress, WooCommerce, and WordPress staging. Same managed promise. Very different reach.
+
+## Two recent Kinsta changes that move this decision
+
+Both of these are on Kinsta's own pages, and they matter more than any feature table.
+
+**The infrastructure is now Oracle Cloud Infrastructure, not Google Cloud.** Kinsta's own infrastructure-upgrades doc says their new infrastructure "is powered by Oracle Cloud Infrastructure (OCI)", and refers to Google Cloud twice as the "previous" and "former" setup. The rollout is per site rather than instant, and you can't opt out of it: their docs are explicit that opting out isn't possible. In practice a site gets an email one to two weeks ahead, a maintenance window between 2am and 5am local, an external IP change, new SFTP and SSH host and port values, and possibly a move to a different data centre, because OCI's region list differs from Google Cloud's. Their words: some regions "may no longer be available" afterwards.
+
+I want to be fair about this rather than score a point. Swapping the cloud underneath a managed platform is a legitimate engineering decision and Kinsta is handling it with notice, snapshots and a maintenance window. But it's a clean illustration of what single-provider hosting means. You didn't choose Google Cloud, and you didn't choose to leave it. If your site needed a specific region, or a fixed IP, that was decided for you.
+
+**Applications, databases, static sites and object storage moved to Sevalla.** Since February 2, 2026 those services are managed in Sevalla, Kinsta's separate PaaS, rather than in MyKinsta. Kinsta's stated reason is that it "allows Kinsta to focus fully on WordPress hosting". Nothing breaks for existing users, billing carries over, and you sign in with the same credentials. But the shape of the comparison changed: if you run a WordPress site and a Node app and a database, that's now two dashboards and two products, not one.
+
+So the scope argument below isn't me framing Kinsta as narrow. Kinsta has said it is, deliberately, and it's a defensible strategy. It just answers the question of who each platform is for.
 
 ## What you're really choosing: scope, not a scoreboard
 
 Comparison posts love to crown a winner. This one won't, because the two aren't aimed at the same target. One is a specialist. The other is a platform. Picture the footprint of each and the decision gets obvious.
 
-**Kinsta (single-purpose):** WordPress, running on Google Cloud. One app, one cloud.
+**Kinsta (single-purpose):** WordPress, on whichever cloud Kinsta runs, which is now Oracle Cloud Infrastructure. One app, one cloud, and not your call which one.
 
-**Kloudbean (whole stack, seven clouds):** WordPress and WooCommerce; Node, Python, Ruby, and Java apps; six managed databases; S3 and GCS object storage; a built-in load balancer; static sites and one-click AI apps. And you pick any of seven clouds (AWS, AWS Lightsail, GCP, Linode, Vultr, DigitalOcean, UpCloud), running different projects on different ones.
+**Kloudbean (whole stack, seven clouds):** WordPress and WooCommerce; Node, Python, Ruby, Java and Go apps; seven managed databases; S3 and GCS object storage; a built-in load balancer; static sites and one-click AI apps. And you pick any of seven clouds (AWS, AWS Lightsail, GCP, Linode, Vultr, DigitalOcean, UpCloud), running different projects on different ones.
 
-> **Genuinely just WordPress on Google Cloud?** Then Kinsta is a real, honest pick, and I'd tell a friend the same. Fast WordPress, a clean dashboard, sensible defaults, and a support reputation that people rave about. If that's the whole job, you don't need a bigger platform. The rest of this guide is for when the job is bigger.
+> **Genuinely just WordPress?** Then Kinsta is a real, honest pick, and I'd tell a friend the same. Fast WordPress, a clean dashboard, sensible defaults, and a support reputation that people rave about. If that's the whole job, you don't need a bigger platform. The rest of this guide is for when the job is bigger.
 
 ## When you've outgrown a single-purpose WordPress host
 
@@ -40,7 +52,7 @@ The moment your answer to "what am I hosting?" includes anything past WordPress,
 
 ### Do you want to choose your cloud provider?
 
-Kinsta runs on Google Cloud, full stop. It's a great cloud, but it's the one you get. Kloudbean is multi-cloud in the literal sense: you pick from seven providers (AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, UpCloud) and can run different projects on different ones. If you have AWS credits, a region requirement, or a pricing preference, that choice matters, and it's simply not on the table with a single-cloud host. Curious how another single-cloud premium host compares? See [Kloudbean vs WP Engine](https://www.kloudbean.com/blog/kloudbean-vs-wp-engine/).
+Kinsta runs on one cloud, and which one is their decision, not yours. It was Google Cloud; their new infrastructure is Oracle Cloud Infrastructure. Both are strong clouds. The point is that you get whichever they pick, and it can change underneath you. Kloudbean is multi-cloud in the literal sense: you pick from seven providers (AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, UpCloud) and can run different projects on different ones. If you have AWS credits, a region requirement, or a pricing preference, that choice matters, and it's simply not on the table with a single-cloud host. Curious how another single-cloud premium host compares? See [Kloudbean vs WP Engine](https://www.kloudbean.com/blog/kloudbean-vs-wp-engine/).
 
 ### Are you running apps and databases, not just sites?
 
@@ -48,7 +60,7 @@ Here's where the platform side shows. On Kloudbean you launch a managed database
 
 ![The Kloudbean console launching a managed database next to your apps](../assets/console/launch-database.png)
 
-Six engines are on offer: MySQL, MariaDB, PostgreSQL, Redis, Elasticsearch, and MongoDB. Alongside them, apps in many languages, S3-compatible and GCS object storage, and a built-in load balancer, all under one login. Adding an app is the same flow as adding a site:
+Seven engines are on offer: MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch and MongoDB. Alongside them, apps in many languages, S3-compatible and GCS object storage, and a built-in load balancer, all under one login. Adding an app is the same flow as adding a site:
 
 ![The Kloudbean console adding an application](../assets/console/add-application.png)
 
@@ -72,25 +84,25 @@ Two practical things decide a lot of hosting moves. First, support. Kinsta's rep
 
 No big table needed. Here it is in a breath.
 
-- **Lean Kinsta** if you're WordPress-first, you want a highly polished premium experience with famously strong support, and you're happy on Google Cloud.
+- **Lean Kinsta** if you're WordPress-first, you want a highly polished premium experience with famously strong support, and you have no preference about which cloud sits underneath it.
 - **Lean Kloudbean** if you want to choose your cloud, you run a mix of apps and databases, or you'd rather size infrastructure directly than fit into plan tiers, and you still want managed WordPress in the same place.
-- **Genuinely close** only for a pure WordPress shop happy on Google Cloud. Then it's down to dashboard taste and support preference. For anything broader, Kloudbean reaches further.
+- **Genuinely close** only for a pure WordPress shop with no cloud preference. Then it's down to dashboard taste and support preference. For anything broader, Kloudbean reaches further.
 
-Same managed promise underneath both: Linux stacks where the platform handles the server, the stack, SSL, and backups, and you keep your application and its data. What differs is reach. Seven clouds, six databases, many languages, and built-in storage and load balancing means you're far less likely to hit a wall you'd have to change hosts to get past. If you want the wider field, the [Cloudways alternatives](https://www.kloudbean.com/blog/cloudways-alternatives/) guide and the [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/) head-to-head cover the neighbours.
+Same managed promise underneath both: Linux stacks where the platform handles the server, the stack, SSL, and backups, and you keep your application and its data. What differs is reach. Seven clouds, seven managed databases, many languages, and built-in storage and load balancing means you're far less likely to hit a wall you'd have to change hosts to get past. If you want the wider field, the [Cloudways alternatives](https://www.kloudbean.com/blog/cloudways-alternatives/) guide and the [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/) head-to-head cover the neighbours.
 
 ---
 
 **WordPress, apps, and databases, on the cloud you choose.** Run them all managed and in one place at [kloudbean.com](https://www.kloudbean.com/), no single-provider lock-in. See options on [pricing](https://www.kloudbean.com/pricing/).
 
-7 clouds · Managed WordPress + apps · 6 managed databases · Built-in load balancer · Free migration · Free trial
+7 clouds · Managed WordPress + apps · 7 managed databases · Built-in load balancer · Free migration · Free trial
 
 ## FAQ
 
 **Is Kloudbean a good Kinsta alternative?**
-It's a strong one if you want provider choice or a broader platform. Kinsta is premium managed WordPress on Google Cloud with a polished experience and great support. Kloudbean is managed multi-cloud hosting across seven providers (AWS, Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, UpCloud) covering WordPress and WooCommerce, apps in many languages, and six managed databases in one console. Which fits depends on whether you want single-cloud polish or multi-cloud breadth.
+It's a strong one if you want provider choice or a broader platform. Kinsta is premium managed WordPress with a polished experience and great support, now on Oracle Cloud Infrastructure, and since February 2026 its apps, databases and static sites are handled by Sevalla instead. Kloudbean is managed multi-cloud hosting across seven providers (AWS, Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, UpCloud) covering WordPress and WooCommerce, apps in many languages, and seven managed databases in one console. Which fits depends on whether you want single-cloud polish or multi-cloud breadth.
 
 **What cloud does Kinsta use, and what does Kloudbean use?**
-Kinsta runs on Google Cloud Platform. Kloudbean lets you deploy on seven providers (AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud) and run different projects on different ones. If choosing your underlying cloud matters, that's the clearest difference between them.
+Kinsta runs on one cloud of its own choosing. It was Google Cloud, and its own docs now describe the new infrastructure as Oracle Cloud Infrastructure, with Google Cloud called the former setup. Kloudbean lets you deploy on seven providers (AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud) and run different projects on different ones. If choosing your underlying cloud matters, that's the clearest difference between them.
 
 **Which is better for WordPress?**
 Kinsta has spent years polishing a premium WordPress experience and is a strong choice for WordPress-first teams. Kloudbean also runs WordPress and WooCommerce well, with staging, and is the better fit when WordPress sits alongside other apps and databases you want in the same managed console.
@@ -99,7 +111,7 @@ Kinsta has spent years polishing a premium WordPress experience and is a strong 
 Neither is universally cheaper. It depends on your usage shape. Kinsta's plan-based tiers suit predictable WordPress footprints, while Kloudbean's size-the-server model suits varied or spiky stacks. Compare your real usage against each model rather than the headline price.
 
 **Can Kloudbean run more than WordPress?**
-Yes. Beyond WordPress and WooCommerce, it runs Node.js, Python, Ruby, Java, and static sites, plus one-click apps like n8n and Supabase, with six managed databases, object storage, and a load balancer in the same dashboard.
+Yes. Beyond WordPress and WooCommerce, it runs Node.js, Python, Ruby, Java, Go, and static sites, plus one-click apps like n8n and Supabase, with seven managed databases, object storage, and a load balancer in the same dashboard.
 
 **Does Kloudbean help with migration, and how's support?**
 Kloudbean offers free migration assistance, so the first move can be off your plate, and it runs managed infrastructure with support behind it. Kinsta's support reputation is genuinely strong and worth weighing if hand-holding help is your top priority.
@@ -108,7 +120,7 @@ Kloudbean offers free migration assistance, so the first move can be off your pl
 No. Kloudbean has offered managed WordPress and WooCommerce since launch, with staging to test changes safely. You get real WordPress hosting and the rest of the stack in the same place, rather than trading one for the other.
 
 **When should I pick Kinsta over Kloudbean?**
-When your job is WordPress, only WordPress, you're happy on Google Cloud, and you want a specialist with famously strong support. If that describes you, Kinsta's focus is a feature. The moment you add another cloud, another language, or standalone databases, Kloudbean's reach is the better match.
+When your job is WordPress, only WordPress, you have no preference about the cloud underneath, and you want a specialist with famously strong support. If that describes you, Kinsta's focus is a feature. The moment you add another cloud, another language, or standalone databases, Kloudbean's reach is the better match.
 
 ---
 
