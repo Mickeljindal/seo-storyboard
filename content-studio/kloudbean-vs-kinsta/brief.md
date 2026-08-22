@@ -32,3 +32,26 @@ Source: `https://kinsta.com/changelog/paas-moving-to-sevalla/`. From February 2,
 **Files updated:** article md and html including JSON-LD and og:description, plus social.md and social.json which repeated the Google Cloud line.
 
 **Freshness triggers:** OCI rollout completing (then "previous setup" language can harden); Sevalla and Kinsta pricing diverging; Kinsta's own pages dropping their remaining Google Cloud references; any Kinsta announcement about the migration finishing.
+
+### Follow-up: the WHY, and the industry pattern (owner supplied a trade article)
+
+Owner supplied `https://hostingdiscussion.com/news/kinstas-cloud-exit-signals-cost-reckoning-for-managed-wordpress-hosting/`. Added the motive and the industry context, with attribution graded by source quality, because these are not all the same strength of claim.
+
+**Reported, NOT confirmed. Attributed as reported in the article.**
+- Cost, not performance, was the driver. That trade piece sources it to "people familiar with the move", which is anonymous sourcing in a hosting-news outlet. Written as "trade coverage reports the driver as cost rather than performance, citing people familiar with it, so treat the motive as reported rather than confirmed."
+- Kinsta spent nearly a decade on Google Cloud after leaving smaller providers in 2016. Same sourcing. Not asserted in the article.
+- Google Cloud pricing rising and squeezing hosting margins. Characterisation by that outlet. Used only as the general framing "hosting margins being squeezed", not as a claim about Google's price list.
+
+**Vendor claim, labelled as one.**
+- Comparable VMs at roughly one third of the on-demand price on Oracle Cloud. This traces to Oracle executives, so the article says "Oracle executives have also publicly claimed ... which is a vendor claim and worth reading as one." Never stated as a measured fact.
+
+**Independently verified, primary source. Safe to assert.**
+- Bluehost moved WordPress workloads to OCI. Their own blog, `https://www.bluehost.com/blog/wordpress-recommended-host/`, credits it with "a four to five times improvement in median response times, per Bluehost internal migration data". Attributed to Bluehost's internal data, since we cannot verify their measurement.
+- Oracle chairman Larry Ellison named Newfold Digital, Bluehost's parent, as an Oracle Cloud customer on an Oracle earnings call, reported by TechRadar in March 2025.
+
+**The angle this unlocked, and it is better than the one it replaced.** The lazy version of this story is "Kinsta downgraded to a cheap cloud". That is not supportable and Bluehost's own numbers point the other way, so the article says so explicitly: this is not a host picking a worse cloud. It is platforms re-rating infrastructure as margins tighten, which is rational for the platform. The point drawn is the one that survives scrutiny: at no stage in that calculation does a customer's opinion appear, so if your host runs one cloud, its margin math is your architecture roadmap. That argument works whether OCI is faster or slower, which is exactly why it is the one to make.
+
+**CONTENT OPPORTUNITY, needs owner sign-off before writing.** Two searchable news intents now exist that nothing in the library covers, and we would be early on both:
+1. "Kinsta moved from Google Cloud to Oracle Cloud" explainer for site owners: what changes for them (IP change, SFTP and SSH host and port change, possible region move, some regions retired, no opt-out), what to check, and when single-cloud dependence actually matters. Informational intent, distinct from this comparison page, so no cannibalisation.
+2. "Kinsta apps and databases moved to Sevalla" explainer. Distinct again, and it is a real support-shaped question for anyone running non-WordPress workloads there.
+Both are time-sensitive and both decay once the rollout completes, so they are worth deciding on quickly or not at all.
