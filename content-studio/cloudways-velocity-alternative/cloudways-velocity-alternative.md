@@ -17,7 +17,7 @@ If you're evaluating Cloudways Velocity, start with what it will not do, because
 
 None of that is my characterisation. It's all on Cloudways' own pages, and it rules out more than a feature table reveals.
 
-> **Short answer:** Cloudways Velocity is JavaScript only, so no WordPress, PHP, Python, Ruby, Java or Go. It runs one application per isolated server, which Cloudways confirms is not changing at general availability, so billing is effectively per app from $20/month. It runs on DigitalOcean only, has no documented SSH or SFTP path, and Cloudways offers no object storage bucket for uploads. Its own pricing page and its own support docs currently disagree about which databases you can provision. Kloudbean starts at $8/month, runs many languages across seven clouds, gives you shell access and S3-compatible buckets, and has been generally available since 2023 with managed Node.js since August 2024. One honest caveat against us: Kloudbean's plan table lists "Standard Limits" on application count for Standard and Premium, with unlimited only on Enterprise, and managed databases are separate subscriptions.
+> **Short answer:** Cloudways Velocity is JavaScript only, so no WordPress, PHP, Python, Ruby, Java or Go. It runs one application per isolated server, which Cloudways confirms is not changing at general availability, so billing is effectively per app from $20/month. It runs on DigitalOcean only, has no documented SSH or SFTP path, and Cloudways offers no object storage bucket for uploads. Its own pricing page and its own support docs currently disagree about which databases you can provision. Kloudbean starts at $8/month, puts as many applications on one server as its RAM will hold with no per-app fee, runs many languages across seven clouds, gives you shell access and S3-compatible buckets, and has been generally available since 2023 with managed Node.js since August 2024. One honest caveat against us: managed databases are separate subscriptions rather than bundled with the server.
 
 ## Five boundaries, all from Cloudways' own pages
 
@@ -125,7 +125,7 @@ Now the three-way view:
 | --- | --- | --- | --- |
 | **Entry price** | $20/mo (2GB, 2 vCPU) | From $11/mo (2GB, 1 vCPU, 50GB storage) | From $8/mo |
 | **Billing unit** | Per application | Per server | Per server |
-| **Apps per server** | One. "Each app runs on its own isolated server" | "No restriction on the number of applications" | "Standard Limits" on Standard and Premium; unlimited on Enterprise |
+| **Apps per server** | One. "Each app runs on its own isolated server" | "No restriction on the number of applications" | No cap on any plan. The ceiling is the server's RAM and CPU |
 | **Clouds** | DigitalOcean only | 5 (DigitalOcean, Vultr, Linode, AWS, Google Cloud) | 7 (AWS, Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, UpCloud) |
 | **Languages** | JavaScript only | PHP, WordPress, Magento, Laravel | PHP, WordPress, WooCommerce, Laravel, Magento, Drupal, Joomla, Node, Python, Ruby, Java, Go, static |
 | **Shell access** | Not documented | SSH, SFTP, browser terminal | SSH and SFTP |
@@ -140,15 +140,15 @@ Arithmetic, not opinion. Say you run three modest Node services: an API, a sched
 
 On Velocity that's three applications, so three isolated servers, so three Starter plans. $60 a month, and each one wants its own irreversible Postgres if it needs a database. On Cloudways' own Flexible product the same three apps on one server would be $11, except Flexible won't run Node. So Cloudways' Node product is the one where packing is forbidden, and their PHP product is the one where it's explicitly allowed.
 
-On Kloudbean it's one server, and the three apps sit on it subject to your tier's application limit, with a managed database beside them if you want one that you can resize and remove. I'm not going to pretend that's unlimited on an $8 plan, because it isn't; see the next section.
+On Kloudbean the three apps go on one server and there's no per-application fee, because the plan buys the machine rather than a slot. That holds on an $8 server and on a $1,000 one: the number of apps is not a billing lever at any tier. What eventually stops you is the box itself, which is the honest answer and the more useful one. Three modest Node processes on a 4GB server is unremarkable. Watch memory before CPU, because memory is what runs out first.
 
 Then it compounds. A fourth service, a staging copy of the API, a client's second site. On per-app billing each of those is another plan at the floor price, whether or not it does any meaningful traffic. Staging environments are where this bites hardest, since a staging copy is a full-price application that serves nobody.
 
 ## Where Kloudbean has limits too
 
-If this page only listed the other product's constraints it would be marketing, so here are ours, from our own documentation.
+If this page only listed the other product's constraints it would be marketing, so here are ours. Note what isn't on the list: an application cap. Moving up a tier here buys capability, things like VPC and VPN, Kubernetes, autoscaling, the audit trail, enterprise support and a dedicated account manager. It never buys permission to run more apps, because that permission was never withheld.
 
-**Application count is capped below Enterprise.** Kloudbean's plan comparison lists "Application Limit: Standard Limits" for both Standard and Premium, and unlimited only on Enterprise. So "pack as many apps as you like" is not a promise we get to make on an $8 plan. Our docs give a label rather than a number, which is not good enough; get the specific figure for your tier before you build around it. It is comfortably more than one.
+**The server is the ceiling, and you own the sizing.** There's no cap on how many applications you run, so what limits you is RAM, CPU and disk, and nobody can hand you the number in advance. A dozen cached brochure sites fit where a single busy Laravel app with background workers will not. Watch memory first. When it gets tight you resize or split, and that's a judgement call you make rather than one the platform makes for you.
 
 **Databases cost extra.** A server plus a managed Postgres is two subscriptions. Managed PostgreSQL starts at $18/month for a 1GB Starter instance, $30/month for 2GB, and $60/month for 4GB. Velocity bundles Postgres inside the application plan, so for a single small app that bundling is a genuine total-cost advantage for them, and any comparison hiding it isn't worth reading.
 
@@ -226,7 +226,7 @@ No. Cloudways publishes no object storage product on any plan. What exists is Di
 It depends on how narrow your needs are. For one JavaScript app on DigitalOcean with Postgres and no uploads, Velocity is coherent. For a mixed stack, several apps on one server, file uploads, or work that needs a shell, Kloudbean is the closer fit: seven clouds, many languages, SSH access, S3-compatible buckets and managed databases in one dashboard, generally available from $8 a month, and running managed Node.js since August 2024.
 
 **Does Kloudbean have application limits too?**
-Yes, and it's worth knowing. Kloudbean's plan comparison lists "Standard Limits" on application count for Standard and Premium, with unlimited only on Enterprise, and it gives a label rather than a number, so confirm the figure for your tier. It is comfortably more than one. Managed databases are also separate subscriptions rather than bundled with the server.
+No. There's no cap on the number of applications on a server, and it isn't a billing lever at any tier, so an $8 server and a much larger one are both limited by their own RAM and CPU rather than by a count. Premium and Enterprise add capabilities such as VPC and VPN, Kubernetes, autoscaling, the audit trail, enterprise support and a dedicated account manager, not headroom you were being denied. The honest constraint is sizing: watch memory, then resize or split. Managed databases are separate subscriptions rather than bundled with the server.
 
 ---
 

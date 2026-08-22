@@ -29,6 +29,25 @@ Owner asked to claim Kloudbean maturity here: "almost 4 years" and "thousands of
 
 The section closes by declining to oversell ("a 2023 platform, not a decade-old institution"), which is what makes the rest of it land. Also added to the tldr, the "So which one" section and the best-alternative FAQ.
 
+## v5: the Kloudbean application-limit claim was WRONG and is removed (owner-confirmed)
+
+**What I got wrong.** v2 to v4 asserted that Kloudbean caps application count below Enterprise, sourced from the support docs row "Application Limit: Standard Limits [Standard] / Standard Limits [Premium] / Unlimited [Enterprise]". I read "Standard Limits" as an undisclosed numeric cap and then wrote it into the tldr, the pricing table, the cost section, the limits section, the SVG and the FAQ, and even criticised our own docs for not publishing the number.
+
+**The truth, owner-confirmed.** There is no limit on the number of applications or tools on a single server, on any plan, whether it's an $8 server or a $1,000 one. The tiers differ by FEATURES, not by limits: VPC and VPN, Kubernetes, autoscaling, audit trail, enterprise support, dedicated account managers, BitNinja Pro, migration volume. Moving up a tier buys capability, never permission to run more apps. The real ceiling is the server's RAM, CPU and disk, which is a sizing judgement rather than a product limit.
+
+**Why this mattered more than a normal error.** It was self-inflicted damage in the one section designed to build credibility. The article was attacking Velocity's one-app-per-server rule while inventing a competing limitation for us, which weakened the single strongest point on the page.
+
+**Blast radius: contained.** Grepped the whole library. The claim existed only in this article. Every other article already states it correctly: `deploy-express-app`, `deploy-fastify-app`, `deploy-nestjs-app` and `how-to-deploy-any-app` all say multiple apps per server is a first-class feature and not a hack, `what-is-sni` uses "Many apps per server" in its CTA line, and `how-agencies-host-20-client-apps` already gives the correct answer in full: there's no magic number, watch memory first, twenty-plus light-to-moderate sites on one properly sized machine is realistic.
+
+**What replaced it**, and it's a better section than what it replaced:
+- Pricing table row now reads "No cap on any plan. The ceiling is the server's RAM and CPU".
+- The cost section states the number of apps is not a billing lever at any tier, on an $8 server or a $1,000 one.
+- The limits section opens by naming what is NOT on the list, then makes the tier point explicitly: moving up buys capability, never permission to run more apps.
+- The remaining limit is honest and genuinely useful: the box is the ceiling, nobody can give you the number in advance, a dozen cached brochure sites fit where one busy Laravel app with workers will not, watch memory first.
+- The FAQ answer flipped from "Yes, and it's worth knowing" to "No", with the features-not-limits explanation.
+
+**Docs action for the owner:** the support-docs row "Application Limit: Standard Limits" reads as a cap to anyone outside the company, including AI summarisers ingesting the docs. It should say unlimited, or state that the constraint is server resources. It misled this article and it will mislead customers.
+
 ## Verified competitor facts (source: Cloudways' own pages, all rephrased or short-quoted)
 Sources: cloudways.com/en/managed-nodejs-hosting.php (pricing + FAQ), cloudways.com/blog/cloudways-managed-node-js-hosting-is-here/ (launch), support.cloudways.com articles 15550368 (launch flow), 15550860 (app overview), 16188001 (database), 16160257 (manage services), cloudways.com/en/pricing.php (Flexible), feedback.cloudways.com (customer voice portal).
 
@@ -58,7 +77,7 @@ From $11/mo (2GB, 1 vCPU, 50GB storage, 2TB bandwidth); 8XL $342/mo. 5 clouds. P
 
 ## Verified Kloudbean facts (support.kloudbean.com /docs/getting-started/subscription-tier, via crawled KB)
 - Standard from $8/month; Premium custom; Enterprise $7,500/month (NOT published in the article).
-- **Application Limit: "Standard Limits" on Standard and Premium; unlimited only on Enterprise.** Stated openly in body, SVG caption and FAQ. Article criticises our own docs for giving a label instead of a number, and asserts only that it is "comfortably more than one" (safe: the platform is per-server multi-app by design).
+- **NO application-count limit on any plan (owner-confirmed, Aug 2026). Do not regress this.** See the v5 correction block below. The support docs' "Application Limit: Standard Limits" row is a misleading label, not a numeric cap.
 - 7 clouds; 8 server configuration options; 1GB to 128+GB.
 - "9+ Managed Databases: MySQL, PostgreSQL, MongoDB, Redis, MariaDB, ElasticSearch, and more".
 - BitNinja Pro: Premium and Enterprise only. Standard baseline Shorewall + Fail2ban.
