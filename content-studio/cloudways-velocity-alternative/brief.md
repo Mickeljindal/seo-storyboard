@@ -46,6 +46,13 @@ The section closes by declining to oversell ("a 2023 platform, not a decade-old 
 - The remaining limit is honest and genuinely useful: the box is the ceiling, nobody can give you the number in advance, a dozen cached brochure sites fit where one busy Laravel app with workers will not, watch memory first.
 - The FAQ answer flipped from "Yes, and it's worth knowing" to "No", with the features-not-limits explanation.
 
+**v5b, second pass after the owner reinforced the point.** The facts were right after v5 but the framing still invited the misread, because a resource-sizing note was sitting inside a section headed "Where Kloudbean has limits too". Three further changes:
+- That section is now "What Kloudbean charges extra for, and what it leaves to you". It contains only genuine cost and tier facts. The sizing note was removed from it entirely, because server capacity is physics on every host, not a Kloudbean limit, and listing it under "limits" read like a concession on app count.
+- New closing beat in the one-app-per-server section names the real distinction: "a product rule versus physics. Velocity permits one application per plan, and no amount of money changes that number. A per-server platform permits as many as the machine will hold, then hands you the memory graph and lets you decide. One of those is a decision somebody else made about your architecture."
+- Added `how-agencies-host-20-client-apps` as an internal link and as evidence, since we have already published where the real capacity ceiling lands. Internal links now 10.
+
+The FAQ question "Does Kloudbean have application limits too?" is deliberately kept, because people search that objection, and the answer now opens with "No."
+
 **Docs action for the owner:** the support-docs row "Application Limit: Standard Limits" reads as a cap to anyone outside the company, including AI summarisers ingesting the docs. It should say unlimited, or state that the constraint is server resources. It misled this article and it will mislead customers.
 
 ## Verified competitor facts (source: Cloudways' own pages, all rephrased or short-quoted)
@@ -112,11 +119,11 @@ Lead -> tldr -> five boundaries table -> one app per server -> cost SVG -> matur
 ## Assets
 Hero images/hero.png (author supplies). Real console screenshot ../assets/console/s3-buckets.png. Bespoke cost SVG (3 apps 3 servers $60 versus 3 apps 1 server). 1 img-slot: Velocity plan picker.
 
-## Internal links (9, verified to resolve)
-where-to-deploy-nodejs-app, deploy-node-app-to-managed-cloud, deploy-express-app, deploy-nestjs-app, s3-compatible-object-storage, kloudbean-vs-cloudways, cloudways-alternatives, managed-postgresql-hosting.
+## Internal links (10, verified to resolve)
+where-to-deploy-nodejs-app, deploy-node-app-to-managed-cloud, deploy-express-app, deploy-nestjs-app, s3-compatible-object-storage, how-agencies-host-20-client-apps, kloudbean-vs-cloudways, cloudways-alternatives, managed-postgresql-hosting.
 
 ## Gate
-`node _val.mjs cloudways-velocity-alternative` -> [OK]. words=4373, em-dash html=0, md=0, FAQ parity 12, H2 count 13, blurbs 0, 9 internal links resolve.
+`node _val.mjs cloudways-velocity-alternative` -> [OK]. words=4529, em-dash html=0, md=0, FAQ parity 12, H2 count 13, blurbs 0, 10 internal links resolve.
 
 ## Freshness triggers (this page dates faster than anything else in the library)
 GA on Aug 31: preview language, trial terms and the $20 versus $21 entry price all change. Multi-app-per-server shipping as the post-GA fast-follow they logged. CI/CD, multi-region or extra clouds shipping. Shell access appearing in their docs. Object storage appearing. The database contradiction being resolved either way. Kloudbean publishing a numeric application limit per tier.

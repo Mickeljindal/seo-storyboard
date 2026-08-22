@@ -43,6 +43,8 @@ Velocity inverts that. Their Velocity pricing FAQ answers the multiple-apps ques
 
 Isolation is a real benefit, to be fair. One app cannot starve another of CPU, and a bad deploy is contained. That's a defensible engineering choice. It just costs what it costs, and the audience Cloudways names first in its own announcement is agencies managing multiple client applications, which is exactly the audience that pays for it most.
 
+The distinction worth holding onto is a product rule versus physics. Velocity permits one application per plan, and no amount of money changes that number. A per-server platform permits as many as the machine will hold, then hands you the memory graph and lets you decide. One of those is a decision somebody else made about your architecture.
+
 ## Maturity, measured properly
 
 The maturity argument is worth having. It just has to be about the product you'd actually run your app on, not the company that owns it.
@@ -140,15 +142,13 @@ Arithmetic, not opinion. Say you run three modest Node services: an API, a sched
 
 On Velocity that's three applications, so three isolated servers, so three Starter plans. $60 a month, and each one wants its own irreversible Postgres if it needs a database. On Cloudways' own Flexible product the same three apps on one server would be $11, except Flexible won't run Node. So Cloudways' Node product is the one where packing is forbidden, and their PHP product is the one where it's explicitly allowed.
 
-On Kloudbean the three apps go on one server and there's no per-application fee, because the plan buys the machine rather than a slot. That holds on an $8 server and on a $1,000 one: the number of apps is not a billing lever at any tier. What eventually stops you is the box itself, which is the honest answer and the more useful one. Three modest Node processes on a 4GB server is unremarkable. Watch memory before CPU, because memory is what runs out first.
+On Kloudbean the three apps go on one server and there's no per-application fee, because the plan buys the machine rather than a slot. That holds on an $8 server and on a $1,000 one: the number of apps is not a billing lever at any tier. What eventually stops you is the box itself, which is the honest answer and the more useful one. Three modest Node processes on a 4GB server is unremarkable. Watch memory before CPU, because memory is what runs out first. There's no rule to work around, only sizing, and we've written up where that ceiling actually lands in practice in [how agencies host 20 client apps](https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/).
 
 Then it compounds. A fourth service, a staging copy of the API, a client's second site. On per-app billing each of those is another plan at the floor price, whether or not it does any meaningful traffic. Staging environments are where this bites hardest, since a staging copy is a full-price application that serves nobody.
 
-## Where Kloudbean has limits too
+## What Kloudbean charges extra for, and what it leaves to you
 
-If this page only listed the other product's constraints it would be marketing, so here are ours. Note what isn't on the list: an application cap. Moving up a tier here buys capability, things like VPC and VPN, Kubernetes, autoscaling, the audit trail, enterprise support and a dedicated account manager. It never buys permission to run more apps, because that permission was never withheld.
-
-**The server is the ceiling, and you own the sizing.** There's no cap on how many applications you run, so what limits you is RAM, CPU and disk, and nobody can hand you the number in advance. A dozen cached brochure sites fit where a single busy Laravel app with background workers will not. Watch memory first. When it gets tight you resize or split, and that's a judgement call you make rather than one the platform makes for you.
+If this page only listed the other product's constraints it would be marketing, so here's the other side. One thing is deliberately absent from the list, because it doesn't exist: there's no cap on how many applications a server runs, at any price. Moving up a tier buys capability, things like VPC and VPN, Kubernetes, autoscaling, the audit trail, enterprise support and a dedicated account manager. It never buys permission to run more apps. What it does buy is worth being straight about.
 
 **Databases cost extra.** A server plus a managed Postgres is two subscriptions. Managed PostgreSQL starts at $18/month for a 1GB Starter instance, $30/month for 2GB, and $60/month for 4GB. Velocity bundles Postgres inside the application plan, so for a single small app that bundling is a genuine total-cost advantage for them, and any comparison hiding it isn't worth reading.
 
