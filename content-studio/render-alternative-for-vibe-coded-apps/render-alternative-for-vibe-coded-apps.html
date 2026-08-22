@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>A Render Alternative for Vibe-Coded Apps</title>
-<meta name="description" content="On Render your one app quietly becomes five billed services, and free instances spin down after 15 minutes idle. An honest Render alternative — one server you own that runs web, worker, cron, and database together, always on, at a flat price.">
+<meta name="description" content="On Render your one app quietly becomes five billed services, and free instances spin down after 15 minutes idle. An honest Render alternative: one always-on server for web, worker and cron, with the database in its own managed tier.">
 <meta name="author" content="Kloudbean">
 <link rel="canonical" href="https://www.kloudbean.com/blog/render-alternative-for-vibe-coded-apps/">
 <meta property="og:type" content="article">
 <meta property="og:title" content="A Render Alternative for Vibe-Coded Apps">
-<meta property="og:description" content="Your one app becomes five billed Render services and free instances spin down. A fit-first Render alternative — one owned server that runs all the pieces, always on, flat price.">
+<meta property="og:description" content="Your one app becomes five billed Render services and free instances spin down. A fit-first Render alternative: one owned server for the app tier, always on, flat price, with a managed database in its own tier.">
 <meta property="og:image" content="images/hero.png">
 <meta property="og:site_name" content="Kloudbean">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,21 +21,21 @@
   <span class="eyebrow">Render alternative</span>
   <h1>A Render Alternative for Vibe-Coded Apps</h1>
 
-  <figure><img src="images/hero.png" alt="A Render alternative for vibe-coded apps — one owned server running web, worker, cron, and database at a flat price"></figure>
+  <figure><img src="images/hero.png" alt="A Render alternative for vibe-coded apps: one owned server running web, worker and cron at a flat price, with a managed database in its own tier"></figure>
 
   <p class="lead">You built the thing in Lovable or Cursor, shipped it to Render because the deploy was painless, and it worked. Then it grew. A background worker to send email. A cron job. A managed Postgres, obviously. Maybe a Redis for sessions. And your one little app is now five services on the invoice. That's usually the moment people start hunting for a Render alternative, and it's almost never about the developer experience. Render's DX is good. The friction is what happens to the bill, and to responsiveness, as a vibe-coded app quietly turns into a fleet of separate services.</p>
 
   <div class="tldr">
     <strong>Short answer</strong>
-    <p>Render is a clean PaaS. The catch is structural. Every piece of your app (web service, worker, cron, database, cache) is its own billed service, and free instances spin down after about 15 minutes idle, so the next visitor waits through a cold start. The strongest Render alternative for a growing app isn't another PaaS. It's one server you own that runs all of those pieces at a flat price, always on.</p>
+    <p>Render is a clean PaaS. The catch is structural. Every piece of your app (web service, worker, cron, database, cache) is its own billed service, and free instances spin down after about 15 minutes idle, so the next visitor waits through a cold start. The strongest Render alternative for a growing app isn't another PaaS. It's one always-on server for the app tier, where the web process, the worker and the cron cost nothing extra, with the database in its own managed tier reachable only over private, whitelisted access. That's the standard production shape, and it's cheaper than paying a meter per process.</p>
   </div>
 
   <h2>Count the services, not the features</h2>
   <p>Here's the reframe that changes the decision. On Render you don't deploy an app. You deploy services, and you're billed per service. A Web Service for the API. A Background Worker for the async stuff. A Cron Job for the nightly task. A managed Postgres. A key-value store when you add caching. Each one is reasonable on its own. Each one is also its own line item with its own plan.</p>
-  <p>But step back and look at what you actually built. It's one application. The worker isn't a separate product, it's your app doing a slow thing off the request path. The cron isn't a separate product, it's your app on a timer. They got split into billed services because that's how a per-service platform is shaped, not because your app wanted to be five things. On a single server, they collapse back into what they always were: a couple of processes and a database, sharing one box.</p>
+  <p>But step back and look at what you actually built. It's one application. The worker isn't a separate product, it's your app doing a slow thing off the request path. The cron isn't a separate product, it's your app on a timer. Those three got split into billed services because that's how a per-service platform is shaped, not because your app wanted to be three things. On one server they collapse back into what they always were: processes sharing a box. The database is the exception, deliberately. It stays in its own tier, because that's where a production database belongs.</p>
 
   <figure>
-    <svg viewBox="0 0 720 452" width="100%" role="img" aria-label="Diagram showing five separate billed Render services (web service, background worker, cron job, Postgres, and a Redis key-value store), each with its own meter, consolidating with arrows into one server you own that runs all of them at a single flat price.">
+    <svg viewBox="0 0 720 452" width="100%" role="img" aria-label="Diagram comparing two shapes. On Render, five separately billed services: web service, background worker, cron job, Postgres and a Redis key-value store, each with its own meter. On the right, the three application processes converge into one always-on server you own on a single flat bill, while Postgres and Redis map one to one onto a separate managed data tier reachable only over private access.">
       <rect x="1" y="1" width="718" height="450" rx="16" fill="#fff" stroke="#e6e9f2"/>
       <text x="360" y="30" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="16" font-weight="700" fill="#000f27">One app, billed as five services, or run as one server</text>
 
@@ -73,43 +73,53 @@
 
       <!-- converging arrows -->
       <g stroke="#40b75f" stroke-width="1.8" fill="none">
-        <line x1="252" y1="96" x2="452" y2="205"/>
-        <line x1="252" y1="162" x2="452" y2="218"/>
-        <line x1="252" y1="228" x2="452" y2="228"/>
-        <line x1="252" y1="294" x2="452" y2="240"/>
-        <line x1="252" y1="360" x2="452" y2="252"/>
+        <line x1="252" y1="96" x2="452" y2="140"/>
+        <line x1="252" y1="162" x2="452" y2="150"/>
+        <line x1="252" y1="228" x2="452" y2="160"/>
       </g>
-      <polygon points="452,220 468,228 452,236" fill="#40b75f"/>
+      <polygon points="452,142 468,150 452,158" fill="#40b75f"/>
+      <g stroke="#c9c0f5" stroke-width="1.8" fill="none" stroke-dasharray="5 4">
+        <line x1="252" y1="294" x2="452" y2="318"/>
+        <line x1="252" y1="360" x2="452" y2="330"/>
+      </g>
+      <polygon points="452,316 468,324 452,332" fill="#4F1AF3"/>
 
-      <!-- RIGHT: one owned server -->
-      <text x="588" y="60" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="700" letter-spacing="1" fill="#40b75f">ONE SERVER YOU OWN</text>
-      <rect x="474" y="112" width="228" height="234" rx="12" fill="#eaf7ef" stroke="#cdebd6"/>
-      <rect x="492" y="130" width="192" height="40" rx="8" fill="#000f27"/>
-      <text x="588" y="155" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#fff">web + worker (always on)</text>
-      <rect x="492" y="178" width="192" height="34" rx="8" fill="#fff" stroke="#cdebd6"/><text x="588" y="200" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="600" fill="#000f27">cron on the same box</text>
-      <rect x="492" y="220" width="192" height="34" rx="8" fill="#fff" stroke="#cdebd6"/><text x="588" y="242" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="600" fill="#000f27">Postgres + Redis</text>
-      <rect x="520" y="266" width="136" height="30" rx="15" fill="#dff3e6" stroke="#40b75f"/><text x="588" y="286" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="700" fill="#2f9350">one flat bill</text>
-      <text x="588" y="326" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">nothing sleeps, nothing metered per piece</text>
-      <text x="588" y="410" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-style="italic" fill="#40b75f">1 box. 1 price. Always awake.</text>
+      <!-- RIGHT: app tier on one server, data tier separate -->
+      <text x="588" y="60" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="700" letter-spacing="1" fill="#40b75f">APP TIER: ONE SERVER YOU OWN</text>
+      <rect x="474" y="72" width="228" height="164" rx="12" fill="#eaf7ef" stroke="#cdebd6"/>
+      <rect x="492" y="90" width="192" height="38" rx="8" fill="#000f27"/>
+      <text x="588" y="114" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#fff">web + worker (always on)</text>
+      <rect x="492" y="136" width="192" height="32" rx="8" fill="#fff" stroke="#cdebd6"/><text x="588" y="157" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="600" fill="#000f27">cron on the same server</text>
+      <rect x="520" y="178" width="136" height="28" rx="14" fill="#dff3e6" stroke="#40b75f"/><text x="588" y="197" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="700" fill="#2f9350">one flat bill</text>
+      <text x="588" y="224" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#5b6a86">nothing sleeps, nothing metered per process</text>
+
+      <text x="588" y="264" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="700" letter-spacing="1" fill="#4F1AF3">DATA TIER: SEPARATE, ON PURPOSE</text>
+      <rect x="474" y="276" width="228" height="106" rx="12" fill="#f6f7fb" stroke="#c9c0f5"/>
+      <rect x="492" y="294" width="92" height="30" rx="8" fill="#fff" stroke="#c9c0f5"/><text x="538" y="314" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="600" fill="#000f27">Postgres</text>
+      <rect x="592" y="294" width="92" height="30" rx="8" fill="#fff" stroke="#c9c0f5"/><text x="638" y="314" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="600" fill="#000f27">Redis</text>
+      <text x="588" y="344" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#5b6a86">private access only, sized and backed up on its own</text>
+      <text x="588" y="362" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#5b6a86">its own subscription on either platform</text>
+
+      <text x="588" y="410" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-style="italic" fill="#40b75f">3 processes stop being meters. The data stays where it belongs.</text>
     </svg>
-    <figcaption>Left: the same app split into five separately billed Render services. Right: those pieces running as processes and databases on one server you pay for once. Both work. The count is the difference.</figcaption>
+    <figcaption>Left: one app split into five billed services. Right: the three application processes on one server you pay for once, and the database in its own tier where production databases belong. The processes stop being meters. The data tier stays a tier.</figcaption>
   </figure>
 
   <h2>What you're actually paying for, service by service</h2>
   <p>People say Render gets pricey. That's not quite it. Any single service is fairly priced. The issue is that a normal app needs several of them at once, and the total is the sum you never quite predicted. Here's the honest itemization, and where each piece lands when you run the whole app on one box instead.</p>
 
   <table class="cmp">
-    <thead><tr><th>Render service</th><th>What it really is</th><th>How it's billed</th><th>On one server you own</th></tr></thead>
+    <thead><tr><th>Render service</th><th>What it really is</th><th>How it's billed</th><th>On a server plus a data tier</th></tr></thead>
     <tbody>
-      <tr><td>Web Service</td><td>Your app's main process</td><td>Per instance, per month, by size</td><td>The main process on the box</td></tr>
-      <tr><td>Background Worker</td><td>Async jobs off the request path</td><td>A second billed instance</td><td>A second process (pm2) on the same box</td></tr>
-      <tr><td>Cron Job</td><td>Something on a timer</td><td>Billed compute per run</td><td>A cron entry, no separate service</td></tr>
-      <tr><td>Postgres</td><td>Your database</td><td>Separate managed plan, by size</td><td>Managed Postgres on the same box</td></tr>
-      <tr><td>Key Value / Redis</td><td>Cache or session store</td><td>Another separate managed plan</td><td>Managed Redis on the same box</td></tr>
+      <tr><td>Web Service</td><td>Your app's main process</td><td>Per instance, per month, by size</td><td>The main process on the server</td></tr>
+      <tr><td>Background Worker</td><td>Async jobs off the request path</td><td>A second billed instance</td><td>A second process (pm2) on the same server, no new bill</td></tr>
+      <tr><td>Cron Job</td><td>Something on a timer</td><td>Billed compute per run</td><td>A cron entry in the UI, no new bill</td></tr>
+      <tr><td>Postgres</td><td>Your database</td><td>Separate managed plan, by size</td><td>A managed database in its own tier, sized separately. Same idea, and that's correct</td></tr>
+      <tr><td>Key Value / Redis</td><td>Cache or session store</td><td>Another separate managed plan</td><td>A managed Redis instance in the data tier, separate on purpose</td></tr>
     </tbody>
   </table>
 
-  <p>Read the right-hand column top to bottom. Every one of those separate services becomes a process or a database on a single machine you already pay for. The worker isn't a new bill. Cron isn't a new bill. The database sits next to the code instead of across a network as its own metered plan. For a vibe-coded app that grew three or four moving parts, that's the difference between minding a small portfolio of line items and paying for one server.</p>
+  <p>Read the right-hand column and notice where the saving actually is. The three app-tier pieces, web and worker and cron, stop being separate meters, because they were always just processes of one application. The two data services stay separate, and I won't pretend that's a saving, because it isn't. It's the right architecture. What changes is that you stop paying a per-instance fee for the parts of your own app that were never separate products.</p>
 
   <h2>The spin-down tax</h2>
   <p>The other reason people leave is responsiveness. On Render's free tier, a web service spins down after roughly 15 minutes of inactivity. The next request has to wake it, and that visitor waits through a cold start while it boots. For a personal demo, fine. For anything you want to feel alive, a backend that naps between visitors is the wrong first impression, and the fix is to move onto an always-on paid instance. So the free savings quietly evaporate the moment you care about the app feeling awake.</p>
@@ -117,11 +127,12 @@
 
   <h2>Where the per-service math catches people out</h2>
   <p>When apps move to us from a PaaS, they almost never arrive as one thing. They arrive as a list. A web service, a worker, a cron, a database, sometimes a cache. Five entries that were always one application, split apart because the platform bills per service, and the owner is a little surprised the running total isn't the sticker price of the web plan. That's the pattern we see most often, and it's not a Render failing. It's just what per-service pricing does to an app that grew normally.</p>
-  <p>The place it bites hardest is the database. It's easy to treat a managed Postgres add-on as part of the app, mentally free, until you notice it's a separate meter with its own tier, and that upgrading the web service did nothing for the database that was actually the bottleneck. When the database lives on the same server as the code, it's not a separate decision or a separate bill. It's just there, on the local network, microseconds from your queries. If you want the deeper version of that argument, we wrote up <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">hosting the app, API, and database on one server</a>.</p>
+  <p>The place people expect the saving is the database, and that's the one place it doesn't come from. A managed Postgres is its own meter on Render and its own subscription on Kloudbean. Equivalent, near enough.</p>
+  <p>What's worth understanding is why nobody serious puts a production database on the application server, however tempting the arithmetic looks. Keep it in its own tier and it has no public exposure, reachable only from addresses you allow. You size, tune and back it up on its own schedule, so the query bottleneck and the web CPU bottleneck stop being the same purchase. And when you rebuild, resize or replace the app server, which you will, the data isn't sitting on the machine you're rebuilding. That's the basic, boring, correct shape: an app tier and a data tier, kept apart. Nothing about it is a premium option, it's just how production is built, and <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a> covers the setup.</p>
 
   <h2>What a Render alternative has to get right</h2>
-  <p>Once you've counted the services, the criteria write themselves. A real Render alternative should be always-on by default (no spin-down, no cold-start penalty for the next visitor), a flat price for the whole app instead of a plan per piece, a database launched next to the app rather than a separate metered add-on, standard code you can pick up and move, and the connect-a-repo, push-to-deploy flow you'd genuinely miss. That last one is where people stall. They assume owning a server means giving up the easy deploy. It doesn't.</p>
-  <p>That's the model <a href="https://www.kloudbean.com/">Kloudbean</a> runs. One real server, provisioned and managed for you on the cloud you pick, at a flat monthly price, with the whole app on it. You connect a Git repo and deploy from the console, same muscle memory as Render.</p>
+  <p>Once you've counted the services, the criteria write themselves. A real Render alternative should be always-on by default (no spin-down, no cold-start penalty for the next visitor), a flat price for the app tier instead of a plan per process, a managed database in its own tier that you size and back up independently, launched from the same dashboard, standard code you can pick up and move, and the connect-a-repo, push-to-deploy flow you'd genuinely miss. That last one is where people stall. They assume owning a server means giving up the easy deploy. It doesn't.</p>
+  <p>That's the model <a href="https://www.kloudbean.com/">Kloudbean</a> runs. One real server, provisioned and managed for you on the cloud you pick, at a flat monthly price, running the whole app tier, with managed databases alongside it as their own services. You connect a Git repo and deploy from the console, same muscle memory as Render.</p>
 
   <figure>
     <img src="../assets/console/git-deployment.png" alt="Kloudbean console Deploy Code and Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy">
@@ -135,21 +146,22 @@ pm2 start "npm run start" --name web     # your web service
 pm2 start worker.js --name jobs          # the background worker
 pm2 save                                 # bring them back after a reboot</code></pre>
 
-  <p>Need a second app on the same box? Add it. That's not another subscription, it's another application on the server you already have.</p>
+  <p>Need a second app on the same server? Add it. That's not another subscription, it's another application on the server you already have.</p>
 
   <!-- ADD IMAGE: swap this slot for a real screenshot. src -> images/render-services.png -->
   <figure class="img-slot"><span><b>Add image</b><em>A Render dashboard listing several services (web, worker, cron, Postgres) so the per-service count is visible at a glance.</em><small>Grounds the itemized-bill argument in something real. Author supplies.</small></span></figure>
 
-  <p>The database lands right beside the app. Launch a managed Postgres (or MySQL, MariaDB, Redis, MongoDB, or Elasticsearch, six engines in all) from the console, and point the app at it over the local network.</p>
+  <p>The database is a separate service, and that's on purpose. Launch a managed PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Memcached or Elasticsearch instance from the same console, allow your app server to reach it, and point the app at its private connection details. It never sits on the public internet, and it isn't competing with your web process for CPU.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="Kloudbean Launch Database screen for creating a managed Postgres instance next to the application">
+    <img src="../assets/console/launch-database.png" alt="Kloudbean Launch Database screen for creating a managed Postgres instance as its own service in the data tier">
     <figcaption>Launch a managed database next to the app. The connection string points at localhost, not out across the internet to a metered add-on.</figcaption>
   </figure>
 
-  <pre><code># app and data on the same box, over the local network
-DATABASE_URL=postgres://kb_user:secret@127.0.0.1:5432/appdb
-REDIS_URL=redis://127.0.0.1:6379</code></pre>
+  <pre><code># the app tier reads the data tier over private, allowed-only access
+# host and port come from the managed database's connection details
+DATABASE_URL=postgres://kb_user:secret@db-private-host:5432/appdb
+REDIS_URL=redis://redis-private-host:6379</code></pre>
 
   <p>Cron is a feature of the box, not a billed service. You add a scheduled command from the Cron Jobs tab in the UI, no SSH and no extra plan. The managed layer runs the OS, the stack, SSL, patching, and backups, so you get ownership without turning into a sysadmin. If you're ready to try it, the <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy walkthrough</a> covers a fresh deploy end to end.</p>
 
@@ -169,23 +181,24 @@ REDIS_URL=redis://127.0.0.1:6379</code></pre>
   <p>Live mostly in the left column and switching would cost you more than it saves. The alternative earns its place when the per-service model is multiplying your bill and the sleeping instances are in your way. Weighing the neighbors too? The <a href="https://www.kloudbean.com/blog/railway-alternative-for-vibe-coded-apps/">Railway</a> and <a href="https://www.kloudbean.com/blog/heroku-alternative-for-modern-apps/">Heroku</a> comparisons run the same reasoning from different angles.</p>
 
   <h2>The honest limits</h2>
-  <p>Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and the frameworks on top like React, Next.js, Vue, Laravel, and Django. That's what vibe-coded apps are built on. It isn't for Windows, .NET, or IIS. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you own and maintain the app and its data. And to be fair about cost: for a single tiny service, Render's low tiers can be cheaper than any always-on server, because a server you rent by the month costs the same whether it serves ten requests or ten million. The flat model wins as your app gains pieces, and it wins on predictability at any size.</p>
+  <p>Kloudbean runs Linux stacks: Node, PHP, Python, Ruby, Java, Go, and the frameworks on top like React, Next.js, Vue, Laravel and Django, plus .NET on Linux. That's what vibe-coded apps are built on. Windows Server itself is a Premium and Enterprise option rather than a standard one. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you own and maintain the app and its data. And to be fair about cost: for a single tiny service, Render's low tiers can be cheaper than any always-on server, because a server you rent by the month costs the same whether it serves ten requests or ten million. The flat model wins as your app gains pieces, and it wins on predictability at any size.</p>
 
+  <h2>One app tier, not five meters</h2>
   <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">One server, not five services.</p>
-    <p style="margin:0">See how the whole app on one owned server compares for you at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Always-on processes, one-click managed databases, automatic backups, cron on the box, free migration, free trial, and git deploy. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">One app tier, not five meters.</p>
+    <p style="margin:0">See how the whole app on one owned server compares for you at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Always-on processes, managed databases in their own tier, automatic backups, cron in the UI, free migration, free trial, and git deploy. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
   </div>
 
   <h2>FAQ</h2>
   <div class="faq">
     <h3>What's the best Render alternative without spin-downs?</h3>
-    <p>An always-on managed server. Your app runs as a persistent process that never idles out, at a flat monthly price, with the database on the same box, while keeping connect-a-repo, push-to-deploy. Kloudbean runs that model, so there's no cold-start penalty for the next visitor and no keep-alive ping to babysit.</p>
+    <p>An always-on managed server for the app tier. Your web process, worker and cron never idle out, at a flat monthly price, with the managed database in its own tier over private access, while keeping connect-a-repo, push-to-deploy. Kloudbean runs that model, so there's no cold-start penalty for the next visitor and no keep-alive ping to babysit.</p>
 
     <h3>Why do people look for a Render alternative?</h3>
     <p>Two things, mostly. Per-service billing that multiplies as a normal app grows a worker, a cron, a database, and a cache, and free instances that spin down after about 15 minutes idle. The developer experience is rarely the complaint. It's the bill shape and the sleeping backends.</p>
 
     <h3>Do I pay per service like on Render?</h3>
-    <p>No. A managed server is one flat price for the whole machine. Your web process, background worker, cron jobs, and databases all run on that one server instead of each being a separately billed service. Adding a second app is another application on the box, not another subscription.</p>
+    <p>Not for the app tier. A managed server is one flat price for the whole machine, and your web process, background worker and cron jobs all run on it rather than each being separately billed. Managed databases are their own subscription, the same as on Render, because a production database belongs in its own tier. Adding a second app is another application on the server, not another subscription.</p>
 
     <h3>How do background workers and cron work without separate services?</h3>
     <p>The worker is just a second process on the server, run under a process manager like pm2 so it restarts on crash. Cron is an entry in the Cron Jobs tab that runs a command on a timer, no SSH. Neither is a separate billed service the way Render models them.</p>
@@ -200,16 +213,16 @@ REDIS_URL=redis://127.0.0.1:6379</code></pre>
     <p>No, and it's fair to say so. At very low traffic, one small Render service can be cheaper than any always-on server. A flat server usually wins once your app is several services or needs to be always awake, and it's more predictable at any size, since the price is the same in a quiet month and a launch month.</p>
   </div>
 
-  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale. Faster Than Ever.</p>
 </article>
 
 <script type="application/ld+json">
 {"@context":"https://schema.org","@graph":[
 {"@type":"Article","headline":"A Render Alternative for Vibe-Coded Apps","description":"On Render your one app becomes five billed services and free instances spin down after 15 minutes idle. An honest Render alternative: one server you own that runs web, worker, cron, and database together, always on, at a flat price.","image":"https://www.kloudbean.com/blog/render-alternative-for-vibe-coded-apps/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/render-alternative-for-vibe-coded-apps/"},
 {"@type":"FAQPage","mainEntity":[
-{"@type":"Question","name":"What's the best Render alternative without spin-downs?","acceptedAnswer":{"@type":"Answer","text":"An always-on managed server. Your app runs as a persistent process that never idles out, at a flat monthly price, with the database on the same box, while keeping connect-a-repo, push-to-deploy. Kloudbean runs that model, so there is no cold-start penalty for the next visitor and no keep-alive ping to babysit."}},
+{"@type":"Question","name":"What's the best Render alternative without spin-downs?","acceptedAnswer":{"@type":"Answer","text":"An always-on managed server for the app tier. Your web process, worker and cron never idle out, at a flat monthly price, with the managed database in its own tier over private access, while keeping connect-a-repo, push-to-deploy. Kloudbean runs that model, so there is no cold-start penalty for the next visitor and no keep-alive ping to babysit."}},
 {"@type":"Question","name":"Why do people look for a Render alternative?","acceptedAnswer":{"@type":"Answer","text":"Two things, mostly. Per-service billing that multiplies as a normal app grows a worker, a cron, a database, and a cache, and free instances that spin down after about 15 minutes idle. The developer experience is rarely the complaint. It is the bill shape and the sleeping backends."}},
-{"@type":"Question","name":"Do I pay per service like on Render?","acceptedAnswer":{"@type":"Answer","text":"No. A managed server is one flat price for the whole machine. Your web process, background worker, cron jobs, and databases all run on that one server instead of each being a separately billed service. Adding a second app is another application on the box, not another subscription."}},
+{"@type":"Question","name":"Do I pay per service like on Render?","acceptedAnswer":{"@type":"Answer","text":"Not for the app tier. A managed server is one flat price for the whole machine, and your web process, background worker and cron jobs all run on it rather than each being separately billed. Managed databases are their own subscription, the same as on Render, because a production database belongs in its own tier. Adding a second app is another application on the server, not another subscription."}},
 {"@type":"Question","name":"How do background workers and cron work without separate services?","acceptedAnswer":{"@type":"Answer","text":"The worker is just a second process on the server, run under a process manager like pm2 so it restarts on crash. Cron is an entry in the Cron Jobs tab that runs a command on a timer, no SSH. Neither is a separate billed service the way Render models them."}},
 {"@type":"Question","name":"Is this a self-hosted Render alternative I have to maintain myself?","acceptedAnswer":{"@type":"Answer","text":"No. It is managed, which is the difference from rolling your own VPS. Kloudbean handles the OS, stack, SSL, patching, and backups. You get an owned server and standard Linux underneath, without becoming the person who patches it at 2am."}},
 {"@type":"Question","name":"Can I keep deploying from GitHub on push?","acceptedAnswer":{"@type":"Answer","text":"Yes. You connect the repo, set install/build/start commands, and turn on auto-deploy so every push builds and ships with live logs. It is the part of Render worth keeping, and it carries over."}},
