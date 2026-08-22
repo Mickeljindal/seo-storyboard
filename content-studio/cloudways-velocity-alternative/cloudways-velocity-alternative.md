@@ -101,7 +101,9 @@ I can't resolve that from outside, so treat the support doc as the operational t
 
 **It installs a database, not a connection.** Their words: installing PostgreSQL "only creates the database. It does not automatically update your application code." It writes environment variables, they apply on the next deploy, and if your app expects different variable names it won't connect. Fair enough, but "provisioned" is doing some work in the marketing copy.
 
-Redis, credit where it's genuinely due, is in the stack and is restartable from the dashboard, and their docs sensibly warn you it may be holding sessions or queues rather than just cache. So sessions and BullMQ are covered without a third-party vendor. That's a real point in Velocity's favour and I'd rather say it than let you find out I'd left it out.
+Redis, credit where it's genuinely due, runs in the Velocity stack. Their services guide lists it alongside NGINX, PM2 and Imunify360 with restart and stop controls, and it sensibly warns you not to stop it casually because Redis "may also be used for sessions, queues, or temporary application data" rather than only cache. That's a good thing to tell people and I'd rather say so than leave it out.
+
+Where I have to stop short: the Velocity database documentation offers PostgreSQL or an external Supabase and nothing else, and I found no Velocity page showing how you obtain Redis connection details. Cloudways documents a Redis Access screen with a key prefix, username and password, but that's for their Flexible platform, not Velocity. So the service is plainly running. Whether you're handed credentials to use it from your app is a question for their support rather than something I'll assert either way.
 
 For contrast, a Kloudbean server ships with MariaDB in the stack, so the simple case needs nothing extra. Beyond that, managed databases are standalone subscriptions you size, back up and connect to independently: MySQL, PostgreSQL, MariaDB, MongoDB, Redis, Memcached and Elasticsearch, with the support docs listing nine or more engines. Removable, resizable, and not welded to one app server.
 
@@ -219,7 +221,7 @@ Not that they document. Cloudways documents SSH, SFTP and a browser terminal for
 One. Cloudways states that Velocity runs on the Cloudways Lightning Stack on DigitalOcean infrastructure, and the launch flow lets you pick a server location rather than a provider. Their Flexible product supports five clouds, so choosing Velocity narrows your provider choice compared with the rest of the Cloudways platform.
 
 **Which database can I use with Cloudways Velocity?**
-Their own pages disagree. The Velocity pricing FAQ claims PostgreSQL, MySQL and MongoDB, while their more recent support article documents only PostgreSQL installed inside the Cloudways environment or an externally hosted Supabase database. That article also states the PostgreSQL install is irreversible and cannot be uninstalled. Verify in the dashboard before planning around MySQL or MongoDB. Redis does run as a stack service.
+Their own pages disagree. The Velocity pricing FAQ claims PostgreSQL, MySQL and MongoDB, while their more recent support article documents only PostgreSQL installed inside the Cloudways environment or an externally hosted Supabase database. That article also states the PostgreSQL install is irreversible and cannot be uninstalled. Verify in the dashboard before planning around MySQL or MongoDB. Redis does run as a stack service, though its connection details are not documented for Velocity.
 
 **Does Cloudways offer object storage for file uploads?**
 No. Cloudways publishes no object storage product on any plan. What exists is DigitalOcean Block Storage, which is a larger disk attached to one server rather than a bucket, and off-site backup storage billed per GB. Their own customer feedback portal carries an open request for native S3 bucket integration, so plan on an external object store for uploads.

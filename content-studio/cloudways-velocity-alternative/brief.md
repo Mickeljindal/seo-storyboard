@@ -94,7 +94,10 @@ Trial: free during Public Preview; from GA, 3 days on Starter and Professional o
 - Support article 16188001 (more recent): only two options, PostgreSQL installed inside the Cloudways environment, or Supabase hosted externally. No MySQL, no MongoDB.
 - Same article: "Can PostgreSQL be removed after installation? No." Installation is irreversible. Combined with one-app-per-server this is a permanent decision per server.
 - Same article: installing PostgreSQL "only creates the database. It does not automatically update your application code." Env vars apply on next deploy.
-- Redis IS a stack service (article 16160257 Manage Services: Imunify360, NGINX, PM2, Redis), restartable from the dashboard, and their FAQ warns it may hold sessions or queues. Conceded in the article.
+- **Redis. SOURCE: support.cloudways.com article 16160257, "How to Manage Services for Your Cloudways Velocity Application".** That page lists the Velocity services as Imunify360, NGINX, PM2 and Redis, with Restart and Stop controls, and its FAQ says verbatim that Redis "may also be used for sessions, queues, or temporary application data". Both of those are quotable.
+  - **CORRECTED (owner challenged the sourcing, rightly).** An earlier draft added "So sessions and BullMQ are covered without a third-party vendor." That was NOT in any Cloudways source. BullMQ is never named by them, and more importantly nothing in the Velocity docs shows how you obtain Redis connection details: the Velocity Database section documents only in-environment PostgreSQL or external Supabase. The Redis Access screen with key prefix, username and password (article 5124164) is documented for the FLEXIBLE platform, not Velocity. So "covered" was an unsupported inference built on top of two supported facts.
+  - The article now credits what is sourced (Redis runs in the stack, restart and stop controls, their sensible warning) and stops explicitly at the unknown, telling the reader to ask Cloudways whether credentials are exposed. The database FAQ answer carries the same caveat.
+  - LESSON for this file: the pattern to watch is a true fact plus a plausible consequence presented as one claim. "Redis is running" is sourced. "Therefore your queues are covered" is a product-capability claim and needs its own source.
 - Security on every plan: WAF, DDoS, Imunify360 malware protection, Enterprise CDN. Round-the-clock support on all plans per their FAQ.
 
 **Cloudways Flexible** (for the maturity contrast)
@@ -141,7 +144,7 @@ Hero images/hero.png (author supplies). Real console screenshot ../assets/consol
 where-to-deploy-nodejs-app, deploy-node-app-to-managed-cloud, deploy-express-app, deploy-nestjs-app, s3-compatible-object-storage, how-agencies-host-20-client-apps, kloudbean-vs-cloudways, cloudways-alternatives, managed-postgresql-hosting.
 
 ## Gate
-`node _val.mjs cloudways-velocity-alternative` -> [OK]. words=4831, em-dash html=0, md=0, FAQ parity 12, H2 count 13, blurbs 0, 10 internal links resolve.
+`node _val.mjs cloudways-velocity-alternative` -> [OK]. words=4927, em-dash html=0, md=0, FAQ parity 12, H2 count 13, blurbs 0, 10 internal links resolve.
 
 ## Freshness triggers (this page dates faster than anything else in the library)
 GA on Aug 31: preview language, trial terms and the $20 versus $21 entry price all change. Multi-app-per-server shipping as the post-GA fast-follow they logged. CI/CD, multi-region or extra clouds shipping. Shell access appearing in their docs. Object storage appearing. The database contradiction being resolved either way. Kloudbean publishing a numeric application limit per tier.
