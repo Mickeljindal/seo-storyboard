@@ -12,6 +12,23 @@ Cluster 4 (vs Competitors) + Node/GEO. Cloudways renamed its managed Node.js pro
 2. **Owner's claim "no managed DB, customers must outsource the DB" is not accurate as stated.** Velocity does provision PostgreSQL in-environment, and Redis runs as a stack service (documented restart controls). Publishing "no database" would have been false and easily disproved. The TRUE and stronger version is now in the article: their own two pages disagree on engines, and the Postgres install is irreversible.
 3. **Owner's claim "no cloud selection" is right, with a nuance**: the launch flow has a "Select Server Location" step, so you choose a location within DigitalOcean, not a provider. Article says exactly that.
 
+## v4: the maturity argument, flipped (owner request) with two numbers refused
+
+Owner asked to claim Kloudbean maturity here: "almost 4 years" and "thousands of users". Both were declined and replaced with stronger, defensible substitutes. The section is now "Maturity, measured properly" instead of "Why 'Cloudways is mature' isn't the argument here", so maturity works FOR us rather than being dismissed.
+
+**Refused: "almost 4 years".** The changelog says launch was November 2023. As of August 2026 that is 2 years 9 months, not 4 years. `kloudbean-facts.md` explicitly resolves this: the changelog dates are authoritative and copy should say "since 2023". A reviewer, a competitor or an AI summariser can subtract, and being caught inflating a founding date would cost more than the claim is worth.
+
+**Refused: "thousands of users".** `kloudbean-facts.md` lists the customer-count figure under "Still to confirm" as `[CONFIRM]`. Used the approved qualitative phrasing "a large and active customer base" instead. If the owner supplies a substantiable number, it can go in.
+
+**Used instead, and it is a better argument:** the metric that decides risk for a hosting comparison is how long the product you'd actually run your app on has been generally available. That is checkable from the changelog and it is devastating without any inflation:
+- Platform launched November 2023, shipping in most months since.
+- Managed Node.js August 2024 (Express, Angular); React and Vue December 2024; managed CI/CD from Git April 2025; PM2 multi-process June 2025; live build logs August 2025; Node runtime config in the UI September 2025.
+- Generally available throughout. No waitlist, no invite, no preview terms.
+- So: roughly two years of GA Node hosting versus zero, since Velocity's GA is dated Aug 31.
+- Reinforcing point: multi-app servers, shell access and object storage were not roadmap items here, they were early. Velocity lists multi-app as a post-GA fast-follow.
+
+The section closes by declining to oversell ("a 2023 platform, not a decade-old institution"), which is what makes the rest of it land. Also added to the tldr, the "So which one" section and the best-alternative FAQ.
+
 ## Verified competitor facts (source: Cloudways' own pages, all rephrased or short-quoted)
 Sources: cloudways.com/en/managed-nodejs-hosting.php (pricing + FAQ), cloudways.com/blog/cloudways-managed-node-js-hosting-is-here/ (launch), support.cloudways.com articles 15550368 (launch flow), 15550860 (app overview), 16188001 (database), 16160257 (manage services), cloudways.com/en/pricing.php (Flexible), feedback.cloudways.com (customer voice portal).
 
@@ -65,7 +82,7 @@ From $11/mo (2GB, 1 vCPU, 50GB storage, 2TB bandwidth); 8XL $342/mo. 5 clouds. P
 - 12 FAQ questions mirror those constraint queries and are mirrored to FAQPage JSON-LD.
 
 ## Structure (13 H2s, boundaries-first, not a standard comparison template)
-Lead -> tldr -> five boundaries table -> one app per server -> cost SVG -> why "mature" is not the argument -> no shell -> nowhere for uploads -> the database contradiction -> real pricing (ladder + 3-way) -> what three services cost -> where Kloudbean has limits too -> which one and when -> migration -> internal links -> CTA -> 12 FAQ.
+Lead -> tldr -> five boundaries table -> one app per server -> cost SVG -> maturity measured properly -> no shell -> nowhere for uploads -> the database contradiction -> real pricing (ladder + 3-way) -> what three services cost -> where Kloudbean has limits too -> which one and when -> migration -> internal links -> CTA -> 12 FAQ.
 
 ## Positioning rules honoured
 - Every Cloudways claim traceable to a Cloudways page; nothing characterised beyond what they publish; the one inference (DigitalOcean ownership explaining single cloud) is labelled as inference.
@@ -80,7 +97,7 @@ Hero images/hero.png (author supplies). Real console screenshot ../assets/consol
 where-to-deploy-nodejs-app, deploy-node-app-to-managed-cloud, deploy-express-app, deploy-nestjs-app, s3-compatible-object-storage, kloudbean-vs-cloudways, cloudways-alternatives, managed-postgresql-hosting.
 
 ## Gate
-`node _val.mjs cloudways-velocity-alternative` -> [OK]. words=4145, em-dash html=0, md=0, FAQ parity 12, H2 count 13, blurbs 0, 9 internal links resolve.
+`node _val.mjs cloudways-velocity-alternative` -> [OK]. words=4373, em-dash html=0, md=0, FAQ parity 12, H2 count 13, blurbs 0, 9 internal links resolve.
 
 ## Freshness triggers (this page dates faster than anything else in the library)
 GA on Aug 31: preview language, trial terms and the $20 versus $21 entry price all change. Multi-app-per-server shipping as the post-GA fast-follow they logged. CI/CD, multi-region or extra clouds shipping. Shell access appearing in their docs. Object storage appearing. The database contradiction being resolved either way. Kloudbean publishing a numeric application limit per tier.
@@ -88,3 +105,5 @@ GA on Aug 31: preview language, trial terms and the $20 versus $21 entry price a
 ## Open questions for the owner
 1. The numeric application limit per Kloudbean tier, so "Standard Limits" can be replaced with a real figure here and in the docs.
 2. Whether to re-check Velocity right after Aug 31, since roughly a third of this article is preview-stage fact.
+3. A substantiable customer-count figure, to replace "a large and active customer base" with a number. Still `[CONFIRM]` in kloudbean-facts.md.
+4. Confirm the founding-date framing. Copy says "since 2023" per the changelog, which puts the platform at 2 years 9 months as of August 2026. The owner referred to almost 4 years, which the changelog does not support. If there is earlier trading history the changelog does not cover, say so and the copy can change.
