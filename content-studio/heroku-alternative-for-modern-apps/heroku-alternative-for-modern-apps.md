@@ -80,7 +80,7 @@ Config vars move next. Copy them straight across into the server's environment v
 
 ```
 # config vars become environment variables on the server
-DATABASE_URL=postgres://kb_user:secret@127.0.0.1:5432/appdb
+DATABASE_URL=postgres://kb_user:secret@postgres-123456.kloudbeansite.com:5432/appdb
 NODE_ENV=production
 ```
 
@@ -90,7 +90,7 @@ Then the database, which is where the "[Heroku alternative with database](https:
 
 ```
 # move Heroku Postgres onto the managed database, over one pipe
-pg_dump "$HEROKU_DATABASE_URL" | psql "postgres://kb_user:secret@127.0.0.1:5432/appdb"
+pg_dump "$HEROKU_DATABASE_URL" | psql "postgres://kb_user:secret@postgres-123456.kloudbeansite.com:5432/appdb"
 ```
 
 Point the domain, turn on SSL, flip on auto-deploy. Nothing here is exotic, because Heroku ran standard code with a few conventions on top. Peel off the conventions and it's an ordinary app on an ordinary server. The [deploy-a-Node-app guide](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) walks a fresh one end to end.

@@ -84,7 +84,7 @@ Config lives in environment variables, never in code. If that discipline is new 
 ```
 # One place for config: environment variables, not a generated category
 PORT=8080
-DATABASE_URL=postgres://appuser:s3cret@127.0.0.1:5432/appdb
+DATABASE_URL=postgres://appuser:s3cret@postgres-123456.kloudbeansite.com:5432/appdb
 
 # S3-compatible object storage, the same SDK you already use for AWS S3
 S3_ENDPOINT=https://s3.your-region.example.com

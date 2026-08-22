@@ -115,7 +115,7 @@ Not starting fresh? Because Supabase is Postgres underneath, bringing your Cloud
 pg_dump "postgresql://postgres:PASSWORD@db.PROJECT.supabase.co:5432/postgres" > supabase-dump.sql
 
 # Import into your self-hosted instance's database
-psql "postgresql://postgres:PASSWORD@localhost:5432/postgres" < supabase-dump.sql
+psql "postgresql://postgres:PASSWORD@postgres-123456.kloudbeansite.com:5432/postgres" < supabase-dump.sql
 ```
 
 Tables, rows, and relationships come across intact, because it's the same engine on both ends. Storage files (your uploads) move separately: copy them into your self-hosted Storage bucket. Do it while the Cloud project is still live, verify row counts and a few real queries on the new instance, then flip your app's URL over. Keep the Cloud project around until the new one is serving real traffic.

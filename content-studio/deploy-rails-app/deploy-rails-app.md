@@ -74,7 +74,7 @@ So the boot-critical trio, set as environment variables and never committed: `RA
 RAILS_ENV=production
 RAILS_MASTER_KEY=...        # equals your local config/master.key
 SECRET_KEY_BASE=...         # or keep it inside encrypted credentials
-DATABASE_URL=postgres://myapp:pass@127.0.0.1:5432/myapp
+DATABASE_URL=postgres://myapp:pass@postgres-123456.kloudbeansite.com:5432/myapp
 RAILS_SERVE_STATIC_FILES=true
 RAILS_MAX_THREADS=5
 ```

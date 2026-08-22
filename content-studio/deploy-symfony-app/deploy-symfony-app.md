@@ -52,7 +52,7 @@ Keep real values out of git. Symfony's convention makes this clean: `.env` holds
 # the production environment (set on the server, never committed)
 APP_ENV=prod
 APP_SECRET=change_me_to_a_long_random_string
-DATABASE_URL="postgresql://appuser:secret@127.0.0.1:5432/appdb?serverVersion=16&charset=utf8"
+DATABASE_URL="postgresql://appuser:secret@postgres-123456.kloudbeansite.com:5432/appdb?serverVersion=16&charset=utf8"
 ```
 
 One Symfony-specific speed trick worth knowing. If you use Symfony Flex (most modern apps do), `composer dump-env prod` compiles all those dotenv files into a single `.env.local.php`. Symfony then loads that PHP file instead of parsing text files on every request. Small win, zero downside in production.
@@ -140,7 +140,7 @@ Doctrine reads its connection from a single environment variable, `DATABASE_URL`
 
 ```bash
 # PostgreSQL
-DATABASE_URL="postgresql://appuser:secret@127.0.0.1:5432/appdb?serverVersion=16&charset=utf8"
+DATABASE_URL="postgresql://appuser:secret@postgres-123456.kloudbeansite.com:5432/appdb?serverVersion=16&charset=utf8"
 
 # MySQL / MariaDB
 DATABASE_URL="mysql://appuser:secret@127.0.0.1:3306/appdb?serverVersion=8.0"

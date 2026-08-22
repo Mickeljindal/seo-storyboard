@@ -78,7 +78,7 @@ NEXT_PUBLIC_APP_URL=https://yourapp.com
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 
 # Read at runtime, server-side only, never NEXT_PUBLIC_
-DATABASE_URL=postgres://kb_user:pass@127.0.0.1:5432/kb_appdb
+DATABASE_URL=postgres://kb_user:pass@postgres-123456.kloudbeansite.com:5432/kb_appdb
 STRIPE_SECRET_KEY=sk_live_...
 ```
 

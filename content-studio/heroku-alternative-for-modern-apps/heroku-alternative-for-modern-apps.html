@@ -129,7 +129,7 @@ pm2 save</code></pre>
   </figure>
 
   <pre><code># config vars become environment variables on the server
-DATABASE_URL=postgres://kb_user:secret@127.0.0.1:5432/appdb
+DATABASE_URL=postgres://kb_user:secret@postgres-123456.kloudbeansite.com:5432/appdb
 NODE_ENV=production</code></pre>
 
   <p>Then the database, which is where the "<a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">Heroku alternative with database</a>" question really lives. Launch a managed Postgres from the console (there are six engines: Postgres, MySQL, MariaDB, Redis, MongoDB, Elasticsearch) and bring your data across with a standard dump and restore.</p>
@@ -140,7 +140,7 @@ NODE_ENV=production</code></pre>
   </figure>
 
   <pre><code># move Heroku Postgres onto the managed database, over one pipe
-pg_dump "$HEROKU_DATABASE_URL" | psql "postgres://kb_user:secret@127.0.0.1:5432/appdb"</code></pre>
+pg_dump "$HEROKU_DATABASE_URL" | psql "postgres://kb_user:secret@postgres-123456.kloudbeansite.com:5432/appdb"</code></pre>
 
   <p>Point the domain, turn on SSL, flip on auto-deploy. Nothing here is exotic, because Heroku ran standard code with a few conventions on top. Peel off the conventions and it's an ordinary app on an ordinary server. The <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy-a-Node-app guide</a> walks a fresh one end to end.</p>
 

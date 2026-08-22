@@ -113,7 +113,7 @@ Step one, add a server (pick DigitalOcean if you want to stay on the same infras
 
 ```bash
 # the env you set in the App Platform app spec, moved to the managed server:
-DATABASE_URL=postgres://kb_user:pass@127.0.0.1:5432/appdb
+DATABASE_URL=postgres://kb_user:pass@postgres-123456.kloudbeansite.com:5432/appdb
 NODE_ENV=production
 PORT=8080          # your app reads process.env.PORT, do not hard-code it
 ```

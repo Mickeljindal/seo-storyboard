@@ -88,7 +88,7 @@ The database lands right beside it. Launch a managed Postgres or MySQL from the 
 
 ```
 # the app and its data on the same box, reached over the local network
-DATABASE_URL=postgres://kb_user:pass@127.0.0.1:5432/appdb
+DATABASE_URL=postgres://kb_user:pass@postgres-123456.kloudbeansite.com:5432/appdb
 ```
 
 The managed layer handles the OS, stack, SSL, patching, and backups, so you get ownership without becoming a full-time sysadmin. And because it's one server holding the whole app, the mental model gets simpler, not harder. When something breaks there's one place to look, not a front end on the edge, functions somewhere else, and a database across a network. If you want the framework-specific version, we wrote up [deploying Next.js to your own server](https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/) and [putting the app, API, and database on one server](https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/).

@@ -166,7 +166,7 @@ pg_dump "postgresql://postgres:PASS@db.OLD-PROJECT.supabase.co:5432/postgres" \
 
 # load it into the new managed database
 pg_restore --no-owner --no-privileges \
-  -d "postgresql://kb_user:PASS@127.0.0.1:5432/kb_appdb" lovable.dump
+  -d "postgresql://kb_user:PASS@postgres-123456.kloudbeansite.com:5432/kb_appdb" lovable.dump
 ```
 
 One caveat that catches people: if you kept Supabase Auth, your users live in Supabase's `auth` schema, and a plain Postgres won't magically replace login. That's the same tradeoff from the decision table, just showing up at migration time. The full walkthrough is in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).

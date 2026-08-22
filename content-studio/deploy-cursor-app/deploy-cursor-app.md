@@ -153,7 +153,7 @@ In **Runtime Configuration → Environment Variables** there's a **Paste .env Co
 ![Kloudbean environment variables editor with a paste .env content tab and key value list](../assets/console/env-vars.png)
 
 ```
-DATABASE_URL=postgres://kb_user:generated-pass@127.0.0.1:5432/kb_appdb
+DATABASE_URL=postgres://kb_user:generated-pass@postgres-123456.kloudbeansite.com:5432/kb_appdb
 APP_URL=https://yourapp.com
 VITE_API_URL=https://yourapp.com/api
 OPENAI_API_KEY=sk-...

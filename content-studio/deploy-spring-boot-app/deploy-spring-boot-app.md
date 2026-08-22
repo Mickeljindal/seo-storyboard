@@ -87,7 +87,7 @@ server:
   port: 8080
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/appdb
+    url: jdbc:postgresql://postgres-123456.kloudbeansite.com:5432/appdb
 ```
 
 ```bash
