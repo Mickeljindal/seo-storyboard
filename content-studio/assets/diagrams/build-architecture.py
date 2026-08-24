@@ -27,7 +27,7 @@ REPO = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
 IMG = os.path.join(REPO, "kb-ui-for-claude", "src", "assets", "images")
 OUT = os.path.join(HERE, "kloudbean-architecture.html")
 
-W, H = 1240, 928
+W, H = 1240, 944
 NAVY, PURPLE, GREEN, SEC = "#000F27", "#4F1AF3", "#22c55f", "#6f6b99"
 BORD, PAGE, MUT, INK = "#e5e5e5", "#f8f9fa", "#6b7280", "#3d3d3d"
 DBG, CHR, AMB = "#15803d", "#b91c1c", "#b45309"
@@ -121,18 +121,21 @@ def lane(x, y, w, h, label, label_fill=PURPLE, r=16, fill="#fdfdff", stroke="#df
 
 
 CX = 620
+# aria-label rather than <title>: a <title> child makes the browser show a native
+# tooltip on hover, which covered the NGINX node. <desc> carries the detail without
+# rendering anything.
 A(f'<svg id="kbsvg" viewBox="0 0 {W} {H}" width="100%" xmlns="http://www.w3.org/2000/svg" '
   f'xmlns:xlink="http://www.w3.org/1999/xlink" font-family="{F}" role="img" '
-  f'aria-labelledby="kbT kbD">')
-A('<title id="kbT">Kloudbean hosting architecture, technical reference</title>')
+  f'aria-label="Kloudbean hosting architecture, technical reference" '
+  f'aria-describedby="kbD">')
 A('<desc id="kbD">Cloudflare provides DNS, CDN and DDoS protection. Traffic arrives over '
   'HTTPS on port 443 at NGINX, which reverse proxies and load balances. A cache hit is '
   'served by Varnish; a cache miss is passed to Apache, which hands execution to PHP-FPM. '
   'Applications sit in the same compute engine, each in an isolated environment with its '
-  'own Git repository, PHP-FPM worker pool and system user. Each application opens its own '
-  'connection to a dedicated MariaDB database on tcp 3306 and a dedicated Redis instance on '
-  'tcp 6379. Backups, off-site storage, restore procedures and a staging environment sit '
-  'alongside. BitNinja enforces security at the compute engine boundary.</desc>')
+  'own Git repository, PHP-FPM worker pool and system user. Applications connect to MariaDB '
+  'over tcp 3306 and to Redis over tcp 6379. Backups, off-site storage, restore procedures '
+  'and a staging environment sit alongside. BitNinja enforces security at the compute engine '
+  'boundary.</desc>')
 A("<defs>")
 A("".join(symbols))
 for n, c in (("ap", PURPLE), ("ag", DBG), ("ar", CHR), ("aa", AMB), ("as", SEC)):
@@ -179,7 +182,7 @@ for i, t in enumerate(["Server security layer", "WAF", "Malware scanning", "Cont
     txt(BX + 30, y + 1, t, 9.8, INK)
 
 # compute engine
-LX, LY, LW, LH = 120, 194, 1000, 434
+LX, LY, LW, LH = 120, 194, 1000, 446
 lane(LX, LY, LW, LH, "COMPUTE ENGINE", NAVY)
 A(f'<path d="M{BX+10} {BY+BH} V 252 H {LX+LW+14} V 268 H {LX+LW+2}" fill="none" stroke="{SEC}" '
   f'stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#as)" opacity=".8"/>')
@@ -197,12 +200,19 @@ A('</g>')
 logo("nginx", CX, NY + 24, 21)
 txt(CX, NY + 50, "reverse proxy · load balancer", 9.4, MUT, "400", "middle")
 
-VY, VW, VH = 314, 160, 84
+VY, VW, VH = 330, 160, 84
 VCX, ACX = 520, 720
-A(f'<path d="M{CX} {NY+NH} V 292 H {VCX} V {VY}" fill="none" stroke="{DBG}" stroke-width="1.7" marker-end="url(#ag)"/>')
-A(f'<path d="M{CX} {NY+NH} V 292 H {ACX} V {VY}" fill="none" stroke="{AMB}" stroke-width="1.7" marker-end="url(#aa)"/>')
-pill(VCX - 6, 301, "CACHE HIT", 8.8, "#eafbf0", DBG, 11)
-pill(ACX + 6, 301, "CACHE MISS", 8.8, "#fff5e8", AMB, 11)
+# The branch label interrupts the vertical drop, the same idiom as the HTTPS 443
+# badge. Drawing the pill across the horizontal run instead hides the line and the
+# arrowhead, so keep the run above the pill and the arrow below it.
+ROUTE_Y, PILL_Y = 286, 304
+for cx, col, mk in ((VCX, DBG, "ag"), (ACX, AMB, "aa")):
+    A(f'<path d="M{CX} {NY+NH} V {ROUTE_Y} H {cx} V {PILL_Y-11}" fill="none" '
+      f'stroke="{col}" stroke-width="1.7"/>')
+    A(f'<line x1="{cx}" y1="{PILL_Y+11}" x2="{cx}" y2="{VY}" stroke="{col}" '
+      f'stroke-width="1.7" marker-end="url(#{mk})"/>')
+pill(VCX, PILL_Y, "CACHE HIT", 8.8, "#eafbf0", DBG, 11)
+pill(ACX, PILL_Y, "CACHE MISS", 8.8, "#fff5e8", AMB, 11)
 rect(VCX - VW / 2, VY, VW, VH, 12)
 logo("varnish", VCX, VY + 26, 30)
 txt(VCX, VY + 58, "HTTP accelerator,", 9.2, MUT, "400", "middle")
@@ -212,14 +222,15 @@ logo("apache", ACX, VY + 26, 30)
 txt(ACX, VY + 58, "web server, passes", 9.2, MUT, "400", "middle")
 txt(ACX, VY + 72, "execution to PHP-FPM", 9.2, MUT, "400", "middle")
 
-PX, PY, PW, PH = LX + 16, 424, LW - 32, 186
-A(f'<path d="M{ACX} {VY+VH} V 412 H {CX} V {PY}" fill="none" stroke="{PURPLE}" '
+PX, PY, PW, PH = LX + 16, 440, LW - 32, 186
+# straight drop from Apache: the elbowed version left only 12px for a 12px arrowhead
+A(f'<line x1="{ACX}" y1="{VY+VH}" x2="{ACX}" y2="{PY}" stroke="{PURPLE}" '
   f'stroke-width="1.8" marker-end="url(#ap)"/>')
 lane(PX, PY, PW, PH, "APPLICATIONS  ·  ISOLATED ENVIRONMENT PER APP",
      PURPLE, 14, "#f4f6fb", "#d7ddf0")
 
 CARDS = [152, 374, 596, 858]
-CW, CY, CH = 210, 452, 142
+CW, CY, CH = 210, 468, 142
 for i, cx in enumerate(CARDS):
     label = "app n" if i == 3 else f"app {i+1}"
     A('<g filter="url(#sh)">')
@@ -250,27 +261,27 @@ txt(PX + PW - 14, PY + PH - 12,
     "dedicated system user · filesystem permissions · own worker pool", 8.6, SEC, "400", "end")
 
 DBX, DBW, CHX, CHW, BKX, BKW = 120, 300, 434, 300, 748, 372
-TY, TH = 686, 126
-lane(DBX, TY, DBW, TH, "DATABASE LAYER  ·  PER APP", DBG)
-lane(CHX, TY, CHW, TH, "CACHE LAYER  ·  PER APP", CHR)
+TY, TH = 700, 126
+lane(DBX, TY, DBW, TH, "DATABASE LAYER", DBG)
+lane(CHX, TY, CHW, TH, "CACHE LAYER", CHR)
 lane(BKX, TY, BKW, TH, "BACKUP AND RECOVERY", NAVY)
 for cx in CARDS:
-    A(f'<path d="M{cx+55} {CY+CH} V 646 H {DBX+DBW/2} V {TY}" fill="none" stroke="{DBG}" '
+    A(f'<path d="M{cx+55} {CY+CH} V 656 H {DBX+DBW/2} V {TY}" fill="none" stroke="{DBG}" '
       f'stroke-width="1.3" stroke-dasharray="4 4" marker-end="url(#ag)" opacity=".85"/>')
-    A(f'<path d="M{cx+155} {CY+CH} V 664 H {CHX+CHW/2} V {TY}" fill="none" stroke="{CHR}" '
+    A(f'<path d="M{cx+155} {CY+CH} V 674 H {CHX+CHW/2} V {TY}" fill="none" stroke="{CHR}" '
       f'stroke-width="1.3" stroke-dasharray="4 4" marker-end="url(#ar)" opacity=".85"/>')
-porttag(DBX + DBW / 2 - 62, 646, "tcp/3306")
-porttag(CHX + CHW / 2 - 62, 664, "tcp/6379")
+porttag(DBX + DBW / 2 - 62, 656, "tcp/3306")
+porttag(CHX + CHW / 2 - 62, 674, "tcp/6379")
 rect(DBX + 30, TY + 26, DBW - 60, 78, 11, "#eafbf0", "#cfe9d8")
 logo("mariadb", DBX + DBW / 2 - 44, TY + 50, 26)
 txt(DBX + DBW / 2 - 26, TY + 56, "MariaDB", 15, DBG, "700", "start")
-txt(DBX + DBW / 2, TY + 78, "one dedicated database", 9.2, MUT, "400", "middle")
-txt(DBX + DBW / 2, TY + 92, "per application", 9.2, MUT, "400", "middle")
+txt(DBX + DBW / 2, TY + 78, "relational data, reached", 9.2, MUT, "400", "middle")
+txt(DBX + DBW / 2, TY + 92, "over tcp/3306", 9.2, MUT, "400", "middle")
 rect(CHX + 30, TY + 26, CHW - 60, 78, 11, "#fdeef0", "#f5c9cb")
 logo("redis", CHX + CHW / 2 - 40, TY + 50, 28)
 txt(CHX + CHW / 2 - 20, TY + 56, "Redis", 15, CHR, "700", "start")
-txt(CHX + CHW / 2, TY + 78, "one dedicated instance per app:", 9.2, MUT, "400", "middle")
-txt(CHX + CHW / 2, TY + 92, "sessions, objects, queues", 9.2, MUT, "400", "middle")
+txt(CHX + CHW / 2, TY + 78, "sessions, objects, queues,", 9.2, MUT, "400", "middle")
+txt(CHX + CHW / 2, TY + 92, "reached over tcp/6379", 9.2, MUT, "400", "middle")
 for j, (a1, a2) in enumerate([("automated", "backups"), ("off-site", "storage"),
                               ("restore", "procedures"), ("staging", "environment")]):
     bx = BKX + 22 + j * 84
@@ -280,7 +291,7 @@ for j, (a1, a2) in enumerate([("automated", "backups"), ("off-site", "storage"),
     txt(bx + 37, TY + 78, a1, 8.4, INK, "600", "middle")
     txt(bx + 37, TY + 90, a2, 8.4, MUT, "400", "middle")
 
-GY = 842
+GY = 856
 rect(120, GY, 1000, 56, 14, "#fff", BORD)
 txt(140, GY + 22, "LEGEND", 8.8, SEC, "700", "start", "1.1")
 for i, (col, dash, mk, lbl) in enumerate([(PURPLE, None, "ap", "request path"),
@@ -336,10 +347,9 @@ __SVG__
   Cloudflare fronts DNS, CDN and DDoS protection. Traffic arrives over HTTPS on 443 at NGINX, which
   reverse proxies and load balances: a cache hit is served by Varnish, a miss is passed to Apache,
   which hands execution to PHP-FPM. Applications sit in the same compute engine, each in an isolated
-  environment with its own Git repository, PHP-FPM worker pool and system user. Each application
-  opens its own connections to a dedicated MariaDB database and a dedicated Redis instance. The PHP
-  path is shown; Node, Python, Ruby, Java, Go and static applications substitute their own runtime
-  for Apache and PHP-FPM.
+  environment with its own Git repository, PHP-FPM worker pool and system user. Applications connect
+  to MariaDB over tcp/3306 and to Redis over tcp/6379. The PHP path is shown; Node, Python, Ruby,
+  Java, Go and static applications substitute their own runtime for Apache and PHP-FPM.
 </figcaption>
 </figure>
 
