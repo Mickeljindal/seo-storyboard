@@ -579,3 +579,12 @@ io.open(OUT, "w", encoding="utf-8").write(page)
 print("wrote", os.path.relpath(OUT, REPO))
 print("svg bytes:", len(svg), "| page bytes:", len(page))
 print("logos:", ", ".join(f"{k} {int(VB[k][0])}x{int(VB[k][1])}" for k in LOGOS))
+
+# The hosting-architecture page embeds this SVG. Rebuild it here so regenerating the
+# diagram can never leave the published page showing an older version.
+_page = os.path.join(HERE, "..", "..", "hosting-architecture", "build-page.py")
+if os.path.exists(_page):
+    import subprocess
+    r = subprocess.run(["python3", _page], capture_output=True, text=True)
+    print("hosting-architecture page:", (r.stdout or r.stderr).strip().splitlines()[-1]
+          if (r.stdout or r.stderr).strip() else "rebuild failed")
