@@ -27,7 +27,7 @@ REPO = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
 IMG = os.path.join(REPO, "kb-ui-for-claude", "src", "assets", "images")
 OUT = os.path.join(HERE, "kloudbean-architecture.html")
 
-W, H = 1240, 1072
+W, H = 1240, 1066
 NAVY, PURPLE, GREEN, SEC = "#000F27", "#4F1AF3", "#22c55f", "#6f6b99"
 BORD, PAGE, MUT, INK = "#e5e5e5", "#f8f9fa", "#6b7280", "#3d3d3d"
 DBG, CHR, AMB, SKY = "#15803d", "#b91c1c", "#b45309", "#0284c7"
@@ -123,11 +123,11 @@ def lane(x, y, w, h, label, label_fill=PURPLE, r=16, fill="#fdfdff", stroke="#df
     pill(x + 18 + lw / 2, y, label, 9.5, label_fill)
 
 
-def panel(x, y, w, h, label, label_col, r=16):
+def panel(x, y, w, h, label, label_col, r=16, fill="#fdfdff", stroke="#dfe3f2"):
     """Box with the label set INSIDE at top left, leaving the top edge clear for
     incoming connectors. The straddling-pill version put the tier labels exactly
     where the data arrows terminate, so arrowheads landed on the text."""
-    rect(x, y, w, h, r, "#fdfdff", "#dfe3f2", 1.3)
+    rect(x, y, w, h, r, fill, stroke, 1.3)
     A(f'<rect x="{x+20}" y="{y+13}" width="4" height="14" rx="2" fill="{label_col}"/>')
     txt(x + 32, y + 25, label, 9.4, label_col, "700", "start", "1.1")
 
@@ -171,7 +171,7 @@ PAD, GAP, GAP_L, BAR = 24, 26, 42, 22
 
 CF_Y, CF_H = 24, 70                     # Cloudflare
 BADGE_Y = CF_Y + CF_H + 22              # HTTPS 443 badge
-LX, LY, LW, LH = 120, 176, 1000, 440    # compute engine lane
+LX, LY, LW, LH = 120, 176, 1000, 606    # compute engine lane
 NY, NH = LY + PAD, 60                   # NGINX
 ROUTE_Y = NY + NH + GAP                 # branch horizontal run
 PILL_Y = ROUTE_Y + 18                   # branch label, interrupts the drop
@@ -180,10 +180,9 @@ VCX, ACX = CX - 100, CX + 100           # branch centres, symmetric about CX
 PX, PY, PW, PH = LX + 16, VY + VH + GAP, LW - 32, 156   # applications lane
 CY, CH, CW = PY + 28, 96, 210           # application cards
 CAP_Y = CY + CH + 18                    # isolation caption baseline
-TAG_Y = LY + LH + 20                    # port tag on the data connectors
-TY, TH = LY + LH + GAP_L, 130           # row 1: database and cache tiers
-BK_TAG_Y = TY + TH + 28                 # label on the backup connectors
-R2Y, R2H = TY + TH + 56, 118            # row 2: off-site backup
+DSY, DSH = PY + PH + GAP_L, 124         # data services, nested in the lane
+BK_TAG_Y = LY + LH + 28                 # label on the backup connectors
+R2Y, R2H = LY + LH + 56, 118            # off-site backup row
 GY, GH = R2Y + R2H + 30, 56             # legend
 BX, BY, BW, BH = 930, CF_Y, 190, 128    # BitNinja panel
 
@@ -290,49 +289,43 @@ for k in range(3):
 txt(PX + PW - 16, CAP_Y,
     "dedicated system user · filesystem permissions · own worker pool", 8.6, SEC, "400", "end")
 
-# ------------------------------------------------------------- data tiers
-# Two rows. Row 1 holds the live data services, row 2 the off-site backup target,
-# so both the applications lane and the database layer have somewhere to point.
-GUT = 14                                 # gutter between the row-1 panels
-DBW = (LW - GUT) / 2
-DBX = LX
-CHX, CHW = LX + DBW + GUT, DBW
-panel(DBX, TY, DBW, TH, "DATABASE LAYER", DBG)
-panel(CHX, TY, CHW, TH, "CACHE LAYER", CHR)
+# ------------------------------- data services, nested in the compute engine
+# MariaDB and Redis run on the compute engine alongside the applications, so they
+# belong inside that lane rather than in a tier below it. Nesting shows the
+# co-location without asserting anything about how many hosts there are.
+panel(PX, DSY, PW, DSH, "DATA SERVICES", NAVY, 14, "#f4f6fb", "#d7ddf0")
+DS_GAP = 20
+DSW = (PW - 32 - DS_GAP) / 2
+MDX = PX + 16
+RDX = MDX + DSW + DS_GAP
+NODE_Y, NODE_H = DSY + 34, 74
 
-# Two connectors rather than one per application. Eight dashed lines crossing
-# each other's channels was noise, and it also implied a per-app database and
-# cache, which is not a claim this diagram makes.
-for cx, col, mk, tag in ((DBX + DBW / 2, DBG, "ag", "tcp/3306"),
-                         (CHX + CHW / 2, CHR, "ar", "tcp/6379")):
-    A(f'<line x1="{cx}" y1="{PY+PH}" x2="{cx}" y2="{TAG_Y-8}" stroke="{col}" '
-      f'stroke-width="1.5" stroke-dasharray="4 4"/>')
-    A(f'<line x1="{cx}" y1="{TAG_Y+8}" x2="{cx}" y2="{TY}" stroke="{col}" '
+# Applications reach each service. The port is stated on the node itself, so the
+# connectors stay short and unlabelled instead of needing a tag in a 26px gap.
+for cx, col, mk in ((MDX + DSW / 2, DBG, "ag"), (RDX + DSW / 2, CHR, "ar")):
+    A(f'<line x1="{cx}" y1="{PY+PH}" x2="{cx}" y2="{DSY}" stroke="{col}" '
       f'stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#{mk})"/>')
-    porttag(cx, TAG_Y, tag)
 
-NODE_Y, NODE_H = TY + 38, 74
-rect(DBX + 30, NODE_Y, DBW - 60, NODE_H, 11, "#eafbf0", "#cfe9d8")
-logo("mariadb", DBX + DBW / 2 - 44, NODE_Y + 22, 26)
-txt(DBX + DBW / 2 - 26, NODE_Y + 28, "MariaDB", 15, DBG, "700", "start")
-txt(DBX + DBW / 2, NODE_Y + 50, "relational data, reached", 9.2, MUT, "400", "middle")
-txt(DBX + DBW / 2, NODE_Y + 64, "over tcp/3306", 9.2, MUT, "400", "middle")
+rect(MDX, NODE_Y, DSW, NODE_H, 11, "#eafbf0", "#cfe9d8")
+logo("mariadb", MDX + DSW / 2 - 46, NODE_Y + 26, 26)
+txt(MDX + DSW / 2 - 28, NODE_Y + 32, "MariaDB", 15, DBG, "700", "start")
+txt(MDX + DSW / 2, NODE_Y + 56, "relational data  ·  tcp/3306", 9.2, MUT, "400", "middle")
 
-rect(CHX + 30, NODE_Y, CHW - 60, NODE_H, 11, "#fdeef0", "#f5c9cb")
-logo("redis", CHX + CHW / 2 - 40, NODE_Y + 22, 28)
-txt(CHX + CHW / 2 - 20, NODE_Y + 28, "Redis", 15, CHR, "700", "start")
-txt(CHX + CHW / 2, NODE_Y + 50, "sessions, objects, queues,", 9.2, MUT, "400", "middle")
-txt(CHX + CHW / 2, NODE_Y + 64, "reached over tcp/6379", 9.2, MUT, "400", "middle")
+rect(RDX, NODE_Y, DSW, NODE_H, 11, "#fdeef0", "#f5c9cb")
+logo("redis", RDX + DSW / 2 - 42, NODE_Y + 26, 28)
+txt(RDX + DSW / 2 - 22, NODE_Y + 32, "Redis", 15, CHR, "700", "start")
+txt(RDX + DSW / 2, NODE_Y + 56, "sessions, objects, queues  ·  tcp/6379", 9.2, MUT, "400", "middle")
 
-# ------------------------------------------------- row 2: off-site GCS backup
+# ------------------------------------------------- off-site GCS backup, below
 panel(LX, R2Y, LW, R2H, "OFF-SITE BACKUP", SKY)
 logo("gcloud", LX + 152, R2Y + 20, 17)
 txt(LX + 166, R2Y + 25, "Google Cloud Storage", 9.4, SEC, "600", "start", "0.4")
 
-# Backup connectors: applications come down the row-1 gutter, the database layer
-# comes straight down out of its own panel. Both are labelled on the way.
-for x0, y0, tag in ((CHX - GUT / 2, PY + PH, "app data"),
-                    (DBX + DBW / 2, TY + TH, "database dumps")):
+# Both sources sit inside the compute engine now, so the backup connectors leave
+# from its bottom edge in two clearly separated columns.
+BK_X1, BK_X2 = LX + LW * 0.30, LX + LW * 0.70
+for x0, y0, tag in ((BK_X1, LY + LH, "app data"),
+                    (BK_X2, LY + LH, "database dumps")):
     A(f'<line x1="{x0}" y1="{y0}" x2="{x0}" y2="{BK_TAG_Y-8}" stroke="{SKY}" '
       f'stroke-width="1.5" stroke-dasharray="5 4"/>')
     A(f'<line x1="{x0}" y1="{BK_TAG_Y+8}" x2="{x0}" y2="{R2Y}" stroke="{SKY}" '
@@ -395,9 +388,10 @@ _check("apps lane top -> cards", CY - PY, 24)
 _check("cards -> caption", CAP_Y - (CY + CH), 14)
 _check("caption -> apps lane bottom", (PY + PH) - CAP_Y, 10)
 _check("apps lane -> compute lane bottom", (LY + LH) - (PY + PH), 16)
-_check("compute lane -> data tiers", TY - (LY + LH), 30)
-_check("tier label -> node card", NODE_Y - (TY + 25), 8)
-_check("row 1 -> backup label", (BK_TAG_Y - 8) - (TY + TH), 14)
+_check("apps lane -> data services (arrow)", DSY - (PY + PH), 30)
+_check("data services label -> node", NODE_Y - (DSY + 25), 8)
+_check("data services -> compute lane bottom", (LY + LH) - (DSY + DSH), 16)
+_check("compute lane -> backup label", (BK_TAG_Y - 8) - (LY + LH), 14)
 _check("backup label -> row 2 (arrow)", R2Y - (BK_TAG_Y + 8), 18)
 _check("backup label -> bucket row", BK_Y - (R2Y + 25), 8)
 _check("buckets -> row 2 bottom", (R2Y + R2H) - (BK_Y + BK_H), 12)
@@ -411,19 +405,19 @@ if not (CY > PY and CY + CH < PY + PH):
 for _cx in CARDS:
     if not (_cx >= PX + 8 and _cx + CW <= PX + PW - 8):
         problems.append(f"application card at x={_cx} breaks the lane bounds")
-if not (LY + LH < TAG_Y - 8 and TAG_Y + 8 < TY):
-    problems.append("port tag is not clear of the lane and tier edges")
-# a tier label must never share a row with the arrowhead landing on that tier
-for _x, _w in ((DBX, DBW), (CHX, CHW)):
-    if abs((_x + _w / 2) - (_x + 32)) < 60:
-        problems.append("tier label sits under the incoming connector")
-# the applications backup line runs down the gutter, so it must miss both panels
-_gut = CHX - GUT / 2
-if not (DBX + DBW <= _gut <= CHX):
-    problems.append("applications backup connector does not clear the row-1 panels")
-# and it must miss the row-2 label and the bucket row
-if abs(_gut - (LX + 32)) < 60:
-    problems.append("backup connector lands on the row-2 label")
+if not (PY + PH < DSY and DSY + DSH < LY + LH):
+    problems.append("data services lane is not nested inside the compute lane")
+if not (MDX >= PX + 8 and RDX + DSW <= PX + PW - 8):
+    problems.append("data service nodes break the lane bounds")
+# a panel label must never share a row with an arrowhead landing on that panel
+for _x, _w, _cx in ((PX, PW, MDX + DSW / 2), (PX, PW, RDX + DSW / 2)):
+    if abs(_cx - (_x + 32)) < 60:
+        problems.append("data services label sits under an incoming connector")
+for _bx in (BK_X1, BK_X2):
+    if abs(_bx - (LX + 32)) < 60:
+        problems.append("backup connector lands on the backup panel label")
+if abs(BK_X1 - BK_X2) < 120:
+    problems.append("backup connectors are too close together")
 _last = LX + 24 + (BK_N - 1) * (BK_W + BK_GAP) + BK_W
 if _last > LX + LW - 20:
     problems.append("bucket row overflows the backup panel")
