@@ -27,7 +27,7 @@ REPO = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
 IMG = os.path.join(REPO, "kb-ui-for-claude", "src", "assets", "images")
 OUT = os.path.join(HERE, "kloudbean-architecture.html")
 
-W, H = 1240, 1066
+W, H = 1240, 1024
 NAVY, PURPLE, GREEN, SEC = "#000F27", "#4F1AF3", "#22c55f", "#6f6b99"
 BORD, PAGE, MUT, INK = "#e5e5e5", "#f8f9fa", "#6b7280", "#3d3d3d"
 DBG, CHR, AMB, SKY = "#15803d", "#b91c1c", "#b45309", "#0284c7"
@@ -115,12 +115,16 @@ def porttag(cx, cy, t):
     txt(cx, cy + 4, t, 8.6, SEC, "500", "middle", font=MONO)
 
 
-def lane(x, y, w, h, label, label_fill=PURPLE, r=16, fill="#fdfdff", stroke="#dfe3f2"):
-    """Grouping box with a pill straddling the top edge. Only for regions that
-    nothing points into, since the pill would sit under an incoming arrowhead."""
+def lane(x, y, w, h, label, label_fill=PURPLE, r=16, fill="#fdfdff", stroke="#dfe3f2",
+         pill_cx=None):
+    """Grouping box with a pill straddling the top edge. If connectors land on that
+    edge, pass pill_cx to park the pill in a corridor between them, and assert the
+    clearance. Returns the pill's x span so the caller can check it."""
     rect(x, y, w, h, r, fill, stroke, 1.3)
     lw = len(label) * (9.5 * 0.62) + 26
-    pill(x + 18 + lw / 2, y, label, 9.5, label_fill)
+    cx = pill_cx if pill_cx is not None else x + 18 + lw / 2
+    pill(cx, y, label, 9.5, label_fill)
+    return (cx - lw / 2, cx + lw / 2)
 
 
 def panel(x, y, w, h, label, label_col, r=16, fill="#fdfdff", stroke="#dfe3f2"):
@@ -144,8 +148,9 @@ A('<desc id="kbD">Cloudflare provides DNS, CDN and DDoS protection. Traffic arri
   'HTTPS on port 443 at NGINX, which reverse proxies and load balances. A cache hit is '
   'served by Varnish; a cache miss is passed to Apache, which hands execution to PHP-FPM. '
   'Applications sit in the same compute engine, each in an isolated environment with its '
-  'own Git repository, PHP-FPM worker pool and system user. Applications connect to MariaDB '
-  'over tcp 3306 and to Redis over tcp 6379. Application data and database dumps are backed '
+  'own Git repository, PHP-FPM worker pool and system user. Every application has its own '
+  'MariaDB instance on tcp 3306 and its own Redis instance on tcp 6379, not a shared pair. '
+  'Application data and database dumps are backed '
   'up off-site to Google Cloud Storage, where every application and the database each get '
   'their own isolated bucket. BitNinja enforces security at the compute engine boundary.</desc>')
 A("<defs>")
@@ -171,16 +176,15 @@ PAD, GAP, GAP_L, BAR = 24, 26, 42, 22
 
 CF_Y, CF_H = 24, 70                     # Cloudflare
 BADGE_Y = CF_Y + CF_H + 22              # HTTPS 443 badge
-LX, LY, LW, LH = 120, 176, 1000, 606    # compute engine lane
+LX, LY, LW, LH = 120, 176, 1000, 564    # compute engine lane
 NY, NH = LY + PAD, 60                   # NGINX
 ROUTE_Y = NY + NH + GAP                 # branch horizontal run
 PILL_Y = ROUTE_Y + 18                   # branch label, interrupts the drop
 VY, VW, VH = PILL_Y + 11 + 15, 160, 84  # Varnish / Apache
 VCX, ACX = CX - 100, CX + 100           # branch centres, symmetric about CX
-PX, PY, PW, PH = LX + 16, VY + VH + GAP, LW - 32, 156   # applications lane
+PX, PY, PW, PH = LX + 16, VY + VH + GAP, LW - 32, 142   # applications lane
 CY, CH, CW = PY + 28, 96, 210           # application cards
-CAP_Y = CY + CH + 18                    # isolation caption baseline
-DSY, DSH = PY + PH + GAP_L, 124         # data services, nested in the lane
+DSY, DSH = PY + PH + 30, 108            # data services, nested in the lane
 BK_TAG_Y = LY + LH + 28                 # label on the backup connectors
 R2Y, R2H = LY + LH + 56, 118            # off-site backup row
 GY, GH = R2Y + R2H + 30, 56             # legend
@@ -286,35 +290,33 @@ for i, cx in enumerate(CARDS):
     # makes. The shared data tiers below carry that relationship instead.
 for k in range(3):
     A(f'<circle cx="{824 + k*9}" cy="{CY+66}" r="3" fill="{SEC}" opacity=".5"/>')
-txt(PX + PW - 16, CAP_Y,
-    "dedicated system user · filesystem permissions · own worker pool", 8.6, SEC, "400", "end")
-
 # ------------------------------- data services, nested in the compute engine
-# MariaDB and Redis run on the compute engine alongside the applications, so they
-# belong inside that lane rather than in a tier below it. Nesting shows the
-# co-location without asserting anything about how many hosts there are.
-panel(PX, DSY, PW, DSH, "DATA SERVICES", NAVY, 14, "#f4f6fb", "#d7ddf0")
-DS_GAP = 20
-DSW = (PW - 32 - DS_GAP) / 2
-MDX = PX + 16
-RDX = MDX + DSW + DS_GAP
-NODE_Y, NODE_H = DSY + 34, 74
+# One MariaDB and one Redis PER APPLICATION, each column sitting directly under the
+# application it belongs to. A single shared pair would have said the opposite.
+# The lane pill is parked in the corridor between app 3 and app n, because eight
+# connectors land on this lane's top edge and a left-aligned label would sit under
+# one of them.
+DS_PILL_CX = (CARDS[2] + CW + CARDS[3]) / 2
+DS_PILL = lane(PX, DSY, PW, DSH, "DATA SERVICES", NAVY, 14, "#f4f6fb", "#d7ddf0", DS_PILL_CX)
 
-# Applications reach each service. The port is stated on the node itself, so the
-# connectors stay short and unlabelled instead of needing a tag in a 26px gap.
-for cx, col, mk in ((MDX + DSW / 2, DBG, "ag"), (RDX + DSW / 2, CHR, "ar")):
-    A(f'<line x1="{cx}" y1="{PY+PH}" x2="{cx}" y2="{DSY}" stroke="{col}" '
-      f'stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#{mk})"/>')
-
-rect(MDX, NODE_Y, DSW, NODE_H, 11, "#eafbf0", "#cfe9d8")
-logo("mariadb", MDX + DSW / 2 - 46, NODE_Y + 26, 26)
-txt(MDX + DSW / 2 - 28, NODE_Y + 32, "MariaDB", 15, DBG, "700", "start")
-txt(MDX + DSW / 2, NODE_Y + 56, "relational data  ·  tcp/3306", 9.2, MUT, "400", "middle")
-
-rect(RDX, NODE_Y, DSW, NODE_H, 11, "#fdeef0", "#f5c9cb")
-logo("redis", RDX + DSW / 2 - 42, NODE_Y + 26, 28)
-txt(RDX + DSW / 2 - 22, NODE_Y + 32, "Redis", 15, CHR, "700", "start")
-txt(RDX + DSW / 2, NODE_Y + 56, "sessions, objects, queues  ·  tcp/6379", 9.2, MUT, "400", "middle")
+CHIP_GAP = 14
+CHIP_W = (CW - CHIP_GAP) / 2
+CHIP_Y, CHIP_H = DSY + 38, 52
+DS_COLS = []
+for cx in CARDS:
+    for k, (key, name, port, col, bg, bd, mk) in enumerate([
+            ("mariadb", "MariaDB", "tcp/3306", DBG, "#eafbf0", "#cfe9d8", "ag"),
+            ("redis", "Redis", "tcp/6379", CHR, "#fdeef0", "#f5c9cb", "ar")]):
+        chx = cx + k * (CHIP_W + CHIP_GAP)
+        ccx = chx + CHIP_W / 2
+        DS_COLS.append(ccx)
+        # each application reaches its own instance: short, straight, no crossings
+        A(f'<line x1="{ccx}" y1="{CY+CH}" x2="{ccx}" y2="{CHIP_Y}" stroke="{col}" '
+          f'stroke-width="1.4" stroke-dasharray="4 4" marker-end="url(#{mk})"/>')
+        rect(chx, CHIP_Y, CHIP_W, CHIP_H, 9, bg, bd)
+        logo(key, chx + 20, CHIP_Y + 17, 15)
+        txt(chx + 34, CHIP_Y + 21, name, 8.8, col, "600", "start")
+        txt(chx + 12, CHIP_Y + 40, port, 7.6, SEC, "400", "start", font=MONO)
 
 # ------------------------------------------------- off-site GCS backup, below
 panel(LX, R2Y, LW, R2H, "OFF-SITE BACKUP", SKY)
@@ -385,11 +387,11 @@ _check("nginx -> branch run", ROUTE_Y - (NY + NH), 20)
 _check("branch label -> box top", VY - (PILL_Y + 11), 14)
 _check("varnish/apache -> apps lane", PY - (VY + VH), 20)
 _check("apps lane top -> cards", CY - PY, 24)
-_check("cards -> caption", CAP_Y - (CY + CH), 14)
-_check("caption -> apps lane bottom", (PY + PH) - CAP_Y, 10)
+_check("cards -> apps lane bottom", (PY + PH) - (CY + CH), 14)
 _check("apps lane -> compute lane bottom", (LY + LH) - (PY + PH), 16)
-_check("apps lane -> data services (arrow)", DSY - (PY + PH), 30)
-_check("data services label -> node", NODE_Y - (DSY + 25), 8)
+_check("apps lane -> data services (arrow)", DSY - (PY + PH), 26)
+_check("data services lane -> chip row", CHIP_Y - DSY, 30)
+_check("chip row -> data lane bottom", (DSY + DSH) - (CHIP_Y + CHIP_H), 12)
 _check("data services -> compute lane bottom", (LY + LH) - (DSY + DSH), 16)
 _check("compute lane -> backup label", (BK_TAG_Y - 8) - (LY + LH), 14)
 _check("backup label -> row 2 (arrow)", R2Y - (BK_TAG_Y + 8), 18)
@@ -407,12 +409,17 @@ for _cx in CARDS:
         problems.append(f"application card at x={_cx} breaks the lane bounds")
 if not (PY + PH < DSY and DSY + DSH < LY + LH):
     problems.append("data services lane is not nested inside the compute lane")
-if not (MDX >= PX + 8 and RDX + DSW <= PX + PW - 8):
-    problems.append("data service nodes break the lane bounds")
-# a panel label must never share a row with an arrowhead landing on that panel
-for _x, _w, _cx in ((PX, PW, MDX + DSW / 2), (PX, PW, RDX + DSW / 2)):
-    if abs(_cx - (_x + 32)) < 60:
-        problems.append("data services label sits under an incoming connector")
+if len(DS_COLS) != 2 * len(CARDS):
+    problems.append("expected one MariaDB and one Redis per application")
+# every data chip must sit within its own application's column
+for _n, _ccx in enumerate(DS_COLS):
+    _card = CARDS[_n // 2]
+    if not (_card <= _ccx <= _card + CW):
+        problems.append(f"data chip {_n} is not under its application card")
+# no connector may land on the lane pill
+for _ccx in DS_COLS:
+    if DS_PILL[0] - 6 < _ccx < DS_PILL[1] + 6:
+        problems.append("a data connector lands on the DATA SERVICES pill")
 for _bx in (BK_X1, BK_X2):
     if abs(_bx - (LX + 32)) < 60:
         problems.append("backup connector lands on the backup panel label")
@@ -466,8 +473,8 @@ __SVG__
   Cloudflare fronts DNS, CDN and DDoS protection. Traffic arrives over HTTPS on 443 at NGINX, which
   reverse proxies and load balances: a cache hit is served by Varnish, a miss is passed to Apache,
   which hands execution to PHP-FPM. Applications sit in the same compute engine, each in an isolated
-  environment with its own Git repository, PHP-FPM worker pool and system user. Applications connect
-  to MariaDB over tcp/3306 and to Redis over tcp/6379. Application data and database dumps go
+  environment with its own Git repository, PHP-FPM worker pool and system user, and with its own
+  MariaDB and Redis instance rather than a shared pair. Application data and database dumps go
   off-site to Google Cloud Storage, where each application and the database get their own isolated
   bucket, so one restore never touches another tenant's data. The PHP path is shown; Node, Python,
   Ruby, Java, Go and static applications substitute their own runtime for Apache and PHP-FPM.
