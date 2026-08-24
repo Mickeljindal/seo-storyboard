@@ -116,7 +116,7 @@ The rule of thumb: if your schedule is tighter than your budget, managed wins; i
 
 ## The honest limits
 
-Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and frameworks like React, Vue, Angular, Laravel, Django, and WordPress. It isn't for Windows, .NET, or IIS. For general users it isn't a swap for standalone managed Kubernetes or autoscaling, which are enterprise or custom options rather than defaults. Baseline security is a configured firewall (Shorewall) plus brute-force protection (Fail2ban) and free auto-renewing SSL, with an optional extra layer available if you want it. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you still own your application and your data. That division of labor is the whole point. And because it's standard Linux and standard code underneath, you can leave for a raw Vultr box, or anywhere else, whenever you want.
+Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and frameworks like React, Vue, Angular, Laravel, Django, and WordPress. Windows Server is a Premium and Enterprise option rather than a standard one, and .NET runs on Linux. For general users it isn't a swap for standalone managed Kubernetes or autoscaling, which are enterprise or custom options rather than defaults. Baseline security is a configured firewall (Shorewall) plus brute-force protection (Fail2ban) and free auto-renewing SSL, with an optional extra layer available if you want it. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you still own your application and your data. That division of labor is the whole point. And because it's standard Linux and standard code underneath, you can leave for a raw Vultr box, or anywhere else, whenever you want.
 
 ---
 

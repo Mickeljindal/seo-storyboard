@@ -143,7 +143,7 @@ Once auto-deploy is on, you keep the best of both. Keep iterating in Bolt where 
 
 ## What you own, and what's managed
 
-Kloudbean runs Linux web stacks: Node, plus PHP, Python, Ruby, and Java, with frameworks like React, Vue, Next.js, Laravel, and Django on top. That's what Bolt.new produces, so you're on solid ground. It isn't for Windows or .NET workloads. "Managed" means the server, stack, SSL, backups, and patching are handled, while you own and maintain the app itself. Prefer the tool-agnostic version that also covers Cursor, Lovable, and v0? That's the [deploy an AI-built app](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) guide, and the [Lovable walkthrough](https://www.kloudbean.com/blog/deploy-lovable-app-to-your-own-server/) is a close cousin of this one.
+Kloudbean runs Linux web stacks: Node, plus PHP, Python, Ruby, and Java, with frameworks like React, Vue, Next.js, Laravel, and Django on top. That's what Bolt.new produces, so you're on solid ground. Windows Server is a Premium and Enterprise option rather than a standard one, and .NET runs on Linux. "Managed" means the server, stack, SSL, backups, and patching are handled, while you own and maintain the app itself. Prefer the tool-agnostic version that also covers Cursor, Lovable, and v0? That's the [deploy an AI-built app](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) guide, and the [Lovable walkthrough](https://www.kloudbean.com/blog/deploy-lovable-app-to-your-own-server/) is a close cousin of this one.
 
 ## From preview to product
 

@@ -1,7 +1,7 @@
 ---
 title: "A Heroku Alternative for Modern Apps"
 slug: heroku-alternative-for-modern-apps
-meta_description: "Heroku invented git-push deploys. But free plans ended in 2022, the cheap dynos still sleep, and add-ons stack up. A modern Heroku alternative — translate dynos, Procfile, buildpacks, config vars, and Postgres/Redis add-ons onto one owned server, with the database on the same box."
+meta_description: "Heroku invented git-push deploys. But free plans ended in 2022, the cheap dynos still sleep, and add-ons stack up. A modern Heroku alternative: translate dynos, Procfile, buildpacks, config vars and Postgres/Redis add-ons onto one server you own."
 target_keyword: Heroku alternative
 secondary_keywords:
   - modern Heroku alternative
@@ -10,10 +10,10 @@ secondary_keywords:
   - self-hosted Heroku alternative
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 1 — Deploy AI / Vibe-Coded Apps
+cluster: 1. Deploy AI / Vibe-Coded Apps
 ---
 
-![A Heroku alternative for modern apps — one owned, always-on server with the database on the same box](images/hero.png)
+![A Heroku alternative for modern apps: one owned, always-on server running the app tier](images/hero.png)
 
 # A Heroku Alternative for Modern Apps
 
@@ -109,7 +109,7 @@ If Heroku still fits, keep it. Familiarity has real value, and there's no prize 
 
 ## The honest limits
 
-Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and frameworks like React, Next.js, Vue, Laravel, and Django, which covers what modern and vibe-coded apps are built on. It isn't for Windows, .NET, or IIS. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups, while you own and maintain the app. And to be fair, for a single small dyno with no add-ons, Heroku's simplicity is genuinely hard to beat. The flat, owned server pulls ahead as your app grows processes and add-ons, and as a "cheaper Heroku alternative" starts to mean "stop paying five subscriptions for one app."
+Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and frameworks like React, Next.js, Vue, Laravel, and Django, which covers what modern and vibe-coded apps are built on. Windows Server is a Premium and Enterprise option rather than a standard one, and .NET runs on Linux. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups, while you own and maintain the app. And to be fair, for a single small dyno with no add-ons, Heroku's simplicity is genuinely hard to beat. The flat, owned server pulls ahead as your app grows processes and add-ons, and as a "cheaper Heroku alternative" starts to mean "stop paying five subscriptions for one app."
 
 ## Keep the git push. Lose the meter.
 

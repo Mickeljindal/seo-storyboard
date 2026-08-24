@@ -117,7 +117,7 @@ Here's where I'll take a side. The trap almost nobody warns you about isn't choo
 
 ## The honest limits
 
-Kloudbean runs Linux web stacks: PHP, Node, Python, Ruby, Java, and their databases, with frameworks like WordPress, Laravel, Django, React, and Vue. It isn't for Windows, .NET, or IIS. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups, while you keep your application and your data. And a fair word on scaling: autoscaling and Kubernetes are enterprise and custom options, not something that quietly kicks in on a standard plan. On a standard server you resize when you need more, so don't expect your app to scale itself automatically. Compliance is shared too: the platform provides the infrastructure controls, and you own the app-level side.
+Kloudbean runs Linux web stacks: PHP, Node, Python, Ruby, Java, and their databases, with frameworks like WordPress, Laravel, Django, React, and Vue. Windows Server is a Premium and Enterprise option rather than a standard one, and .NET runs on Linux. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups, while you keep your application and your data. And a fair word on scaling: autoscaling and Kubernetes are enterprise and custom options, not something that quietly kicks in on a standard plan. On a standard server you resize when you need more, so don't expect your app to scale itself automatically. Compliance is shared too: the platform provides the infrastructure controls, and you own the app-level side.
 
 Because it's standard Linux and standard code underneath, none of this locks you in. You can move to a raw Lightsail box you manage yourself, or to any other host, whenever you want. The exit door is part of the design.
 

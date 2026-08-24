@@ -93,7 +93,7 @@ Being straight one more time: managed hosting is not the fully DIY, run-every-la
 
 ## The honest limits
 
-Kloudbean runs Linux web stacks: Node and the modern web toolkit (React, Next.js, Vue) that Lovable produces, plus PHP, Python, Ruby, and Java. It isn't for Windows, .NET, or IIS. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and automatic backups; you own and maintain the application itself. That division (you own the app and data, the platform keeps the server healthy) is precisely the "self-hosted without the sysadmin work" arrangement most Lovable builders actually want.
+Kloudbean runs Linux web stacks: Node and the modern web toolkit (React, Next.js, Vue) that Lovable produces, plus PHP, Python, Ruby, and Java. Windows Server is a Premium and Enterprise option rather than a standard one, and .NET runs on Linux. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and automatic backups; you own and maintain the application itself. That division (you own the app and data, the platform keeps the server healthy) is precisely the "self-hosted without the sysadmin work" arrangement most Lovable builders actually want.
 
 **Built in a tool. Owned by you.** Own your app at [kloudbean.com](https://www.kloudbean.com/). One-click databases, automatic backups, IP allow-listing, free migration, free trial, and simple Git deploy. Plans on [pricing](https://www.kloudbean.com/pricing/).
 

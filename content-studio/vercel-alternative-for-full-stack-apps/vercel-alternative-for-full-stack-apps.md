@@ -116,7 +116,7 @@ Second, the edge. A single server lives in the regions you pick, not on a global
 
 ## The honest limits
 
-Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and the frameworks on top like React, Next.js, Vue, Laravel, and Django. That covers what nearly every Vercel-hosted app is built on. It isn't for Windows, .NET, or IIS workloads. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and backups; you own and maintain the application and its data. You can move hosts whenever you like, because underneath it's a standard Linux box running standard code.
+Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and the frameworks on top like React, Next.js, Vue, Laravel, and Django. That covers what nearly every Vercel-hosted app is built on. Windows Server is a Premium and Enterprise option rather than a standard one, and .NET runs on Linux. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and backups; you own and maintain the application and its data. You can move hosts whenever you like, because underneath it's a standard Linux box running standard code.
 
 ## A server, not a workaround
 

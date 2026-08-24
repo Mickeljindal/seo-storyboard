@@ -102,7 +102,7 @@ Raw droplets are cheaper than a managed server, and they should be. You're suppl
 
 ## The honest limits
 
-Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and frameworks like React, Vue, Angular, Laravel, Django, and WordPress. It isn't for Windows, .NET, or IIS, and for general users it isn't a swap for standalone managed Kubernetes (that's an enterprise or custom option). "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you still own your application and your data. That split is the whole point: you keep the app, someone else keeps the box healthy. And because it's standard Linux and standard code underneath, you can leave for a raw droplet, or anywhere else, whenever you want.
+Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and frameworks like React, Vue, Angular, Laravel, Django, and WordPress. Windows Server is a Premium and Enterprise option rather than a standard one, though .NET itself runs on Linux here. Standalone managed Kubernetes is also enterprise or custom rather than a default. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you still own your application and your data. That split is the whole point: you keep the app, someone else keeps the box healthy. And because it's standard Linux and standard code underneath, you can leave for a raw droplet, or anywhere else, whenever you want.
 
 ## Same infrastructure. Someone else keeps it healthy.
 

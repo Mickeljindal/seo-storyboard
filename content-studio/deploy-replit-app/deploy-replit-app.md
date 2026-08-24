@@ -147,7 +147,7 @@ One honest line for Replit: the all-in-one experience is good at what it's for. 
 
 ## The honest limits
 
-Kloudbean runs Linux stacks: Node, Python, PHP, Ruby, and Java, with frameworks like React, Next.js, Vue, Django, and Laravel on top. That spans what most Repls are built in. It isn't for Windows/.NET/IIS. "Managed" means the server, stack, SSL, backups, and patching are handled; you own and maintain the application and its data. The tool-agnostic version of this walkthrough, covering Lovable, Bolt, Cursor, and v0 too, is the [deploy an AI-built app](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) pillar.
+Kloudbean runs Linux stacks: Node, Python, PHP, Ruby, and Java, with frameworks like React, Next.js, Vue, Django, and Laravel on top. That spans what most Repls are built in. Windows Server is a Premium and Enterprise option rather than a standard one, and .NET runs on Linux. "Managed" means the server, stack, SSL, backups, and patching are handled; you own and maintain the application and its data. The tool-agnostic version of this walkthrough, covering Lovable, Bolt, Cursor, and v0 too, is the [deploy an AI-built app](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) pillar.
 
 **Keep Replit's speed. Own the server.** Migrate your Replit app to [kloudbean.com](https://www.kloudbean.com/), with a free trial and your first migration done for you. Plans on [pricing](https://www.kloudbean.com/pricing/).
 

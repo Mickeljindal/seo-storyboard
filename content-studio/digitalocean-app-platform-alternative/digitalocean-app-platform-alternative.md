@@ -132,7 +132,7 @@ If you want to see how the managed-server model stacks up more broadly, [best ma
 
 ## The honest limits
 
-A few boundaries, because you'd find them anyway. Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and the frameworks on top like React, Vue, Angular, Laravel, Django, and WordPress. It's not for Windows, .NET, or IIS. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you own and maintain your application and its data. And on autoscaling: App Platform has its own autoscaling inside its model, so if fully automatic scaling is central to your app, weigh that honestly. On Kloudbean, autoscaling and Kubernetes are enterprise or custom setups, not a switch on a standard plan. For most apps you scale by resizing the server or adding instances behind the load balancer, which is plenty. Because it's standard Linux and standard code underneath, you can leave whenever you want. The exit door is part of the design.
+A few boundaries, because you'd find them anyway. Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and the frameworks on top like React, Vue, Angular, Laravel, Django, and WordPress. Windows Server is a Premium and Enterprise option rather than a standard one, and .NET runs on Linux. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you own and maintain your application and its data. And on autoscaling: App Platform has its own autoscaling inside its model, so if fully automatic scaling is central to your app, weigh that honestly. On Kloudbean, autoscaling and Kubernetes are enterprise or custom setups, not a switch on a standard plan. For most apps you scale by resizing the server or adding instances behind the load balancer, which is plenty. Because it's standard Linux and standard code underneath, you can leave whenever you want. The exit door is part of the design.
 
 ---
 
@@ -180,7 +180,7 @@ Not in the same automatic way for standard plans, so it's fair to flag. App Plat
 
 ### What kinds of apps can I host on a managed server?
 
-Linux web stacks: Node, PHP, Python, Ruby, and Java, plus frameworks like React, Vue, Angular, Laravel, Django, and WordPress. That covers almost everything people deploy on App Platform. It isn't for Windows, .NET, or IIS. You own the app and data; the platform manages the server, stack, SSL, patching, and backups.
+Linux web stacks: Node, PHP, Python, Ruby, and Java, plus frameworks like React, Vue, Angular, Laravel, Django, and WordPress. That covers almost everything people deploy on App Platform. Windows Server is a Premium and Enterprise option rather than a standard one, and .NET runs on Linux. You own the app and data; the platform manages the server, stack, SSL, patching, and backups.
 
 ---
 

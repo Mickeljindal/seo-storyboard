@@ -104,7 +104,7 @@ A comparison that pretends every reader should switch today isn't worth much, so
 
 ## The honest limits
 
-Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and frameworks like React, Next.js, Vue, Laravel, and Django, which covers what vibe-coded apps are built on. It isn't for Windows, .NET, or IIS. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you own and maintain the app and its data. And to be straight: at genuinely tiny usage, Railway's metered bill can come in under a flat server, because a server costs the same whether it's busy or idle. The flat model wins on predictability and as usage grows, not necessarily on the smallest possible number at the smallest scale. Predictable beats cheapest for most people past the prototype, but you should pick based on where you actually sit on that curve.
+Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and frameworks like React, Next.js, Vue, Laravel, and Django, which covers what vibe-coded apps are built on. Windows Server is a Premium and Enterprise option rather than a standard one, and .NET runs on Linux. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you own and maintain the app and its data. And to be straight: at genuinely tiny usage, Railway's metered bill can come in under a flat server, because a server costs the same whether it's busy or idle. The flat model wins on predictability and as usage grows, not necessarily on the smallest possible number at the smallest scale. Predictable beats cheapest for most people past the prototype, but you should pick based on where you actually sit on that curve.
 
 ## Keep the ease. Lose the meter.
 

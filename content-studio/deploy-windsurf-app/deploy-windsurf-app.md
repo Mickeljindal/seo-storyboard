@@ -110,7 +110,7 @@ If you ran the clean-room test, a **503** is now unlikely, and when it happens i
 
 ## The honest limits
 
-Kloudbean runs Linux stacks: Node, Python, PHP, Ruby, and Java, with frameworks like React, Next.js, Vue, Django, and Laravel on top. That spans what Windsurf typically builds. It isn't for Windows/.NET/IIS. "Managed" means the server, stack, SSL, backups, and patching are handled; you own and maintain the application. Since Cascade already hands you real, owned code, this is just the matching home for running it, and a full-stack build lands its front end, API, and database on [the one server](https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/).
+Kloudbean runs Linux stacks: Node, Python, PHP, Ruby, and Java, with frameworks like React, Next.js, Vue, Django, and Laravel on top. That spans what Windsurf typically builds. Windows Server is a Premium and Enterprise option rather than a standard one, and .NET runs on Linux. "Managed" means the server, stack, SSL, backups, and patching are handled; you own and maintain the application. Since Cascade already hands you real, owned code, this is just the matching home for running it, and a full-stack build lands its front end, API, and database on [the one server](https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/).
 
 **If it builds clean, it ships clean.** Take your Windsurf app to production at [kloudbean.com](https://www.kloudbean.com/), with a free trial and your first migration done for you. Plans on [pricing](https://www.kloudbean.com/pricing/).
 
