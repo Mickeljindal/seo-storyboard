@@ -202,7 +202,7 @@ location / {
 
   <p>Forcing every client to HTTP/1.0, or switching HTTP/2 off across the board, does silence a version-negotiation 505. It also throws away the performance you turned HTTP/2 on for, and it leaves the real misconfiguration in place for the next protocol that trips it. Opening a WAF allowed-versions rule to accept anything is worse, because that rule exists to swat the exact malformed protocol strings that scanners and fuzzers throw at you, and disabling it to fix one legitimate client quietly widens your attack surface. Silencing a signal is not the same as fixing the thing it was pointing at. Localise the layer, correct the handshake or the policy, and leave the defence doing its job.</p>
 
-  <h2>Where hosting fits, honestly</h2>
+  <h2>Server-side of 505 Error</h2>
   <p>The boundary first, because it is the honest part. A 505 that comes from your own application config, an intentional version restriction you wrote, is yours to fix, and no platform can make that decision for you. What a managed platform removes is the guesswork about the proxy and edge layer, and the friction of reaching the logs that tell you which box answered.</p>
 
   <p>On Kloudbean the reverse proxy, nginx or Apache, is managed and patched, and configured to talk a sane HTTP version to your application rather than left as a directive you have to remember. Application and server logs sit in the same dashboard as the server, so confirming whether the proxy or your app emitted the status does not start with an SSH session and a hunt for the right path. Free SSL is issued and renewed, which keeps the TLS and ALPN side of version negotiation working without hand-tuning. There is a built-in Flexible Load Balancer you enable when you actually need it, staging for WordPress and Laravel so a config change proves itself somewhere harmless, and automatic backups behind it all. Seven cloud providers to run on, from AWS and Google Cloud to Linode, Vultr, DigitalOcean, UpCloud, and AWS Lightsail. Standard plans start at $8 a month, and it is worth checking the pricing page for current numbers. Free migration assistance is included if you are moving something that already works.</p>
@@ -212,11 +212,11 @@ location / {
     <figcaption>Application and server logs in one place, so you can see which layer answered without an SSH hunt.</figcaption>
   </figure>
 
-  <p>The line stays where it always is. Managed covers the server, the stack, TLS, backups, and patching. Your application code and your data remain yours, and a 505 you set on purpose lives in that half.</p>
+  <p>The line stays where it always is. The platform owns the server, the stack, TLS, backups and patching. Your application code and your data remain yours, and a 505 you set on purpose lives in that half.</p>
 
   <!-- ADD IMAGE: Kloudbean dashboard with application logs and server access logs open side by side, a 505 status visible in the access log -->
 
-  <h2>Related reading</h2>
+  <h2>The follow-on questions</h2>
   <p>The rest of the 5xx family starts with <a href="https://www.kloudbean.com/blog/http-error-500-internal-server-error/">500 Internal Server Error</a> when your app runs and throws, and <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a> when the proxy cannot get an answer at all. At the edge, <a href="https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/">Cloudflare's 5xx codes</a>. The closest neighbours to a 505 are <a href="https://www.kloudbean.com/blog/400-bad-request/">400 Bad Request</a> for a malformed request and <a href="https://www.kloudbean.com/blog/http-error-431-request-header-fields-too-large/">431 Request Header Fields Too Large</a> when the headers, not the version, are the problem. For the layer that usually emits a 505, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx as a reverse proxy</a> and <a href="https://www.kloudbean.com/blog/nginx-vs-apache/">nginx versus Apache</a>. And when nothing connects at all, <a href="https://www.kloudbean.com/blog/this-site-cant-be-reached/">this site can't be reached</a>.</p>
 
   <div class="cta">

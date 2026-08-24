@@ -77,7 +77,7 @@ The most common self-inflicted wound in hosting is a database with a public IP a
 
 ### Backups: the first step of resilience
 
-People file backups under "recovery," but they belong in any honest security conversation. Ransomware, a bad migration, a fat-fingered delete: what saves you is a clean, recent, restorable copy. Kloudbean backs up automatically. The step almost everyone skips is testing a restore before they actually need one. Do it once, so the path is proven. A backup you've never restored is a hope, not a plan. There's more on cadence and retention in the [guide to server backups and restore testing](https://www.kloudbean.com/blog/server-backups-guide/).
+People file backups under "recovery," but they belong in any honest security conversation. Ransomware, a bad migration, a fat-fingered delete: what saves you is a clean, recent, restorable copy. Kloudbean backs up automatically. The step almost everyone skips is testing a restore before they actually need one. Do it once, so the path is proven. You do not have backups until you have completed a restore. There's more on cadence and retention in the [guide to server backups and restore testing](https://www.kloudbean.com/blog/server-backups-guide/).
 
 ![The Kloudbean console backups screen showing automatic, restorable server and application backups](../assets/console/manage-backups.png)
 

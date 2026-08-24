@@ -65,13 +65,13 @@ You don't need a secrets platform, a KMS, or a dedicated engineer to be in decen
 
 Now the part no host solves, ours included. Nothing in a hosting platform can stop you pasting a live key into a commit, or notice that the token you generated has far more power than the script needs, or rotate a credential you never wrote down. There's no setting for that. What a platform can do is remove the friction that makes people skip the right thing: console-set environment variables so secrets never need to live in a file, revocable scoped tokens instead of one master key, subusers with granular permissions, and somewhere to run your own vault. Tooling is the easy half. The habits are the work, and they stay yours. Broader division of what the platform covers versus what you own is in [the secure and compliant hosting guide](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 
-## Related reading
+## Beyond secrets Management
 
 The mechanics of putting secrets in the environment, and the build-time trap, are in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). For a vault to hold human secrets, [self-hosting Vaultwarden](https://www.kloudbean.com/blog/self-host-vaultwarden/). Strengthen the logins those secrets protect with [two-factor and social login](https://www.kloudbean.com/blog/two-factor-and-social-login/), and restrict who can reach sensitive endpoints with [IP allowlisting](https://www.kloudbean.com/blog/ip-allowlisting-guide/). The overview is [secure and compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 
 ## Keep your keys out of your code.
 
-Kloudbean lets you set environment variables in the console instead of committing them, and issue scoped personal API tokens you can revoke, so rotation is a one-field change and a leaked key does limited harm. Run a Vaultwarden for the human side too. Compare the platform in [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/), or start at [kloudbean.com](https://www.kloudbean.com/).
+Kloudbean lets you set environment variables in the console instead of committing them, and issue scoped personal API tokens you can revoke, so rotation is a one-field change and a leaked key does limited harm. Run a Vaultwarden for the human side too. Weigh them in [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/), then try it at [kloudbean.com](https://www.kloudbean.com/).
 
 Environment variables in the console · Scoped API tokens · Self-hostable vault · One dashboard
 

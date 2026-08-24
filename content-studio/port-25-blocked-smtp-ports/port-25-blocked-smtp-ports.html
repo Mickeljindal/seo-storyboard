@@ -119,7 +119,7 @@ dig +short TXT selector._domainkey.example.com</code></pre>
     </tbody>
   </table>
 
-  <h2>Where hosting fits</h2>
+  <h2>What has to be true of your host</h2>
   <p>Being straightforward about this one: the port 25 block is a cloud provider policy, and since Kloudbean runs your servers on AWS, Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, or UpCloud, that policy is the underlying provider's rather than something a management layer overrides. Any host telling you otherwise is either running its own data centre or being imprecise.</p>
   <p>What is genuinely useful here is the surrounding setup. Servers come with Shorewall configured, so outbound submission on 587 works without you building firewall rules. Environment variables are managed per application in the dashboard, which keeps SMTP credentials out of your repository and stops staging from mailing production customers. And because you have SSH access, the diagnostic commands above are available rather than being something you file a ticket about.</p>
   <p>The honest boundary: nobody can unblock port 25 on your behalf, and no host can repair sender reputation. Use a relay on 587, publish your three DNS records, and this stops being a problem you think about.</p>
@@ -129,7 +129,7 @@ dig +short TXT selector._domainkey.example.com</code></pre>
     <figcaption>SMTP credentials as per-application environment variables, so staging cannot email your customers.</figcaption>
   </figure>
 
-  <h2>Related reading</h2>
+  <h2>If mail is still your problem</h2>
   <p>If the service you are sending through is Microsoft 365, its settings and the retirement of password-based SMTP AUTH are covered in <a href="https://www.kloudbean.com/blog/office-365-smtp-settings/">Office 365 SMTP settings</a>. For keeping credentials separated, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>. On the DNS records above, <a href="https://www.kloudbean.com/blog/dns-explained/">DNS explained</a>. For the refused-versus-dropped distinction used in the diagnosis, <a href="https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/">error 521</a>. On sending mail from queued background work rather than inside a web request, <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">background jobs with BullMQ</a>. When an outbound call has no timeout and stalls a request, <a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504 Gateway Timeout</a>. And for the WordPress side, <a href="https://www.kloudbean.com/blog/managed-wordpress-hosting/">managed WordPress hosting</a>.</p>
 
   <div class="cta">

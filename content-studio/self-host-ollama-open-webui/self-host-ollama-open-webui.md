@@ -82,7 +82,7 @@ From there you reach it at `chat.yourcompany.com` with a login, and you can pull
 
 <!-- ADD IMAGE: The Open WebUI chat running on your own domain, mid-conversation, with a model picker visible. -->
 
-## Where people get this wrong
+## The wrong turn most people take
 
 I've watched the same handful of mistakes turn a promising setup into "this is useless." None of them are hard to avoid once you know them:
 

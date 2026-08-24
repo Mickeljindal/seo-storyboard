@@ -157,14 +157,14 @@ Content-Type: application/problem+json
 
   <p><strong>Say which type you wanted in the body too.</strong> An empty 415 with no explanation is a poor experience. A short message naming the expected type saves the reader a trip to your docs, assuming your docs even cover it.</p>
 
-  <h2>Where hosting fits, honestly</h2>
+  <h2>What running this somewhere real involves</h2>
   <p>Straight answer: it mostly doesn't. A 415 is a decision your application or framework made about a header, and no hosting configuration fixes that. Anyone selling you infrastructure as the solution to a status code your own code returned is not being straight with you.</p>
 
   <p>What the infrastructure layer genuinely touches is narrower and worth naming. A reverse proxy sits between the client and your app and can alter or drop headers, so knowing exactly what arrived matters. That's a logging question, and it's the one place a managed platform saves you real time: on Kloudbean the reverse proxy is managed and both server and application logs are reachable from the same dashboard as the app, so comparing the header you sent against the header that arrived is a look rather than an SSH session and a hunt through paths. Worth ruling out one neighbour while you're there: a body that exceeds a size limit returns 413, not 415, so if the failure only happens on large payloads you're chasing the wrong code.</p>
 
   <p>The boundary, as always: managed covers the server, the stack, TLS, backups, and patching. Your routes, your parsers, and your content negotiation stay yours.</p>
 
-  <h2>Related reading</h2>
+  <h2>More on HTTP Error 415 Unsupported Media Type</h2>
   <p>The nearest neighbours are worth reading together, because the distinction between them is the actual skill: <a href="https://www.kloudbean.com/blog/http-422-unprocessable-entity/">422 Unprocessable Entity</a> for content that was understood and still rejected, <a href="https://www.kloudbean.com/blog/http-error-406-not-acceptable/">406 Not Acceptable</a> for the mirror-image failure on the response side, and <a href="https://www.kloudbean.com/blog/400-bad-request/">400 Bad Request</a> for genuinely malformed requests. When the objection is the size of the body rather than its type, that is <a href="https://www.kloudbean.com/blog/http-error-413-content-too-large/">413 Content Too Large</a>. Also in the cluster: <a href="https://www.kloudbean.com/blog/405-method-not-allowed/">405 Method Not Allowed</a>, <a href="https://www.kloudbean.com/blog/http-error-401-unauthorized/">401 Unauthorized</a>, <a href="https://www.kloudbean.com/blog/409-conflict-error/">409 Conflict</a>, and <a href="https://www.kloudbean.com/blog/http-error-451-unavailable-for-legal-reasons/">451 Unavailable For Legal Reasons</a>, the one 4xx that is a disclosure rather than a fault. If the request stalls on the way in rather than being refused, <a href="https://www.kloudbean.com/blog/http-error-408-request-timeout/">408 Request Timeout</a>. If a proxy is in the path and you suspect it's touching your headers, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx as a reverse proxy for Node</a>, and <a href="https://www.kloudbean.com/blog/structured-logging-nodejs/">structured logging</a> for seeing what actually arrived.</p>
 
   <div class="cta">

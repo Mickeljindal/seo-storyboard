@@ -97,7 +97,7 @@ Locally this error costs you thirty seconds. On a server it turns into a process
 
 No host fixes any of those four, ours included. They're all your side of the line, because they're all decisions about your code. What a managed platform removes is the layer underneath: Kloudbean patches the OS and the system Python for you, so the "I broke apt with pip" incident stops being possible, and Git deploys with live build logs mean you can watch the install step succeed or fail rather than guessing at it afterwards. The interpreter path and start command live in the console, so item one is a field you fill in, not a systemd file you edit blind. Everything about which packages your app needs stays yours. For the full deployment path, see [deploying a Flask app](https://www.kloudbean.com/blog/deploy-flask-app/) or [a Django app](https://www.kloudbean.com/blog/deploy-django-app/).
 
-## Related reading
+## Other Python packaging traps
 
 If a different Python import is failing, [ModuleNotFoundError in Python](https://www.kloudbean.com/blog/fix-modulenotfounderror-python/) walks the five causes. For shipping Python to production, [deploy a Flask app](https://www.kloudbean.com/blog/deploy-flask-app/), [a Django app](https://www.kloudbean.com/blog/deploy-django-app/), and [a FastAPI app](https://www.kloudbean.com/blog/deploy-fastapi-app/). Configuration that should travel with your app, not your system, is covered in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 

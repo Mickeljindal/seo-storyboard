@@ -128,7 +128,7 @@ Managed WordPress isn't only for one small site. As traffic grows you resize the
 
 Weighing us against the usual managed-WP names? The honest head-to-heads are [Kloudbean vs Kinsta](https://www.kloudbean.com/blog/kloudbean-vs-kinsta/) and [Kloudbean vs WP Engine](https://www.kloudbean.com/blog/kloudbean-vs-wp-engine/).
 
-## The honest limits
+## What is still your problem
 
 Two things, plainly. Kloudbean runs WordPress on a **Linux and PHP** stack, the environment WordPress was built for, so this is a strong fit, not a stretch. And "managed" is a split, not a takeover: the platform runs the server, the stack, caching, SSL, and backups, while you still own your content, your plugin choices, your theme, and your users. On compliance, treat it as shared responsibility. The platform provides the infrastructure controls and keeps maturing them; the application-level compliance of your specific site stays yours. That division is the honest version of "managed," and it's a good deal precisely because it's clear about who does what.
 

@@ -51,10 +51,12 @@ sents = collections.defaultdict(list)
 for slug, text in articles:
     body = re.sub(r"^---.*?^---", "", text, flags=re.S | re.M)      # drop front matter
     body = re.sub(r"```.*?```", " ", body, flags=re.S)              # drop code
+    body = re.sub(r"<!--.*?-->", " ", body, flags=re.S)             # drop author notes
     for h in re.findall(r"^##\s+(.+?)\s*$", body, re.M):
         if h.strip().lower() not in EXEMPT_HEADINGS:
             heads[h.strip()].append(slug)
-    for raw in re.split(r"(?<=[.!?])\s+", re.sub(r"\s+", " ", body)):
+    prose = "\n".join(l for l in body.splitlines() if not l.lstrip().startswith("#"))
+    for raw in re.split(r"(?<=[.!?])\s+", re.sub(r"\s+", " ", prose)):
         s = raw.strip(" *_#>-")
         if len(s.split()) >= MIN_SENT_WORDS:
             sents[s].append(slug)

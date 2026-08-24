@@ -90,7 +90,7 @@ Almost every problem here is one of four, and none is a dead end. It's the ordin
 
 > **Running Cloudflare in front?** Two settings save a lot of head-scratching. While you issue your server's Let's Encrypt certificate, temporarily set the DNS record to "DNS only" (grey cloud) so the domain-control check reaches your server directly, then re-enable proxying. And set Cloudflare's SSL mode to "Full (strict)" so it validates your server's real certificate, never "Flexible," which leaves the hop between Cloudflare and your server unencrypted. Not using Cloudflare? A plain A record at your registrar is all you need. Ignore this.
 
-## The honest limits
+## What this does not cover
 
 On Kloudbean, adding a domain and issuing a free Let's Encrypt certificate are console operations on your **Linux** server, and renewal is automatic. Two honest notes. Propagation time is inherent to DNS, so a short wait after you change records is normal, not a red flag. And your DNS records live at your registrar, not in the hosting console: the console tells the server which domains to answer for and handles the certificate, but the actual A and CNAME records are managed wherever the domain is registered. Get those two right and HTTPS for your deployed app is a few calm steps. If you built in a tool like Lovable, the whole deploy-then-domain path is in [deploying a Lovable app to your own server](https://www.kloudbean.com/blog/deploy-lovable-app-to-your-own-server/), and once the domain's live you'll want [auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) so updates ship on every push.
 

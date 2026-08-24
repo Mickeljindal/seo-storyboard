@@ -276,7 +276,7 @@ Webhook security comes down to a handful of habits. Skip any one and endpoints g
 
 ---
 
-**Ship a webhook receiver that doesn't drop events.** Put your Node or Python app, a one-click Redis queue, and your worker on the same server, behind free SSL and IP allow-listing. Start free at [kloudbean.com](https://www.kloudbean.com/), and check plans on [pricing](https://www.kloudbean.com/pricing/). Free migration assistance if you're moving an existing integration over.
+**Ship a webhook receiver that doesn't drop events.** Put your Node or Python app, a one-click Redis queue, and your worker on the same server, behind free SSL and IP allow-listing. Begin at [kloudbean.com](https://www.kloudbean.com/) and check what each tier includes on [pricing](https://www.kloudbean.com/pricing/). Free migration assistance if you're moving an existing integration over.
 
 Managed Node and Python · One-click Redis · Env-stored secrets · Free SSL · Simple Git deploy
 

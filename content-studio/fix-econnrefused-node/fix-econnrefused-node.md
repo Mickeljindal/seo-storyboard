@@ -93,7 +93,7 @@ This turns a fatal boot error into a few seconds of patience. Just don't use ret
 
 A lot of ECONNREFUSED pain is really "my app and my database can't find each other." That mostly disappears when they live together. On Kloudbean your Node app and its managed database run in the same dashboard, right next to each other, so the app reaches the database with a supplied connection string, locked down so only your app server's IP can connect, no exposing the database to the public internet and no guessing at hostnames. The database is managed, so "is it even running" stops being your problem. It doesn't make the error impossible (a typo in an env var is still a typo), but it removes the most common structural causes.
 
-## Related reading
+## The neighbouring problems
 
 Connection issues and configuration go hand in hand. See [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) to stop the localhost trap for good, [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) for stable connections under load, and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) for the database side. For neighboring errors, there's [EADDRINUSE: port already in use](https://www.kloudbean.com/blog/fix-eaddrinuse-port-already-in-use-node/), and to place your app overall, [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/).
 

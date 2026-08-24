@@ -242,7 +242,7 @@ Two of them are decided by where the app runs. Whether a deploy severs in-flight
 
 The rest is code, and no platform writes it for you, ours included. Nobody else attaches your `pool.on("error")` listener, and an `'error'` event with no listener will still take your process down on the most managed host in the world. Nobody else decides that a POST which charges a card must not be blindly retried. Nobody else stops a 40MB upload going through your app process instead of straight to object storage. The reset tells you who hung up. What you do about it is yours.
 
-## Related reading
+## More on ECONNRESET in Node.js
 
 The sibling error, when nothing was listening at all: [ECONNREFUSED in Node.js](https://www.kloudbean.com/blog/fix-econnrefused-node/). Connection layer: [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/). Restart half: [graceful shutdown in Node.js](https://www.kloudbean.com/blog/graceful-shutdown-nodejs/) and [Node app crashing on deploy](https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/). And to make any of this findable later, [structured logging in Node.js](https://www.kloudbean.com/blog/structured-logging-nodejs/).
 

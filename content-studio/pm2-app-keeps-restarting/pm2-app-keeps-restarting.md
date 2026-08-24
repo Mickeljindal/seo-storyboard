@@ -110,7 +110,7 @@ One note that catches people: `watch: true` is great in development and a disast
 
 Kloudbean runs your Node app always-on under PM2, so the process management above is handled for you rather than something you wire up on a bare server. Your environment variables are set per app in the console (so the missing-env-var crash is less likely), logs are right there to read when something does go wrong, and deploys come from a GitHub push. You still own your app's behavior, a real bug in your code will still crash, but the plumbing that turns a crash into a visible, recoverable event is already in place.
 
-## Related reading
+## Around PM2 App Keeps Restarting
 
 PM2 depth and the specific crash causes are covered next door. Start with the [PM2 process manager guide](https://www.kloudbean.com/blog/pm2-process-manager-guide/), then the error guides this article points to: [EADDRINUSE](https://www.kloudbean.com/blog/fix-eaddrinuse-port-already-in-use-node/), [Cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/), [ECONNREFUSED](https://www.kloudbean.com/blog/fix-econnrefused-node/), and [heap out of memory](https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/). For clean releases, see [zero-downtime deployments](https://www.kloudbean.com/blog/zero-downtime-deployments/).
 

@@ -76,7 +76,7 @@ Here's a sneaky one in production. If your Node app sets CORS headers and your N
 
 Straight answer: CORS is your application's responsibility, and no host "fixes" it for you, because only your code knows which origins to trust. What a managed platform does help with is the part that actually causes the production surprise, environment configuration. On Kloudbean you set `CORS_ORIGINS` (and the rest of your config) per environment in the console, so production naturally lists your production frontend and never quietly falls back to localhost. That removes the config mismatch behind most prod CORS errors, while the policy itself stays where it belongs, in your app.
 
-## Related reading
+## The next questions this raises
 
 CORS sits next to your other HTTP security settings. See the [security headers guide](https://www.kloudbean.com/blog/security-headers-guide/) for the broader picture, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) for the per-environment config that fixes the localhost mismatch, and [deploy an Express app](https://www.kloudbean.com/blog/deploy-express-app/) for the framework side. If a proxy is in the mix, [Nginx reverse proxy for Node](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/) covers the duplicate-header trap, and [custom domain and SSL](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/) covers getting your origins onto real HTTPS domains.
 

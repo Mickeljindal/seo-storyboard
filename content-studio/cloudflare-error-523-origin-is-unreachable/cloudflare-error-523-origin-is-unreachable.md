@@ -85,15 +85,15 @@ A trace that dies at the first private hop, or never leaves your own subnet, is 
 
 **A genuine transit problem between networks.** Occasionally the route really is broken somewhere outside your control. The MTR is what distinguishes this from a self-inflicted one, and it's also what your provider will ask for.
 
-## Where hosting fits, honestly
+## The hosting side of cloudflare Error Code 523
 
 Most 523s are not something a host can fix for you, and it's worth being blunt about that. A cloud route table lives in your account. A DNS record lives at whoever manages your nameservers. An egress firewall rule is your policy. None of those are reachable from a hosting platform, and a page implying otherwise is selling rather than helping.
 
 The narrow thing infrastructure genuinely contributes is certainty about your origin's current address, which is exactly what the most mundane version of this error turns on. On Kloudbean the server's current address and health sit in the same dashboard, so confirming that your DNS record matches the machine takes a glance rather than a hunt through a provider console. Free SSL issued and renewed, seven cloud providers, and free migration assistance if you're moving something already running. That's the honest extent of it for this particular error.
 
-The boundary stays where it always is. Managed covers the server, the stack, TLS, backups, and patching. Your DNS records, your network topology, and your Cloudflare configuration remain yours. If you're designing that topology, [what a VPC is](https://www.kloudbean.com/blog/what-is-a-vpc/) covers the private networking concepts the route-table problem lives inside.
+The boundary stays where it always is. Server, stack, TLS, backups and patching sit with the platform. Your DNS records, your network topology, and your Cloudflare configuration remain yours. If you're designing that topology, [what a VPC is](https://www.kloudbean.com/blog/what-is-a-vpc/) covers the private networking concepts the route-table problem lives inside.
 
-## Related reading
+## When cloudflare Error Code 523 is not the only issue
 
 Start with the [Cloudflare 5xx error codes](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/) overview if you're not sure which number you have. The siblings, in the order the failure happens: [521 web server is down](https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/) when something refuses, [522 connection timed out](https://www.kloudbean.com/blog/cloudflare-error-522-connection-timed-out/) when nothing answers, [520](https://www.kloudbean.com/blog/cloudflare-error-520/) when the origin replies with something unusable, and [525 SSL handshake failed](https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/) when the connection works and TLS does not. On the naming layer below, [ERR_NAME_NOT_RESOLVED](https://www.kloudbean.com/blog/err-name-not-resolved/) and [DNS explained](https://www.kloudbean.com/blog/dns-explained/). And for the private networking that route tables belong to, [what is a VPC](https://www.kloudbean.com/blog/what-is-a-vpc/).
 

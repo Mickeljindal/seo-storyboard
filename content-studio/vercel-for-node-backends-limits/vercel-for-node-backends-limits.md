@@ -61,7 +61,7 @@ Simple rule of thumb: if your backend needs to run long, remember things between
 
 The genuinely fair part: if you love Vercel for your Next.js frontend, keep it there. It's very good at that. The clean split a lot of teams land on is frontend on Vercel, backend on a persistent server, connected over HTTPS. You don't have to pick one home for everything.
 
-## How it fits the rest of your stack
+## How this lines up with the rest
 
 Moving a backend off serverless is mostly about the model, not the language. See [a Vercel alternative for full-stack apps](https://www.kloudbean.com/blog/vercel-alternative-for-full-stack-apps/) for the split, [the best Vercel alternative for databases](https://www.kloudbean.com/blog/best-vercel-alternative-for-databases/) for the data side, and [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) for why a persistent process helps. To place it against everything else, read [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/) and the framework-specific [deploy an Express app](https://www.kloudbean.com/blog/deploy-express-app/) guide.
 

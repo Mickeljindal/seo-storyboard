@@ -91,11 +91,11 @@ Connect the repo, set the runtime fields, launch a managed database so your data
 
 Being straight one more time: managed hosting is not the fully DIY, run-every-layer-yourself sense of the word. A provider still operates the underlying server and datacenter, applies the patches, and runs the backups. If your definition requires that *you personally* control everything down to the metal, then managed hosting isn't that, and a bare server is, with all the work that implies. For the large majority who use "self-host" to mean "the app is mine, on my server, with my data, and I can leave whenever," managed hosting is exactly that, minus the ops. And because it's standard Linux running standard code, the fully DIY door stays open: you could move to a bare server later if you ever wanted. If you want to keep the Supabase side managed rather than run it yourself, [managed Supabase](https://www.kloudbean.com/blog/self-host-supabase/) covers that path.
 
-## The honest limits
+## self-Host Your Lovable App: the caveats
 
-Kloudbean runs Linux web stacks: Node and the modern web toolkit (React, Next.js, Vue) that Lovable produces, plus PHP, Python, Ruby, and Java. Windows Server is a Premium and Enterprise option rather than a standard one, and .NET runs on Linux. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and automatic backups; you own and maintain the application itself. That division (you own the app and data, the platform keeps the server healthy) is precisely the "self-hosted without the sysadmin work" arrangement most Lovable builders actually want.
+Kloudbean runs Linux web stacks: Node and the modern web toolkit (React, Next.js, Vue) that Lovable produces, plus PHP, Python, Ruby, and Java. Linux handles .NET. Windows Server is a Premium and Enterprise arrangement. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and automatic backups; you own and maintain the application itself. That division (you own the app and data, the platform keeps the server healthy) is precisely the "self-hosted without the sysadmin work" arrangement most Lovable builders actually want.
 
-**Built in a tool. Owned by you.** Own your app at [kloudbean.com](https://www.kloudbean.com/). One-click databases, automatic backups, IP allow-listing, free migration, free trial, and simple Git deploy. Plans on [pricing](https://www.kloudbean.com/pricing/).
+**Built in a tool. Owned by you.** Own your app at [kloudbean.com](https://www.kloudbean.com/). One-click databases · automatic backups · IP allow-listing · assisted migration · Git deploy. Plans on [pricing](https://www.kloudbean.com/pricing/).
 
 ## FAQ
 

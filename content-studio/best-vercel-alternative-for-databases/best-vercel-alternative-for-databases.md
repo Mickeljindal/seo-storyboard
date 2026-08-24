@@ -185,7 +185,7 @@ Second, cost. At genuinely tiny traffic, a hobby tier plus a free database can u
 
 ## Where this fits, and where it stops
 
-Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and the frameworks on top like Next.js, React, Vue, Laravel, and Django. That's what nearly every Vercel-hosted app is built on. Windows Server is a Premium and Enterprise option rather than a standard one, and .NET runs on Linux. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you own the app and its data, and you can export the database and leave whenever you like, because underneath it's a standard Linux box running standard Postgres or MySQL. Auto-scaling and Kubernetes are enterprise and custom-setup features, not a default. For the problem this article is about, a managed database next to your app is about as simple as it gets.
+Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and the frameworks on top like Next.js, React, Vue, Laravel, and Django. That's what nearly every Vercel-hosted app is built on. Windows Server is not a standard-plan feature, but .NET on Linux is. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you own the app and its data, and you can export the database and leave whenever you like, because underneath it's a standard Linux box running standard Postgres or MySQL. Auto-scaling and Kubernetes are enterprise and custom-setup features, not a default. For the problem this article is about, a managed database next to your app is about as simple as it gets.
 
 ---
 

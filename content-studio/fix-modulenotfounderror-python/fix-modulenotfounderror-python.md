@@ -174,7 +174,7 @@ An automated build that does exactly this on every push cannot produce a works-l
 
 Two smaller habits worth having. Pin versions rather than leaving them open, so a working environment stays working when an upstream release changes an import path. And keep the virtual environment out of version control, since it contains platform-specific binaries that will not transfer to your server.
 
-## Where hosting fits
+## The operational half of moduleNotFoundError in Python
 
 Most of this is Python environment discipline and no platform substitutes for it. Two parts genuinely are hosting: whether dependencies get installed on the machine that runs them, and whether the process starts with the right interpreter and working directory.
 
@@ -184,7 +184,7 @@ Servers run across seven clouds with your choice of region, with a Shorewall fir
 
 <!-- ADD IMAGE: the Git deployment screen with build commands and a live build log showing pip install running on the target. -->
 
-## Related reading
+## Nearby, and worth knowing
 
 For the deployment guides themselves, [Flask](https://www.kloudbean.com/blog/deploy-flask-app/), [Django](https://www.kloudbean.com/blog/deploy-django-app/), and [FastAPI](https://www.kloudbean.com/blog/deploy-fastapi-app/). On choosing between them, [Flask versus Django](https://www.kloudbean.com/blog/flask-vs-django/). For the compiled-extension version of this problem, [native module build errors](https://www.kloudbean.com/blog/fix-better-sqlite3-install-errors/), and the Node equivalent in [Cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/). When pip itself refuses to install at all, [the externally-managed-environment fix](https://www.kloudbean.com/blog/pip-externally-managed-environment/) is the one. On the process layer, [Gunicorn versus Uvicorn](https://www.kloudbean.com/blog/gunicorn-vs-uvicorn/). And on configuration and deploys, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) and [auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 

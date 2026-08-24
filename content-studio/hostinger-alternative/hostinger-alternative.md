@@ -73,7 +73,7 @@ Read the last two rows plainly. Hostinger is cheaper for the intro term, and buy
 
 Moving up sounds like more work. It's the opposite, if you pick the managed kind. There are two ways off a shared plan, and the difference matters more than the sticker price.
 
-A **raw VPS** hands you a bare Linux box. More power on paper, but now you own the OS updates, the web server config, the firewall, SSL renewals, and the pager at 2am. That hidden cost is bigger than it looks. **Managed cloud** is the lane most people leaving Hostinger actually want: your own dedicated server, with the OS, stack, SSL, patching, and backups handled for you. The full breakdown is in [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/), and [what is a managed server](https://www.kloudbean.com/blog/what-is-a-managed-server/) covers what "managed" includes.
+A **raw VPS** is a blank server: nothing installed, nothing decided. More power on paper, but now you own the OS updates, the web server config, the firewall, SSL renewals, and the pager at 2am. That hidden cost is bigger than it looks. **Managed cloud** is the lane most people leaving Hostinger actually want: your own dedicated server, with the OS, stack, SSL, patching, and backups handled for you. The full breakdown is in [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/), and [what is a managed server](https://www.kloudbean.com/blog/what-is-a-managed-server/) covers what "managed" includes.
 
 My honest opinion, after plenty of these moves: almost nobody leaving a cheap shared plan wants a bare Ubuntu box and a lost weekend. You want the site to stop crawling and the bill to stop surprising you. Managed cloud does both, and you still get root and SSH when you want them.
 
@@ -83,27 +83,27 @@ The move is calmer than it sounds, no terminal marathon required. People looking
 
 ### 1. Launch your own server
 
-Pick a cloud (AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, or UpCloud), choose a region near your visitors, and pick a size. That's your dedicated box, with CPU and RAM that belong to you, not a slice you share with strangers. You can resize it later, so don't overthink the first pick.
+Choose your provider from AWS, Lightsail, Google Cloud, Linode, Vultr, DigitalOcean or UpCloud, then a region close to your audience and a size that fits. That's your dedicated box, with CPU and RAM that belong to you, not a slice you share with strangers. You can resize it later, so don't overthink the first pick.
 
-![The Kloudbean console launching a server, with a choice of cloud provider, region, and server size](../assets/console/add-server.png)
+![The Add Server screen: provider, region and instance size side by side](../assets/console/add-server.png)
 
 ### 2. Add your application
 
-Add the app you're moving. WordPress and WooCommerce are one-click, and so are Laravel, Magento, Drupal, and Joomla. Building something else? Node.js, Python, Ruby, and Java run here as first-class citizens, and static sites host free, a range a shared plan rarely gives you.
+Add the app you're moving. Launching WordPress, WooCommerce, Laravel, Magento, Drupal or Joomla is a tile, not a build. Building something else? Node.js, Python, Ruby, and Java run here as first-class citizens, and static sites host free, a range a shared plan rarely gives you.
 
-![The Kloudbean console adding an application, with WordPress and other one-click stacks](../assets/console/add-application.png)
+![One-click application stacks in the Kloudbean console, WordPress included](../assets/console/add-application.png)
 
 ### 3. Bring your site across
 
 Two ways. If it's a WordPress or PHP site, free migration assistance moves it for you, files and database included, so you're not exporting SQL by hand at midnight. If your code lives in Git, connect the repo and let managed CI/CD build and deploy on every push, with live build logs you can watch in the console. Details are in the [Git deploy guide](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-![The Kloudbean console connecting a GitHub repository for automatic build and deploy on push](../assets/console/git-deployment.png)
+![Git deployment settings in the Kloudbean console, branch and build command visible](../assets/console/git-deployment.png)
 
 ### 4. Confirm backups and staging
 
-Automatic backups are on by default, and you can restore from one when you need to. If you've ever lost a change to a bad plugin update, you know why that matters. Staging is there for WordPress and Laravel, so you test risky changes on a copy first. The [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/) covers how restores work.
+Automatic backups are on by default, and you can restore from one when you need to. One bad update is usually all it takes to learn this the hard way. Staging is there for WordPress and Laravel, so you test risky changes on a copy first. The [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/) covers how restores work.
 
-![The Kloudbean console showing automatic backups you can view and restore](../assets/console/manage-backups.png)
+![Automatic backups in the Kloudbean console, each one restorable](../assets/console/manage-backups.png)
 
 <!-- ADD IMAGE: A before and after page-load comparison, Hostinger shared plan versus your own server under the same traffic. Real numbers from your own migration land harder than a mockup. -->
 
@@ -135,7 +135,7 @@ define( 'DB_HOST',     '127.0.0.1' );               // managed DB on the same se
 
 If your Hostinger plan includes SSH, you can move the data yourself with `mysqldump`, though free migration assistance can do the whole move for you. Once DNS points at the new box, request a free SSL certificate and you're on HTTPS.
 
-> **Coming from Hostinger?** You keep your site and your domain. Free migration assistance handles the WordPress files and database, free SSL is included once DNS points over, and automatic backups are on from day one. The thing you leave behind is the renewal cliff, not your content.
+> **Coming from Hostinger?** You keep your site and your domain. Free migration covers files and database, SSL lands after the DNS switch, and backups are already running. The thing you leave behind is the renewal cliff, not your content.
 
 <!-- ADD IMAGE: The hPanel DNS editor with two A records, root and www, pointing at a server IP. Show the Type, Name, Points to, and TTL columns so readers can copy the exact fields. -->
 
@@ -149,7 +149,7 @@ Weighing other budget hosts too? The same logic runs through our [SiteGround alt
 
 **Cheap that stays cheap, because the price doesn't jump.**
 
-Keep your domain and move the hosting to your own managed server. Start free at [kloudbean.com](https://www.kloudbean.com/), and check plans on [pricing](https://www.kloudbean.com/pricing/).
+Keep your domain and move the hosting to your own managed server. Spin one up from [kloudbean.com](https://www.kloudbean.com/); plan details live on [pricing](https://www.kloudbean.com/pricing/).
 
 Your own dedicated resources · 7 clouds · 7 managed databases · Git deploy · Staging · Automatic backups · Free SSL · Free migration · Free trial
 
@@ -165,7 +165,7 @@ On a quiet site, no. LiteSpeed and its cache keep small sites fast. The slowdown
 hPanel is Hostinger's own control panel, while cPanel is the industry standard most other budget hosts use. They do similar jobs, but the layouts differ, so cPanel tutorials online often don't match hPanel's screens. The hPanel vs cPanel gap is minor once you learn it, but the skills don't transfer cleanly to another host.
 
 **Can I move my WordPress site off Hostinger?**
-Yes, and it's the most common move we see. WordPress and WooCommerce run on a one-click stack, and free migration assistance moves the files and database for you. You keep the same domain, so there's no URL rewrite across the database, and staging is there to test before you go live.
+Yes, and it's the most common move we see. WordPress and WooCommerce launch from a tile, and migration help brings the files and database over. You keep the same domain, so there's no URL rewrite across the database, and staging is there to test before you go live.
 
 **Is managed cloud better than Hostinger?**
 If you're hitting resource caps, wincing at the renewal, or wanting real root and a proper database, then for you, yes. You get dedicated CPU and RAM instead of a capped shared slice, plus managed databases, Git deploy, and staging. If your site is tiny and still on its intro rate, Hostinger is cheaper today.

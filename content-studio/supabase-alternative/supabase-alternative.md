@@ -106,7 +106,7 @@ Fewer logins, one bill, and a stack you can actually see. That's the difference 
 
 > **Coming from Firebase instead?** The same "own your data" logic applies, though the migration is different because Firebase isn't Postgres. That one has its own guide: [Firebase alternative](https://www.kloudbean.com/blog/firebase-alternative/). If you specifically want the managed Postgres deep dive, see [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/).
 
-## The honest limits
+## Where supabase Alternative gets harder
 
 A guide that only sells one side isn't worth much, so here's the fine print. Kloudbean runs Linux stacks: Node, PHP, Python, Ruby, Java, and the frameworks on top, plus standard databases like Postgres. It isn't a Windows or .NET host. "Managed" means the platform runs the server, the stack, SSL, patching, and backups; your app code, your schema, and your data stay yours to export whenever you like. On compliance, treat it as shared responsibility: the platform provides infrastructure controls, and your application-level compliance is still your job.
 

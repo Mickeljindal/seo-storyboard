@@ -162,10 +162,10 @@ await storage.bucket("my-bucket").upload("avatar.png", {
   <h2>A word on egress and cost</h2>
   <p>One cost is worth understanding before you commit to any bucket: <strong>egress</strong>, the charge many clouds apply to data leaving storage. Uploading in is usually free; serving out is metered, and on a media-heavy site it can dwarf the storage cost. This isn't a GCS-specific quirk, and I won't promise you a magic number. Egress terms vary by provider and change over time, so check the current data-transfer-out pricing for whatever you pick, GCS or S3-compatible. We pulled the math apart in <a href="https://www.kloudbean.com/blog/zero-egress-object-storage/">the egress fees breakdown</a>. The first lever is usually a CDN in front of the bucket, so cached files serve from the edge.</p>
 
-  <h2>How it fits the rest of your stack</h2>
+  <h2>Where this sits in the wider stack</h2>
   <p>A bucket is one piece of owning your whole stack instead of renting slices from five vendors. The bucket holds files. A managed database holds the structured data. The stateless app server runs the code and scales out when traffic climbs. If you're weighing where to run the whole thing, we put the tradeoffs side by side in <a href="https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/">DigitalOcean vs Kloudbean</a>.</p>
 
-  <h2>The honest limits</h2>
+  <h2>GCS Object Storage Buckets: the caveats</h2>
   <p>Managed GCS buckets run alongside the S3-compatible buckets, and both are for files: uploads, media, static assets, backups, exports. They're not a database, so keep live data in a <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">managed database</a> and store only its backups in a bucket. Kloudbean runs Linux stacks, and "managed" means the platform provisions the bucket and handles access controls while the objects stay yours to export. Standard plans start from $8/mo, Enterprise is custom, and storage terms change, so confirm the current numbers on the pricing page.</p>
 
   <div class="cta">

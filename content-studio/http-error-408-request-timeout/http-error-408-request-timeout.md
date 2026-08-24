@@ -89,15 +89,15 @@ Which means raising it has a cost. A longer `client_body_timeout` is more forgiv
 
 One practical read on the logs: a sudden spike in 408-class lines from a narrow set of addresses, with almost no bytes received on each, looks much more like this technique than like a network fault. Worth checking before tuning anything upward.
 
-## Where hosting fits, honestly
+## How the platform touches HTTP Error 408 Request Timeout
 
 Start with the limit. If a visitor is on a poor mobile connection, nothing you configure on the server fixes their upload. That's their network, and the honest extent of your influence is choosing not to set a timeout so tight that ordinary mobile traffic fails.
 
 The genuinely useful thing a managed platform contributes here is visibility, and the log-only behaviour above is exactly why. On Kloudbean the reverse proxy is managed with maintained timeout configuration rather than a file someone edited once, and server health metrics sit in the same dashboard as both the server and application logs. That matters for this specific error because the diagnosis depends entirely on correlating a log line against whether any real request was affected, and against whether connection counts were climbing at the time. Seven cloud providers, free SSL issued and renewed, and free migration assistance if you're moving something already running.
 
-The boundary stays where it always is. Managed covers the server, the stack, TLS, backups, and patching. Your application code, your upload flows, and your visitors' networks remain yours.
+The boundary stays where it always is. Patching, TLS renewal, backups and stack upkeep are not on your list. Your application code, your upload flows, and your visitors' networks remain yours.
 
-## Related reading
+## HTTP Error 408 Request Timeout is rarely alone
 
 The opposite direction, and the one people usually actually have: [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/). At the edge, [522 connection timed out](https://www.kloudbean.com/blog/cloudflare-error-522-connection-timed-out/) covers the two separate clocks Cloudflare runs. When the silent close surfaces as something else, [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/) and [cloud load balancers explained](https://www.kloudbean.com/blog/cloud-load-balancer-explained/). When the client is the one who gave up rather than the server, that is nginx's [499 client closed request](https://www.kloudbean.com/blog/nginx-499-client-closed-request/). For a connection killed mid-flight rather than stalled, [ERR_CONNECTION_RESET](https://www.kloudbean.com/blog/err-connection-reset/). On the proxy layer itself, [nginx as a reverse proxy for Node](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). And if the failure is really about what you sent rather than how slowly, [415 Unsupported Media Type](https://www.kloudbean.com/blog/http-error-415-unsupported-media-type/).
 

@@ -131,15 +131,15 @@ Structured data is the same. Product markup with price and availability is what 
 
 What a platform is responsible for is layer three, plus the boring guarantee that the store stays up and current. That is a real half of the problem and it is the half most stores have not looked at.
 
-## Where hosting fits, honestly
+## Where the host owns part of magento SEO
 
 Magento has been a supported stack on Kloudbean since December 2023, and the pieces layer three needs are the managed ones.
 
 Managed Elasticsearch matters most, because Magento 2.4 requires Elasticsearch or OpenSearch for catalogue search, which makes it a dependency rather than an upgrade. Running it as a managed service instead of a service you installed and forgot removes a component that silently degrades search and layered navigation when it drifts. Managed Redis covers Magento's cache and session storage, and managed MySQL or MariaDB covers the catalogue itself, with backups and controlled access. Cloudflare is available as a paid add-on, including Enterprise edge caching, which is the edge row of that table and it is free on Enterprise plans. Application and server logs sit in one dashboard with server metrics, which is where you confirm whether a slow category page is PHP, the database, or search. Cron jobs are managed from the UI, which matters more than it sounds given the silent-failure section above. Seven cloud providers to run on, free SSL issued and renewed, and free migration assistance if the store already exists somewhere else.
 
-The boundary as always. Managed covers the server, the stack, TLS, backups, and patching. Your Magento configuration, your category structure, your content, and your theme stay yours, and a good deal of layer one lives in there.
+The boundary as always. What is handled: the operating system, the stack, certificates, backups and patches. Your Magento configuration, your category structure, your content, and your theme stay yours, and a good deal of layer one lives in there.
 
-## Related reading
+## More on magento SEO
 
 On the search dependency, [managed Elasticsearch](https://www.kloudbean.com/blog/managed-elasticsearch-hosting/), and for caching and sessions, [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/). For the catalogue, [managed MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/) and [MySQL performance tuning](https://www.kloudbean.com/blog/mysql-performance-tuning/). The equivalent performance work on the other big ecommerce platform is in [speed up WooCommerce](https://www.kloudbean.com/blog/speed-up-woocommerce/) and [WooCommerce hosting](https://www.kloudbean.com/blog/woocommerce-hosting/), and much of the reasoning transfers. On the edge layer, [CDN explained](https://www.kloudbean.com/blog/cdn-explained/). And when a heavy catalogue page times out rather than merely dragging, [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/).
 

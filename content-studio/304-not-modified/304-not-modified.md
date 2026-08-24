@@ -127,13 +127,13 @@ awk '$9==200 {print $7}' /var/log/nginx/access.log | sort | uniq -c | sort -rn |
 
 A healthy site serving returning visitors shows a substantial share of 304s. If that second command lists the same handful of static assets thousands of times with a 200 each, you are paying to send files people already have, and the fix is header configuration rather than more bandwidth.
 
-## Where hosting fits
+## What running this in production needs
 
 Caching headers are configuration, and getting them right is a genuine performance lever that costs nothing to pull. On Kloudbean, nginx comes configured rather than left at defaults, which matters because the defaults are conservative and most people never revisit them. Because the platform runs nginx, the Apache inode ETag problem above does not apply. Cloudflare is available as a paid add-on and included for enterprise accounts, which adds edge caching in front of the origin so validated responses do not need to reach your server at all, and [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/) handles the application-level caching that sits behind it.
 
 The honest boundary: nobody else can fingerprint your assets, because that is a build configuration in your own project. What the platform gives you is a sensible starting point and somewhere to test header changes before your visitors meet them.
 
-## Related reading
+## Other symptoms, same cause
 
 On the caching layer in front of your origin, [CDN explained](https://www.kloudbean.com/blog/cdn-explained/). For application-level caching, [the Redis caching guide](https://www.kloudbean.com/blog/redis-caching-guide/) and [caching patterns](https://www.kloudbean.com/blog/redis-caching-patterns/). On the browser error caused by the opposite mistake, [ERR_CACHE_MISS](https://www.kloudbean.com/blog/err-cache-miss/). For redirect status codes, [302 vs 301](https://www.kloudbean.com/blog/302-found-vs-301-redirect/). On headers generally, [the security headers guide](https://www.kloudbean.com/blog/security-headers-guide/). And on WordPress caching specifically, [clearing WordPress cache](https://www.kloudbean.com/blog/how-to-clear-wordpress-cache/) and [speeding up WordPress](https://www.kloudbean.com/blog/speed-up-wordpress/).
 

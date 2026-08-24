@@ -110,7 +110,7 @@ The better pattern for a payload that can never succeed is to accept it, return 
 | Background job retrying forever | Deterministic failure treated as transient | Stop retrying 422 |
 | Webhooks redelivered repeatedly | Sender retries any non-2xx | Accept and dead-letter instead |
 
-## Where hosting fits
+## The operational half of 422 Unprocessable Entity
 
 Straightforwardly: a 422 is your validation working, so this is application logic and it belongs to you. There is no hosting setting that changes it, and any article claiming otherwise is stretching.
 
@@ -118,7 +118,7 @@ Two adjacent things are genuinely relevant. Validation rules usually exist to pr
 
 Beyond that, this article is a design argument rather than a product one: name the field, report every failure at once, and do not retry something that cannot succeed.
 
-## Related reading
+## If you came here for 422 Unprocessable Entity
 
 Its closest neighbour, [400 Bad Request](https://www.kloudbean.com/blog/400-bad-request/), which covers the parsing side. The code on the other side of the boundary is [415 Unsupported Media Type](https://www.kloudbean.com/blog/http-error-415-unsupported-media-type/): the spec says a 422 means the content type was understood, which is precisely why 415 would have been the wrong answer. For the other deterministic 4xx you should not retry, [409 Conflict](https://www.kloudbean.com/blog/409-conflict-error/). On authentication and permissions, [401 Unauthorized](https://www.kloudbean.com/blog/http-error-401-unauthorized/) and [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/). For the codes where retrying is correct, [429 Too Many Requests](https://www.kloudbean.com/blog/429-too-many-requests/). On queues that should not retry forever, [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/). And for the constraints underneath your validation, [PostgreSQL performance tuning](https://www.kloudbean.com/blog/postgresql-performance-tuning/).
 

@@ -67,7 +67,7 @@ For most apps past the demo stage, bundling beats itemizing. On Kloudbean a flat
 
 Being straight about the tradeoff: you pay for that server whether it's busy or idle, so if your project truly sits at zero traffic most of the month, a free tier is cheaper and you should use one. The flat plan wins when you have real traffic, more than one moving piece, or a bill you need to predict.
 
-## Related reading
+## If you are working through a list
 
 Cost-specific deep dives: [Heroku costs after the free tier](https://www.kloudbean.com/blog/heroku-cost-after-free-tier/) for per-piece billing, [why is my Railway bill so high](https://www.kloudbean.com/blog/why-is-my-railway-bill-so-high/) for metered billing, and [Render cold starts](https://www.kloudbean.com/blog/render-cold-starts-fix/) for what free actually costs. For choosing overall: [best managed Node.js hosting](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/) and [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/). On scaling spend later, see [vertical vs horizontal scaling](https://www.kloudbean.com/blog/vertical-vs-horizontal-scaling/).
 

@@ -121,7 +121,7 @@ What can genuinely hurt is removing pages that were earning traffic without chec
 
 A large number of 4xx responses in your logs is worth understanding rather than fearing. Expired listings returning 410 are a healthy site working as designed. Hundreds of 404s from your own internal links are a maintenance problem. Same general shape in a report, completely different meanings.
 
-## Where hosting fits
+## What the box needs to provide
 
 This is a configuration question, so the honest answer is that any host lets you do it and the work is in your web server config or your application.
 
@@ -131,7 +131,7 @@ The genuinely useful adjacent capability is your access log, since that is where
 
 <!-- ADD IMAGE: the server monitoring or log view, or your own access log filtered to 410 responses. -->
 
-## Related reading
+## More on 410 Gone
 
 For the redirect side of this decision, [301 versus 302](https://www.kloudbean.com/blog/302-found-vs-301-redirect/) and [redirect loops](https://www.kloudbean.com/blog/err-too-many-redirects/). For temporary unavailability, [503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/). For the neighbouring 4xx codes, [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/) and [405 Method Not Allowed](https://www.kloudbean.com/blog/405-method-not-allowed/). On caching implications of removed URLs, [304 Not Modified](https://www.kloudbean.com/blog/304-not-modified/). And on cleaning up after a compromise, [secure WordPress hosting](https://www.kloudbean.com/blog/secure-wordpress-hosting/).
 

@@ -90,7 +90,7 @@ Those first two are the rows a hosting decision genuinely settles, which is why 
 
 Where that stops, precisely: private networking, VPC and VPN are part of the Enterprise package, so on a standard plan the access model is the IP allow-list, not a private network. And infrastructure can keep the keys somewhere a DBA cannot reach without ever deciding which fields should be encrypted. That decision is yours, and it is the one the control's last clause is really asking about.
 
-## Related reading
+## When no Direct Database Access is not the only issue
 
 For the framework see [NCA CSCC explained](https://www.kloudbean.com/blog/nca-cscc-compliance-guide/), and for the full gap list [the critical systems hosting checklist](https://www.kloudbean.com/blog/critical-systems-hosting-checklist/). On the technical neighbours: [what is a VPC](https://www.kloudbean.com/blog/what-is-a-vpc/), [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/), and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/). Logging and retention are in [CSCC 18-month log retention](https://www.kloudbean.com/blog/cscc-log-retention-immutable-logs/), and residency in [data residency in Saudi Arabia](https://www.kloudbean.com/blog/data-residency-saudi-arabia/).
 

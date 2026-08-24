@@ -86,7 +86,7 @@ app.listen(port, () => console.log(`listening on ${port}`));
 
 For where to run Node in production, see [the managed Node.js hosting guide](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/).
 
-## Related reading
+## Worth a look afterwards
 
 The lookalike error is [EADDRINUSE, port already in use](https://www.kloudbean.com/blog/fix-eaddrinuse-port-already-in-use-node/), which is occupancy rather than permission. The clean fix here is [an Nginx reverse proxy for Node](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). If the app won't start for another reason, [why my Node app crashes on deploy](https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/) and [ECONNREFUSED](https://www.kloudbean.com/blog/fix-econnrefused-node/) cover the neighbours, and [the managed Node.js hosting guide](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/) covers where to run it.
 

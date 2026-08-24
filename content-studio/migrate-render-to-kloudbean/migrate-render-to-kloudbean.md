@@ -98,7 +98,7 @@ The headline difference is that nothing sleeps. Your Node app runs always-on und
 
 Fair credit: Render's Git-based deploys and clean service model are genuinely pleasant, and its free tier is a legitimate way to prototype something you don't mind sleeping. The reason to move is when the app stops being a prototype, at which point always-on and a database that doesn't expire are worth more than a free tier.
 
-## Related reading
+## After the cutover
 
 Context and companions: [Render vs Railway vs Kloudbean](https://www.kloudbean.com/blog/render-vs-railway-vs-kloudbean/) for the model comparison, [Render cold starts](https://www.kloudbean.com/blog/render-cold-starts-fix/) and [free Postgres expiry](https://www.kloudbean.com/blog/render-free-database-expiry/) for the two triggers, plus [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/), [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/), and [how to migrate hosting with zero downtime](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/).
 

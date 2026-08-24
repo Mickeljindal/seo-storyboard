@@ -128,7 +128,7 @@ Every current browser sends SNI. The clients that could not were Windows XP era 
 
 There are still real reasons to want a dedicated address, and none of them are certificates: a third party needs to allowlist your outbound IP, a regulator or partner requires a fixed address, or you are managing sending reputation for email. Buy one for those. Not for HTTPS.
 
-## Where hosting fits
+## The operational half of SNI
 
 The honest position is that SNI is not something you should have to think about. It is a protocol detail that a competent server configuration handles implicitly, and the reason to understand it is diagnostic rather than operational.
 
@@ -138,7 +138,7 @@ Where it does become visible is at the edge. Cloudflare is available as a paid a
 
 <!-- ADD IMAGE: the SSL certificate screen showing several applications on one server, each with its own domain and certificate. -->
 
-## Related reading
+## If SNI keeps coming back
 
 For the wider picture, [SSL and TLS explained](https://www.kloudbean.com/blog/ssl-tls-explained/) covers the handshake, termination, and why certificates expire. For diagnosis, [fixing SSL certificate errors](https://www.kloudbean.com/blog/fix-ssl-certificate-errors/) handles validity and chain problems, [ERR_SSL_PROTOCOL_ERROR](https://www.kloudbean.com/blog/err-ssl-protocol-error/) handles handshake failures, and [Cloudflare 525](https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/) handles edge-to-origin TLS. On the DNS half of the privacy story, [DNS lookups](https://www.kloudbean.com/blog/fix-slow-dns-lookup/), and for HTTPS redirect loops caused by TLS termination, [ERR_TOO_MANY_REDIRECTS](https://www.kloudbean.com/blog/err-too-many-redirects/).
 

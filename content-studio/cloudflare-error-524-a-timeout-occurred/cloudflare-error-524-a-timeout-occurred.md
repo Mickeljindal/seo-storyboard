@@ -114,7 +114,7 @@ The 524 error attracts bad advice, mostly because the fixes are quick to try and
 
 **Rebooting and hoping.** A restart clears a stuck worker pool and buys quiet for an hour, which is exactly enough to convince you it's fixed. Then load returns and so does the 524. If a reboot helps even briefly, that's a strong hint you have a capacity or a slow-path problem, so go and measure it rather than scheduling a nightly restart.
 
-## Where hosting fits, honestly
+## Where this stops being a code problem
 
 Let me be straight about the boundary here, because a 524 is mostly your code's problem and no host can pretend otherwise. Managed hosting covers the server, the stack, TLS, backups, and patching. Your application code, your queries, your DNS, and your Cloudflare configuration stay yours. A 524 is almost always a slow path inside your own app. What a good platform gives you is the ability to find and fix it faster.
 
@@ -124,7 +124,7 @@ One thing to be clear about: the background-job fix is your application design. 
 
 <!-- ADD IMAGE: Server health metrics (CPU, memory, load) beside the app, so a spike in 524s lines up with a spike in load (Kloudbean console: server-health.png). -->
 
-## Related reading
+## If you are debugging more than one thing
 
 If you're not sure which number you actually have, start at the [Cloudflare 5xx error codes](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/) overview. The nearest neighbours are [522 connection timed out](https://www.kloudbean.com/blog/cloudflare-error-522-connection-timed-out/) for the handshake that never completes, [523 origin is unreachable](https://www.kloudbean.com/blog/cloudflare-error-523-origin-is-unreachable/) when Cloudflare can't route to your address, and [525 SSL handshake failed](https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/) when the connection works and TLS does not. For the same slow-response family from a different angle, [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/). And for the fix itself, [running a long task without a timeout](https://www.kloudbean.com/blog/deploy-long-running-ai-task-without-timeout/) and [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/).
 

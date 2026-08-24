@@ -126,7 +126,7 @@ What you give up, stated honestly: Fly's regional placement is genuinely strong,
 
 Kloudbean does offer provider and region choice across seven clouds, and a built-in load balancer for spreading traffic across servers, so it is not a single-location story. It is a smaller regional footprint than Fly's model, and being straight about that is more useful than pretending otherwise.
 
-## Related reading
+## Take it further
 
 Context: [a Fly.io alternative](https://www.kloudbean.com/blog/fly-io-alternative/) and [why is my Fly.io bill so high](https://www.kloudbean.com/blog/why-is-my-fly-io-bill-so-high/). On the mechanics: [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/), [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/), [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/), and [migrating with zero downtime](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/). For workers, [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/).
 

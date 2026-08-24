@@ -116,7 +116,7 @@ Running headless well is mostly about treating it as one system with two deploya
 
 A few other pieces slot in naturally. Media can go to [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/) so uploads aren't stuck on one server's disk. When the backend gets busy, it scales like any other WordPress site, covered in [scalable WordPress hosting](https://www.kloudbean.com/blog/scalable-wordpress-hosting/). And the backend still benefits from the usual [WordPress speed work](https://www.kloudbean.com/blog/speed-up-wordpress/), because a slow API makes for a slow front end no matter how quick your framework is.
 
-## The honest boundary
+## Where responsibility changes hands
 
 Under the hood it's all Linux, headless or not. The platform manages the server, the WordPress stack, SSL, and backups, and you own both your WordPress content and your front-end code. Going headless doesn't change who owns what. It changes how many pieces you're running and how carefully they need to fit together. Be honest about whether your project actually needs that, and the decision more or less makes itself.
 

@@ -103,17 +103,17 @@ Not every 501 is a bug to squash. If a client sends a method your service was ne
 
 > **Behind Cloudflare or another CDN?** The edge is a front layer too, and it can be the thing returning 501 on a method it was not set to forward. Test the origin directly with curl to split the edge from your server, and if the failure is clearly at the edge, [the Cloudflare 5xx codes](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/) covers how that layer reports its own faults.
 
-## Where hosting fits, honestly
+## The infrastructure question underneath
 
 The honest boundary first. If your own application deliberately returns 501, or genuinely does not implement a feature, that is your code and no host changes it. What a managed platform can retire is the other, more common kind of 501: the one that comes from a reverse proxy or gateway in front of your app that was never configured to pass the method you send.
 
 On Kloudbean the reverse proxy, nginx or Apache, is managed and patched, so it is set up to hand your application's requests to your application rather than left as an exercise in method filtering and location-block ordering. Application and server logs sit in the same dashboard as the server, so the log check above does not start with an SSH session and a hunt for the right path. You get a Shorewall and Fail2ban baseline, free SSL issued and renewed, staging for WordPress and Laravel so a routing change can be tried somewhere harmless, and automatic backups behind it all. Seven cloud providers to run on, from $8 a month on standard plans (check the pricing page for current numbers), and free migration assistance if you are moving something that already works. There is a built-in Flexible Load Balancer you can switch on when you actually need it.
 
-The line stays where it always is. Managed covers the server, the stack, TLS, backups, and patching. Your application code and your data remain yours. What a host removes is the proxy and method-routing guesswork, plus the friction of reaching the logs that tell you which layer said no.
+The line stays where it always is. Certificates, patches, backups and the stack come with the platform. Your application code and your data remain yours. What a host removes is the proxy and method-routing guesswork, plus the friction of reaching the logs that tell you which layer said no.
 
 <!-- ADD IMAGE: Kloudbean console adding an application with the managed web server configured to route requests to the app -->
 
-## Related reading
+## When the obvious fix fails
 
 The twin you will confuse it with, [405 Method Not Allowed](https://www.kloudbean.com/blog/405-method-not-allowed/), where the verb is known and simply not allowed on that route. The generic crash it gets mistaken for, [500 Internal Server Error](https://www.kloudbean.com/blog/http-error-500-internal-server-error/), and the dead-upstream case, [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/). For a wrong path rather than a wrong verb, [404 Not Found](https://www.kloudbean.com/blog/http-error-404-not-found/). On the layer that usually emits a 501, [nginx as a reverse proxy for Node](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/) and [nginx versus Apache](https://www.kloudbean.com/blog/nginx-vs-apache/). Its 5xx sibling that refuses the HTTP version rather than the method, [505 HTTP Version Not Supported](https://www.kloudbean.com/blog/505-http-version-not-supported/). At the edge, [Cloudflare's 5xx codes](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/). And to make the logs worth reading, [structured logging in Node](https://www.kloudbean.com/blog/structured-logging-nodejs/).
 

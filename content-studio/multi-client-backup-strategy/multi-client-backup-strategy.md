@@ -69,13 +69,13 @@ At fleet scale the backup stops being purely operational and becomes something y
 
 > **The number that matters is time-to-restore, not backup count.** When a client site is down, nobody cares how many backups you hold, only how fast their specific site comes back. A fleet strategy is really about being able to restore one client quickly and cleanly while the other nineteen are undisturbed. Optimise for that, and the rest follows.
 
-## Where hosting fits, honestly
+## Which part of this is the host's job
 
 Most of this strategy is discipline, but the platform decides how much of it you have to do by hand. On Kloudbean each client is an isolated environment, so backups are naturally per client rather than one mixed blob, which is the isolation the whole strategy depends on. Automatic backups run per environment without you remembering, and they ship off-box to S3-compatible object storage or managed GCS buckets so a dead server does not take the backups with it. It all sits in one dashboard, so checking that the backup job ran across the fleet is one place rather than twenty logins. Seven clouds to spread clients across, and free migration assistance when you bring a new client's site in to fold into the same routine.
 
 The honest boundary: the platform provides isolation, automatic backups, and off-box storage. The retention policy per client, the sample-and-rotate restore schedule, and the discipline of actually running the test are yours. A backup that is never restore-tested is a hope, not a strategy, and no platform can test it for you, only make the test easy.
 
-## Related reading
+## Around multi-Client Backup Strategy
 
 The fundamentals this page builds on are in the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/) (3-2-1, off-box, test the restore). The isolation it depends on is [hosting multiple apps on one server](https://www.kloudbean.com/blog/host-multiple-apps-one-server/), and the retention-then-delete rule is [agency client offboarding](https://www.kloudbean.com/blog/agency-client-offboarding/). Retention maps to plan tiers in [client billing and markup](https://www.kloudbean.com/blog/client-billing-and-markup-for-hosting/). The wider operation is the [hosting for agencies playbook](https://www.kloudbean.com/blog/hosting-for-agencies-playbook/) and [how agencies host 20 client apps on one server](https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/). Off-box storage itself is [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/).
 

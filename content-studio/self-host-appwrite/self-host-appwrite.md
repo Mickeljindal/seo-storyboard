@@ -70,15 +70,15 @@ Appwrite runs as its Docker stack on a server, with a relational database (Maria
 
 Backups follow from that: a regular, automatic dump of the database plus your stored files, shipped off the server, with a restore you have tested once, as laid out in [the backups guide](https://www.kloudbean.com/blog/server-backups-guide/). A backend holds your users and their data, so this is not the corner to cut. Set it up before you launch anything real on it.
 
-## Where hosting fits, honestly
+## What production adds to self-Host Appwrite
 
 Appwrite pairs well with a managed platform because the annoying parts (the server, the database, TLS, backups) are exactly what a managed platform is for. You run Appwrite's stack on a managed server across any of seven clouds, behind a managed reverse proxy with free auto-renewing SSL, with its data layer on managed MariaDB and managed Redis so your users and documents sit on a database that is backed up automatically, and object storage for files. One dashboard, and a resize rather than a rebuild when you grow. It is not a one-click app, but its self-host story is one of the friendliest in this category.
 
 The honest boundary: the platform runs the server, the database, SSL, and backups. The Appwrite application, your data, and your app's code are yours. Managed hosting makes Appwrite dependable to run and keeps its data safe. It does not write your app or choose your data model, and the data model is the one decision worth making deliberately.
 
-## Related reading
+## If self-Host Appwrite was the symptom, not the cause
 
-For the Postgres-first alternative and the full comparison, [self-hosting Supabase](https://www.kloudbean.com/blog/self-host-supabase/). For the wider set of tools worth owning, the [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) guide. The data layer underneath: [managed MariaDB and MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/) and [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/), kept safe with [server backups](https://www.kloudbean.com/blog/server-backups-guide/), and files in [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). Deploying the app that talks to it is covered in [deploying an app to production](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/).
+For the Postgres-first alternative and the full comparison, [self-hosting Supabase](https://www.kloudbean.com/blog/self-host-supabase/). There is a broader survey in [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/). The data layer underneath: [managed MariaDB and MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/) and [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/), kept safe with [server backups](https://www.kloudbean.com/blog/server-backups-guide/), and files in [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). Deploying the app that talks to it is covered in [deploying an app to production](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/).
 
 ## Own your backend, keep Firebase's speed.
 

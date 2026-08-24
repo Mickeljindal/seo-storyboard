@@ -82,7 +82,7 @@ Now the part the choice doesn't touch. A web server routes requests; it doesn't 
 
 Which is why the debate deserves about a minute of your day. Get the layer right, then go look at the query. For how the pieces sit together, [how cloud hosting works](https://www.kloudbean.com/blog/how-cloud-hosting-works/) is the overview, and the front-server role is in [reverse proxy explained](https://www.kloudbean.com/blog/reverse-proxy-explained/).
 
-## Related reading
+## More on nginx vs Apache
 
 For the front-server role Nginx so often plays, [reverse proxy explained](https://www.kloudbean.com/blog/reverse-proxy-explained/) and, for Node specifically, [an Nginx reverse proxy for Node](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). The bigger picture is in [how cloud hosting works](https://www.kloudbean.com/blog/how-cloud-hosting-works/), and if this is really a question of how much infrastructure you want to run yourself, [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) is the honest fork.
 

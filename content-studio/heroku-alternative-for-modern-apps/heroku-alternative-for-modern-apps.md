@@ -107,9 +107,9 @@ And an opinion, since this is exactly where I'll plant a flag: most mature Herok
 
 If Heroku still fits, keep it. Familiarity has real value, and there's no prize for migrating a setup that's working. Stay if your app is a single dyno with no add-ons to speak of and the paid tier is comfortable, or if you lean on a specific add-on or buildpack that would be genuine work to replace. The alternative earns its place once you're running several dynos and a stack of add-ons, or you're one of the many people who only started shopping around when the free tier disappeared and the bill became real. Weighing the newer platforms too? The [Render](https://www.kloudbean.com/blog/render-alternative-for-vibe-coded-apps/) and [Fly.io](https://www.kloudbean.com/blog/fly-io-alternative/) comparisons run the same reasoning.
 
-## The honest limits
+## What remains unsolved
 
-Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and frameworks like React, Next.js, Vue, Laravel, and Django, which covers what modern and vibe-coded apps are built on. Windows Server is a Premium and Enterprise option rather than a standard one, and .NET runs on Linux. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups, while you own and maintain the app. And to be fair, for a single small dyno with no add-ons, Heroku's simplicity is genuinely hard to beat. The flat, owned server pulls ahead as your app grows processes and add-ons, and as a "cheaper Heroku alternative" starts to mean "stop paying five subscriptions for one app."
+Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and frameworks like React, Next.js, Vue, Laravel, and Django, which covers what modern and vibe-coded apps are built on. You can run .NET on Linux. Windows Server is a Premium and Enterprise option. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups, while you own and maintain the app. And to be fair, for a single small dyno with no add-ons, Heroku's simplicity is genuinely hard to beat. The flat, owned server pulls ahead as your app grows processes and add-ons, and as a "cheaper Heroku alternative" starts to mean "stop paying five subscriptions for one app."
 
 ## Keep the git push. Lose the meter.
 

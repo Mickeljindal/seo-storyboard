@@ -73,13 +73,13 @@ Maintenance done well is invisible. The site just keeps working, which is exactl
 
 > **The response commitment is the other half of "we'll handle it".** A retainer implicitly promises that when something breaks, someone answers. Make it explicit: state the response time per tier, and mean it. "We'll get to it eventually" is not a service; "same day on the gold tier" is, and it is a real reason to be on the higher tier.
 
-## Where hosting fits, honestly
+## What production adds to WordPress Maintenance Retainer Plans
 
 A maintenance retainer is a promise, and the platform is what lets you keep it at scale. Staging for WordPress is what makes "we update your site safely" true rather than hopeful, since every update runs on a copy first. Automatic backups kept off-box give you the tested restore the plan promises, free SSL keeps HTTPS handled without a line item, and the baseline security hardening, Shorewall and Fail2ban, means the security deliverable is real rather than aspirational. Managed updates and patching at the server and stack level mean you are maintaining the application, not fighting the infrastructure underneath it. All of it across seven clouds from one account, so a fleet of retainer clients is one dashboard rather than a scattered set of logins.
 
 The honest boundary is clean. The platform provides the staging, backups, security, and patching that make the deliverables possible; the plan design, the client relationship, the small changes, and above all that monthly report are your service. The platform makes the promise keepable; keeping it, visibly, is what the client pays you for.
 
-## Related reading
+## If WordPress Maintenance Retainer Plans was the symptom, not the cause
 
 How to price these tiers is [client billing and markup for hosting](https://www.kloudbean.com/blog/client-billing-and-markup-for-hosting/), where the care plan is exactly this retainer. The hosting underneath is [agency WordPress hosting](https://www.kloudbean.com/blog/agency-wordpress-hosting/), and keeping those sites fast is [speed up WordPress](https://www.kloudbean.com/blog/speed-up-wordpress/). The backups the plan depends on, at fleet scale, are in [the multi-client backup strategy](https://www.kloudbean.com/blog/multi-client-backup-strategy/). The wider operation is the [hosting for agencies playbook](https://www.kloudbean.com/blog/hosting-for-agencies-playbook/), and a client joins via the [onboarding checklist](https://www.kloudbean.com/blog/agency-onboarding-checklist/).
 

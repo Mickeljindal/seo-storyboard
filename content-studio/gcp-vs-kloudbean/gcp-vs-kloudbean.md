@@ -85,7 +85,7 @@ Worth being clear about, because plenty of infrastructure decisions get made in 
 
 Two limits on the managed side to know before you decide, rather than after. The managed layer deliberately doesn't expose every low-level GCP knob, which is the trade for not having to configure them. And a few things are scoped differently: private networking, VPC and Kubernetes come with Enterprise, while a standard managed database is locked down by IP allow-listing rather than a private network, and a database primary lives in one region, with read replicas able to sit elsewhere. If your architecture requires the low-level version of any of that, you want to know now.
 
-## Related reading
+## More on google Cloud vs Kloudbean
 
 For the same managed-versus-raw decision against another cloud, [DigitalOcean vs Kloudbean](https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/), and the broader principle in [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/). For how the pieces work, [how cloud hosting works](https://www.kloudbean.com/blog/how-cloud-hosting-works/); for pricing models, [cloud hosting pricing explained](https://www.kloudbean.com/blog/cloud-hosting-pricing-explained/). For the GCP region behind in-Kingdom hosting, [the Dammam region guide](https://www.kloudbean.com/blog/gcp-dammam-region-guide/), and for managed-platform options generally, [managed-cloud alternatives](https://www.kloudbean.com/blog/cloudways-alternatives/).
 

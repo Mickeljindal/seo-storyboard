@@ -83,7 +83,7 @@ It's a lever, not magic, so here's the straight talk:
 
 So don't migrate a single sleepy app for the drama of it. The math only bites once the metered stack has grown teeth.
 
-## Where people get this wrong
+## The common mistake
 
 The most common mistake is expecting the flat server to swallow the whole bill, then feeling cheated when the email and analytics invoices keep arriving. That's not a failure of consolidation; those were never infrastructure. Separate the two piles cleanly and the win is obvious and honest, rather than overpromised.
 

@@ -207,7 +207,7 @@ cron.schedule('*/5 * * * *', () =&gt; runCleanup());</code></pre>
 
   <div class="note"><b>Rule of thumb:</b> schedule the smallest, most idempotent command you can, capture its output, and pick a cadence that comfortably outlasts the job's own runtime. A task that runs in 20 seconds is safe every 5 minutes. A task that takes 6 minutes is not.</div>
 
-  <h2>The honest boundary</h2>
+  <h2>What is yours and what is not</h2>
   <p>Cron is wonderfully dumb, and that's a feature. It runs a command at a set time. It doesn't know whether the command succeeded, won't retry a failed run, and can't recover one missed while the server was down. If you need retries, dead-letter handling, or fan-out across a fleet, that's a job queue's job (Celery, Sidekiq, BullMQ), not cron's. Reach for cron when the task is "run this on this cadence," which is most scheduled work. Reach for a queue when you need delivery guarantees.</p>
 
   <div class="cta">

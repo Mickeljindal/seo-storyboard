@@ -207,7 +207,7 @@ If you'd rather work in a terminal or the File Manager, the same files sit at `/
 
 <!-- ADD IMAGE: The Logs Viewer on the App Errors tab showing a ReferenceError: window is not defined line highlighted -->
 
-## The honest limits
+## Known rough edges
 
 Two things worth saying plainly. First, Kloudbean runs Nuxt as a **Node app on Linux**, which is exactly what Nuxt targets, so you're on the happy path. There's no Windows or .NET angle here, and you won't need one. Second, "managed" is a division of labor, not magic: the platform provisions the server, the Node runtime, the process manager, the proxy, SSL, and backups. You still own your code, your data, and your rendering decisions. That's the good split, and because underneath it's an ordinary Linux box, you can move hosts whenever you want.
 

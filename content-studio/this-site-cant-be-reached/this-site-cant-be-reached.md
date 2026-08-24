@@ -96,7 +96,7 @@ What a managed platform does remove is the subset of these failures that comes f
 
 The honest boundary: managed covers the server, the stack, TLS, backups, and patching. Your application code, your DNS records, and your visitors' networks stay yours. Most of this error's causes live outside the server entirely, which is exactly why reading the sub-code first saves so much time.
 
-## Related reading
+## More on this Site Can't Be Reached
 
 By layer: [ERR_NAME_NOT_RESOLVED and DNS_PROBE_FINISHED_NXDOMAIN](https://www.kloudbean.com/blog/err-name-not-resolved/) for the DNS branch, and [DNS explained](https://www.kloudbean.com/blog/dns-explained/) if the record types themselves are the confusing part. [ERR_CONNECTION_RESET](https://www.kloudbean.com/blog/err-connection-reset/) covers the whole reset, refused and timed-out family at the TCP layer. [ERR_SSL_PROTOCOL_ERROR](https://www.kloudbean.com/blog/err-ssl-protocol-error/) and [fixing SSL certificate errors](https://www.kloudbean.com/blog/fix-ssl-certificate-errors/) handle the encryption hop. When the server answers but answers badly, [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/) and [Cloudflare 521](https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/) are the next stops. And if pages load but slowly, [slow DNS lookups](https://www.kloudbean.com/blog/fix-slow-dns-lookup/) is a different problem with a similar smell.
 

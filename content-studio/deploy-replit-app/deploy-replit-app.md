@@ -145,9 +145,9 @@ A **503** after a Replit move is almost always one of the rows you half-finished
 
 One honest line for Replit: the all-in-one experience is good at what it's for. If you're still prototyping or learning, and the bill is small, none of the pressures below have arrived yet, so nothing here is urgent. The migration pays off later, for two reasons. Cost gets predictable: instead of Autoscale usage billing or a per-Deployment Reserved VM, an owned server is a flat monthly price that several apps can share. And you gain control: the runtime, the process, the database, and the domain are all yours, on standard infrastructure you can move again whenever you want. You can even keep editing in Replit and just push to GitHub, letting your server rebuild. Replit stays the IDE; production lives on the box you own.
 
-## The honest limits
+## What deploy a Replit App to Your Own Server cannot do
 
-Kloudbean runs Linux stacks: Node, Python, PHP, Ruby, and Java, with frameworks like React, Next.js, Vue, Django, and Laravel on top. That spans what most Repls are built in. Windows Server is a Premium and Enterprise option rather than a standard one, and .NET runs on Linux. "Managed" means the server, stack, SSL, backups, and patching are handled; you own and maintain the application and its data. The tool-agnostic version of this walkthrough, covering Lovable, Bolt, Cursor, and v0 too, is the [deploy an AI-built app](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) pillar.
+Kloudbean runs Linux stacks: Node, Python, PHP, Ruby, and Java, with frameworks like React, Next.js, Vue, Django, and Laravel on top. That spans what most Repls are built in. Linux .NET versions are supported; a Windows Server box is a Premium and Enterprise item. "Managed" means the server, stack, SSL, backups, and patching are handled; you own and maintain the application and its data. The tool-agnostic version of this walkthrough, covering Lovable, Bolt, Cursor, and v0 too, is the [deploy an AI-built app](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) pillar.
 
 **Keep Replit's speed. Own the server.** Migrate your Replit app to [kloudbean.com](https://www.kloudbean.com/), with a free trial and your first migration done for you. Plans on [pricing](https://www.kloudbean.com/pricing/).
 

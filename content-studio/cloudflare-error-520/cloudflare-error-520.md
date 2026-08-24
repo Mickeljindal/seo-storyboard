@@ -136,7 +136,7 @@ On Kloudbean the parts that cause this are managed rather than left to you: PHP 
 
 The honest limit: a managed platform cannot stop your code from loading fifty thousand rows into memory, and it will not remove a fatal error in your application. What it removes is the configuration mismatches and the guesswork about which limit you hit.
 
-## Related reading
+## error 520, in more depth
 
 For the full family and how to tell the codes apart, see [Cloudflare error codes 520 to 527](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/). Its closest neighbours: [error 521](https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/) and [error 525](https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/). For the upstream layer where these often surface, [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/) and [the nginx reverse proxy setup](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). To move session data out of cookies, [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/). And when a request is simply doing too much, [background jobs](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/).
 

@@ -96,7 +96,7 @@ That response turns a support ticket into a self-service fix. The client is told
 
 **Say which type you wanted in the body too.** An empty 415 with no explanation is a poor experience. A short message naming the expected type saves the reader a trip to your docs, assuming your docs even cover it.
 
-## Where hosting fits, honestly
+## What running this somewhere real involves
 
 Straight answer: it mostly doesn't. A 415 is a decision your application or framework made about a header, and no hosting configuration fixes that. Anyone selling you infrastructure as the solution to a status code your own code returned is not being straight with you.
 
@@ -104,7 +104,7 @@ What the infrastructure layer genuinely touches is narrower and worth naming. A 
 
 The boundary, as always: managed covers the server, the stack, TLS, backups, and patching. Your routes, your parsers, and your content negotiation stay yours.
 
-## Related reading
+## More on HTTP Error 415 Unsupported Media Type
 
 The nearest neighbours are worth reading together, because the distinction between them is the actual skill: [422 Unprocessable Entity](https://www.kloudbean.com/blog/http-422-unprocessable-entity/) for content that was understood and still rejected, [406 Not Acceptable](https://www.kloudbean.com/blog/http-error-406-not-acceptable/) for the mirror-image failure on the response side, and [400 Bad Request](https://www.kloudbean.com/blog/400-bad-request/) for genuinely malformed requests. When the objection is the size of the body rather than its type, that is [413 Content Too Large](https://www.kloudbean.com/blog/http-error-413-content-too-large/). Also in the cluster: [405 Method Not Allowed](https://www.kloudbean.com/blog/405-method-not-allowed/), [401 Unauthorized](https://www.kloudbean.com/blog/http-error-401-unauthorized/), [409 Conflict](https://www.kloudbean.com/blog/409-conflict-error/), and [451 Unavailable For Legal Reasons](https://www.kloudbean.com/blog/http-error-451-unavailable-for-legal-reasons/), the one 4xx that is a disclosure rather than a fault. If the request stalls on the way in rather than being refused, [408 Request Timeout](https://www.kloudbean.com/blog/http-error-408-request-timeout/). If a proxy is in the path and you suspect it's touching your headers, [nginx as a reverse proxy for Node](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/), and [structured logging](https://www.kloudbean.com/blog/structured-logging-nodejs/) for seeing what actually arrived.
 

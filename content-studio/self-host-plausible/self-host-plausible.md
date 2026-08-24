@@ -62,15 +62,15 @@ For backups, remember there are two stores that matter: ClickHouse holds the ana
 
 <!-- ADD IMAGE: diagram, site script to Plausible app, app writing events to ClickHouse and config to PostgreSQL, ClickHouse flagged as the heavier component holding the data -->
 
-## Where hosting fits, honestly
+## What production adds to self-Host Plausible
 
 Plausible runs well on a managed server, with a clear division of what the platform handles and what you do. You run the Plausible stack, including ClickHouse, on a managed server across any of seven clouds, behind a managed reverse proxy with free auto-renewing SSL, and you can put the PostgreSQL configuration database on managed PostgreSQL so that part is maintained and backed up. Honesty matters here: ClickHouse is not one of the managed database engines, so it runs on the server as part of Plausible's own stack rather than as a managed service, which is one more reason to size the box for it.
 
 The honest boundary: the platform runs the server, the Postgres database, SSL, and backups, and gives you the machine to run ClickHouse on. ClickHouse itself, the Plausible application, and your analytics data are yours to operate and own. Managed hosting removes the server and Postgres busywork; it does not turn ClickHouse into someone else's problem, and pretending otherwise would just set you up for a surprise.
 
-## Related reading
+## Other angles on self-Host Plausible
 
-For the lighter, single-database alternative and the full comparison, [self-hosting Umami](https://www.kloudbean.com/blog/self-host-umami/). For the wider set of tools worth owning, the [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) guide. The configuration database is [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), and both data stores need [server backups](https://www.kloudbean.com/blog/server-backups-guide/). If analytics is part of a wider owned stack, [self-hosting Ghost](https://www.kloudbean.com/blog/self-host-ghost/) for publishing is good company.
+For the lighter, single-database alternative and the full comparison, [self-hosting Umami](https://www.kloudbean.com/blog/self-host-umami/). The rest of the category is in [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/). The configuration database is [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), and both data stores need [server backups](https://www.kloudbean.com/blog/server-backups-guide/). If analytics is part of a wider owned stack, [self-hosting Ghost](https://www.kloudbean.com/blog/self-host-ghost/) for publishing is good company.
 
 ## Own your analytics, on a server sized for it.
 

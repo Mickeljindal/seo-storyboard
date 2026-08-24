@@ -92,7 +92,7 @@ The second signal is a component with a wildly different scaling or resource pro
 
 Notice what's not on the list: "we're getting a lot of users," or "we want to look scalable." Traffic growth alone is usually handled by a bigger box, or a second copy of the same monolith behind a load balancer, long before it justifies rearchitecting into services. Split when a specific, present problem asks for it. Not before.
 
-## A quick way to decide
+## How to choose in a minute
 
 You don't need a weekend of whiteboarding. Run through these three and you'll have your answer.
 

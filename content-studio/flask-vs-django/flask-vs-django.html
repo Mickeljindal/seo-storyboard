@@ -127,7 +127,7 @@ gunicorn -k uvicorn.workers.UvicornWorker --workers 3 app:app</code></pre>
   <p>Your business logic is Python and it moves. Your database moves, since both end up talking to PostgreSQL or MySQL and the data is portable. What does not move is everything framework-shaped: ORM models and queries, migrations, templates, forms, authentication, middleware, and URL routing. That is not a port, it is a rewrite of the outer layer with the same core.</p>
   <p>Which means the decision matters more than most technology choices, and it is still not fatal. The way to keep the option open is unglamorous: keep business logic in plain Python modules that do not import the framework, and treat views as a thin layer that parses input and calls into them. Teams that do this find framework changes tedious rather than catastrophic. Teams that put business rules inside views and model methods find the two inseparable.</p>
 
-  <h2>Where hosting fits</h2>
+  <h2>flask vs Django and the environment it runs in</h2>
   <p>Both are supported here, which is the honest reason this comparison can stay neutral: whichever you choose, we host it, so there is nothing to sell you by nudging the answer.</p>
   <p>Concretely, Kloudbean runs managed Python applications including Flask, Django, and FastAPI, with runtime configuration for Python available in the UI rather than only in files. Managed PostgreSQL, MySQL, MariaDB, Redis, Elasticsearch, and MongoDB are one-click and standalone with backups, which matters because both frameworks want a real database and neither should be using SQLite on a server. Free SSL is issued and renewed, cron jobs are configurable from the UI without SSH for the scheduled work most Django projects accumulate, and a Git integration builds and deploys on every push with live build logs.</p>
   <p>One honest note in the same spirit as the rest of this article: one-click staging covers WordPress and Laravel, so on a Python project you would create your own staging copy. Worth knowing before you plan a release process rather than after.</p>
@@ -137,7 +137,7 @@ gunicorn -k uvicorn.workers.UvicornWorker --workers 3 app:app</code></pre>
     <figcaption>Both frameworks want a real database. That part of the decision is already made for you, and it is the same either way.</figcaption>
   </figure>
 
-  <h2>Related reading</h2>
+  <h2>More on flask vs Django</h2>
   <p>Once you have chosen: <a href="https://www.kloudbean.com/blog/deploy-django-app/">deploy Django</a>, <a href="https://www.kloudbean.com/blog/deploy-flask-app/">deploy Flask</a>, or <a href="https://www.kloudbean.com/blog/deploy-fastapi-app/">deploy FastAPI</a>. On the process layer, <a href="https://www.kloudbean.com/blog/gunicorn-vs-uvicorn/">Gunicorn versus Uvicorn</a>. On the database underneath, <a href="https://www.kloudbean.com/blog/mysql-vs-postgresql/">MySQL versus PostgreSQL</a> and <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database</a>. On configuration, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>. And on background work, <a href="https://www.kloudbean.com/blog/celery-with-redis/">Celery with Redis</a>.</p>
 
   <div class="cta">

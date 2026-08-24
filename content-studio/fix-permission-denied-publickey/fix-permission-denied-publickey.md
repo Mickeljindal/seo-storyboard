@@ -226,7 +226,7 @@ Work down this list and stop at the first one that's true. The order matters, be
 
 The honest part: no host fixes step 5 for you, ours included. Support can hand you a console or attach a key, nobody can recover a private key you never had a copy of, and no provider can authenticate you when you've deleted the only trusted key and disabled password auth. Access recovery is something you provision in advance or do without. Spend the four minutes now on a second key and a tested console, while nothing is broken.
 
-## Related reading
+## More on permission denied (publickey)
 
 For the concepts underneath the error, read [SSH key authentication](https://www.kloudbean.com/blog/ssh-key-authentication/) and, when you need to reach a service that isn't publicly exposed, [what an SSH tunnel is](https://www.kloudbean.com/blog/what-is-an-ssh-tunnel/). Keys are credentials, so [secrets management](https://www.kloudbean.com/blog/secrets-management/) applies to them the same as API tokens.
 

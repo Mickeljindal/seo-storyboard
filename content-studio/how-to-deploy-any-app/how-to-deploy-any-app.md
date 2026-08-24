@@ -166,7 +166,7 @@ Now that the model's in your head, here's where to go for the exact commands for
 
 Different commands, identical shape. JVM apps fit it too: you build a jar, then run it as a long-lived process behind the proxy, which is the whole of [deploying a Spring Boot app to production](https://www.kloudbean.com/blog/deploy-spring-boot-app/). Once you've done one, the next is mostly "which install and start command does this framework want?"
 
-## The honest limits
+## When deploy an App is not enough
 
 Two things worth saying plainly. First, Kloudbean runs **Linux** stacks: Node, PHP, Python, Ruby, Java, Go binaries, and the frameworks built on them. A classic Windows or .NET app expecting IIS and SQL Server isn't a fit as-is; that's a porting conversation, not a deploy. The vast majority of modern apps are the Linux stacks above, so you're very likely fine. Just check before you assume.
 

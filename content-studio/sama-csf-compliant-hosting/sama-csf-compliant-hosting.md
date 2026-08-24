@@ -69,7 +69,7 @@ Then there is the part nobody can price down for you. No host makes a financial 
 
 What the infrastructure half buys is that the technical controls and their evidence are already built, maintained, and documented in-Kingdom, so your assessment work becomes mapping and attesting instead of constructing from scratch. In a regulated financial context, a provider precise about that line is worth more than one promising to make you compliant. The second claim is the one that falls apart in an assessment.
 
-## Related reading
+## If SAMA Cyber Security Framework was the symptom, not the cause
 
 Financial institutions in the Kingdom also fall under the NCA frameworks: start with [the NCA CSCC guide](https://www.kloudbean.com/blog/nca-cscc-compliance-guide/) for critical systems and [NCA ECC compliant hosting](https://www.kloudbean.com/blog/nca-ecc-compliant-hosting/) for the baseline. For the personal-data side, [PDPL compliant hosting](https://www.kloudbean.com/blog/pdpl-compliance-hosting/). The residency question runs through [data residency in Saudi Arabia](https://www.kloudbean.com/blog/data-residency-saudi-arabia/) and [the GCP Dammam region guide](https://www.kloudbean.com/blog/gcp-dammam-region-guide/), and the managed-database angle is in [managed databases with Saudi data sovereignty](https://www.kloudbean.com/blog/managed-databases-saudi-data-sovereignty/).
 

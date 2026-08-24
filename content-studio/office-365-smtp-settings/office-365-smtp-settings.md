@@ -91,7 +91,7 @@ The exception is genuine. If you are a one-person company and the only mail your
 
 Where the OAuth path is worth the work: an application you control the code of, sending as a real mailbox in your own tenant, where sending from your own domain identity matters. It is a proper implementation job rather than a settings change, and going in expecting that saves a frustrating afternoon.
 
-## Where hosting fits, honestly
+## What the platform is responsible for
 
 Straight answer: none of this is a hosting feature, and nothing on this page is solved by changing host. These are Microsoft 365 tenant settings and an architecture decision about your application.
 
@@ -99,9 +99,9 @@ The one place hosting genuinely intersects is outbound port 25, which most provi
 
 What helps around the edges on Kloudbean: application and server logs sit in the same dashboard, which is where a mailer's authentication failure actually shows up rather than in a plugin's cheerful test screen; cron jobs are managed from the UI, which matters if your sending is queued or batched; and environment variables live in runtime configuration, which is where an API key belongs instead of in your code. Seven cloud providers, free SSL, free migration assistance.
 
-The boundary is unchanged. Managed covers the server, the stack, TLS, backups, and patching. Your tenant, your sending identity, and your application's mail logic stay yours.
+The boundary is unchanged. The box, its stack, its certificates and its backups are somebody else's rota. Your tenant, your sending identity, and your application's mail logic stay yours.
 
-## Related reading
+## When mail still will not send
 
 On ports, relays, and the DNS records that decide deliverability, [port 25 and the SMTP ports](https://www.kloudbean.com/blog/port-25-blocked-smtp-ports/) is the companion to this page and covers what this one deliberately does not. For keeping an API key out of your code, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). If sending is batched or retried, [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/) and [Celery with Redis](https://www.kloudbean.com/blog/celery-with-redis/). When a mailer failure surfaces as a generic server error instead, [500 Internal Server Error](https://www.kloudbean.com/blog/http-error-500-internal-server-error/) covers getting the real message out of the log. And on the WordPress side, [managed WordPress hosting](https://www.kloudbean.com/blog/managed-wordpress-hosting/).
 

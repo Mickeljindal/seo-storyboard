@@ -99,7 +99,7 @@ Two of those rows need saying bluntly, because no host closes them. Nobody's pla
 
 Everything in the left column, Kloudbean builds and maintains on managed enterprise engagements running on a dedicated cloud account, with evidence delivered as managed reports. Be precise about what that buys you: infrastructure alignment, not a certificate. Certification is assessed against your organisation, and the governance, staffing, and application work in the right column is what an assessor will look at next.
 
-## Related reading
+## If CSCC 18-Month Log Retention was the easy part
 
 For the full framework, see [NCA CSCC explained](https://www.kloudbean.com/blog/nca-cscc-compliance-guide/), and for the baseline beneath it [NCA ECC compliant hosting](https://www.kloudbean.com/blog/nca-ecc-compliant-hosting/). Retention interacts with privacy obligations, covered in [PDPL compliance hosting](https://www.kloudbean.com/blog/pdpl-compliance-hosting/). On the technical side, [structured logging](https://www.kloudbean.com/blog/structured-logging-nodejs/) and [server backups](https://www.kloudbean.com/blog/server-backups-guide/) are the closest neighbours, and residency is covered in [data residency in Saudi Arabia](https://www.kloudbean.com/blog/data-residency-saudi-arabia/).
 

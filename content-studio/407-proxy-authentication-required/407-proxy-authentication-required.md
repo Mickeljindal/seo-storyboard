@@ -167,7 +167,7 @@ The one worth internalising: 401 and 403 come from the destination, so you look 
 | Only some machines hit it | Those sit behind the authenticating proxy | Where the machine is on the network |
 | A reverse proxy you run returns 407 | It forwards to an upstream proxy needing auth | Your `proxy_pass` chain |
 
-## Where hosting fits, honestly
+## Where the platform enters the picture
 
 Most 407 errors have nothing to do with your host, and it's worth being straight about that. The proxy asking for a login usually lives in the client's network: an office, a VPN, a locked-down corporate laptop. No hosting provider can reach into that network and change it. If a 407 is stopping your users, the fix is on their side.
 
@@ -179,7 +179,7 @@ The boundary, once: managed covers the server, the stack, TLS, backups, and patc
 
 <!-- ADD IMAGE: Kloudbean console showing server and application logs in one place, confirming the reverse proxy answered rather than a 407. src -> ../assets/console/server-health.png -->
 
-## Related reading
+## What to look at next
 
 Its origin-side twin, [HTTP 401 Unauthorized](https://www.kloudbean.com/blog/http-error-401-unauthorized/), and the permission version, [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/). When the verb is the problem rather than your identity, [405 Method Not Allowed](https://www.kloudbean.com/blog/405-method-not-allowed/), and when you're rate limited, [429 Too Many Requests](https://www.kloudbean.com/blog/429-too-many-requests/). For the gateway that couldn't reach upstream, [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/). On the proxy layer itself, [the nginx reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/) and [nginx versus Apache](https://www.kloudbean.com/blog/nginx-vs-apache/).
 

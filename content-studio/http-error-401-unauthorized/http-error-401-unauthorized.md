@@ -131,7 +131,7 @@ If that works with application passwords locally but not in production, you are 
 
 That last row is the one place these two codes blur. If reads succeed and writes fail, the credential is being recognised, so strictly it should be a 403. Some APIs return 401 anyway. If you see that pattern, stop investigating authentication and go and look at the scopes on the token.
 
-## Where hosting fits
+## HTTP Error 401 Unauthorized needs a server that behaves
 
 Most of this is your application's authentication logic, and it should be. Two of the causes are infrastructure, though, and they are the two that waste the most time: a proxy silently dropping headers, and a drifted server clock.
 
@@ -139,7 +139,7 @@ On Kloudbean, nginx comes configured rather than left at defaults, environment v
 
 The boundary: nobody else can validate your tokens or write your refresh logic. What managed infrastructure removes is the 401 that has nothing to do with authentication at all.
 
-## Related reading
+## Reading that picks up where this stops
 
 Its counterpart, [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/), plus [400 Bad Request](https://www.kloudbean.com/blog/400-bad-request/) and [429 Too Many Requests](https://www.kloudbean.com/blog/429-too-many-requests/). On credentials and configuration, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). For the proxy layer that strips headers, [the nginx reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). On the WordPress side, [the WP REST API guide](https://www.kloudbean.com/blog/wp-rest-api-guide/). And for browser-side authentication failures on cross-origin calls, [fixing CORS errors](https://www.kloudbean.com/blog/fix-cors-error-node-production/) and [the security headers guide](https://www.kloudbean.com/blog/security-headers-guide/).
 

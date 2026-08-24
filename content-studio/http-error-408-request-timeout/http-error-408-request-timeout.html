@@ -159,14 +159,14 @@ awk '$9 == 408 {print $7}' /var/log/nginx/access.log | sort | uniq -c | sort -rn
 
   <p>One practical read on the logs: a sudden spike in 408-class lines from a narrow set of addresses, with almost no bytes received on each, looks much more like this technique than like a network fault. Worth checking before tuning anything upward.</p>
 
-  <h2>Where hosting fits, honestly</h2>
+  <h2>How the platform touches HTTP Error 408 Request Timeout</h2>
   <p>Start with the limit. If a visitor is on a poor mobile connection, nothing you configure on the server fixes their upload. That's their network, and the honest extent of your influence is choosing not to set a timeout so tight that ordinary mobile traffic fails.</p>
 
   <p>The genuinely useful thing a managed platform contributes here is visibility, and the log-only behaviour above is exactly why. On Kloudbean the reverse proxy is managed with maintained timeout configuration rather than a file someone edited once, and server health metrics sit in the same dashboard as both the server and application logs. That matters for this specific error because the diagnosis depends entirely on correlating a log line against whether any real request was affected, and against whether connection counts were climbing at the time. Seven cloud providers, free SSL issued and renewed, and free migration assistance if you're moving something already running.</p>
 
-  <p>The boundary stays where it always is. Managed covers the server, the stack, TLS, backups, and patching. Your application code, your upload flows, and your visitors' networks remain yours.</p>
+  <p>The boundary stays where it always is. Patching, TLS renewal, backups and stack upkeep are not on your list. Your application code, your upload flows, and your visitors' networks remain yours.</p>
 
-  <h2>Related reading</h2>
+  <h2>HTTP Error 408 Request Timeout is rarely alone</h2>
   <p>The opposite direction, and the one people usually actually have: <a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504 Gateway Timeout</a>. At the edge, <a href="https://www.kloudbean.com/blog/cloudflare-error-522-connection-timed-out/">522 connection timed out</a> covers the two separate clocks Cloudflare runs. When the silent close surfaces as something else, <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a> and <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">cloud load balancers explained</a>. When the client is the one who gave up rather than the server, that is nginx's <a href="https://www.kloudbean.com/blog/nginx-499-client-closed-request/">499 client closed request</a>. For a connection killed mid-flight rather than stalled, <a href="https://www.kloudbean.com/blog/err-connection-reset/">ERR_CONNECTION_RESET</a>. On the proxy layer itself, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx as a reverse proxy for Node</a>. And if the failure is really about what you sent rather than how slowly, <a href="https://www.kloudbean.com/blog/http-error-415-unsupported-media-type/">415 Unsupported Media Type</a>.</p>
 
   <div class="cta">

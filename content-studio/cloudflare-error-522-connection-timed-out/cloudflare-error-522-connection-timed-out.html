@@ -174,14 +174,14 @@ dmesg | grep -i conntrack     # "table full, dropping packet" is unambiguous</co
     </tbody>
   </table>
 
-  <h2>Where hosting fits, honestly</h2>
+  <h2>Hosting, and what it does not solve</h2>
   <p>Two of the causes above are outside any host's reach. A cloud provider security group sits above the machine, so a rule there drops Cloudflare before the server sees anything, and no host-level configuration overrides it. And Fail2ban, which is genuinely useful and which Kloudbean configures by default, can itself be the thing banning a Cloudflare address after it forwards requests that look like failed logins. A tool doing its job can be the cause.</p>
 
   <p>What a managed platform changes is how quickly you can see the rest. On Kloudbean, Shorewall and Fail2ban are configured up front rather than left as homework, and both live in the dashboard, so checking or lifting a ban is a look rather than an SSH session. Server health metrics sit in the same place, which matters here because the intermittent version of 522 is a capacity story and you need memory and load history to read it. Seven cloud providers, one dashboard, free SSL issued and renewed, and free migration assistance if you're moving something already running.</p>
 
-  <p>The boundary stays where it always is. Managed covers the server, the stack, TLS, backups, and patching. Your application code, your DNS records, and your Cloudflare configuration remain yours.</p>
+  <p>The boundary stays where it always is. The managed part is the machine and everything under your code. Your application code, your DNS records, and your Cloudflare configuration remain yours.</p>
 
-  <h2>Related reading</h2>
+  <h2>If connection Timed Out Error Code 522 keeps coming back</h2>
   <p>Start at the <a href="https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/">Cloudflare 5xx error codes</a> overview if you're not certain which number you have. The nearest neighbours: <a href="https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/">521 web server is down</a> for the refused case and the allowlist detail, <a href="https://www.kloudbean.com/blog/cloudflare-error-520/">520</a> when the origin replies with something Cloudflare cannot parse, and <a href="https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/">525 SSL handshake failed</a> when the connection succeeds and TLS does not. For the slow-response family, <a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504 Gateway Timeout</a> and <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a>. At the browser layer the same refused-versus-ignored logic appears in <a href="https://www.kloudbean.com/blog/err-connection-reset/">ERR_CONNECTION_RESET</a>, and <a href="https://www.kloudbean.com/blog/this-site-cant-be-reached/">this site can't be reached</a> maps every Chrome code to its layer.</p>
 
   <div class="cta">

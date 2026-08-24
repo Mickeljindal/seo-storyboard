@@ -72,13 +72,13 @@ Penpot's data lives in two places: the PostgreSQL database holds the files, team
 
 > **Coming from Figma?** You can bring work across, and Penpot has import paths for common formats, but treat a migration as a project, not a drag-and-drop. Move one project, check that components and layouts survived, then move the rest. The design-to-code benefits are worth the care.
 
-## Where hosting fits, honestly
+## How much of self-Host Penpot is a hosting question
 
 Penpot is a good example of where a managed platform quietly removes the annoying parts. On Kloudbean it is a one-click app, so the Docker Compose file you would otherwise write and maintain is simply not your problem. It runs on a managed server across any of seven clouds, with managed PostgreSQL for the design files, managed Redis for sessions, free auto-renewing SSL for the mandatory HTTPS, automatic backups as the safety net, and object storage for assets, all in one dashboard. When you outgrow the first server, you resize it rather than re-architecting.
 
 The honest boundary: the platform keeps the server, database, SSL, and backups healthy. Your design files, your fonts, your SMTP account, and how you run your design process stay yours. Managed hosting makes Penpot easy to stand up and hard to lose. It does not, and should not, reach into your creative work.
 
-## Related reading
+## Once self-Host Penpot is settled
 
 For the wider picture of what is worth running yourself, the [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) guide. For neighbours in this cluster, [self-hosting Nextcloud](https://www.kloudbean.com/blog/self-host-nextcloud/) for files, [self-hosting Supabase](https://www.kloudbean.com/blog/self-host-supabase/) for an app backend, and [self-hosting Postiz](https://www.kloudbean.com/blog/self-host-postiz/) for social scheduling, another one-click app. The pieces Penpot leans on: [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/), [server backups](https://www.kloudbean.com/blog/server-backups-guide/), and [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). And if the SMTP step trips you up, [blocked SMTP ports explained](https://www.kloudbean.com/blog/port-25-blocked-smtp-ports/).
 

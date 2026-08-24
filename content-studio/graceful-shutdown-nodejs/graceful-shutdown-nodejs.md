@@ -81,7 +81,7 @@ There's a subtlety in front of the app. If a load balancer is still routing traf
 
 Graceful shutdown is the app-side half of zero-downtime deployments. The platform can start a new instance and stop the old one smoothly, but only if the old one drains instead of dying mid-request. On Kloudbean your Node app runs always-on under PM2, and a reload signals the process to stop, so an app that handles SIGTERM drains its in-flight requests during a deploy rather than dropping them. The platform provides the rolling mechanism; your shutdown handler is what makes it truly seamless. It's a genuine shared responsibility, and this handler is your side of it. The full picture is in [zero-downtime deployments](https://www.kloudbean.com/blog/zero-downtime-deployments/).
 
-## Related reading
+## More on graceful Shutdown in Node.js
 
 Shutdown pairs with a few neighbors. Set up the readiness signal in [Node.js health checks](https://www.kloudbean.com/blog/nodejs-health-checks/), get the release mechanism in [zero-downtime deployments](https://www.kloudbean.com/blog/zero-downtime-deployments/), and run the process well with the [PM2 process manager guide](https://www.kloudbean.com/blog/pm2-process-manager-guide/). Closing the pool cleanly connects to [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/), and a mid-deploy blip often shows up as a [502 bad gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/).
 

@@ -145,15 +145,15 @@ Kloudbean's object storage is S3-compatible with full AWS SDK and CLI support, s
 
 Worth being clear about when *not* to bother: if your largest upload is a 5 MB profile image, presigned URLs are more machinery than the problem deserves. Raise `client_max_body_size` and move on. The architecture matters when files are large, frequent, or both.
 
-## Where hosting fits, honestly
+## 413 Content Too Large on somebody else's machine
 
 The honest part first. A 413 is a configuration outcome, and on any platform where you control the proxy config, it is yours to set. No host can guess the right maximum for your application.
 
 What removes the frustration is not having to find the ceilings by trial and error. On Kloudbean the reverse proxy and the runtime are managed together, so the proxy and PHP settings are not two unrelated files in two locations discovered one restart at a time, and application and server logs sit in the same dashboard, which is where the `client intended to send too large body` line lives. Runtime configuration for Node and Python is editable in the UI rather than over SSH. For the architectural answer above, S3-compatible object storage is built in on every account. Seven cloud providers, free SSL, and free migration assistance if you are moving something across.
 
-The boundary stays put. Managed covers the server, the stack, TLS, backups, and patching. What size of upload your application should accept, and what it does with the file afterwards, is yours.
+The boundary stays put. Certificates, patches, backups and the stack come with the platform. What size of upload your application should accept, and what it does with the file afterwards, is yours.
 
-## Related reading
+## Adjacent problems worth reading about
 
 The neighbouring objections: [415 Unsupported Media Type](https://www.kloudbean.com/blog/http-error-415-unsupported-media-type/) for the wrong content type, [431 Request Header Fields Too Large](https://www.kloudbean.com/blog/http-error-431-request-header-fields-too-large/) when it is the headers rather than the body, and [408 Request Timeout](https://www.kloudbean.com/blog/http-error-408-request-timeout/) when the upload was slow rather than large. When a proxy error hides behind a browser message, [ERR_BLOCKED_BY_RESPONSE](https://www.kloudbean.com/blog/err-blocked-by-response/). For the upload architecture, [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). On the proxy layer, [nginx as a reverse proxy for Node](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). And if the request failed after reaching your code rather than before, [500 Internal Server Error](https://www.kloudbean.com/blog/http-error-500-internal-server-error/).
 

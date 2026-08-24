@@ -183,7 +183,7 @@ curl -sS -X POST https://api.example.com/v1/users \
 
 That last row is the one to worry about. If your application has never returned a 409 for a concurrent edit, that may mean nobody edits concurrently, or it may mean you are losing updates silently. Only one of those is comfortable.
 
-## Where hosting fits
+## Infrastructure, briefly
 
 Conflict handling is application logic, so most of this is yours to write. Two parts of it are infrastructure, though.
 
@@ -191,7 +191,7 @@ The database is where conflicts are detected, so its configuration matters: isol
 
 The honest boundary: nobody else can define your state machine or decide which fields are unique. What the platform removes is the operational side of running the database and cache that your conflict handling depends on.
 
-## Related reading
+## The rest of the trail
 
 For neighbouring status codes, [400 Bad Request](https://www.kloudbean.com/blog/400-bad-request/), [401 Unauthorized](https://www.kloudbean.com/blog/http-error-401-unauthorized/), [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/), and [429 Too Many Requests](https://www.kloudbean.com/blog/429-too-many-requests/), which covers the backoff and jitter referenced above. On the validators reused for optimistic locking, [304 Not Modified](https://www.kloudbean.com/blog/304-not-modified/). For the database side, [PostgreSQL performance tuning](https://www.kloudbean.com/blog/postgresql-performance-tuning/) and [connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/). And for the atomic operations behind idempotency keys, [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/) and [caching patterns](https://www.kloudbean.com/blog/redis-caching-patterns/).
 

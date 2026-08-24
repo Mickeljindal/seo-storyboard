@@ -100,7 +100,7 @@ That last row matters for how you plan. If your real need turns out to be search
 
 *The trigger for Redis is almost always a second server or work that happens outside the request.*
 
-## A quick way to decide
+## The short answer on do I Need Redis for My SaaS
 
 You don't need a long architecture review. Three questions usually settle it.
 

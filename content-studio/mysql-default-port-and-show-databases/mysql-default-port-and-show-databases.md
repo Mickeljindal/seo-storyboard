@@ -191,7 +191,7 @@ A few habits that save you later. Give the app its own least-privileged user rat
 
 ![Launching a managed MySQL database in the Kloudbean console with automatic backups and access controls](../assets/console/launch-database.png)
 
-## Where hosting fits, honestly
+## Does your host matter for this?
 
 Everything above is plain MySQL and works on any server you run. What a managed platform changes is who handles the parts that fail quietly, and the security default this page keeps hammering on.
 
@@ -203,7 +203,7 @@ The honest boundary, said once. Managed covers the server, the engine, backups, 
 
 One-click MySQL and MariaDB · Automatic backups · IP allow-listing · Free SSL · Free migration · One dashboard
 
-## Related reading
+## Other MySQL questions that follow this one
 
 More on the database side of things: [managed MySQL hosting](https://www.kloudbean.com/blog/managed-mysql-hosting/) for what running it as a service actually covers, and [managed MariaDB hosting](https://www.kloudbean.com/blog/managed-mariadb-hosting/) if you're on the fork. Still choosing an engine? [MySQL vs PostgreSQL](https://www.kloudbean.com/blog/mysql-vs-postgresql/) is the honest head to head. When queries get slow, [MySQL performance tuning](https://www.kloudbean.com/blog/mysql-performance-tuning/) takes it from the slow query log onward. On the connection side, [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) and [database private access control](https://www.kloudbean.com/blog/database-private-access-control/). Working in Postgres instead? The psql equivalent is [Postgres list tables and databases in psql](https://www.kloudbean.com/blog/psql-list-databases-and-tables/).
 

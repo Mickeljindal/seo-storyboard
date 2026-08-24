@@ -95,7 +95,7 @@ Cache-Control: private, no-cache, must-revalidate</code></pre>
   <p>Worth stepping back, because this error is a symptom of a design decision rather than a browser quirk. POST is defined as non-idempotent: sending it twice may have a different effect from sending it once. Everything the browser does here follows from taking that seriously. It will not silently replay a POST, it will not restore a POST result from history, and it will ask before doing either.</p>
   <p>So the useful mental rule is that a URL a user might return to should be reachable with GET. If returning to a page requires repeating a side effect, the design is asking the browser to do something it correctly refuses to do. Once you see the error that way, the fix is obvious and the browser stops looking awkward.</p>
 
-  <h2>Where hosting fits, honestly</h2>
+  <h2>What changes once this is in production</h2>
   <p>This one is mostly yours, and it should be. It is an application design question and a response header question, and no hosting change makes a POST replayable.</p>
   <p>Two smaller things do touch it. Response headers are set by your application or by a plugin, and having <a href="https://www.kloudbean.com/blog/wordpress-staging-environment/">staging</a> means you can change caching directives and click through real navigation before your users do, which is where header changes usually go wrong. And when a caching plugin turns out to be adding <code>no-store</code>, automatic backups make rolling back a decision rather than a repair.</p>
   <p>Beyond that, the fix is a 303 in your route handler. That is a good outcome: a browser error that turns out to be a small, permanent improvement to your own code.</p>
@@ -105,7 +105,7 @@ Cache-Control: private, no-cache, must-revalidate</code></pre>
     <figcaption>Header and caching changes are worth clicking through on a copy before your visitors meet them.</figcaption>
   </figure>
 
-  <h2>Related reading</h2>
+  <h2>Further notes on ERR_CACHE_MISS Is Not a Cache Problem</h2>
   <p>For the connection-level browser errors that genuinely are transport problems, <a href="https://www.kloudbean.com/blog/err-connection-reset/">ERR_CONNECTION_RESET</a>. On caching more broadly, <a href="https://www.kloudbean.com/blog/how-to-clear-wordpress-cache/">clearing WordPress cache</a>, <a href="https://www.kloudbean.com/blog/cdn-explained/">CDN explained</a>, and <a href="https://www.kloudbean.com/blog/redis-caching-patterns/">Redis caching patterns</a>. On response headers, <a href="https://www.kloudbean.com/blog/security-headers-guide/">the security headers guide</a>. For request-level failures, <a href="https://www.kloudbean.com/blog/400-bad-request/">400 Bad Request</a> and <a href="https://www.kloudbean.com/blog/fix-cors-error-node-production/">fixing CORS errors</a>. And for safe change management, <a href="https://www.kloudbean.com/blog/wordpress-staging-environment/">staging environments</a>.</p>
 
   <div class="cta">

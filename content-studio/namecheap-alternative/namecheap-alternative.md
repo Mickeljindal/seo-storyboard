@@ -74,15 +74,15 @@ The move is less dramatic than it sounds. Nothing here needs a terminal marathon
 
 Pick a cloud (AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, or UpCloud), choose a region close to your visitors, and pick a size. That's your own box, not a shared slice. You can resize it later, so don't overthink the first pick.
 
-![The Kloudbean console launching a server, with a choice of cloud provider, region, and server size](../assets/console/add-server.png)
+![Launching a server on Kloudbean, with provider and region selected before size](../assets/console/add-server.png)
 
 *Launch a server: choose the cloud, the region, and a size you can resize later.*
 
 ### 2. Add your application
 
-Add the app you're moving. WordPress and WooCommerce are one-click, and so are Laravel, Magento, Drupal, and Joomla. Running something else? Node.js, Python, Ruby, and Java all have a home here, and static sites host free.
+Add the app you're moving. The PHP stacks are one-click: WordPress, WooCommerce, Laravel, Magento, Drupal, Joomla. Running something else? Node.js, Python, Ruby, and Java all have a home here, and static sites host free.
 
-![The Kloudbean console adding an application, with WordPress and other one-click stacks](../assets/console/add-application.png)
+![Adding an application in Kloudbean and choosing its stack](../assets/console/add-application.png)
 
 *Add your application: WordPress in a click, or bring your Node, Python, Ruby, or Java app.*
 
@@ -90,7 +90,7 @@ Add the app you're moving. WordPress and WooCommerce are one-click, and so are L
 
 Two ways. If it's a WordPress or PHP site, the free migration assistance can move it for you, files and database included. If it's a codebase in Git, connect the repo and let managed CI/CD build and deploy it on every push, with live build logs so you can watch it happen. No more dragging files over FTP and praying.
 
-![The Kloudbean console connecting a GitHub repository for automatic build and deploy on push](../assets/console/git-deployment.png)
+![Pointing a Kloudbean application at a GitHub branch for automatic deploys](../assets/console/git-deployment.png)
 
 *Connect GitHub and deploy on push, with live build logs. More in the [Git deploy guide](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).*
 
@@ -98,7 +98,7 @@ Two ways. If it's a WordPress or PHP site, the free migration assistance can mov
 
 Backups are on by default, not a checkbox you'll forget. You can see them, and you can restore from one when you need it. If you've ever lost a site to a bad update on shared hosting, you already know why this matters. The full picture is in the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/).
 
-![The Kloudbean console showing automatic backups you can view and restore](../assets/console/manage-backups.png)
+![Where backups are listed and restores are triggered in the Kloudbean console](../assets/console/manage-backups.png)
 
 *Automatic backups you can actually see and restore, not a paid afterthought.*
 
@@ -129,13 +129,13 @@ Yes, and it's the most common move we see off shared hosting. WordPress and WooC
 
 Not on WordPress? Moving off shared hosting isn't a PHP-only story. Node.js, Python, Ruby, and Java run here as first-class citizens, static sites host free, and you can run cron jobs from the dashboard instead of hunting for a hidden cron panel. Whatever the AI tools or your team handed you, it probably fits.
 
-## The honest limits
+## The parts nobody automates
 
 Straight talk, because the fair-comparison bit cuts both ways. Kloudbean isn't a domain registrar, and it isn't a $2 shared plan. If all you need is a parked domain and a single static page, Namecheap is cheaper and completely fine, and you should stay. Kloudbean is Linux managed cloud, starting from $8/mo, for apps that have outgrown the cheap slice and need real resources. Managed means the server, stack, SSL, backups, and patching are handled for you, while your code and your data stay yours to take anywhere. It's Linux only, so no Windows or .NET here.
 
 ---
 
-**Room to grow, minus the sysadmin part.** Keep your domain at Namecheap and move the hosting to your own managed server. Start free at [kloudbean.com](https://www.kloudbean.com/), and check plans on [pricing](https://www.kloudbean.com/pricing/).
+**Room to grow, minus the sysadmin part.** Keep your domain at Namecheap and move the hosting to your own managed server. Start at [kloudbean.com](https://www.kloudbean.com/) and compare tiers on [pricing](https://www.kloudbean.com/pricing/).
 
 Your own server resources · 7 clouds · Managed databases · Git deploy · Staging · Automatic backups · Free migration · Free trial
 

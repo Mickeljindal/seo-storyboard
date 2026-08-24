@@ -180,7 +180,7 @@ sqlite3 app.db ".backup '/backups/app-$(date +%F).db'"
 
 One modern note worth knowing: Node 22 and later include a built-in `node:sqlite` module. It is experimental and its API differs, so it is not a drop-in replacement, but it needs no native build step, which removes this entire category of problem. Worth watching if native compilation is your main pain.
 
-## Related reading
+## Connected problems
 
 For the database decision itself, [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) and [MySQL versus PostgreSQL](https://www.kloudbean.com/blog/mysql-vs-postgresql/). For deployment failures around this one, [Node apps crashing on deploy](https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/), [Cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/), and [auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/). On configuration and moving data, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) and [migrating with pg_dump and mysqldump](https://www.kloudbean.com/blog/database-migration-pg_dump-mysqldump/). And on keeping copies you can restore, [server backups](https://www.kloudbean.com/blog/server-backups-guide/).
 

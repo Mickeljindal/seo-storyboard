@@ -224,7 +224,7 @@ const db = connect(env.DATABASE_URL);   // runtime, server-only, never shipped t
   <p><strong>Start command still runs the dev server.</strong> Someone sets Start to <code>npm run dev</code> out of habit. Vite's dev server is for reloading as you type, not for traffic. Start must be <code>node build</code>, after Build has run <code>npm run build</code>.</p>
   <p><strong>Build tools skipped.</strong> Set <code>NODE_ENV=production</code> before install and npm skips <code>devDependencies</code>, where Vite, Svelte, and the adapter live, so the build dies with a missing-module error. Let install pull everything. When a deploy 503s, read the app's error log first; the reason is almost always one of these five, in plain text.</p>
 
-  <h2>The honest limits</h2>
+  <h2>What this will not fix</h2>
   <p>Two things worth saying straight. First, this is a Linux Node deployment. SvelteKit compiles to a Node server through <code>adapter-node</code>, which runs great on a managed Linux box. It isn't a Windows or .NET target, which is fine, because SvelteKit isn't either.</p>
   <p>Second, your server lives in one region, not spread across a global edge network. For most apps a well-placed server with the database right beside it is faster than people expect, since you skip cold starts and round trips to a far-off database. If you truly serve a latency-critical audience on every continent, put Cloudflare in front (a paid add-on, free on Enterprise) so pages cache at the edge while the app runs on hardware you own. "Managed" means the server, stack, SSL, backups, and patching are handled; your code and data stay yours, on a standard Linux box you can move whenever you like.</p>
 

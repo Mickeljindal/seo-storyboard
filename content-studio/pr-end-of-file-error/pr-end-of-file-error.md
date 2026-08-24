@@ -94,15 +94,15 @@ Read the issuer line. If the chain relies on a root that isn't in Mozilla's stor
 
 **Ask one failing visitor for the exact code.** Reset and end-of-file point in different directions, and a screenshot settles in seconds what guessing takes an afternoon to narrow.
 
-## Where hosting fits, honestly
+## Whose problem is this, exactly
 
 Start with what no host can fix. A large share of these errors live on the visitor's machine: their antivirus, their VPN, their employer's proxy, their Firefox profile. Nobody can reach any of that from a server, and a guide that implies otherwise is selling.
 
 What managed hosting does remove is the server-side half. On Kloudbean, SSL certificates are issued and renewed for you from a publicly trusted authority, so the private-root and expiry routes to this error close on their own. TLS configuration is maintained rather than left as a file you edited once and forgot, which is what eventually produces the too-old-for-modern-browsers case. Shorewall and Fail2ban are configured up front and both live in the dashboard, so if a ban is resetting a real visitor you can see it and lift it instead of guessing. Seven cloud providers, one dashboard, and free migration assistance if you're moving something already running.
 
-The boundary is the usual one. Managed covers the server, the stack, TLS, backups, and patching. Your application code, your DNS, and your visitors' machines stay yours.
+The boundary is the usual one. TLS, patching, backups and the stack itself are handled for you. Your application code, your DNS, and your visitors' machines stay yours.
 
-## Related reading
+## Other build failures with unhelpful messages
 
 For the Chromium versions of the same two failures, [ERR_CONNECTION_RESET](https://www.kloudbean.com/blog/err-connection-reset/) and [ERR_SSL_PROTOCOL_ERROR](https://www.kloudbean.com/blog/err-ssl-protocol-error/), which also covers the plain-HTTP-on-an-HTTPS-port case. When the handshake completes and the identity is refused instead, [fixing SSL certificate errors](https://www.kloudbean.com/blog/fix-ssl-certificate-errors/). For the mechanics underneath all of it, [SSL and TLS explained](https://www.kloudbean.com/blog/ssl-tls-explained/) and [what SNI is](https://www.kloudbean.com/blog/what-is-sni/). If a CDN sits in front, [Cloudflare 525](https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/) is the same failure between the edge and your origin. And if you have not identified your browser's code yet, [this site can't be reached](https://www.kloudbean.com/blog/this-site-cant-be-reached/) maps them to layers.
 

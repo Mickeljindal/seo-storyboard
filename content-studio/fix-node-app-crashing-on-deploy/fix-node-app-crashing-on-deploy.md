@@ -71,7 +71,7 @@ The best cure is a deploy that tells you immediately when something's off. Three
 
 Most of the pain here is a deploy that fails quietly. Kloudbean deploys from a GitHub push through managed CI/CD with live build logs, so a failed install or build shows up in the console as it happens, not as a silent dead app. Environment variables are set per app so production stops falling back to your laptop's values, your Node app runs always-on under PM2 so a crash and its logs are visible, and a managed database sits right next to your app in the same account so the localhost trap doesn't apply. You still own your code's bugs, a genuine error will still crash, but the environment gaps that cause "works locally, crashes on deploy" are largely designed out.
 
-## Related reading
+## Same area, different problem
 
 This guide is a map to the specific fixes. Dig into [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) (the top cause), [Cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/), [ECONNREFUSED](https://www.kloudbean.com/blog/fix-econnrefused-node/), [EADDRINUSE](https://www.kloudbean.com/blog/fix-eaddrinuse-port-already-in-use-node/), [PM2 restart loops](https://www.kloudbean.com/blog/pm2-app-keeps-restarting/), and [heap out of memory](https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/). For a build that runs on every push, see [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 

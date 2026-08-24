@@ -66,15 +66,15 @@ Team chat quietly becomes your organisation's memory, so protect it like one.
 
 Your messages, channels, and users live in PostgreSQL, and uploaded files in your file store, so a real backup covers both: an automatic database dump plus the files, shipped off the server, with a restore you have tested once, per [the backups guide](https://www.kloudbean.com/blog/server-backups-guide/). Access matters as much as backups here, because this is internal communication. Keep it behind HTTPS, control who can reach the admin surface, and if isolation is part of your requirement, lock access down to trusted IPs rather than exposing it to the open internet (private networking is available on Enterprise). For teams that need it, keeping the whole deployment inside a controlled network is not paranoia, it is the reason they chose to self-host in the first place.
 
-## Where hosting fits, honestly
+## What production adds to self-Host Mattermost
 
 Mattermost suits a managed server well, and the platform can take on the parts that are not your team's job. You run it as a standard application across any of seven clouds, behind a managed reverse proxy with free auto-renewing SSL, pointed at a managed PostgreSQL that matches its separate-database guidance and is backed up automatically. Where isolation matters, locking access to trusted IPs keeps the deployment off the open internet (with private networking available on Enterprise), and running across multiple clouds and regions gives options for where the data physically lives. It is not a one-click app, but it is a well-understood app-plus-database deployment.
 
 The honest boundary, which matters for a tool chosen on compliance grounds: the platform provides the infrastructure controls, the managed database, SSL, backups, and network isolation. Your conversations, your retention and access policies, and your organisation's own compliance obligations remain yours. Managed hosting gives you a solid, controllable place to run Mattermost. The governance around what is said in it, and proving your compliance, stays with your organisation, as it must.
 
-## Related reading
+## If self-Host Mattermost was the symptom, not the cause
 
-For the omnichannel alternative and the full comparison, [self-hosting Rocket.Chat](https://www.kloudbean.com/blog/self-host-rocketchat/). For the wider set of tools worth owning, the [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) guide. The database underneath is [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), kept safe with [server backups](https://www.kloudbean.com/blog/server-backups-guide/). If isolation is part of your requirement, [what a VPC is](https://www.kloudbean.com/blog/what-is-a-vpc/) explains private networking, and for the broader picture, [self-hosting Nextcloud](https://www.kloudbean.com/blog/self-host-nextcloud/) covers files with the same own-it logic.
+For the omnichannel alternative and the full comparison, [self-hosting Rocket.Chat](https://www.kloudbean.com/blog/self-host-rocketchat/). If you are assembling a self-hosted stack, see [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/). The database underneath is [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), kept safe with [server backups](https://www.kloudbean.com/blog/server-backups-guide/). If isolation is part of your requirement, [what a VPC is](https://www.kloudbean.com/blog/what-is-a-vpc/) explains private networking, and for the broader picture, [self-hosting Nextcloud](https://www.kloudbean.com/blog/self-host-nextcloud/) covers files with the same own-it logic.
 
 ## Run team chat on infrastructure you control.
 

@@ -92,11 +92,11 @@ Picture the most common Lovable-on-Netlify shape: a React front end, two or thre
 
 Don't expect a smaller number in every case. Netlify's free and starter tiers are genuinely cheap at low traffic, and a managed server is a flat monthly price for the box whatever the traffic. The flat model tends to win as usage and team size grow, because it isn't metered per build minute, per function, or per seat, and you can run several apps on one server. The real prize is a bill you can forecast and own, not necessarily the lowest one.
 
-## The honest limits
+## When this is the wrong answer
 
-Kloudbean runs Linux stacks: Node and the modern web toolkit (React, Vue, Next.js) that Lovable produces, plus PHP, Python, Ruby, and Java when you need them. Windows Server is a Premium and Enterprise option rather than a standard one, and .NET runs on Linux. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and automatic backups; you own and maintain the application and its data. That split is the whole point: the pieces Netlify used to hide are now yours, in one place you can actually see into.
+Kloudbean runs Linux stacks: Node and the modern web toolkit (React, Vue, Next.js) that Lovable produces, plus PHP, Python, Ruby, and Java when you need them. Windows Server belongs to Premium and Enterprise; .NET does not need it. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and automatic backups; you own and maintain the application and its data. That split is the whole point: the pieces Netlify used to hide are now yours, in one place you can actually see into.
 
-**Nothing left behind.** Move your app at [kloudbean.com](https://www.kloudbean.com/). One-click databases, automatic backups, IP allow-listing, free migration, free trial, and simple Git deploy. Deploy walkthrough [here](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/); plans on [pricing](https://www.kloudbean.com/pricing/).
+**Nothing left behind.** Move your app at [kloudbean.com](https://www.kloudbean.com/). Databases in a click, backups on by default, IP allow-listing, migration help, Git deploys. Deploy walkthrough [here](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/); plans on [pricing](https://www.kloudbean.com/pricing/).
 
 ## FAQ
 

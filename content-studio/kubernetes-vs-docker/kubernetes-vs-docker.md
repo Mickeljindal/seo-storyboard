@@ -139,7 +139,7 @@ Because the failure mode is not choosing Kubernetes, it is choosing it before th
 4. **Write real health checks before you write manifests.** Rolling updates are only as safe as the probe that gates them, and a probe returning 200 unconditionally is worse than none.
 5. **Budget the ongoing cost openly.** Name who owns upgrades and who is on call for the cluster, before the migration rather than after.
 
-## Related reading
+## Deeper on kubernetes vs Docker
 
 If you have decided you do want containers, [Docker container hosting](https://www.kloudbean.com/blog/docker-container-hosting/) covers running them without an orchestrator, and [container security scanning](https://www.kloudbean.com/blog/container-security-scanning/) covers what your images are actually shipping. On the scaling questions underneath this one: [vertical versus horizontal scaling](https://www.kloudbean.com/blog/vertical-vs-horizontal-scaling/), [load balancers explained](https://www.kloudbean.com/blog/cloud-load-balancer-explained/), and [autoscaling explained](https://www.kloudbean.com/blog/autoscaling-explained/). On shipping safely without an orchestrator: [zero downtime deployments](https://www.kloudbean.com/blog/zero-downtime-deployments/) and [health checks](https://www.kloudbean.com/blog/nodejs-health-checks/). For the deployment path itself, [how to deploy any app](https://www.kloudbean.com/blog/how-to-deploy-any-app/). And if self-hosting heavy infrastructure is your general direction, [self-hosting GitLab](https://www.kloudbean.com/blog/self-host-gitlab/) is a good calibration of what running platform software really costs.
 

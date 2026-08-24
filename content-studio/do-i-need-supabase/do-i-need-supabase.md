@@ -102,7 +102,7 @@ Two related questions get tangled up with this one, so let's separate them.
 
 First, Supabase Cloud versus self-hosting. That isn't a do-I-need-Supabase question, it's a where-does-it-run question: who operates the stack and where your data lives. It has its own honest comparison in [self-hosted Supabase vs Supabase Cloud](https://www.kloudbean.com/blog/self-hosted-supabase-vs-supabase-cloud/). Second, Supabase versus Firebase. If you're choosing between the two big backend-as-a-service options, the [Firebase alternative](https://www.kloudbean.com/blog/firebase-alternative/) piece walks through that tradeoff, including why leaving Firebase is more work than leaving Supabase (Firebase is NoSQL, Supabase is Postgres).
 
-## A quick way to decide
+## A rule of thumb for do I Need Supabase, or Just a Database
 
 You don't need a long deliberation. Find your situation in this table and you'll have your answer.
 

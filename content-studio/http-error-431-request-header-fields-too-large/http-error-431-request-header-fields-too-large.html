@@ -124,7 +124,7 @@ config.setRequestHeaderSize(32768);</code></pre>
   <h2>What to tell affected users</h2>
   <p>Clearing cookies for your domain fixes it immediately for that person, which is worth saying in a support reply because it unblocks them in seconds. It is a workaround rather than a fix, and if you find yourself sending it more than occasionally, the header size is the thing to change rather than the users.</p>
 
-  <h2>Where hosting fits</h2>
+  <h2>Where this meets the server</h2>
   <p>Two halves, and it is worth separating them honestly.</p>
   <p>The limits are configuration. On Kloudbean, nginx comes configured for real applications rather than left at defaults, which is where the 8k buffer ceiling catches people out. That covers the front half of the chain.</p>
   <p>The cause is usually application design, and the specific fix is somewhere to keep session data that is not a cookie. <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">Managed Redis</a> sits in the same dashboard as the application, in the same account, which is the practical answer to both cookie payloads and JWT bloat, since both are solved by storing state server-side and looking it up cheaply.</p>
@@ -135,7 +135,7 @@ config.setRequestHeaderSize(32768);</code></pre>
     <figcaption>Server-side session storage is the real fix for headers that keep growing.</figcaption>
   </figure>
 
-  <h2>Related reading</h2>
+  <h2>What usually comes up next</h2>
   <p>The same root cause with a different status code, <a href="https://www.kloudbean.com/blog/400-bad-request/">400 Bad Request</a>, and its proxy-side version, <a href="https://www.kloudbean.com/blog/cloudflare-error-520/">Cloudflare error 520</a>, where oversized <em>response</em> headers cause the mirror-image problem. For session storage, <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis hosting</a> and <a href="https://www.kloudbean.com/blog/redis-caching-patterns/">caching patterns</a>. On tokens and credentials, <a href="https://www.kloudbean.com/blog/http-error-401-unauthorized/">401 Unauthorized</a> and <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>. For the proxy layer, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">the nginx reverse proxy guide</a>. And on redirect chains, <a href="https://www.kloudbean.com/blog/302-found-vs-301-redirect/">302 vs 301</a>.</p>
 
   <div class="cta">

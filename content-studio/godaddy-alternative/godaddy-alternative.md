@@ -41,7 +41,7 @@ The reason a cheap GoDaddy plan rarely stays cheap is the bolt-on model. You buy
 
 The core shift is about who owns the resources. On GoDaddy shared hosting you rent a slice of one busy machine, capped so the neighbors don't suffer. On managed cloud you get your own server, with the maintenance still handled for you. So the real question is which flavor of "not shared hosting" to pick.
 
-A **raw VPS** hands you a bare Linux box. More power, yes, but now you're the sysadmin. You patch the OS, configure the web server, set up the firewall, install SSL, wire up backups, and answer the pager when it falls over at 2am. That bill is bigger than it looks, and we broke it down in [the real cost of an unmanaged VPS](https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/).
+Rent a **raw VPS** and you own every layer from the kernel up. More power, yes, but now you're the sysadmin. You patch the OS, configure the web server, set up the firewall, install SSL, wire up backups, and answer the pager when it falls over at 2am. That bill is bigger than it looks, and we broke it down in [the real cost of an unmanaged VPS](https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/).
 
 **Managed cloud** is the middle lane most people leaving GoDaddy actually want. You get your own server resources, like a VPS, but the OS, stack, SSL, patching, and backups are handled for you. It's a cleaner cPanel alternative with real muscle underneath: a proper dashboard on top, dedicated resources below, and none of the manual babysitting. The full breakdown lives in [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) and [what is a managed server](https://www.kloudbean.com/blog/what-is-a-managed-server/).
 
@@ -75,21 +75,21 @@ The move is less dramatic than it sounds. Nothing here needs a terminal marathon
 
 ### 1. Launch a server
 
-Pick a cloud (AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, or UpCloud), choose a region near your visitors, and pick a size. That's your own box, not a shared slice you fight the neighbors for. You can resize it later, so don't agonize over the first choice.
+Start with the cloud (AWS, Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, UpCloud), then region, then size. That's your own box, not a shared slice you fight the neighbors for. You can resize it later, so don't agonize over the first choice.
 
-![The Kloudbean console launching a server, with a choice of cloud provider, region, and server size](../assets/console/add-server.png)
+![Picking where the server runs and how big it is, in the Kloudbean console](../assets/console/add-server.png)
 
 ### 2. Add your application
 
-Add the app you're moving. WordPress and WooCommerce are one-click, and so are Laravel, Magento, Drupal, and Joomla. Running something GoDaddy never made easy? Node.js, Python, Ruby, and Java all have a home here, and static sites host free.
+Add the app you're moving. There are one-click stacks for WordPress, WooCommerce, Laravel, Magento, Drupal and Joomla. Running something GoDaddy never made easy? Node.js, Python, Ruby, and Java all have a home here, and static sites host free.
 
-![The Kloudbean console adding an application, with WordPress and other one-click stacks](../assets/console/add-application.png)
+![Choosing an application stack when adding it to a Kloudbean server](../assets/console/add-application.png)
 
 ### 3. Bring your site over
 
 Two paths. If it's a WordPress or PHP site, free migration assistance can move it for you, files and database included. If it's a codebase in Git, connect the repo and let managed CI/CD build and deploy on every push, with live build logs you can watch. No more dragging files up over FTP and praying.
 
-![The Kloudbean console connecting a GitHub repository for automatic build and deploy on push](../assets/console/git-deployment.png)
+![Wiring a repository to a Kloudbean application for push-to-deploy](../assets/console/git-deployment.png)
 
 Connect GitHub and deploy on push, with live build logs. More in the [Git deploy guide](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
@@ -97,7 +97,7 @@ Connect GitHub and deploy on push, with live build logs. More in the [Git deploy
 
 Backups are on by default, not a checkbox you'll forget. You can see them, and you can restore from one when you need it. If you've ever lost a site to a bad plugin update, you already know why this matters. The full picture is in the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/).
 
-![The Kloudbean console showing automatic backups you can view and restore](../assets/console/manage-backups.png)
+![The Kloudbean backup screen, with schedule and available restore points](../assets/console/manage-backups.png)
 
 <!-- ADD IMAGE: The GoDaddy Managed WordPress notice that a plugin is disallowed, next to the same plugin running freely on Kloudbean. -->
 
@@ -128,7 +128,7 @@ This is the most common move we see, and Managed WordPress is usually the reason
 
 Not on WordPress? Moving off GoDaddy isn't a PHP-only story. Node.js, Python, Ruby, and Java run here as first-class citizens, static sites host free, and you can run cron jobs from the dashboard instead of hunting for a hidden cron panel. Whatever your team or an AI tool handed you, it probably fits.
 
-## The honest limits
+## Limits worth naming
 
 Straight talk, because fair cuts both ways. Kloudbean isn't a domain registrar, and it isn't a $1 shared plan. If all you need is a parked domain and a single static page, GoDaddy is cheaper and completely fine, and you should stay. And if you specifically need Windows, Plesk, or a .NET app, Kloudbean isn't that, because it's Linux managed cloud. What it is: your own server across seven clouds, from $8/mo, for sites and apps that have outgrown the shared slice and the upsell wall. Managed means the server, stack, SSL, backups, and patching are handled for you, while your code and your data stay yours to take anywhere.
 
@@ -136,7 +136,7 @@ Straight talk, because fair cuts both ways. Kloudbean isn't a domain registrar, 
 
 ### Real resources, no upsell wall.
 
-Keep your domain at GoDaddy and move the hosting to your own managed server. Start free at [kloudbean.com](https://www.kloudbean.com/), and check plans on [pricing](https://www.kloudbean.com/pricing/).
+Keep your domain at GoDaddy and move the hosting to your own managed server. Launch one at [kloudbean.com](https://www.kloudbean.com/), and read the tiers on [pricing](https://www.kloudbean.com/pricing/).
 
 Your own server resources · 7 clouds · Managed databases · Git deploy · Staging · Automatic backups · Free SSL · Free migration · Free trial
 

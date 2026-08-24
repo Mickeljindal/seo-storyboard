@@ -73,7 +73,7 @@ Four things no storage provider fixes for you, ours included:
 
 And the scope line: this whole page is about application object storage, the S3 category. If what you actually wanted was a desktop sync client for your documents, none of these are it, including ours.
 
-## Related reading
+## Before this bites again
 
 The cost mechanics behind all of this are in [the egress fees breakdown](https://www.kloudbean.com/blog/zero-egress-object-storage/). For what object storage even is and why files don't belong on the app server, [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/), and for the practical pattern, [store user uploads in object storage](https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/). If you're weighing managed platforms more broadly, [best managed cloud hosting](https://www.kloudbean.com/blog/best-managed-cloud-hosting/).
 

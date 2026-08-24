@@ -137,7 +137,7 @@ Your business logic is Python and it moves. Your database moves, since both end 
 
 Which means the decision matters more than most technology choices, and it is still not fatal. The way to keep the option open is unglamorous: keep business logic in plain Python modules that do not import the framework, and treat views as a thin layer that parses input and calls into them. Teams that do this find framework changes tedious rather than catastrophic. Teams that put business rules inside views and model methods find the two inseparable.
 
-## Where hosting fits
+## flask vs Django and the environment it runs in
 
 Both are supported here, which is the honest reason this comparison can stay neutral: whichever you choose, we host it, so there is nothing to sell you by nudging the answer.
 
@@ -147,7 +147,7 @@ One honest note in the same spirit as the rest of this article: one-click stagin
 
 <!-- ADD IMAGE: launching a managed PostgreSQL database, which is the step both frameworks need. -->
 
-## Related reading
+## More on flask vs Django
 
 Once you have chosen: [deploy Django](https://www.kloudbean.com/blog/deploy-django-app/), [deploy Flask](https://www.kloudbean.com/blog/deploy-flask-app/), or [deploy FastAPI](https://www.kloudbean.com/blog/deploy-fastapi-app/). On the process layer, [Gunicorn versus Uvicorn](https://www.kloudbean.com/blog/gunicorn-vs-uvicorn/). On the database underneath, [MySQL versus PostgreSQL](https://www.kloudbean.com/blog/mysql-vs-postgresql/) and [adding a managed database](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). On configuration, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). And on background work, [Celery with Redis](https://www.kloudbean.com/blog/celery-with-redis/).
 

@@ -75,13 +75,13 @@ Treat this page as the standard for the door you're building, and go turn on the
 
 Same bar for both doors: a second factor, sane session cookies, and social login or passkeys where you can get them. Who secures what across the rest of the stack is mapped in [the secure and compliant hosting guide](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 
-## Related reading
+## More on two-Factor and Social Login
 
 Authentication is who you are; for what each person is allowed to do once in, see the [subusers and access-control guide](https://www.kloudbean.com/blog/subuser-and-uac-guide/). Keep the secrets behind your login safe with [secrets management](https://www.kloudbean.com/blog/secrets-management-guide/), harden the session further with the [security headers guide](https://www.kloudbean.com/blog/security-headers-guide/), and restrict who can even reach an admin login with [IP allowlisting](https://www.kloudbean.com/blog/ip-allowlisting-guide/). The overview is [secure and compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 
 ## Sign in strong, from the first click.
 
-Log in to Kloudbean with Google, GitHub, or LinkedIn, with HttpOnly session cookies by default and MFA on console and VPN for enterprise engagements. A hardened account layer for the whole stack you run. Compare the platform in [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/), or start at [kloudbean.com](https://www.kloudbean.com/).
+Log in to Kloudbean with Google, GitHub, or LinkedIn, with HttpOnly session cookies by default and MFA on console and VPN for enterprise engagements. A hardened account layer for the whole stack you run. [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/) covers the platform difference; [kloudbean.com](https://www.kloudbean.com/) is where you start.
 
 Social login (Google, GitHub, LinkedIn) · HttpOnly sessions · Enterprise MFA · One dashboard
 

@@ -114,7 +114,7 @@ Checklists get skipped because the cost of skipping is invisible right up until 
 
 Now the honest part, and it applies to us as much as anyone. No host fixes the right-hand column of that table. Kloudbean cannot update your dependencies, write your input validation, decide which contractor still needs access, stop a key going into git, or read the audit trail on your behalf. Those aren't features anyone can ship, and they're where most breaches actually begin. What the infrastructure layer can do is stop being your problem, so the attention you have left goes to the items only you can own. Same division, seen from the platform side, in [the secure and compliant hosting guide](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 
-## Related reading
+## Working through the rest of the hardening
 
 Each layer has a deeper guide: [Fail2ban and Shorewall](https://www.kloudbean.com/blog/fail2ban-and-shorewall-guide/), [IP allowlisting](https://www.kloudbean.com/blog/ip-allowlisting-guide/), [the Basic Auth gate](https://www.kloudbean.com/blog/basic-auth-gate-guide/), [two-factor and social login](https://www.kloudbean.com/blog/two-factor-and-social-login/), [secrets management](https://www.kloudbean.com/blog/secrets-management-guide/), [encryption at rest and in transit](https://www.kloudbean.com/blog/data-encryption-at-rest-and-in-transit/), and [the audit trail](https://www.kloudbean.com/blog/audit-trail-for-compliance/). The pillar that ties them together is [secure and compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 

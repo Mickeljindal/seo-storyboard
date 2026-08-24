@@ -106,13 +106,13 @@ That email costs nothing and does two jobs: it proves the handover was complete,
 
 **Keeping their data forever.** "Just in case" becomes a liability you are still responsible for years later. Retain for a window, then delete.
 
-## Where hosting fits, honestly
+## What the host actually decides here
 
 Clean offboarding is far easier on a platform where the client's data was always portable and access was always scoped. Because you own your files and databases in standard formats, the export in step 1 is a normal dump and archive, not a fight with a proprietary system. Because access was scoped subusers, revocation in step 3 is one action per identity. Automatic backups give you the retained copy for the window, and the same free migration assistance that helps sites arrive means a clean, standard handover when one leaves. On Kloudbean all of that runs from one account across seven clouds, which is what keeps a departure to a runbook rather than an ordeal.
 
 The honest boundary: the platform makes export, transfer, and revocation straightforward, but the decision to offboard cleanly and promptly is yours. A tool cannot make you hand back data graciously; it can only make sure that when you choose to, it takes minutes.
 
-## Related reading
+## When agency Client Offboarding is not the only issue
 
 The other bookend is the [agency client onboarding checklist](https://www.kloudbean.com/blog/agency-onboarding-checklist/), and the strategy around both is the [hosting for agencies playbook](https://www.kloudbean.com/blog/hosting-for-agencies-playbook/). Revocation is the [subusers and UAC guide](https://www.kloudbean.com/blog/subuser-and-uac-guide/). The transfer mechanics are [migrating hosting without downtime](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/), and the export detail is in [creating and extracting archives](https://www.kloudbean.com/blog/extract-zip-and-tar-gz-on-linux/) and [the backups guide](https://www.kloudbean.com/blog/server-backups-guide/). On the money side, [client billing and markup](https://www.kloudbean.com/blog/client-billing-and-markup-for-hosting/).
 

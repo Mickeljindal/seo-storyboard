@@ -99,7 +99,7 @@ Here is the tradeoff in one view. Match the shape to your situation, not to a di
 
 None of these columns is "correct" in the abstract. The right one depends on your team, your traffic, and whether a genuine reason to split has actually appeared. For most people reading this, one of the first two columns is the honest answer, and the third is where you move later if you need to.
 
-## A quick way to decide
+## Deciding without a spreadsheet
 
 You can settle this in about a minute. Walk down these questions and stop at the first yes.
 

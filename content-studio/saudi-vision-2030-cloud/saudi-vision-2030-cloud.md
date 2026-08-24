@@ -73,7 +73,7 @@ Most of the wasted effort in this area comes from a handful of confident assumpt
 
 Where that leaves the split: infrastructure alignment, residency, technical controls, and evidence sit with the platform, on a self-serve plan for the residency basics and on a managed engagement for the fuller control set. Governance, PDPL controller duties, application-layer work, and the formal assessment stay with your organisation. Strategy sets the direction, and the region dropdown is where you act on it.
 
-## Related reading
+## If saudi Vision 2030 and the Cloud was the symptom, not the cause
 
 Start with [cloud hosting in Saudi Arabia](https://www.kloudbean.com/blog/cloud-hosting-saudi-arabia/) for the how, and [data residency in Saudi Arabia](https://www.kloudbean.com/blog/data-residency-saudi-arabia/) for the residency mechanics. The database heart of it is [managed databases with Saudi data sovereignty](https://www.kloudbean.com/blog/managed-databases-saudi-data-sovereignty/). For the frameworks, [PDPL-compliant hosting](https://www.kloudbean.com/blog/pdpl-compliance-hosting/) and [the NCA CSCC guide](https://www.kloudbean.com/blog/nca-cscc-compliance-guide/), and for the region itself, [the GCP Dammam region guide](https://www.kloudbean.com/blog/gcp-dammam-region-guide/).
 

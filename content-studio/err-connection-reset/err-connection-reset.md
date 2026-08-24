@@ -134,7 +134,7 @@ The refused-versus-timed-out distinction is the same one that separates a Cloudf
 
 If you run the site and some visitors report this, the useful message is short: try a different network, and if you use a VPN or security software that scans HTTPS, disable that scanning temporarily. Those two cover most reports. Telling people to clear their cache is the standard advice and it does very little for a reset, because a reset happens at the transport layer before caching is relevant.
 
-## Where hosting fits
+## ERR_CONNECTION_RESET, hosted
 
 Of the server-side causes, three are operational: TLS configuration that has drifted or been over-tightened, memory pressure killing workers mid-response, and protection rules acting on proxy addresses instead of visitors.
 
@@ -142,7 +142,7 @@ On Kloudbean, TLS configuration is maintained rather than left at whatever was c
 
 The honest boundary: nothing a host does can fix antivirus software on a visitor's laptop, and MTU inside a corporate VPN is not ours to change. What managed infrastructure removes is the server half.
 
-## Related reading
+## Downstream of this
 
 For the refused and timed-out cases at other layers, [ECONNREFUSED](https://www.kloudbean.com/blog/fix-econnrefused-node/) and [Cloudflare error codes](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/), including the [521 guide](https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/) on restoring real visitor addresses and the [522 guide](https://www.kloudbean.com/blog/cloudflare-error-522-connection-timed-out/) for the silent-drop side of the same distinction. If you have not identified your Chrome code yet, [this site can't be reached](https://www.kloudbean.com/blog/this-site-cant-be-reached/) maps them all to a layer. On TLS, [fixing SSL certificate errors](https://www.kloudbean.com/blog/fix-ssl-certificate-errors/) and [SSL and TLS explained](https://www.kloudbean.com/blog/ssl-tls-explained/). When the server answers with nothing useful, [error 520](https://www.kloudbean.com/blog/cloudflare-error-520/) and [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/). And on the timeout side, [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/).
 

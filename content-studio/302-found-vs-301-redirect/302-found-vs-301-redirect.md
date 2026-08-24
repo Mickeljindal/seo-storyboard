@@ -133,7 +133,7 @@ Browsers cache redirects, which makes them poor test instruments. `curl` does no
 
 **Redirecting a POST endpoint with 301 or 302.** The method may be converted to GET and the body dropped, so the request silently does nothing. Use 307 or 308.
 
-## Where hosting fits
+## The environment this expects
 
 Redirects are configuration you write, so this is mostly yours. Two practical things do come from the platform.
 
@@ -141,7 +141,7 @@ Free SSL issued and renewed means the HTTP to HTTPS redirect, which is the one n
 
 Beyond that, this is a decision rather than a feature: pick the code that matches what you actually mean, keep chains to one hop, and verify with `curl` rather than assuming.
 
-## Related reading
+## Other things that break the same way
 
 When two rules disagree, [ERR_TOO_MANY_REDIRECTS](https://www.kloudbean.com/blog/err-too-many-redirects/). For the 303 pattern after a form submission, [ERR_CACHE_MISS](https://www.kloudbean.com/blog/err-cache-miss/). On conditional responses and caching, [304 Not Modified](https://www.kloudbean.com/blog/304-not-modified/). For HTTPS and certificates, [custom domain and SSL](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/) and [fixing SSL certificate errors](https://www.kloudbean.com/blog/fix-ssl-certificate-errors/). On headers including HSTS, [the security headers guide](https://www.kloudbean.com/blog/security-headers-guide/). And for the proxy layer, [the nginx reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/).
 

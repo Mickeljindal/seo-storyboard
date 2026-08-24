@@ -165,11 +165,11 @@ It's the anti-pattern we see most, and it always looks the same. An app runs fin
 
 One cost is worth understanding before you commit to any bucket: **egress**, the charge many clouds apply to data leaving storage. Uploading in is usually free; serving out is metered, and on a media-heavy site it can dwarf the storage cost. This isn't a GCS-specific quirk, and I won't promise you a magic number. Egress terms vary by provider and change over time, so check the current data-transfer-out pricing for whatever you pick, GCS or S3-compatible. We pulled the math apart in [the egress fees breakdown](https://www.kloudbean.com/blog/zero-egress-object-storage/). The first lever is usually a CDN in front of the bucket, so cached files serve from the edge.
 
-## How it fits the rest of your stack
+## Where this sits in the wider stack
 
 A bucket is one piece of owning your whole stack instead of renting slices from five vendors. The bucket holds files. A managed database holds the structured data. The stateless app server runs the code and scales out when traffic climbs. If you're weighing where to run the whole thing, we put the tradeoffs side by side in [DigitalOcean vs Kloudbean](https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/).
 
-## The honest limits
+## GCS Object Storage Buckets: the caveats
 
 Managed GCS buckets run alongside the S3-compatible buckets, and both are for files: uploads, media, static assets, backups, exports. They're not a database, so keep live data in a [managed database](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) and store only its backups in a bucket. Kloudbean runs Linux stacks, and "managed" means the platform provisions the bucket and handles access controls while the objects stay yours to export. Standard plans start from $8/mo, Enterprise is custom, and storage terms change, so confirm the current numbers on the pricing page.
 

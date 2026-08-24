@@ -92,7 +92,7 @@ One honest boundary: the platform gives you the access machinery. Actually runni
 
 ### Backups, resilience, and recovery
 
-Cybersecurity Resilience is its own ECC domain, and backups sit right at the center of it. A clean, recent, restorable copy is what saves you from ransomware, a bad migration, or a fat-fingered delete. Kloudbean backs up automatically. The step almost everyone skips is testing a restore before they actually need one. Do it once, so the path is proven. A backup you've never restored is a hope, not a plan. The platform provides the backups. Your retention schedule and your written continuity plan are the parts an assessor will still ask you for.
+Cybersecurity Resilience is its own ECC domain, and backups sit right at the center of it. A clean, recent, restorable copy is what saves you from ransomware, a bad migration, or a fat-fingered delete. Kloudbean backs up automatically. The step almost everyone skips is testing a restore before they actually need one. Do it once, so the path is proven. A backup nobody has restored is an assumption. The platform provides the backups. Your retention schedule and your written continuity plan are the parts an assessor will still ask you for.
 
 ![The Kloudbean console backups screen showing automatic, restorable server and application backups](../assets/console/manage-backups.png)
 

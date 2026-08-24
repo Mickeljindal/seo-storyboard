@@ -94,7 +94,7 @@ Concretely: no duration ceiling on your own request handling, so long jobs stop 
 
 The genuinely fair part, and worth repeating: keep your Next.js frontend on Vercel if you like it there. It's excellent at that job. This migration is about matching each workload to the right runtime, not about picking a single winner. We laid out the full set of constraints in [Vercel for Node.js backends](https://www.kloudbean.com/blog/vercel-for-node-backends-limits/).
 
-## Related reading
+## More on move Your API Off Vercel
 
 Next steps and context: [a Vercel alternative for full-stack apps](https://www.kloudbean.com/blog/vercel-alternative-for-full-stack-apps/), [deploy an Express app](https://www.kloudbean.com/blog/deploy-express-app/) and [deploy a NestJS app](https://www.kloudbean.com/blog/deploy-nestjs-app/) for the API side, [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/) for the queue you couldn't run before, [scaling WebSockets](https://www.kloudbean.com/blog/scale-websockets-nodejs/) for real-time, and [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) for the config split.
 

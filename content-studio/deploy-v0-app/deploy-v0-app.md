@@ -147,7 +147,7 @@ All three name themselves in the logs, and you read those in the dashboard: **Ap
 
 ## What you own, and what's managed
 
-Kloudbean runs Linux stacks: Node and the modern JavaScript toolkit including Next.js and React, which is what v0 produces. Windows Server is a Premium and Enterprise option rather than a standard one, and .NET runs on Linux. "Managed" means the server, stack, SSL, backups, and patching are handled, while you own and maintain the app. The upside of owning it: the UI, the API, and the database sit in one dashboard, and your next v0 project can share the same server instead of starting a new bill. For the tool-agnostic version that also covers Cursor, Lovable, and Bolt, see [deploy an AI-built app to production](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/).
+Kloudbean runs Linux stacks: Node and the modern JavaScript toolkit including Next.js and React, which is what v0 produces. Linux covers .NET. Windows Server is the part that moves you to Premium or Enterprise. "Managed" means the server, stack, SSL, backups, and patching are handled, while you own and maintain the app. The upside of owning it: the UI, the API, and the database sit in one dashboard, and your next v0 project can share the same server instead of starting a new bill. For the tool-agnostic version that also covers Cursor, Lovable, and Bolt, see [deploy an AI-built app to production](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/).
 
 ## Generated UI, infrastructure you own
 

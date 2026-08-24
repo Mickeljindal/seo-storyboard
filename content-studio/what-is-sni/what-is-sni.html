@@ -141,7 +141,7 @@ curl -sSI --resolve example.com:443:203.0.113.10 https://example.com/</code></pr
   <p>Every current browser sends SNI. The clients that could not were Windows XP era Internet Explorer and very early Android, and if your analytics show a meaningful population of those, you have unusual traffic and should verify it rather than trust it, because that signature is also what bots look like.</p>
   <p>There are still real reasons to want a dedicated address, and none of them are certificates: a third party needs to allowlist your outbound IP, a regulator or partner requires a fixed address, or you are managing sending reputation for email. Buy one for those. Not for HTTPS.</p>
 
-  <h2>Where hosting fits</h2>
+  <h2>The operational half of SNI</h2>
   <p>The honest position is that SNI is not something you should have to think about. It is a protocol detail that a competent server configuration handles implicitly, and the reason to understand it is diagnostic rather than operational.</p>
   <p>On Kloudbean, certificates are issued and renewed for you, free, and each application on a server gets its own domain and its own certificate on the shared address, which is SNI doing its job without appearing in your workflow. Add a second application, point a second domain at the same server, and it gets its own certificate. Nothing to enable.</p>
   <p>Where it does become visible is at the edge. Cloudflare is available as a paid add-on and free for enterprise accounts, and if you put an edge proxy in front of an origin, the SNI the proxy presents to your origin has to match a certificate the origin holds. That is the one place this stops being invisible, and it is worth knowing before you debug it.</p>
@@ -151,7 +151,7 @@ curl -sSI --resolve example.com:443:203.0.113.10 https://example.com/</code></pr
     <figcaption>Several applications, several domains, one server, one address. Each gets its own certificate because the requested hostname arrives before the certificate is chosen.</figcaption>
   </figure>
 
-  <h2>Related reading</h2>
+  <h2>If SNI keeps coming back</h2>
   <p>For the wider picture, <a href="https://www.kloudbean.com/blog/ssl-tls-explained/">SSL and TLS explained</a> covers the handshake, termination, and why certificates expire. For diagnosis, <a href="https://www.kloudbean.com/blog/fix-ssl-certificate-errors/">fixing SSL certificate errors</a> handles validity and chain problems, <a href="https://www.kloudbean.com/blog/err-ssl-protocol-error/">ERR_SSL_PROTOCOL_ERROR</a> handles handshake failures, and <a href="https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/">Cloudflare 525</a> handles edge-to-origin TLS. On the DNS half of the privacy story, <a href="https://www.kloudbean.com/blog/fix-slow-dns-lookup/">DNS lookups</a>, and for HTTPS redirect loops caused by TLS termination, <a href="https://www.kloudbean.com/blog/err-too-many-redirects/">ERR_TOO_MANY_REDIRECTS</a>.</p>
 
   <div class="cta">

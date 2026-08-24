@@ -50,7 +50,7 @@ The honest boundary, because it matters: Heroku's git-push-and-it-deploys simpli
 | Egress | Metered | Not metered |
 | Cost shape | Several meters, climbs with pieces | Flat, from $8/mo |
 
-## How it fits the rest of your stack
+## How heroku Costs After the Free Tier connects to everything else
 
 If Heroku's cost is what's pushing you, it's worth seeing the wider picture. [A Heroku alternative for modern apps](https://www.kloudbean.com/blog/heroku-alternative-for-modern-apps/) covers the move in depth, [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/) lays out every option, and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) explains the database side. Curious how metered platforms compare? [Why is my Railway bill so high](https://www.kloudbean.com/blog/why-is-my-railway-bill-so-high/) and [Render vs Railway vs Kloudbean](https://www.kloudbean.com/blog/render-vs-railway-vs-kloudbean/) are useful cost reads.
 

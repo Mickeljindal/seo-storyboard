@@ -110,7 +110,7 @@ Four things worth getting right, in rough order of how much they matter to whoev
 | Retries hammering the endpoint | 402 treated as transient | Stop retrying, alert instead |
 | Feature quietly stopped working | 402 caught and logged, not alerted | Give 402 its own alert path |
 
-## Where hosting fits
+## The platform's share of the work
 
 Honestly: almost nowhere, and it would be silly to pretend otherwise. A 402 comes from a third party's billing system, and no hosting choice changes it.
 
@@ -118,7 +118,7 @@ The one genuine connection is the operational pattern above. Outbound calls to p
 
 Those are covered properly in [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/), [background jobs](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/), and [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
-## Related reading
+## If error 402 Payment Required was the easy part
 
 The code most often confused with this one, [429 Too Many Requests](https://www.kloudbean.com/blog/429-too-many-requests/), where retrying is the correct response. On permissions rather than payment, [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/) and [401 Unauthorized](https://www.kloudbean.com/blog/http-error-401-unauthorized/). For the other deterministic failures you should not retry, [409 Conflict](https://www.kloudbean.com/blog/409-conflict-error/) and [422 Unprocessable Entity](https://www.kloudbean.com/blog/http-422-unprocessable-entity/). On outbound calls that need timeouts, [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/). And for keeping provider credentials separated, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 

@@ -91,7 +91,7 @@ Now the scope boundaries, stated as scope rather than as apology, because knowin
 
 And the part neither model fixes: your app. An N+1 query firing 400 times on the dashboard, a missing index, an unbounded file upload, a model API call sitting synchronously inside a web request. No panel and no managed platform sees any of that, and both will happily run a slow app on a perfectly configured server. What you're choosing between is who keeps the server correct after week one. Neither of us writes your queries.
 
-## Related reading
+## More on Laravel Forge vs Kloudbean
 
 For the broader version of this decision, [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) and the roundup in [Cloudways alternatives](https://www.kloudbean.com/blog/cloudways-alternatives/), which covers the wider control-panel category. For the same raw-versus-managed question against a cloud, [DigitalOcean vs Kloudbean](https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/) and [Google Cloud vs Kloudbean](https://www.kloudbean.com/blog/gcp-vs-kloudbean/). To actually ship a Laravel app on managed infrastructure, [deploy a Laravel app](https://www.kloudbean.com/blog/deploy-laravel-app/), and for the database side, [managed vs self-managed databases](https://www.kloudbean.com/blog/managed-database-vs-self-managed/).
 

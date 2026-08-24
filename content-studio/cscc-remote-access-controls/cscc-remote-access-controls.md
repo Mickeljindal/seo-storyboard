@@ -79,7 +79,7 @@ Where the line falls in practice. Kloudbean builds and runs the enforcement laye
 
 Three things in this group no host fixes, ours included. Where your engineers physically sit, which is an operating-model decision that 2-2-1-1 and 4-1-1-2 make for you. Who is authorised, and the rota that verifies each access attempt under 2-2-1-2, which needs staffed hours whether that's your team, an MSSP, or a SOC engagement scoped with us. And the mobile approvals with their risk assessments, which are your cybersecurity function's signature, not a configuration. Infrastructure alignment is what a provider delivers. Certification is assessed against your organisation.
 
-## Related reading
+## Still stuck?
 
 For the framework overview see [NCA CSCC explained](https://www.kloudbean.com/blog/nca-cscc-compliance-guide/), and for the gap list [the critical systems hosting checklist](https://www.kloudbean.com/blog/critical-systems-hosting-checklist/). The database side of access control is in [CSCC 2-2-1-8](https://www.kloudbean.com/blog/database-private-access-control/), and session logging in [CSCC 18-month log retention](https://www.kloudbean.com/blog/cscc-log-retention-immutable-logs/). On the networking concepts, [what is a VPC](https://www.kloudbean.com/blog/what-is-a-vpc/), and for residency [data residency in Saudi Arabia](https://www.kloudbean.com/blog/data-residency-saudi-arabia/).
 

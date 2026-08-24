@@ -109,15 +109,15 @@ These are documented and genuinely obscure. If your origin is healthy and your f
 | [523](https://www.kloudbean.com/blog/cloudflare-error-523-origin-is-unreachable/) | Cloudflare could not route to the address | Wrong or dead origin IP, or a route table |
 | 524 | Connected, but the response was too slow | Slow queries, long-running work |
 
-## Where hosting fits, honestly
+## Hosting, and what it does not solve
 
 Two of the causes above are outside any host's reach. A cloud provider security group sits above the machine, so a rule there drops Cloudflare before the server sees anything, and no host-level configuration overrides it. And Fail2ban, which is genuinely useful and which Kloudbean configures by default, can itself be the thing banning a Cloudflare address after it forwards requests that look like failed logins. A tool doing its job can be the cause.
 
 What a managed platform changes is how quickly you can see the rest. On Kloudbean, Shorewall and Fail2ban are configured up front rather than left as homework, and both live in the dashboard, so checking or lifting a ban is a look rather than an SSH session. Server health metrics sit in the same place, which matters here because the intermittent version of 522 is a capacity story and you need memory and load history to read it. Seven cloud providers, one dashboard, free SSL issued and renewed, and free migration assistance if you're moving something already running.
 
-The boundary stays where it always is. Managed covers the server, the stack, TLS, backups, and patching. Your application code, your DNS records, and your Cloudflare configuration remain yours.
+The boundary stays where it always is. The managed part is the machine and everything under your code. Your application code, your DNS records, and your Cloudflare configuration remain yours.
 
-## Related reading
+## If connection Timed Out Error Code 522 keeps coming back
 
 Start at the [Cloudflare 5xx error codes](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/) overview if you're not certain which number you have. The nearest neighbours: [521 web server is down](https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/) for the refused case and the allowlist detail, [520](https://www.kloudbean.com/blog/cloudflare-error-520/) when the origin replies with something Cloudflare cannot parse, and [525 SSL handshake failed](https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/) when the connection succeeds and TLS does not. For the slow-response family, [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/) and [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/). At the browser layer the same refused-versus-ignored logic appears in [ERR_CONNECTION_RESET](https://www.kloudbean.com/blog/err-connection-reset/), and [this site can't be reached](https://www.kloudbean.com/blog/this-site-cant-be-reached/) maps every Chrome code to its layer.
 

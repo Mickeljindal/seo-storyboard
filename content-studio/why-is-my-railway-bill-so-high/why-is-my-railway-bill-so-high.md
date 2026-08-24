@@ -53,7 +53,7 @@ But if it's an always-on production app, it has a database, and you need a month
 
 *A flat plan with the database in the same dashboard: the number doesn't move with traffic, and internal app-to-database traffic isn't metered.*
 
-## How it fits the rest of your stack
+## Reading around is My Railway Bill So High
 
 Weighing your options? [Render vs Railway vs Kloudbean](https://www.kloudbean.com/blog/render-vs-railway-vs-kloudbean/) compares all three, and the interactive [Node.js host decision tool](https://www.kloudbean.com/blog/nodejs-hosting-decision-tool/) picks one for your situation. For the wider field, [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/). If a leak is inflating your bill, [fix "JavaScript heap out of memory"](https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/).
 

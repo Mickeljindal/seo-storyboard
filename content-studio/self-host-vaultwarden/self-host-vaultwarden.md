@@ -81,13 +81,13 @@ A clear line, because for this tool the wrong call is expensive.
 
 If you cannot commit to keeping the server updated, HTTPS on, and backups automatic and tested, do not self-host your password manager. The convenience is not worth risking the keys to your whole digital life, and hosted Bitwarden is genuinely good, inexpensive for an individual, and run by people whose job is exactly this. Self-host Vaultwarden when you want ownership, want to serve a family or team without per-seat fees, and are willing to own the small amount of operational discipline it demands. That is a real and common set of reasons; just make the choice with eyes open rather than drifting into hosting your passwords without a backup plan.
 
-## Where hosting fits, honestly
+## The hosting side of self-Host Vaultwarden
 
 Vaultwarden is light, so it does not need much server. What it needs is exactly the boring, reliable things a managed platform is good at, which is a nice fit. Free auto-renewing SSL means the mandatory HTTPS is handled and never lapses. Automatic off-box backups are the existential safety net this specific tool lives or dies by, running without you remembering. A managed reverse proxy handles TLS termination and the WebSocket sync. And if you outgrow SQLite, managed PostgreSQL or MariaDB puts the vault's data on a database that is itself backed up. All on a small server across any of seven clouds, in one dashboard.
 
 The honest boundary matters more here than anywhere. The platform keeps the server, TLS, and backups healthy; your master password, your client apps, and the decision to hold your own keys stay entirely yours. The platform can make the vault available and recoverable. It cannot, by design, help you into the vault, and that is exactly the property you wanted.
 
-## Related reading
+## Working past self-Host Vaultwarden
 
 For the wider set of things worth running yourself, the [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) guide, and for files rather than passwords, [self-hosting Nextcloud](https://www.kloudbean.com/blog/self-host-nextcloud/). The backups this tool depends on are in [the server backups guide](https://www.kloudbean.com/blog/server-backups-guide/) and [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). For the database option, [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), and for the HTTPS layer, [the reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). Keeping secrets out of code more generally is [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 

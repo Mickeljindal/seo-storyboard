@@ -92,7 +92,7 @@ The second is **bill surprise**. AWS bills per service, per resource, with data-
 
 The third is **operational risk**. On raw infrastructure, patching, backups, security hardening, and uptime are your job. Miss one and it's your outage. That's a fair trade when you have a team to carry it, and a heavy one when it's just you at 2am. A [managed server](https://www.kloudbean.com/blog/what-is-a-managed-server/) exists precisely to take that weight off a small team. Concretely, on Kloudbean that means patching, automatic backups and free SSL are already someone's job, and you lock the database down by whitelisting your app server's IP rather than hand-building a network to hide it in.
 
-## A quick way to decide
+## The short decision
 
 You don't need a long deliberation. Run through this and you'll have your answer in a minute.
 

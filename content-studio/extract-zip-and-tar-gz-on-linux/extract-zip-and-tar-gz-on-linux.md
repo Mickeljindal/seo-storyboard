@@ -159,15 +159,15 @@ tar -tvf archive.tar.gz | awk '{s+=$3} END {print s/1024/1024 " MB"}'
 
 **Do not trust an archive you did not make.** The listing check above is the whole defence, and it is worth doing on anything downloaded rather than built.
 
-## Where hosting fits, honestly
+## The part that is not your code
 
 These are standard Linux tools and they work identically everywhere. There is nothing to buy here.
 
 Where the platform touches this is the reason the tarball question came up. On Kloudbean the stack is managed and patched, which is exactly the guarantee a manual `make install` steps outside of, so keeping installs inside the package manager is what lets the patching cover them. Deploying from a Git repository, with builds and live logs in the console, removes most reasons to be shipping tarballs to a server by hand at all. Application and server logs sit in the same dashboard for when an extraction did not go the way you expected, and S3-compatible object storage gives your archives somewhere to live that is not the disk they came from. Automatic backups mean a bad extraction in the wrong directory has a recovery path. Seven cloud providers, and free migration assistance if you are moving.
 
-The boundary is unchanged. Managed covers the server, the stack, TLS, backups, and patching. What you extract, and where you point it, stays yours.
+The boundary is unchanged. TLS, patching, backups and the stack itself are handled for you. What you extract, and where you point it, stays yours.
 
-## Related reading
+## Same neighbourhood
 
 On getting files onto the server before any of this, [FTP versus SFTP](https://www.kloudbean.com/blog/ftp-vs-sftp/). If tar is doing backup duty, [the server backups guide](https://www.kloudbean.com/blog/server-backups-guide/) and [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/) for where they belong. For the package-manager question, [identifying your distribution and release](https://www.kloudbean.com/blog/check-ubuntu-version/). To stop shipping archives by hand, [auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/). And if a deploy went in and the app then failed to start, [503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
 

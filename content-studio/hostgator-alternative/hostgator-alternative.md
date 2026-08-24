@@ -77,7 +77,7 @@ Read the last two rows plainly. HostGator is cheaper for year one, and buying do
 
 Moving up sounds like more work. It's the opposite, as long as you pick the managed kind. There are two ways off a shared plan, and the difference matters more than the sticker price.
 
-A **raw VPS** hands you a bare Linux box. More power on paper, but now you own the OS updates, the web server config, the firewall, SSL renewals, and the pager at 2am. That hidden cost is bigger than it looks. **Managed cloud** is the lane most people leaving HostGator actually want: your own dedicated server, with the OS, stack, SSL, patching, and backups handled for you. The full breakdown is in [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/), and [what is a managed server](https://www.kloudbean.com/blog/what-is-a-managed-server/) spells out what "managed" covers.
+A **raw VPS** gives you Linux and a root password, and stops there. More power on paper, but now you own the OS updates, the web server config, the firewall, SSL renewals, and the pager at 2am. That hidden cost is bigger than it looks. **Managed cloud** is the lane most people leaving HostGator actually want: your own dedicated server, with the OS, stack, SSL, patching, and backups handled for you. The full breakdown is in [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/), and [what is a managed server](https://www.kloudbean.com/blog/what-is-a-managed-server/) spells out what "managed" covers.
 
 My honest take: almost nobody leaving a cheap shared plan wants a bare Ubuntu box and a lost weekend. You want the site to stop crawling and the bill to stop surprising you. Managed cloud does both.
 
@@ -87,27 +87,27 @@ The move is calmer than it sounds, no terminal marathon required. People looking
 
 ### 1. Launch your own server
 
-Pick a cloud (AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, or UpCloud), choose a region near your visitors, and pick a size. That's your dedicated box, with CPU and RAM that belong to you, not a slice you share with strangers, and you can resize later.
+Provider first, then region, then size. Seven clouds are on the list, including AWS, Google Cloud and DigitalOcean. That's your dedicated box, with CPU and RAM that belong to you, not a slice you share with strangers, and you can resize later.
 
-![The Kloudbean console launching a server, with a choice of cloud provider, region, and server size](../assets/console/add-server.png)
+![Choosing the cloud provider, region and size when launching a Kloudbean server](../assets/console/add-server.png)
 
 ### 2. Add your application
 
-Add the app you're moving. WordPress and WooCommerce are one-click, and so are Laravel, Magento, Drupal, and Joomla. Building something else? Node.js, Python, Ruby, and Java run here as first-class citizens, and static sites host free, which a PHP-only shared plan rarely offers.
+Add the app you're moving. One-click covers WordPress and WooCommerce, plus Laravel, Magento, Drupal and Joomla. Building something else? Node.js, Python, Ruby, and Java run here as first-class citizens, and static sites host free, which a PHP-only shared plan rarely offers.
 
-![The Kloudbean console adding an application, with WordPress and other one-click stacks](../assets/console/add-application.png)
+![The application list in Kloudbean, mid-way through adding a new one](../assets/console/add-application.png)
 
 ### 3. Bring your site across
 
 Two ways. If it's a WordPress or PHP site, free migration assistance moves it for you, files and database included. If your code lives in Git, connect the repo and let managed CI/CD build and deploy on every push, with live build logs. Details are in the [Git deploy guide](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-![The Kloudbean console connecting a GitHub repository for automatic build and deploy on push](../assets/console/git-deployment.png)
+![The deployment settings, with the repository connected and auto-deploy enabled](../assets/console/git-deployment.png)
 
 ### 4. Confirm backups and staging
 
-Automatic backups are on by default, and you can restore when you need to. If you've ever lost a change to a bad plugin update, you know why that matters. Staging is there for WordPress and Laravel, so you test risky changes on a copy first. The [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/) covers restores.
+Automatic backups are on by default, and you can restore when you need to. Anyone who has watched a plugin update take a site down already knows why. Staging is there for WordPress and Laravel, so you test risky changes on a copy first. The [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/) covers restores.
 
-![The Kloudbean console showing automatic backups you can view and restore](../assets/console/manage-backups.png)
+![The backup list in Kloudbean, with restore points ready to roll back to](../assets/console/manage-backups.png)
 
 <!-- ADD IMAGE: A before and after page-load comparison, HostGator shared plan versus your own server under the same traffic. Real numbers from your own migration land harder than a mockup. -->
 
@@ -139,7 +139,7 @@ define( 'DB_HOST',     '127.0.0.1' );               // managed DB on the same se
 
 Prefer to move the data yourself first? A plan with SSH lets you export and import with `mysqldump`, though free migration assistance can do the whole move for you. Once DNS points at the new box, request a free SSL certificate and you're on HTTPS.
 
-> **Coming from HostGator?** You keep your site and your domain. Free migration assistance handles the WordPress files and database, free SSL is included once DNS points over, and automatic backups are on from day one. The thing you leave behind is the fine print, not your content.
+> **Coming from HostGator?** You keep your site and your domain. You get assistance moving files and database, a certificate once DNS points over, and backups from day one. The thing you leave behind is the fine print, not your content.
 
 <!-- ADD IMAGE: The HostGator cPanel Zone Editor with two A records, root and www, pointing at a server IP. Show the Type, Name, Record, and TTL columns so readers can copy the exact fields. -->
 
@@ -153,7 +153,7 @@ Weighing other budget hosts too? The same logic runs through our [Bluehost alter
 
 **Real resources. No asterisk.**
 
-Keep your domain and move the hosting to your own managed server. Start free at [kloudbean.com](https://www.kloudbean.com/), and check plans on [pricing](https://www.kloudbean.com/pricing/).
+Keep your domain and move the hosting to your own managed server. Try it at [kloudbean.com](https://www.kloudbean.com/); the tiers are on [pricing](https://www.kloudbean.com/pricing/).
 
 Your own dedicated resources · 7 clouds · 7 managed databases · Git deploy · Staging · Automatic backups · Free SSL · Free migration · Free trial
 
@@ -172,7 +172,7 @@ The intro price is promotional and only covers the first term. After that the Ho
 An inode is a single file or folder, so the inode limit is a cap on how many files your account can store. Even on an "unlimited" storage plan you can hit it, because a real WordPress site is thousands of small files. Above the limit you can lose automatic backups or get flagged, which surprises people who thought unlimited meant unlimited.
 
 **Can I move my WordPress site off HostGator?**
-Yes, and it's the most common move we see. WordPress and WooCommerce run on a one-click stack, and free migration assistance moves the files and database for you. You keep the same domain, so there's no URL rewrite across the database, and staging is there to test before you go live.
+Yes, and it's the most common move we see. WordPress and WooCommerce are prebuilt stacks, and someone else can do the move. You keep the same domain, so there's no URL rewrite across the database, and staging is there to test before you go live.
 
 **Is managed cloud better than HostGator?**
 If you're hitting resource caps, wincing at the renewal, or fighting the upsells, then for you, yes. You get dedicated CPU and RAM instead of a capped shared slice, plus managed databases, Git deploy, and staging. If your site is tiny and still on its intro rate, HostGator is cheaper today, so there's no rush.

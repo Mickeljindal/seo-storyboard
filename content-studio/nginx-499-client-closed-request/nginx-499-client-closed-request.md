@@ -104,15 +104,15 @@ It also explains why 499 is missing from status code references. It is nginx's p
 
 **Do not raise nginx timeouts.** Written twice deliberately, because it is the most common wasted afternoon on this error. nginx was not the one who quit.
 
-## Where hosting fits, honestly
+## How much of 499 Status Code is a hosting question
 
 The limit first, and it is a real one. A visitor closing their laptop is not something any platform can prevent, and a client library's timeout set by someone else's engineering team is not yours to change. A large share of your 499s will always be exactly that, and the honest goal is to recognise them rather than fix them.
 
 What helps is the correlation, because this diagnosis is entirely about putting two numbers side by side. On Kloudbean the access and error logs sit in the same dashboard as server health metrics, so checking whether a 499 cluster lines up with a latency climb or a resource ceiling does not mean stitching together three tools. The reverse proxy is managed, so the configuration those 499s pass through is maintained rather than something edited once and forgotten. Managed Redis is available for the caching that usually fixes the underlying slowness, and managed databases across six engines for the query side. Seven cloud providers, free SSL, and free migration assistance if you are bringing something across.
 
-The boundary is the usual one. Managed covers the server, the stack, TLS, backups, and patching. The slow endpoint that made the client give up is application work, and it stays yours.
+The boundary is the usual one. Server, stack, TLS, backups and patching sit with the platform. The slow endpoint that made the client give up is application work, and it stays yours.
 
-## Related reading
+## More on 499 Status Code
 
 The rest of the family, sorted by who quit: [408 Request Timeout](https://www.kloudbean.com/blog/http-error-408-request-timeout/) when the server stopped waiting for the request, [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/) when the proxy stopped waiting for the upstream, and [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/) when there was nothing to wait for. If your application threw instead, [500 Internal Server Error](https://www.kloudbean.com/blog/http-error-500-internal-server-error/). For a connection cut at the transport layer rather than closed deliberately, [ERR_CONNECTION_RESET](https://www.kloudbean.com/blog/err-connection-reset/). On the proxy layer itself, [nginx as a reverse proxy for Node](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/) and [cloud load balancers explained](https://www.kloudbean.com/blog/cloud-load-balancer-explained/). To make these logs answerable rather than a pile of awk, [structured logging](https://www.kloudbean.com/blog/structured-logging-nodejs/).
 

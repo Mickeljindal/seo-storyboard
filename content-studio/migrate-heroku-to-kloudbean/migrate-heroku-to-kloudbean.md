@@ -105,7 +105,7 @@ Being straight with you: migrating off Heroku is not automatically cheaper, and 
 
 What you gain beyond price: your whole stack in one dashboard, no per-piece add-on billing, no egress metering, and a persistent process that can hold WebSockets and run real background workers. Credit where it's due, Heroku's git-push simplicity was genuinely excellent and set the standard, which is exactly why a GitHub-push deploy with live build logs is the workflow to keep. And if you'd rather not do the steps above yourself, migration assistance is included, we'll do the inventory and the cutover with you.
 
-## Related reading
+## Related failures and fixes
 
 Useful companions: [a Heroku alternative for modern apps](https://www.kloudbean.com/blog/heroku-alternative-for-modern-apps/) for the platform comparison, [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) for the database side, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) for config, and [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) to replace git-push deploys. For workers, see [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/), and for a clean cutover, [how to migrate hosting with zero downtime](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/).
 

@@ -159,16 +159,16 @@ EHLO test
 
   <p>Where the OAuth path is worth the work: an application you control the code of, sending as a real mailbox in your own tenant, where sending from your own domain identity matters. It is a proper implementation job rather than a settings change, and going in expecting that saves a frustrating afternoon.</p>
 
-  <h2>Where hosting fits, honestly</h2>
+  <h2>What the platform is responsible for</h2>
   <p>Straight answer: none of this is a hosting feature, and nothing on this page is solved by changing host. These are Microsoft 365 tenant settings and an architecture decision about your application.</p>
 
   <p>The one place hosting genuinely intersects is outbound port 25, which most providers block by default to stop their address space being used for spam. That is why the relay and direct-send options above are described on port 25 with a caveat, and it is the subject of <a href="https://www.kloudbean.com/blog/port-25-blocked-smtp-ports/">the ports article</a>. Submission on 587 to a service is the shape that works nearly everywhere, which is another reason the last row of the table wins so often.</p>
 
   <p>What helps around the edges on Kloudbean: application and server logs sit in the same dashboard, which is where a mailer's authentication failure actually shows up rather than in a plugin's cheerful test screen; cron jobs are managed from the UI, which matters if your sending is queued or batched; and environment variables live in runtime configuration, which is where an API key belongs instead of in your code. Seven cloud providers, free SSL, free migration assistance.</p>
 
-  <p>The boundary is unchanged. Managed covers the server, the stack, TLS, backups, and patching. Your tenant, your sending identity, and your application's mail logic stay yours.</p>
+  <p>The boundary is unchanged. The box, its stack, its certificates and its backups are somebody else's rota. Your tenant, your sending identity, and your application's mail logic stay yours.</p>
 
-  <h2>Related reading</h2>
+  <h2>When mail still will not send</h2>
   <p>On ports, relays, and the DNS records that decide deliverability, <a href="https://www.kloudbean.com/blog/port-25-blocked-smtp-ports/">port 25 and the SMTP ports</a> is the companion to this page and covers what this one deliberately does not. For keeping an API key out of your code, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>. If sending is batched or retried, <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">background jobs with BullMQ</a> and <a href="https://www.kloudbean.com/blog/celery-with-redis/">Celery with Redis</a>. When a mailer failure surfaces as a generic server error instead, <a href="https://www.kloudbean.com/blog/http-error-500-internal-server-error/">500 Internal Server Error</a> covers getting the real message out of the log. And on the WordPress side, <a href="https://www.kloudbean.com/blog/managed-wordpress-hosting/">managed WordPress hosting</a>.</p>
 
   <div class="cta">

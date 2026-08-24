@@ -67,15 +67,15 @@ Your posting operation is worth protecting, and losing it is more disruptive tha
 
 Postiz keeps its schedule, connected accounts, analytics, and settings in PostgreSQL, and your uploaded images and video in its media library. A real backup covers both: a database dump plus the media, shipped off the server automatically to [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/), on a schedule, with a restore you have tested once so you know it works. The general discipline is in [the backups guide](https://www.kloudbean.com/blog/server-backups-guide/). Using a [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) folds the most valuable half into an automatic routine, so your queued month of content is not one server failure away from gone.
 
-## Where hosting fits, honestly
+## What production adds to self-Host Postiz
 
 Postiz is one of the tools where a managed platform removes exactly the friction that is not the point. On Kloudbean it is a one-click app, so you skip the Docker wiring and the Compose file entirely. It runs on a managed server across any of seven clouds, with managed PostgreSQL for its data, managed Redis for the scheduling queues, free auto-renewing SSL for the HTTPS a token-holding app must have, and automatic backups as the safety net, all in one dashboard. That leaves you free to spend your setup time on the per-platform API work, which is the only part that genuinely needs you.
 
 The honest boundary: the platform runs the server, database, SSL, and backups. Your social API credentials, your content, and keeping the app promptly updated are yours. Managed hosting makes Postiz easy to stand up and reliable to run. It cannot connect your accounts for you, and given what those connections can do, you would not want it to.
 
-## Related reading
+## If self-Host Postiz was the easy part
 
-For the wider set of tools worth owning, the [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) guide. Close neighbours: [self-hosting Penpot](https://www.kloudbean.com/blog/self-host-penpot/) for design and [self-hosting n8n](https://www.kloudbean.com/blog/self-host-n8n/) for automation, which pairs well if you want to trigger posts from workflows. The pieces Postiz leans on: [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/), [server backups](https://www.kloudbean.com/blog/server-backups-guide/), and [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/) for the media library. Running social for clients? [The agency hosting playbook](https://www.kloudbean.com/blog/hosting-for-agencies-playbook/) fits alongside.
+Other tools worth self-hosting are collected in [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/). Close neighbours: [self-hosting Penpot](https://www.kloudbean.com/blog/self-host-penpot/) for design and [self-hosting n8n](https://www.kloudbean.com/blog/self-host-n8n/) for automation, which pairs well if you want to trigger posts from workflows. The pieces Postiz leans on: [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/), [server backups](https://www.kloudbean.com/blog/server-backups-guide/), and [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/) for the media library. Running social for clients? [The agency hosting playbook](https://www.kloudbean.com/blog/hosting-for-agencies-playbook/) fits alongside.
 
 ## Run your own social scheduler, in one click.
 

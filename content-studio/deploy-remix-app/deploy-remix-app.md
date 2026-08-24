@@ -257,7 +257,7 @@ First deploys stumble in predictable places. Knowing them turns a 30-minute stal
 
 <!-- ADD IMAGE: The app error log with a build failure line highlighted, such as a missing module or a server import pulled into the client. -->
 
-## The honest limits
+## Before you rely on this
 
 Two things worth saying straight. First, this is a Linux Node deployment. Remix compiles to a standard Node server that runs great on a managed Linux box. It isn't a Windows or .NET target and was never meant to be, so you're on the happy path.
 

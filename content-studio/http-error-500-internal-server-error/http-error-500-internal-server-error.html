@@ -215,14 +215,14 @@ app.use((err, req, res, next) =&gt; {
 
   <p>Two WordPress specific notes. A fatal error during an update can leave the site in maintenance mode after the update finishes, which presents as a different message entirely and is covered in <a href="https://www.kloudbean.com/blog/briefly-unavailable-for-scheduled-maintenance/">briefly unavailable for scheduled maintenance</a>. And if the 500 arrived with a plugin or core update, the fastest safe path is not debugging at all: restore, verify the site works, then reproduce the upgrade somewhere that is not production. Which is what <a href="https://www.kloudbean.com/blog/server-backups-guide/">a backup you have actually tested</a> is for.</p>
 
-  <h2>Where hosting fits, honestly</h2>
+  <h2>500 Internal Server Error and who maintains the box</h2>
   <p>The honest boundary first. A 500 caused by your own uncaught exception is your bug, and no host can fix it for you. What a platform can do is remove the friction between you and the message, and cut the number of 500s that come from the server rather than the code.</p>
 
   <p>On Kloudbean both application and server logs sit in the same dashboard as the server itself, so the first step of this guide does not require an SSH session and a hunt for the right path. The reverse proxy and the stack are managed and patched, which retires the class of 500s that come from a hand-edited config file or a permissions change nobody recorded. Staging for WordPress and Laravel means an update that triggers a fatal error does it somewhere harmless, and automatic backups mean the restore path exists before you need it. Seven cloud providers to run on, free SSL issued and renewed, and free migration assistance if you are moving something that already works.</p>
 
-  <p>The line stays where it always is. Managed covers the server, the stack, TLS, backups, and patching. Your application code and your data remain yours, and that is the half a 500 usually lives in.</p>
+  <p>The line stays where it always is. Patching, TLS renewal, backups and stack upkeep are not on your list. Your application code and your data remain yours, and that is the half a 500 usually lives in.</p>
 
-  <h2>Related reading</h2>
+  <h2>More on 500 Internal Server Error</h2>
   <p>The rest of the 5xx family, each a different failure: <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a> when the proxy cannot get an answer, <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">503 after deploying</a> when nothing came up, and <a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504 Gateway Timeout</a> when it answered too slowly. At the edge, <a href="https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/">Cloudflare's 5xx codes</a>. For the inbound mirror image, <a href="https://www.kloudbean.com/blog/http-error-408-request-timeout/">408 Request Timeout</a>. On making the logs worth reading, <a href="https://www.kloudbean.com/blog/structured-logging-nodejs/">structured logging in Node</a>. For the config half of the problem, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> and <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx as a reverse proxy</a>. And when a module import is what raised, <a href="https://www.kloudbean.com/blog/fix-cannot-find-module-node/">cannot find module</a>.</p>
 
   <div class="cta">

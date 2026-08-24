@@ -122,7 +122,7 @@ On a managed enterprise engagement Kloudbean owns the infrastructure half of tha
 
 The rest of the calendar has no provider-shaped answer, and you should be suspicious of anyone who says otherwise. Nobody can decide for you which of your systems meet NCA's criticality criteria. Nobody else can vet your staff, own your risk register, write the masking logic 2-6-1-1 asks for, classify your records, commission your penetration test, or talk to the regulator on your behalf. SOC and SIEM work sits in between: real, and scoped collaboratively per engagement rather than sold as a fixed package. And the failure mode that catches the most organisations is neither technical nor commercial. It's a retention setting that reverted to a cloud default, or a three-monthly access review that nobody put in a diary. Both survive an audit only if someone's name is on the row.
 
-## Related reading
+## Also worth knowing
 
 Start with [NCA CSCC explained](https://www.kloudbean.com/blog/nca-cscc-compliance-guide/) for the framework, then the deep dives on [log retention](https://www.kloudbean.com/blog/cscc-log-retention-immutable-logs/), [backup and DR](https://www.kloudbean.com/blog/cscc-backup-disaster-recovery/), and [database access control](https://www.kloudbean.com/blog/database-private-access-control/). For the baseline and adjacent frameworks see [NCA ECC compliant hosting](https://www.kloudbean.com/blog/nca-ecc-compliant-hosting/) and [PDPL compliance hosting](https://www.kloudbean.com/blog/pdpl-compliance-hosting/), plus [data residency in Saudi Arabia](https://www.kloudbean.com/blog/data-residency-saudi-arabia/) and [the security headers guide](https://www.kloudbean.com/blog/security-headers-guide/).
 

@@ -141,14 +141,14 @@ Cross-Origin-Embedder-Policy-Report-Only: require-corp; report-to="coep-endpoint
 
   <p>Beyond that, this is a policy decision made by the site and whoever serves its assets, and no cache clear or retry changes it. If you're not certain the code you have is this one, <a href="https://www.kloudbean.com/blog/this-site-cant-be-reached/">this site can't be reached</a> maps every Chrome error to the layer that produced it.</p>
 
-  <h2>Where hosting fits, honestly</h2>
+  <h2>Where infrastructure meets ERR_BLOCKED_BY_RESPONSE</h2>
   <p>The limit first, because it's the useful part. If the blocked resource sits on a third-party origin you don't control, you cannot make them send CORP. No hosting configuration reaches another company's server. That leaves the three routes above, each with a genuine cost: cors mode needs their CORS support, <code>credentialless</code> costs you cookies on those requests, and proxying costs you bandwidth and cache management.</p>
 
   <p>What infrastructure does own is where your own headers are set and whether they're set once. On Kloudbean the reverse proxy is managed, so response headers live in a maintained configuration rather than a file someone edited eighteen months ago, which matters directly for the duplicate-header trap above. Free SSL is issued and renewed, which is a precondition rather than a nicety here, since this whole header family assumes HTTPS. Seven cloud providers, one dashboard, and free migration assistance if you're moving something already running. If you're serving your own assets and want them to be genuinely same-origin, <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a> behind your own domain avoids the problem rather than configuring around it.</p>
 
-  <p>The boundary is the usual one. Managed covers the server, the stack, TLS, backups, and patching. Which headers you choose to send, and which third parties you depend on, stay yours.</p>
+  <p>The boundary is the usual one. The box, its stack, its certificates and its backups are somebody else's rota. Which headers you choose to send, and which third parties you depend on, stay yours.</p>
 
-  <h2>Related reading</h2>
+  <h2>Loose ends</h2>
   <p>For the standard header set and a safe CSP rollout, <a href="https://www.kloudbean.com/blog/security-headers-guide/">the security headers guide</a>, which is the natural companion to this one. Elsewhere in the browser-error family: <a href="https://www.kloudbean.com/blog/err-connection-reset/">ERR_CONNECTION_RESET</a> for a connection killed mid-flight, <a href="https://www.kloudbean.com/blog/err-ssl-protocol-error/">ERR_SSL_PROTOCOL_ERROR</a> when the handshake fails, and <a href="https://www.kloudbean.com/blog/err-cache-miss/">ERR_CACHE_MISS</a> for the POST resubmission case. If you haven't pinned down which code you have, <a href="https://www.kloudbean.com/blog/this-site-cant-be-reached/">this site can't be reached</a> is the router. On HTTPS as the precondition for all of this, <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">custom domain and SSL</a>, and for setting headers at the proxy layer, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx as a reverse proxy for Node</a>.</p>
 
   <div class="cta">

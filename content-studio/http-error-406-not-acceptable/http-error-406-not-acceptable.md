@@ -127,7 +127,7 @@ So everything above applies. Start with the `Accept: */*` test, then either look
 | Only on an API, with a vendor type | Unknown API version | Check live versions |
 | Whole site returns 406 | Misconfigured negotiation or module | Test with `Accept: */*` |
 
-## Where hosting fits
+## HTTP Error 406 Not Acceptable needs a server that behaves
 
 This one has a genuinely clean hosting answer, and it is worth being precise rather than expansive about it.
 
@@ -135,7 +135,7 @@ The 406-as-a-block behaviour comes from mod_security configurations common on Ap
 
 Being straight about what that does and does not mean. It does not mean requests are never blocked, and there is no managed application firewall bundled in as a replacement for one. Cloudflare is available as a paid add-on and included for enterprise accounts, and if you enable its rules then those rules can block requests, at which point the diagnosis above still applies with the logs living at the edge. What is genuinely different is that you are not sharing a ruleset tuned for thousands of unrelated sites, and when a block does happen you have SSH access and your own logs rather than a support ticket and a guess.
 
-## Related reading
+## More on HTTP Error 406 Not Acceptable
 
 The same false-positive pattern with a different status code, [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/). Its mirror image is [415 Unsupported Media Type](https://www.kloudbean.com/blog/http-error-415-unsupported-media-type/): a 406 is about the Accept header and what you asked to receive, while a 415 is about Content-Type and what you sent. Neighbouring codes: [400 Bad Request](https://www.kloudbean.com/blog/400-bad-request/), [401 Unauthorized](https://www.kloudbean.com/blog/http-error-401-unauthorized/), [409 Conflict](https://www.kloudbean.com/blog/409-conflict-error/), and [429 Too Many Requests](https://www.kloudbean.com/blog/429-too-many-requests/). For content negotiation's caching cousin, [304 Not Modified](https://www.kloudbean.com/blog/304-not-modified/). On WordPress security specifically, [secure WordPress hosting](https://www.kloudbean.com/blog/secure-wordpress-hosting/). And for headers generally, [the security headers guide](https://www.kloudbean.com/blog/security-headers-guide/).
 

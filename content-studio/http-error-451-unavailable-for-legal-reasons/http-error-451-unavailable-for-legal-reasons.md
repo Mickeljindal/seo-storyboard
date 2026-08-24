@@ -95,15 +95,15 @@ The spec also notes, neutrally, that clients can often still reach a blocked res
 
 **Decide where the block lives.** Application-level restrictions are easy to reason about but only cover traffic that reaches your app. Edge-level rules stop it earlier and cost less, at the price of being another place your logic lives. Neither is automatically right, and the choice is easier once you know whether the demand covers a region, a set of resources, or a class of requester.
 
-## Where hosting fits, honestly
+## Where infrastructure meets 451 Unavailable For Legal Reasons
 
 No hosting platform can resolve a legal demand, and choosing to return a 451 is a decision for your lawyers rather than your infrastructure team. Nothing on this page is legal advice, and any host implying it can make a legal obstacle go away is selling.
 
 What infrastructure genuinely decides is the question underneath: which laws reach your data in the first place. That's a region choice, made once, with consequences that are hard to unwind. Kloudbean runs across seven cloud providers with a choice of regions, so where a workload and its data live is something you pick deliberately rather than inherit. If a restriction has to be implemented on your side, IP access control with allow and deny rules by address or CIDR is available at the platform layer, and Cloudflare is available as a paid add-on, included on Enterprise, where country-level rules sit naturally.
 
-The boundary is the usual one, and it's wider than normal here. Managed covers the server, the stack, TLS, backups, and patching. Your legal obligations, your response to a demand, and the wording of what you return stay entirely yours. If the region question is the one you're actually working on, [data residency explained](https://www.kloudbean.com/blog/data-residency-explained/) is the better starting point than any status code.
+The boundary is the usual one, and it's wider than normal here. The managed part is the machine and everything under your code. Your legal obligations, your response to a demand, and the wording of what you return stay entirely yours. If the region question is the one you're actually working on, [data residency explained](https://www.kloudbean.com/blog/data-residency-explained/) is the better starting point than any status code.
 
-## Related reading
+## Beyond 451 Unavailable For Legal Reasons
 
 Its most-confused neighbour is [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/), which covers ordinary permission refusals. When a resource is deliberately and permanently gone rather than legally restricted, [410 Gone](https://www.kloudbean.com/blog/error-410-gone/) is the honest code. On authentication rather than authorisation, [401 Unauthorized](https://www.kloudbean.com/blog/http-error-401-unauthorized/), and for rate limiting, [429 Too Many Requests](https://www.kloudbean.com/blog/429-too-many-requests/). For the decision that actually matters here, [data residency explained](https://www.kloudbean.com/blog/data-residency-explained/) and [GDPR compliant hosting](https://www.kloudbean.com/blog/gdpr-compliant-hosting/), with the shared-responsibility picture in [secure and compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/). And on response headers generally, [the security headers guide](https://www.kloudbean.com/blog/security-headers-guide/).
 

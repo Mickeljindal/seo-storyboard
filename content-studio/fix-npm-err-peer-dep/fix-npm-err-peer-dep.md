@@ -256,7 +256,7 @@ Now the part hosting cannot do, and this one is worth saying plainly because the
 
 ![Live build logs from a Git deploy in the Kloudbean console showing the npm install step](../assets/console/git-deployment.png)
 
-## Related reading
+## If npm ERR Peer Dep keeps coming back
 
 For a build that runs the same way every push, see [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/). If the install works but the app can't find something, read [Error: Cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/). Builds dying mid-install are often memory: [JavaScript heap out of memory](https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/). For config drift between local and production, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/), and to place the whole thing, [deploy a Node app to managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/).
 

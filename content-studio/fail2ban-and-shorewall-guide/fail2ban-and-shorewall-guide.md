@@ -81,7 +81,7 @@ Steps 1, 3, 4 and part of 5 are what "baseline hardening included" actually mean
 
 And there's a category no host touches, ours firmly included. A firewall doesn't help if credentials are committed to a public repository. Fail2ban doesn't help if the SSH private key was emailed to a contractor in 2022. Neither one has an opinion about an outdated plugin with a known remote-code-execution bug, a database password of eight lowercase letters, or an admin account still called admin. Those are the compromises that actually happen, and the honest map of who owns what sits in [the secure and compliant hosting guide](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 
-## Related reading
+## Elsewhere in the stack
 
 This is the host layer of a larger picture. For the application layer, [what a WAF actually does](https://www.kloudbean.com/blog/what-a-waf-does/); for volumetric attacks, [DDoS protection explained](https://www.kloudbean.com/blog/ddos-protection-explained/); and for the response-header layer, the [security headers guide](https://www.kloudbean.com/blog/security-headers-guide/). To restrict who can reach a service by address, [IP allowlisting](https://www.kloudbean.com/blog/ip-allowlisting-guide/), and to gate a whole app behind a password, the [Basic Auth gate guide](https://www.kloudbean.com/blog/basic-auth-gate-guide/). The overview that ties it together is [secure and compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 

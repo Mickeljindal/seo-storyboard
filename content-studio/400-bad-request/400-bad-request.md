@@ -147,13 +147,13 @@ Raising header buffers to something enormous is the wrong instinct even though i
 
 Adding a catch-all server block to silence Host header 400s has a similar shape: it stops the error and changes which site answers requests that match nothing, which is a subtle security and routing decision made for the wrong reason.
 
-## Where hosting fits
+## Getting error 400 Bad Request into production
 
 The server-side half of this list is configuration: header buffer sizes, TLS termination that agrees with the upstream scheme, and sensible defaults that do not lock out your longest-standing users. On Kloudbean, nginx comes configured with limits that work for real applications rather than whatever the default was, and free SSL with correct termination means the plain-HTTP-to-HTTPS-port mismatch does not arrive as a surprise when you add a certificate. Managed Redis in the same dashboard is the real answer to cookie growth, since it gives you somewhere to put session data that does not travel on every request.
 
 The honest limit: nothing here validates your JSON or encodes your URLs. Application-level 400s are yours, and they should be, because that is your validation working. What managed configuration removes is the class of 400 that has nothing to do with your code.
 
-## Related reading
+## Read on, if it recurs
 
 For neighbouring status codes, [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/), [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/), and [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/). The same oversized-header problem behind a proxy appears as [Cloudflare error 520](https://www.kloudbean.com/blog/cloudflare-error-520/). To move session data out of cookies, [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/). For the proxy layer, [the nginx reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). On cross-origin requests that fail for related reasons, [fixing CORS errors](https://www.kloudbean.com/blog/fix-cors-error-node-production/). And for TLS termination, [SSL and TLS explained](https://www.kloudbean.com/blog/ssl-tls-explained/).
 

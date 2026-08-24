@@ -64,15 +64,15 @@ Baserow runs as an application with PostgreSQL behind it, and a starting point o
 
 <!-- ADD IMAGE: diagram, Baserow app owning its own Postgres vs NocoDB UI over your existing DB, with the deciding question -->
 
-## Where hosting fits, honestly
+## What production adds to self-Host Baserow
 
 Baserow is a comfortable app-plus-database deployment, and a managed platform handles the parts you would rather not. You run it as a standard application across any of seven clouds, behind a managed reverse proxy with free auto-renewing SSL, pointed at a managed PostgreSQL so the database it owns is maintained and automatically backed up, with attachments in object storage. One dashboard, and a resize when your team grows. It is not a one-click app, but it is a well-trodden path.
 
 The honest boundary: the platform runs the server, the PostgreSQL database, SSL, and backups. The Baserow application, your data, and any Premium license you take out are yours. Managed hosting keeps Baserow dependable and its database safe. It does not decide your feature tier, so keep the free-versus-Premium line on your own checklist.
 
-## Related reading
+## Deeper on self-Host Baserow
 
-For the wrap-an-existing-database alternative and the full comparison, [self-hosting NocoDB](https://www.kloudbean.com/blog/self-host-nocodb/). For the wider set of tools worth owning, the [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) guide. The database underneath is [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), kept safe with [server backups](https://www.kloudbean.com/blog/server-backups-guide/), and attachments live in [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). If you want to automate around your base, [self-hosting n8n](https://www.kloudbean.com/blog/self-host-n8n/) pairs nicely.
+For the wrap-an-existing-database alternative and the full comparison, [self-hosting NocoDB](https://www.kloudbean.com/blog/self-host-nocodb/). The [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) guide covers the rest of the field. The database underneath is [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), kept safe with [server backups](https://www.kloudbean.com/blog/server-backups-guide/), and attachments live in [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). If you want to automate around your base, [self-hosting n8n](https://www.kloudbean.com/blog/self-host-n8n/) pairs nicely.
 
 ## Run a no-code database you own.
 

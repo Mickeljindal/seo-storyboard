@@ -103,7 +103,7 @@ A raw Linode is cheaper than a managed server, and it should be. You're supplyin
 
 The rule of thumb: if your schedule is tighter than your budget, managed wins; if your budget is tighter, or the ops are genuinely fun for you, the raw Linode wins. The DigitalOcean version of this same trade is in [DigitalOcean vs Kloudbean](https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/).
 
-## The honest limits
+## What linode vs Kloudbean cannot do
 
 Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and frameworks like React, Vue, Angular, Laravel, Django, and WordPress. Windows Server is a Premium and Enterprise option rather than a standard one, though .NET itself runs on Linux here. Standalone managed Kubernetes is also enterprise or custom rather than a default. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you still own your application and your data. That division of labor is the point: you keep the app, someone else keeps the box healthy. And because it's standard Linux and standard code underneath, you can leave for a raw Linode, or anywhere else, whenever you want.
 

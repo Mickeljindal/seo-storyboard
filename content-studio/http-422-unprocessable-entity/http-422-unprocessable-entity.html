@@ -113,7 +113,7 @@
     </tbody>
   </table>
 
-  <h2>Where hosting fits</h2>
+  <h2>The operational half of 422 Unprocessable Entity</h2>
   <p>Straightforwardly: a 422 is your validation working, so this is application logic and it belongs to you. There is no hosting setting that changes it, and any article claiming otherwise is stretching.</p>
   <p>Two adjacent things are genuinely relevant. Validation rules usually exist to protect data integrity, and the constraints in your database are the layer underneath them, so managed PostgreSQL, MySQL, and MariaDB sitting in the same dashboard as the application matters when a validation rule and a database constraint disagree. And the background-job point above is a real operational cost, since a queue retrying deterministic failures burns worker capacity that has nothing left to do, which is worth watching in your server metrics.</p>
   <p>Beyond that, this article is a design argument rather than a product one: name the field, report every failure at once, and do not retry something that cannot succeed.</p>
@@ -123,7 +123,7 @@
     <figcaption>Validation sits above your constraints. Useful to have both in one place when they disagree.</figcaption>
   </figure>
 
-  <h2>Related reading</h2>
+  <h2>If you came here for 422 Unprocessable Entity</h2>
   <p>Its closest neighbour, <a href="https://www.kloudbean.com/blog/400-bad-request/">400 Bad Request</a>, which covers the parsing side. The code on the other side of the boundary is <a href="https://www.kloudbean.com/blog/http-error-415-unsupported-media-type/">415 Unsupported Media Type</a>: the spec says a 422 means the content type was understood, which is precisely why 415 would have been the wrong answer. For the other deterministic 4xx you should not retry, <a href="https://www.kloudbean.com/blog/409-conflict-error/">409 Conflict</a>. On authentication and permissions, <a href="https://www.kloudbean.com/blog/http-error-401-unauthorized/">401 Unauthorized</a> and <a href="https://www.kloudbean.com/blog/403-forbidden-error/">403 Forbidden</a>. For the codes where retrying is correct, <a href="https://www.kloudbean.com/blog/429-too-many-requests/">429 Too Many Requests</a>. On queues that should not retry forever, <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">background jobs with BullMQ</a>. And for the constraints underneath your validation, <a href="https://www.kloudbean.com/blog/postgresql-performance-tuning/">PostgreSQL performance tuning</a>.</p>
 
   <div class="cta">

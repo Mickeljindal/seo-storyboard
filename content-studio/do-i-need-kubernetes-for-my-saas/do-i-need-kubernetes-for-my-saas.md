@@ -90,7 +90,7 @@ The left column has more headroom than people credit it with, too. Resizing a se
 
 *Kubernetes earns its keep coordinating many containers across many machines. A new SaaS usually has one app on one, so there's little to orchestrate.*
 
-## A quick way to decide
+## The decision, compressed
 
 You don't need a week of deliberation. Three honest questions get you most of the way.
 

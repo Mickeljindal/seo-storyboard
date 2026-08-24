@@ -63,13 +63,13 @@ The thing to take away from all of the above is that "audit trail" names two dif
 
 And the third piece, which no host and no product supplies: somebody actually reading the thing. A trail nobody reviews catches an intruder in retrospect, at best. The governance around it, deciding what counts as an anomaly, who reviews it and how often, who escalates, and who signs off, is your organisation's work, and it's the part assessors probe hardest because it's the part most often missing. We can hand you evidence that's trustworthy because it can't be rewritten. We can't tell you what it means for your business, and we're not going to pretend otherwise. The wider map of who covers which control is in [the secure and compliant hosting guide](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 
-## Related reading
+## If you hit this again somewhere else
 
 An audit trail is one control in a compliance program. See how it feeds [SOC 2 compliant hosting](https://www.kloudbean.com/blog/soc2-compliant-hosting/) and [ISO 27001 hosting](https://www.kloudbean.com/blog/iso-27001-hosting/), and how it sits alongside [encryption at rest and in transit](https://www.kloudbean.com/blog/data-encryption-at-rest-and-in-transit/) and access controls like [subusers and access control](https://www.kloudbean.com/blog/subuser-and-uac-guide/). The overview that ties the layers together is [secure and compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 
 ## Evidence your own admins can't rewrite.
 
-Kloudbean's enterprise Audit Trail gives you an immutable, searchable, account-wide record of activity with CSV export, on write-once storage with long retention, built for the frameworks that ask for it. Compare the platform in [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/), or start at [kloudbean.com](https://www.kloudbean.com/).
+Kloudbean's enterprise Audit Trail gives you an immutable, searchable, account-wide record of activity with CSV export, on write-once storage with long retention, built for the frameworks that ask for it. For the direct comparison read [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/), or launch one from [kloudbean.com](https://www.kloudbean.com/).
 
 Immutable audit trail (Enterprise) · Write-once storage · Long retention · CSV export
 

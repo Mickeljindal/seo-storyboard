@@ -121,7 +121,7 @@ Put a real domain in front (one domain if colocated, or app and api subdomains i
 
 Certificates are the one item on this list nobody should still be doing by hand. Free, auto-renewing TLS is table stakes on any managed platform now, and an expired certificate taking a product down in 2026 is an embarrassing way to lose a morning.
 
-Then backups. Automatic backups on the database, plus an on-demand one you take yourself right before a risky migration, which is the backup you'll actually want. And here's the part people skip: restore one at least once, so you know the backup is real and you know the steps before you need them at 2am. A backup you've never restored is a hope, not a plan. This layer is boring right up until the moment it's the only thing between you and a very bad week.
+Then backups. Automatic backups on the database, plus an on-demand one you take yourself right before a risky migration, which is the backup you'll actually want. And here's the part people skip: restore one at least once, so you know the backup is real and you know the steps before you need them at 2am. Restores are the feature; backups are just the prerequisite. This layer is boring right up until the moment it's the only thing between you and a very bad week.
 
 ## Why the line falls between your two processes and everything under them
 

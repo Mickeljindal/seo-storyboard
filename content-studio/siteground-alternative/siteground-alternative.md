@@ -86,25 +86,25 @@ The move is calmer than it sounds, and you can do it without a terminal marathon
 
 ### 1. Launch your own server
 
-Pick a cloud (AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, or UpCloud), choose a region near your visitors, and pick a size. That's your dedicated box, with CPU and RAM that belong to you, not a slice you fight a meter for. You can resize it later, so don't overthink the first pick.
+Seven providers to choose from, a region near your readers, and a size you can change later. That's your dedicated box, with CPU and RAM that belong to you, not a slice you fight a meter for. You can resize it later, so don't overthink the first pick.
 
-![The Kloudbean console launching a server, with a choice of cloud provider, region, and server size](../assets/console/add-server.png)
+![Provider, region and size, the three choices when creating a Kloudbean server](../assets/console/add-server.png)
 
 ### 2. Add your application
 
-Add the app you're moving. WordPress and WooCommerce are one-click, and so are Laravel, Magento, Drupal, and Joomla. Not on PHP? Node.js, Python, Ruby, and Java run here as first-class citizens, and static sites host free. That range is something a WordPress-focused shared plan rarely gives you.
+Add the app you're moving. WordPress, WooCommerce, Laravel, Magento, Drupal and Joomla all launch from a tile. Not on PHP? Node.js, Python, Ruby, and Java run here as first-class citizens, and static sites host free. That range is something a WordPress-focused shared plan rarely gives you.
 
-![The Kloudbean console adding an application, with WordPress and other one-click stacks](../assets/console/add-application.png)
+![Creating a second application on an existing Kloudbean server](../assets/console/add-application.png)
 
 ### 3. Bring your site across
 
 Two ways. If it's a WordPress or PHP site, the free migration assistance moves it for you, files and database included, so you're not exporting SQL by hand. If your code lives in Git, connect the repo and let managed CI/CD build and deploy on every push, with live build logs you can watch in the console. Details are in the [Git deploy guide](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-![The Kloudbean console connecting a GitHub repository for automatic build and deploy on push](../assets/console/git-deployment.png)
+![The Git Deployment tab, with a repository and branch selected](../assets/console/git-deployment.png)
 
 ### 4. Confirm backups and staging
 
-Automatic backups are on by default, and you can restore from one when you need it. If you've ever lost a change to a bad plugin update, you know why that matters. Staging is there for WordPress and Laravel too, so you test risky changes on a copy before they hit the live site. The [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/) covers how restores work.
+Automatic backups are on by default, and you can restore from one when you need it. If an update has ever cost you an afternoon, the reason is obvious. Staging is there for WordPress and Laravel too, so you test risky changes on a copy before they hit the live site. The [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/) covers how restores work.
 
 ![The Kloudbean console showing automatic backups you can view and restore](../assets/console/manage-backups.png)
 
@@ -128,7 +128,7 @@ www.example.com.   300  IN  A   203.0.113.42
 
 Drop the TTL to 300 seconds a day before you cut over so the change propagates quickly. Migrate and test on the new server first, and only switch the A records when you're happy, so traffic moves on your schedule. Because the domain name doesn't change, a WordPress move needs no search-and-replace across the database. Once DNS points at the new box, request a free SSL certificate and you're on HTTPS.
 
-> **Coming from SiteGround?** You keep your site and your domain. Free migration assistance handles the WordPress files and database, free SSL is included once DNS points over, and automatic backups are on from day one. The thing you leave behind is the CPU-seconds meter, not your content.
+> **Coming from SiteGround?** You keep your site and your domain. Files and database are migrated for you, the certificate is issued when DNS resolves, and backups start straight away. The thing you leave behind is the CPU-seconds meter, not your content.
 
 <!-- ADD IMAGE: A DNS panel with two A records, root and www, pointing at a server IP. Show the Type, Name, Value, and TTL columns so readers can copy the exact fields. -->
 
@@ -142,7 +142,7 @@ Weighing this against other budget hosts too? The same logic runs through our [N
 
 **Your own resources. No CPU-seconds lottery.**
 
-Move off the meter and onto a server whose limits you set. Start free at [kloudbean.com](https://www.kloudbean.com/), and check plans on [pricing](https://www.kloudbean.com/pricing/).
+Move off the meter and onto a server whose limits you set. See it working at [kloudbean.com](https://www.kloudbean.com/), with current rates on [pricing](https://www.kloudbean.com/pricing/).
 
 Dedicated CPU and RAM · 7 clouds · 7 managed databases · Git deploy · Staging · Automatic backups · Free SSL · Free migration · Free trial
 
@@ -155,7 +155,7 @@ The headline price is promotional. You pay a low intro rate for the first term, 
 A CPU second is one second of processor time your site may use, and each plan gets a monthly and daily allowance plus limits on processes and executions. It's how shared hosting stops one busy account from slowing the whole machine. Cross the SiteGround CPU seconds limit and your site gets throttled or returns resource-limit errors until usage drops.
 
 **Can I move my WordPress site off SiteGround?**
-Yes, and it's the most common move we see. WordPress and WooCommerce run on a one-click stack, and free migration assistance moves the files and database for you. You keep the same domain, so there's no URL rewrite across the database, and staging is there to test first.
+Yes, and it's the most common move we see. The WordPress and WooCommerce stacks are one-click, with migration assistance for the move itself. You keep the same domain, so there's no URL rewrite across the database, and staging is there to test first.
 
 **Is managed cloud better than SiteGround?**
 If you're hitting CPU-seconds throttling or wincing at the renewal price, then for you, yes. You get dedicated CPU and RAM instead of a metered share, plus managed databases, Git deploy, and staging. If your site is tiny and still on its intro rate, SiteGround is cheaper today, so there's no rush.

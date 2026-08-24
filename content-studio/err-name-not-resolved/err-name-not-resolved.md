@@ -167,7 +167,7 @@ For the platform-by-platform reference, including the Linux case where there may
 
 Check the hosts file as well, particularly on a developer machine. An entry added months ago to test a migration will happily override public DNS forever, and it produces the confusing case where a site works for everyone except the person who built it.
 
-## Where hosting fits
+## What you need underneath this
 
 Being straightforward about this: Kloudbean is not a DNS provider, and no hosting platform can fix a name that does not resolve, because the failure happens before anything reaches a server. Your registrar and DNS provider own this one.
 
@@ -177,7 +177,7 @@ The rest is ordinary and useful: servers across seven clouds so you can put the 
 
 <!-- ADD IMAGE: the provider and region picker when adding a server, or your DNS provider's record list showing the apex A record and the www CNAME side by side. -->
 
-## Related reading
+## One layer out
 
 If you are not sure which code you have, [this site can't be reached](https://www.kloudbean.com/blog/this-site-cant-be-reached/) maps every one Chrome shows under that headline to the layer that broke. For the errors that mean your server WAS reached, [ERR_CONNECTION_RESET and its relatives](https://www.kloudbean.com/blog/err-connection-reset/). For resolution that works but drags, [fixing slow DNS lookups](https://www.kloudbean.com/blog/fix-slow-dns-lookup/). When the certificate is the problem rather than the name, [SSL certificate errors](https://www.kloudbean.com/blog/fix-ssl-certificate-errors/) and [what SNI is](https://www.kloudbean.com/blog/what-is-sni/). If a CDN is in front, [Cloudflare 5xx codes](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/). And for moving a site without breaking its names, [migrating WordPress](https://www.kloudbean.com/blog/migrate-wordpress-to-kloudbean/).
 

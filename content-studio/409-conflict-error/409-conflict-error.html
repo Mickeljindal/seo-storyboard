@@ -163,7 +163,7 @@ return res.status(201).json(payment);</code></pre>
   </table>
   <p>That last row is the one to worry about. If your application has never returned a 409 for a concurrent edit, that may mean nobody edits concurrently, or it may mean you are losing updates silently. Only one of those is comfortable.</p>
 
-  <h2>Where hosting fits</h2>
+  <h2>Infrastructure, briefly</h2>
   <p>Conflict handling is application logic, so most of this is yours to write. Two parts of it are infrastructure, though.</p>
   <p>The database is where conflicts are detected, so its configuration matters: isolation level determines whether you get serialization failures at all, and connection behaviour under load determines how often collisions happen. Managed MySQL, MariaDB, and PostgreSQL on Kloudbean sit in the same dashboard as the application, which matters when you are correlating a rise in deadlocks with a traffic pattern. And <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a> is what makes idempotency keys practical, since you need atomic writes with expiry rather than another table to clean up.</p>
   <p>The honest boundary: nobody else can define your state machine or decide which fields are unique. What the platform removes is the operational side of running the database and cache that your conflict handling depends on.</p>
@@ -173,7 +173,7 @@ return res.status(201).json(payment);</code></pre>
     <figcaption>Managed PostgreSQL, MySQL, MariaDB, and Redis in the same dashboard as the application that queries them.</figcaption>
   </figure>
 
-  <h2>Related reading</h2>
+  <h2>The rest of the trail</h2>
   <p>For neighbouring status codes, <a href="https://www.kloudbean.com/blog/400-bad-request/">400 Bad Request</a>, <a href="https://www.kloudbean.com/blog/http-error-401-unauthorized/">401 Unauthorized</a>, <a href="https://www.kloudbean.com/blog/403-forbidden-error/">403 Forbidden</a>, and <a href="https://www.kloudbean.com/blog/429-too-many-requests/">429 Too Many Requests</a>, which covers the backoff and jitter referenced above. On the validators reused for optimistic locking, <a href="https://www.kloudbean.com/blog/304-not-modified/">304 Not Modified</a>. For the database side, <a href="https://www.kloudbean.com/blog/postgresql-performance-tuning/">PostgreSQL performance tuning</a> and <a href="https://www.kloudbean.com/blog/database-connection-pooling/">connection pooling</a>. And for the atomic operations behind idempotency keys, <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis hosting</a> and <a href="https://www.kloudbean.com/blog/redis-caching-patterns/">caching patterns</a>.</p>
 
   <div class="cta">

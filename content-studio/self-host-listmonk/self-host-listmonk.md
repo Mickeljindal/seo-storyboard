@@ -84,15 +84,15 @@ Your subscriber list is the asset and, increasingly, a responsibility. Treat it 
 
 Everything that matters (subscribers, lists, campaigns, and their history) lives in PostgreSQL, so a database dump shipped off the server automatically, on a schedule, with a restore you have tested once, is your safety net. The wider discipline is in [the backups guide](https://www.kloudbean.com/blog/server-backups-guide/), and campaign media can live in [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). There is also a responsibility that comes with holding people's contact details directly: honour unsubscribes promptly, keep your consent records straight, and remember that owning the list means owning the compliance that comes with it. Self-hosting does not remove that duty, it hands it to you.
 
-## Where hosting fits, honestly
+## What production adds to self-Host Listmonk
 
 Listmonk suits a managed server nicely precisely because it asks for so little. You run it as an application across any of seven clouds, put it behind a managed reverse proxy with free auto-renewing SSL, and point it at managed PostgreSQL so the list, the one thing you cannot afford to lose, sits on a database that is backed up automatically. Object storage holds campaign media, and it all lives in one dashboard. It is not a one-click app, but it is a light, well-behaved one to run as a standard application.
 
 The honest boundary, which is bigger for this tool than most: the platform runs the server, the database, SSL, and backups. The sending path (SES or your SMTP relay), your sender reputation, and the consent and compliance around your list are yours. Managed hosting makes listmonk reliable to run and keeps your list safe. It does not, and cannot, send your email or vouch for your deliverability. That part is earned, not hosted.
 
-## Related reading
+## Deeper on self-Host Listmonk
 
-For the wider set of tools worth owning, the [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) guide. If your real goal is a site with a newsletter, compare with [self-hosting Ghost](https://www.kloudbean.com/blog/self-host-ghost/). On the sending side, [why SMTP ports get blocked](https://www.kloudbean.com/blog/port-25-blocked-smtp-ports/) is worth a read before you fight your relay. The pieces listmonk leans on: [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), [server backups](https://www.kloudbean.com/blog/server-backups-guide/), and [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). And for another marketing-side tool to own, [self-hosting Postiz](https://www.kloudbean.com/blog/self-host-postiz/).
+More options live in the [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup. If your real goal is a site with a newsletter, compare with [self-hosting Ghost](https://www.kloudbean.com/blog/self-host-ghost/). On the sending side, [why SMTP ports get blocked](https://www.kloudbean.com/blog/port-25-blocked-smtp-ports/) is worth a read before you fight your relay. The pieces listmonk leans on: [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), [server backups](https://www.kloudbean.com/blog/server-backups-guide/), and [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). And for another marketing-side tool to own, [self-hosting Postiz](https://www.kloudbean.com/blog/self-host-postiz/).
 
 ## Own your list, on a server built to keep it safe.
 

@@ -150,7 +150,7 @@ This is what staging is for, and it is a confirmed part of the Kloudbean platfor
 
 The boundary, stated plainly: no host can stop a badly written plugin from throwing a fatal error, and none of this removes the need to keep plugins updated. What good hosting gives you is somewhere safe to find out, and a way back when you did not.
 
-## Related reading
+## When WordPress hides the real error
 
 For the neighbouring WordPress failure with a very different cause, see [error establishing a database connection](https://www.kloudbean.com/blog/fix-error-establishing-database-connection-wordpress/). On safe change management, [WordPress staging environments](https://www.kloudbean.com/blog/wordpress-staging-environment/) and [the backups guide](https://www.kloudbean.com/blog/server-backups-guide/). For the command line used above, [the WP-CLI guide](https://www.kloudbean.com/blog/wordpress-cli-guide/). When memory is the theme, [heap out of memory](https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/) covers the same class of problem in Node. And for caching that reduces the load causing memory pressure, [clearing WordPress cache](https://www.kloudbean.com/blog/how-to-clear-wordpress-cache/) and [managed WordPress hosting](https://www.kloudbean.com/blog/managed-wordpress-hosting/).
 

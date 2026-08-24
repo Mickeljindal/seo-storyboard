@@ -63,7 +63,7 @@ If any two of these are true, use a persistent server: an endpoint that runs lon
 
 And the answer a lot of teams land on isn't either-or. Keep the Next.js frontend on Vercel, run the API on a persistent server, connect them over HTTPS. We wrote the step-by-step for that split in [moving your API off Vercel](https://www.kloudbean.com/blog/migrate-vercel-api-to-kloudbean/).
 
-## Related reading
+## More on vercel vs Kloudbean for APIs
 
 More depth: [Vercel for Node.js backends](https://www.kloudbean.com/blog/vercel-for-node-backends-limits/) for the full constraint list, [a Vercel alternative for full-stack apps](https://www.kloudbean.com/blog/vercel-alternative-for-full-stack-apps/), and [best managed Node.js hosting](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/) for the wider field. On the specifics: [connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/), [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/), [scaling WebSockets](https://www.kloudbean.com/blog/scale-websockets-nodejs/), and [CORS when you split origins](https://www.kloudbean.com/blog/fix-cors-error-node-production/).
 

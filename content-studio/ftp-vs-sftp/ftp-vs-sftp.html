@@ -147,7 +147,7 @@ Match Group sftponly
 rsync -avz --delete ./public/ user@server:/var/www/site/public/</code></pre>
   <p>And if you are moving user uploads around by hand because the server keeps filling up, the answer is object storage rather than a better transfer protocol. Our guide to <a href="https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/">storing user uploads in object storage</a> covers why that is the structural fix.</p>
 
-  <h2>Where hosting fits</h2>
+  <h2>Where the server matters for FTP vs SFTP vs FTPS</h2>
   <p>On a managed Linux server, SFTP is simply there, because it comes with the SSH server rather than being a separate product. That is the honest framing: it is not a feature anyone should be selling you, it is a property of the platform being a real server.</p>
   <p>What does matter from a host is the surrounding work. Kloudbean servers ship with a Shorewall firewall and Fail2ban configured by default, which is directly relevant here, since port 22 attracts continuous automated password guessing and Fail2ban is what stops that being interesting. Free SSL is issued and renewed for your sites, servers run across seven clouds with your choice of region, and backups are automatic, so a bad upload is recoverable rather than final.</p>
   <p>For teams, subusers with granular per-resource and per-action permissions mean people get access to the servers and applications they need rather than to everything, and IP access control lets you restrict who can reach what by address or CIDR range. On enterprise engagements the pattern tightens further: remote access through VPN with direct SSH from the internet blocked, and a dedicated bastion for privileged administration.</p>
@@ -157,7 +157,7 @@ rsync -avz --delete ./public/ user@server:/var/www/site/public/</code></pre>
     <figcaption>Port 22 sees constant automated login attempts on any public server. The firewall and intrusion prevention are the part worth configuring, not the transfer protocol.</figcaption>
   </figure>
 
-  <h2>Related reading</h2>
+  <h2>If FTP vs SFTP vs FTPS keeps coming back</h2>
   <p>On securing the server around this, <a href="https://www.kloudbean.com/blog/server-hardening-checklist/">the server hardening checklist</a> and <a href="https://www.kloudbean.com/blog/fail2ban-shorewall-hardening/">Fail2ban and Shorewall</a>. On replacing manual uploads, <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">auto-deploy from GitHub</a> and <a href="https://www.kloudbean.com/blog/zero-downtime-deployments/">zero downtime deployments</a>. On files that should not live on your server at all, <a href="https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/">object storage for user uploads</a> and <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3 compatible object storage</a>. On the transport layer generally, <a href="https://www.kloudbean.com/blog/ssl-tls-explained/">SSL and TLS explained</a>. And for recovering from a mistake, <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups</a>.</p>
 
   <div class="cta">

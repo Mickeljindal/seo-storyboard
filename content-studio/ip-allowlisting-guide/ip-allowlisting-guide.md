@@ -69,7 +69,7 @@ Three of those rows no host fixes, ours included. A broken authorisation check, 
 
 What a platform can remove is the friction that makes people skip allowlisting in the first place. Kloudbean's IP Access Control takes allow and deny rules with CIDR ranges as dashboard settings, on top of the Shorewall and Fail2ban baseline every server runs, so locking a staging site or a database down is a small settings change rather than a firewall project you keep postponing. That last part matters more than it sounds. The most common reason a database is open to the internet isn't that someone decided it should be.
 
-## Related reading
+## Once IP Allowlisting is settled
 
 Allowlisting is one access control among several. To gate an app behind a password prompt instead of, or alongside, an address rule, the [Basic Auth gate guide](https://www.kloudbean.com/blog/basic-auth-gate-guide/). For the host firewall underneath, [Fail2ban and Shorewall](https://www.kloudbean.com/blog/fail2ban-and-shorewall-guide/); for the application layer, [what a WAF does](https://www.kloudbean.com/blog/what-a-waf-does/). To keep a service off the public internet entirely, [what a VPC is](https://www.kloudbean.com/blog/what-is-a-vpc/). And the overview that ties the layers together is [secure and compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 

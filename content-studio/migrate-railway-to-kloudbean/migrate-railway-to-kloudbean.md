@@ -101,7 +101,7 @@ The main thing you get is predictability. One flat plan from $8/mo covering the 
 
 The honest tradeoff: Railway's instant-provisioning developer experience is excellent, and for a prototype where you genuinely want spiky usage-based pricing and don't care about forecasting, metered billing is a defensible choice. Flat pricing wins when the app is real and you'd rather know the number. Pick based on which of those you are, not on which platform markets harder.
 
-## Related reading
+## Once the migration is done
 
 Useful next reads: [why is my Railway bill so high](https://www.kloudbean.com/blog/why-is-my-railway-bill-so-high/) for the billing mechanics, [Render vs Railway vs Kloudbean](https://www.kloudbean.com/blog/render-vs-railway-vs-kloudbean/) for the model comparison, and [a Railway alternative](https://www.kloudbean.com/blog/railway-alternative-for-vibe-coded-apps/) for the platform view. On the mechanics: [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/), [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/), [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/), and [migrating with zero downtime](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/).
 

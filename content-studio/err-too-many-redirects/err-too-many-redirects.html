@@ -138,7 +138,7 @@ define( 'WP_SITEURL', 'https://example.com' );</code></pre>
   <h2>A note on HSTS before you test</h2>
   <p>If you have sent an HSTS header, browsers will upgrade <code>http</code> to <code>https</code> themselves without asking your server, which changes what you observe while testing and can make a fix look ineffective. <code>curl</code> does not do this by default, which is another reason to trust it over the browser while diagnosing. And be careful enabling HSTS with a long duration before your HTTPS setup is genuinely correct, because browsers will remember the instruction for the period you specified and you cannot recall it.</p>
 
-  <h2>Where hosting fits</h2>
+  <h2>The operational half of ERR_TOO_MANY_REDIRECTS</h2>
   <p>Look at the causes: a proxy not forwarding a header, TLS terminating without passing the scheme through, canonical rules defined in two places, and sessions with nowhere shared to live. Every one is infrastructure configuration rather than application logic.</p>
   <p>On Kloudbean, nginx comes configured with the forwarded headers your framework expects, free SSL is issued and renewed so terminating TLS properly at the origin is the default rather than a project, Cloudflare is available as a paid add-on and included for enterprise accounts so the edge and the origin get set up together, and managed Redis is in the same dashboard for shared sessions. Staging exists for exactly this kind of change, because redirect rules are the classic thing to get wrong on a live site.</p>
   <p>The honest boundary: nobody else can decide whether your canonical host has <code>www</code>, and an SSL plugin fighting your server config is a plugin decision. What managed configuration removes is the proxy-and-header half, which is where most of these loops start.</p>
@@ -148,7 +148,7 @@ define( 'WP_SITEURL', 'https://example.com' );</code></pre>
     <figcaption>Terminating TLS properly at the origin removes the most common cause of an http to https loop.</figcaption>
   </figure>
 
-  <h2>Related reading</h2>
+  <h2>Threads worth pulling</h2>
   <p>For the SSL mode that causes the edge version of this, <a href="https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/">error 525</a> and <a href="https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/">Cloudflare error codes</a>. On the proxy configuration itself, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">the nginx reverse proxy guide</a>. For certificates, <a href="https://www.kloudbean.com/blog/fix-ssl-certificate-errors/">fixing SSL certificate errors</a> and <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">custom domain and SSL</a>. On shared sessions, <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis hosting</a>. And on the cookie growth that breaks logins, <a href="https://www.kloudbean.com/blog/400-bad-request/">400 Bad Request</a>.</p>
 
   <div class="cta">

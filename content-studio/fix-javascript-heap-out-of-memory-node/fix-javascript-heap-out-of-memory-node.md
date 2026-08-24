@@ -118,7 +118,7 @@ That second one is where a managed setup helps. On Kloudbean your Node app runs 
 
 <!-- ADD IMAGE: a real memory-usage graph before and after the fix, a climbing line that flattens out -->
 
-## How it fits the rest of your stack
+## What else this decision affects
 
 Memory is one of a few things that quietly decide whether a Node app stays up. For the pieces around it, see [the PM2 process manager guide](https://www.kloudbean.com/blog/pm2-process-manager-guide/), [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/) for offloading caches, and [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/). Choosing where to run it all in the first place? [Where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/) walks the options, and [deploy a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) is the hands-on version.
 

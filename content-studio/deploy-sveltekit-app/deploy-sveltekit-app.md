@@ -185,7 +185,7 @@ The failures are boringly repeatable, and every one maps to a decision above. Kn
 
 **Build tools skipped.** If `NODE_ENV=production` is set before install runs, npm skips `devDependencies`, and Vite, Svelte, and the adapter all live there. The build then dies with a missing-module error. Let install pull everything, and let the adapter bundle what the runtime actually needs. When a deploy 503s, read the app's error log first. The reason is almost always one of these five, sitting in plain text.
 
-## The honest limits
+## What this will not fix
 
 Two things worth saying straight. First, this is a Linux Node deployment. SvelteKit compiles to a Node server through `adapter-node`, and that runs great on a managed Linux box. It isn't a Windows or .NET target, which is fine because SvelteKit isn't either.
 

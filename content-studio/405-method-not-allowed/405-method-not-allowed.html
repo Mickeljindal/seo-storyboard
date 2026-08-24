@@ -127,7 +127,7 @@ curl -s -o /dev/null -w '%{http_code}\n' -X DELETE https://example.com/wp-json/w
   <p>Three small things that make a 405 useful rather than annoying. Send the <code>Allow</code> header, because it is required and it answers the reader's next question. Handle <code>OPTIONS</code> on every route that browsers will call cross-origin, before your router has a chance to reject it. And do not return 404 where 405 is correct just to hide your routing, since obscuring which paths exist offers very little security and costs your users real time.</p>
   <p>The reverse mistake exists too: returning 405 for a resource that genuinely does not exist. That sends people looking at their verb when the path is wrong, which is the most frustrating kind of misdirection because the status code is actively lying.</p>
 
-  <h2>Where hosting fits</h2>
+  <h2>405 Method Not Allowed, hosted</h2>
   <p>Two of the five causes are server configuration rather than application code, which is the part worth being specific about. A request that resolves to a static file instead of reaching your application, and methods restricted at the server level, are both nginx behaviour.</p>
   <p>On Kloudbean, nginx is configured to pass application requests to your application rather than left as an exercise in location-block ordering, which removes the most confusing version of this, where a 405 never appears in your application logs because your application never saw the request. Because you have SSH access, the log and config checks above are available directly. Managed WordPress applications are set up with the REST API working, which covers the verb-blocking case.</p>
   <p>The honest boundary: nobody else can decide which verbs your routes accept or handle your preflight for you. What managed configuration removes is the class of 405 that comes from a routing rule you did not write.</p>
@@ -137,7 +137,7 @@ curl -s -o /dev/null -w '%{http_code}\n' -X DELETE https://example.com/wp-json/w
     <figcaption>Application requests routed to the application, rather than resolving to a static file first.</figcaption>
   </figure>
 
-  <h2>Related reading</h2>
+  <h2>Where this connects to the rest</h2>
   <p>The header side of the preflight problem, <a href="https://www.kloudbean.com/blog/fix-cors-error-node-production/">fixing CORS errors</a>. On redirects converting methods, <a href="https://www.kloudbean.com/blog/302-found-vs-301-redirect/">302 vs 301</a>. Neighbouring status codes: <a href="https://www.kloudbean.com/blog/400-bad-request/">400 Bad Request</a>, <a href="https://www.kloudbean.com/blog/http-422-unprocessable-entity/">422 Unprocessable Entity</a>, <a href="https://www.kloudbean.com/blog/403-forbidden-error/">403 Forbidden</a>, and <a href="https://www.kloudbean.com/blog/409-conflict-error/">409 Conflict</a>. For the proxy layer, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">the nginx reverse proxy guide</a>. And on the WordPress API, <a href="https://www.kloudbean.com/blog/wp-rest-api-guide/">the WP REST API guide</a>.</p>
 
   <div class="cta">

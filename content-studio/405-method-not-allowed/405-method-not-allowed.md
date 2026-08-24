@@ -142,7 +142,7 @@ Three small things that make a 405 useful rather than annoying. Send the `Allow`
 
 The reverse mistake exists too: returning 405 for a resource that genuinely does not exist. That sends people looking at their verb when the path is wrong, which is the most frustrating kind of misdirection because the status code is actively lying.
 
-## Where hosting fits
+## 405 Method Not Allowed, hosted
 
 Two of the five causes are server configuration rather than application code, which is the part worth being specific about. A request that resolves to a static file instead of reaching your application, and methods restricted at the server level, are both nginx behaviour.
 
@@ -150,7 +150,7 @@ On Kloudbean, nginx is configured to pass application requests to your applicati
 
 The honest boundary: nobody else can decide which verbs your routes accept or handle your preflight for you. What managed configuration removes is the class of 405 that comes from a routing rule you did not write.
 
-## Related reading
+## Where this connects to the rest
 
 The header side of the preflight problem, [fixing CORS errors](https://www.kloudbean.com/blog/fix-cors-error-node-production/). On redirects converting methods, [302 vs 301](https://www.kloudbean.com/blog/302-found-vs-301-redirect/). Neighbouring status codes: [400 Bad Request](https://www.kloudbean.com/blog/400-bad-request/), [422 Unprocessable Entity](https://www.kloudbean.com/blog/http-422-unprocessable-entity/), [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/), and [409 Conflict](https://www.kloudbean.com/blog/409-conflict-error/). For the proxy layer, [the nginx reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). And on the WordPress API, [the WP REST API guide](https://www.kloudbean.com/blog/wp-rest-api-guide/).
 

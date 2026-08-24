@@ -123,7 +123,7 @@ curl -v -X POST https://api.example.com/v1/orders \
   <p>Raising header buffers to something enormous is the wrong instinct even though it works. Those buffers are allocated per connection, so a very large value multiplied across concurrent connections is real memory, and it also means you never discover that something is quietly filling your cookies. Raise them to a sane ceiling, then fix the growth.</p>
   <p>Adding a catch-all server block to silence Host header 400s has a similar shape: it stops the error and changes which site answers requests that match nothing, which is a subtle security and routing decision made for the wrong reason.</p>
 
-  <h2>Where hosting fits</h2>
+  <h2>Getting error 400 Bad Request into production</h2>
   <p>The server-side half of this list is configuration: header buffer sizes, TLS termination that agrees with the upstream scheme, and sensible defaults that do not lock out your longest-standing users. On Kloudbean, nginx comes configured with limits that work for real applications rather than whatever the default was, and free SSL with correct termination means the plain-HTTP-to-HTTPS-port mismatch does not arrive as a surprise when you add a certificate. Managed Redis in the same dashboard is the real answer to cookie growth, since it gives you somewhere to put session data that does not travel on every request.</p>
   <p>The honest limit: nothing here validates your JSON or encodes your URLs. Application-level 400s are yours, and they should be, because that is your validation working. What managed configuration removes is the class of 400 that has nothing to do with your code.</p>
 
@@ -132,7 +132,7 @@ curl -v -X POST https://api.example.com/v1/orders \
     <figcaption>Server-side request limits configured with the application rather than left at defaults.</figcaption>
   </figure>
 
-  <h2>Related reading</h2>
+  <h2>Read on, if it recurs</h2>
   <p>For neighbouring status codes, <a href="https://www.kloudbean.com/blog/403-forbidden-error/">403 Forbidden</a>, <a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504 Gateway Timeout</a>, and <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a>. The same oversized-header problem behind a proxy appears as <a href="https://www.kloudbean.com/blog/cloudflare-error-520/">Cloudflare error 520</a>. To move session data out of cookies, <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis hosting</a>. For the proxy layer, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">the nginx reverse proxy guide</a>. On cross-origin requests that fail for related reasons, <a href="https://www.kloudbean.com/blog/fix-cors-error-node-production/">fixing CORS errors</a>. And for TLS termination, <a href="https://www.kloudbean.com/blog/ssl-tls-explained/">SSL and TLS explained</a>.</p>
 
   <div class="cta">

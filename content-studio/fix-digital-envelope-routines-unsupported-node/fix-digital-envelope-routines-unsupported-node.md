@@ -87,7 +87,7 @@ Miss the third one and you've pinned development while leaving production floati
 
 Now the part no host solves, ours included. Nothing about where you deploy upgrades Webpack 4 for you, removes the legacy flag from your `package.json` scripts, or decides that this quarter is the quarter you finally move off Create React App. A platform can make the runtime predictable. It can't make your build tooling current. That work stays on your side of the line, and postponing it just moves the same afternoon further into the future. For where to run Node overall, see [the managed Node.js hosting guide](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/).
 
-## Related reading
+## If you came here for fix
 
 The root cause here is version drift, covered in [Node.js version management](https://www.kloudbean.com/blog/node-version-management/). If your build fails a different way, [why my app crashes on deploy](https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/) and [fixing cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/) are the usual suspects. For a React build specifically, [deploy a full-stack React app](https://www.kloudbean.com/blog/deploy-fullstack-react-app-to-production/), and for where to host Node, [the best managed Node.js hosting guide](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/).
 

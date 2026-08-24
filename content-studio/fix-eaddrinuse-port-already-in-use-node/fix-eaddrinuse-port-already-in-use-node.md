@@ -107,7 +107,7 @@ This is where a managed platform quietly removes the whole class of problem. On 
 
 <!-- ADD IMAGE: a terminal running lsof -i :3000 then kill, freeing the port and letting the app start -->
 
-## How it fits the rest of your stack
+## EADDRINUSE and the rest of the stack
 
 Ports, processes, and clean restarts are the same story. Go deeper with [the PM2 process manager guide](https://www.kloudbean.com/blog/pm2-process-manager-guide/), keep your port out of code with [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/), and make restarts seamless with [zero-downtime deployments](https://www.kloudbean.com/blog/zero-downtime-deployments/). Deciding where to run the app? [Where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/) covers the options, and [deploy a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) is the hands-on version.
 

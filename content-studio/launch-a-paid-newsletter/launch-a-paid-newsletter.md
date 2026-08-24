@@ -125,7 +125,7 @@ One caveat it would be convenient to skip. Deliverability and sending reputation
 
 If you don't want to own that, stay on a platform. Not a cop-out. It's the right call for a lot of people, and it's the biggest thing the hosted options do for you.
 
-## Related reading
+## Where launch a Paid Newsletter leads
 
 - [Self-hosted tools worth running](https://www.kloudbean.com/blog/best-self-hosted-tools/) if you like owning your stack.
 - [What a side project actually costs](https://www.kloudbean.com/blog/cost-of-running-a-side-project/) to keep online.

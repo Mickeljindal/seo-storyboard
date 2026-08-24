@@ -101,7 +101,7 @@ On the other side, there are clear moments to pay. Reach for the paid plans when
 
 In those cases the paid tiers buy something concrete, and the money is well spent. The mistake isn't paying Cloudflare. It's paying before you have the problem.
 
-## A quick way to decide
+## Deciding about do I Need Cloudflare without ceremony
 
 You can settle this in about a minute.
 

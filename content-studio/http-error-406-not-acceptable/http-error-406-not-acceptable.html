@@ -112,7 +112,7 @@ Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8</code></
     </tbody>
   </table>
 
-  <h2>Where hosting fits</h2>
+  <h2>HTTP Error 406 Not Acceptable needs a server that behaves</h2>
   <p>This one has a genuinely clean hosting answer, and it is worth being precise rather than expansive about it.</p>
   <p>The 406-as-a-block behaviour comes from mod_security configurations common on Apache-based shared and cPanel hosting. Kloudbean runs a different stack: nginx with Shorewall and Fail2ban for the network and intrusion-prevention layer, which are confirmed parts of the platform. So the specific failure mode where a legitimate blog post containing a code sample gets rejected with 406 by an aggressive shared ruleset is not the shape of problem you meet here.</p>
   <p>Being straight about what that does and does not mean. It does not mean requests are never blocked, and there is no managed application firewall bundled in as a replacement for one. Cloudflare is available as a paid add-on and included for enterprise accounts, and if you enable its rules then those rules can block requests, at which point the diagnosis above still applies with the logs living at the edge. What is genuinely different is that you are not sharing a ruleset tuned for thousands of unrelated sites, and when a block does happen you have SSH access and your own logs rather than a support ticket and a guess.</p>
@@ -122,7 +122,7 @@ Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8</code></
     <figcaption>Your own server, your own logs, and SSH access when you need to find out what actually blocked a request.</figcaption>
   </figure>
 
-  <h2>Related reading</h2>
+  <h2>More on HTTP Error 406 Not Acceptable</h2>
   <p>The same false-positive pattern with a different status code, <a href="https://www.kloudbean.com/blog/403-forbidden-error/">403 Forbidden</a>. Its mirror image is <a href="https://www.kloudbean.com/blog/http-error-415-unsupported-media-type/">415 Unsupported Media Type</a>: a 406 is about the Accept header and what you asked to receive, while a 415 is about Content-Type and what you sent. Neighbouring codes: <a href="https://www.kloudbean.com/blog/400-bad-request/">400 Bad Request</a>, <a href="https://www.kloudbean.com/blog/http-error-401-unauthorized/">401 Unauthorized</a>, <a href="https://www.kloudbean.com/blog/409-conflict-error/">409 Conflict</a>, and <a href="https://www.kloudbean.com/blog/429-too-many-requests/">429 Too Many Requests</a>. For content negotiation's caching cousin, <a href="https://www.kloudbean.com/blog/304-not-modified/">304 Not Modified</a>. On WordPress security specifically, <a href="https://www.kloudbean.com/blog/secure-wordpress-hosting/">secure WordPress hosting</a>. And for headers generally, <a href="https://www.kloudbean.com/blog/security-headers-guide/">the security headers guide</a>.</p>
 
   <div class="cta">

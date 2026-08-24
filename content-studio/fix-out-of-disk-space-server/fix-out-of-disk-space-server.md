@@ -262,7 +262,7 @@ Full disks get blamed on hosting more than almost any other incident, and most o
 
 If a row in that table says "your config" or "your code", changing hosts won't help you. The rows a managed platform does own are the boring ones, and the useful thing about having backups, object storage, managed databases and monitoring in one place is that the fix for the rows you own stops being a procurement exercise.
 
-## Related reading
+## More on server Out of Disk Space
 
 [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/) for moving uploads off local disk, [server backups](https://www.kloudbean.com/blog/server-backups-guide/) before you delete anything you're unsure about, [uptime monitoring](https://www.kloudbean.com/blog/uptime-monitoring/) so you hear about a filling disk early, [structured logging in Node.js](https://www.kloudbean.com/blog/structured-logging-nodejs/) for keeping log volume sane, and [why a Node app crashes on deploy](https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/), since ENOSPC is a common hidden cause. Then the [server hardening checklist](https://www.kloudbean.com/blog/server-hardening-checklist/) and [vertical vs horizontal scaling](https://www.kloudbean.com/blog/vertical-vs-horizontal-scaling/) for when resizing genuinely is the right call.
 

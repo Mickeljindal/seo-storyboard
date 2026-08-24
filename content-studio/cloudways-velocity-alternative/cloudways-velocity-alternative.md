@@ -184,7 +184,7 @@ Point a Kloudbean server at the same GitHub repository, copy the environment var
 
 Free migration assistance covers one migration per server on Standard, and there's a 3-day trial on one service if you'd rather prove it than take my word for it.
 
-## How it fits the rest of your stack
+## How cloudways Velocity Alternative connects to everything else
 
 Start with [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/) for the architectural options, then the hands-on [deploy a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/), [deploy an Express app](https://www.kloudbean.com/blog/deploy-express-app/) and [deploy a NestJS app](https://www.kloudbean.com/blog/deploy-nestjs-app/). For uploads, [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). Weighing Cloudways more broadly? See [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/) and [Cloudways alternatives](https://www.kloudbean.com/blog/cloudways-alternatives/). For the database beside the app, [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/).
 

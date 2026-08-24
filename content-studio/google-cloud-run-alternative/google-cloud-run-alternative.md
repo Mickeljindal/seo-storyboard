@@ -221,7 +221,7 @@ Yes. Google Cloud is one of the seven clouds Kloudbean supports, so you can run 
 Not always. Because Cloud Run pricing is per request plus CPU and memory by the moment, a spike, a retry storm, or a crawler can push the bill up unexpectedly. It's cheap when idle, which is the whole point, but harder to forecast under steady or growing load. A flat server price trades that variability for a fixed number.
 
 **What kinds of apps run on Kloudbean?**
-Node.js (Express, Next.js, React, Vue), Python (Django, Flask, FastAPI), PHP (Laravel, WordPress), Ruby, Java, and static sites, all on Linux. Windows Server is a Premium and Enterprise option rather than a standard one, and .NET runs on Linux. Managed means the server, stack, SSL, backups, and patching are handled while you own your code and data.
+Node.js (Express, Next.js, React, Vue), Python (Django, Flask, FastAPI), PHP (Laravel, WordPress), Ruby, Java, and static sites, all on Linux. The Linux stack includes .NET; Windows Server is available higher up the tiers. Managed means the server, stack, SSL, backups, and patching are handled while you own your code and data.
 
 **Do I need a Dockerfile to deploy on Kloudbean?**
 No. Kloudbean builds and runs your app from your Git repo using install, build, and start commands, so you don't need to build or push a container image. If a specific container image in production is a hard requirement, that's a point in Cloud Run's favor and worth weighing honestly.

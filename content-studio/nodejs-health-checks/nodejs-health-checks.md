@@ -70,7 +70,7 @@ Readiness has a second job during shutdown. When your app receives SIGTERM on a 
 
 Health checks are how the platform and your monitoring know the truth about your app. On Kloudbean your Node app runs always-on under PM2, so a proper liveness endpoint gives the process manager a clean signal to act on, and a readiness endpoint lets traffic and deploys behave correctly. Pair the same endpoints with external uptime monitoring so you're alerted the moment readiness starts failing, rather than finding out from users. The endpoints are yours to write, that's application logic, but they're what makes the surrounding automation trustworthy.
 
-## Related reading
+## node.js Health Checks, in more depth
 
 Health checks sit in the middle of your production ops. They pair with [graceful shutdown](https://www.kloudbean.com/blog/graceful-shutdown-nodejs/) and [zero-downtime deployments](https://www.kloudbean.com/blog/zero-downtime-deployments/) for clean releases, with [uptime monitoring](https://www.kloudbean.com/blog/uptime-monitoring/) for alerts, and with [PM2 restart behavior](https://www.kloudbean.com/blog/pm2-app-keeps-restarting/) when a liveness failure triggers a restart. The readiness dependency check connects to [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/).
 

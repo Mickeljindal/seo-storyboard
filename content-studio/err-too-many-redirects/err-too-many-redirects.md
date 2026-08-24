@@ -181,7 +181,7 @@ Each hop is a full round trip before anything renders. Three hops on a mobile co
 
 If you have sent an HSTS header, browsers will upgrade `http` to `https` themselves without asking your server, which changes what you observe while testing and can make a fix look ineffective. `curl` does not do this by default, which is another reason to trust it over the browser while diagnosing. And be careful enabling HSTS with a long duration before your HTTPS setup is genuinely correct, because browsers will remember the instruction for the period you specified and you cannot recall it.
 
-## Where hosting fits
+## The operational half of ERR_TOO_MANY_REDIRECTS
 
 Look at the causes: a proxy not forwarding a header, TLS terminating without passing the scheme through, canonical rules defined in two places, and sessions with nowhere shared to live. Every one is infrastructure configuration rather than application logic.
 
@@ -189,7 +189,7 @@ On Kloudbean, nginx comes configured with the forwarded headers your framework e
 
 The honest boundary: nobody else can decide whether your canonical host has `www`, and an SSL plugin fighting your server config is a plugin decision. What managed configuration removes is the proxy-and-header half, which is where most of these loops start.
 
-## Related reading
+## Threads worth pulling
 
 For the SSL mode that causes the edge version of this, [error 525](https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/) and [Cloudflare error codes](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/). On the proxy configuration itself, [the nginx reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). For certificates, [fixing SSL certificate errors](https://www.kloudbean.com/blog/fix-ssl-certificate-errors/) and [custom domain and SSL](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/). On shared sessions, [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/). And on the cookie growth that breaks logins, [400 Bad Request](https://www.kloudbean.com/blog/400-bad-request/).
 

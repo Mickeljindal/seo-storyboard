@@ -90,7 +90,7 @@ What you get either way: managed servers across seven clouds with your choice of
 
 One honest asymmetry worth knowing before you choose. Staging sites on Kloudbean cover WordPress and Laravel, so if you pick WordPress you get one-click staging for exactly the update-breaks-the-site problem described above. On Joomla you would handle that yourself. Given how much of the operational risk in both platforms comes from applying updates directly to production, that is a real factor rather than a marketing line.
 
-## Related reading
+## If joomla vs WordPress was the symptom, not the cause
 
 On the WordPress side, [managed WordPress hosting](https://www.kloudbean.com/blog/managed-wordpress-hosting/), [secure WordPress hosting](https://www.kloudbean.com/blog/secure-wordpress-hosting/), [staging environments](https://www.kloudbean.com/blog/wordpress-staging-environment/), and [speeding up WordPress](https://www.kloudbean.com/blog/speed-up-wordpress/). For commerce, [WooCommerce hosting](https://www.kloudbean.com/blog/woocommerce-hosting/). On the database underneath both, [MariaDB vs MySQL](https://www.kloudbean.com/blog/mariadb-vs-mysql/). For the failure mode that dominates both platforms, [the critical error guide](https://www.kloudbean.com/blog/there-has-been-a-critical-error-on-this-website/). And on backups you can actually restore, [the backups guide](https://www.kloudbean.com/blog/server-backups-guide/).
 

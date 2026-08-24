@@ -156,15 +156,15 @@ Two WordPress specific notes. A fatal error during an update can leave the site 
 
 <!-- ADD IMAGE: the wp-content/debug.log open in an editor with a plugin path visible on the fatal error line -->
 
-## Where hosting fits, honestly
+## 500 Internal Server Error and who maintains the box
 
 The honest boundary first. A 500 caused by your own uncaught exception is your bug, and no host can fix it for you. What a platform can do is remove the friction between you and the message, and cut the number of 500s that come from the server rather than the code.
 
 On Kloudbean both application and server logs sit in the same dashboard as the server itself, so the first step of this guide does not require an SSH session and a hunt for the right path. The reverse proxy and the stack are managed and patched, which retires the class of 500s that come from a hand-edited config file or a permissions change nobody recorded. Staging for WordPress and Laravel means an update that triggers a fatal error does it somewhere harmless, and automatic backups mean the restore path exists before you need it. Seven cloud providers to run on, free SSL issued and renewed, and free migration assistance if you are moving something that already works.
 
-The line stays where it always is. Managed covers the server, the stack, TLS, backups, and patching. Your application code and your data remain yours, and that is the half a 500 usually lives in.
+The line stays where it always is. Patching, TLS renewal, backups and stack upkeep are not on your list. Your application code and your data remain yours, and that is the half a 500 usually lives in.
 
-## Related reading
+## More on 500 Internal Server Error
 
 The rest of the 5xx family, each a different failure: [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/) when the proxy cannot get an answer, [503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/) when nothing came up, and [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/) when it answered too slowly. At the edge, [Cloudflare's 5xx codes](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/). For the inbound mirror image, [408 Request Timeout](https://www.kloudbean.com/blog/http-error-408-request-timeout/). On making the logs worth reading, [structured logging in Node](https://www.kloudbean.com/blog/structured-logging-nodejs/). For the config half of the problem, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) and [nginx as a reverse proxy](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). And when a module import is what raised, [cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/).
 

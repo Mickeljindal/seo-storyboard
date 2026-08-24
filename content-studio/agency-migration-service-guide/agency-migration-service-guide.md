@@ -79,13 +79,13 @@ Onboarding migration, moving one new client in, should almost always be free, be
 
 A large or complex portfolio migration is different. Moving fifty sites, some with custom stacks, is a real project with real hours, and it is reasonable to price it as one, or to absorb it deliberately as an investment in a lower cost base once they are consolidated. What you should not do is let the fear of "migration is hard" stop you from consolidating your own clients, because that fear is mostly the chore-framing this article exists to dismantle. Keep specifics out of your public pricing and quote the project; the point here is the structure, not a number.
 
-## Where hosting fits, honestly
+## What a host can and cannot fix here
 
 Migration as a service is only as easy to offer as the platform makes it. On Kloudbean, free migration assistance means the actual moving of files, databases, and configuration is work you can lean on rather than shoulder alone, which is what makes "we'll move you free" a promise you can keep at scale. Staging for WordPress and Laravel is where every migration gets built and verified before a single DNS record changes, automatic backups give the pre-cutover safety net, and free SSL is reissued at the destination so HTTPS is ready the moment you flip over. It all runs from one account across seven clouds, so a portfolio ends up consolidated rather than scattered, which is the whole point of the portfolio migration.
 
 The honest boundary: the platform and the assistance do the heavy technical lifting, but the service is yours to run. Scheduling the waves, choosing what to charge, and above all reassuring the client are the parts only you can do, and they are what turn a capability into a service clients actually buy.
 
-## Related reading
+## Before you close the tab
 
 The per-site mechanics are [migrating hosting without downtime](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/), and the DNS timing detail is [how DNS caching and TTL work](https://www.kloudbean.com/blog/flush-dns-cache/). A migrated-in client flows into the [onboarding runbook](https://www.kloudbean.com/blog/agency-onboarding-checklist/); the consolidation payoff is [hosting 20 client apps on one server](https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/) and the cost logic is [client billing and markup](https://www.kloudbean.com/blog/client-billing-and-markup-for-hosting/). The whole operation is the [hosting for agencies playbook](https://www.kloudbean.com/blog/hosting-for-agencies-playbook/), and moving a client out again is [agency client offboarding](https://www.kloudbean.com/blog/agency-client-offboarding/).
 

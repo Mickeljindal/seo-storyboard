@@ -69,7 +69,7 @@ If your data changes constantly, do the final dump during a quiet window so you 
 
 Fair question, and sometimes the answer is yes. Upgrading to a paid Render instance removes the expiry, so if your app already lives happily on Render and you just want the clock gone, that's a legitimate move. Weigh two things before you do. First, a paid managed database is a real monthly cost either way, so you're now comparing hosts, not free-versus-paid. Second, think about where the rest of your stack lives: if your app, database, storage, and backups are scattered across separate dashboards and bills, a single place to run all of it is worth something. That's the case for consolidating on Kloudbean, where the app and its database sit together on one flat plan, rather than upgrading a database in isolation.
 
-## How it fits the rest of your stack
+## Neighbouring decisions
 
 Moving off a trial database is a good moment to get the fundamentals right. See [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) for what "managed" should include, keep secrets clean with [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/), and if you're moving the app too, [deploy a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) walks the full path. Weighing platforms overall? [Render vs Railway vs Kloudbean](https://www.kloudbean.com/blog/render-vs-railway-vs-kloudbean/) and [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/) lay out the tradeoffs.
 

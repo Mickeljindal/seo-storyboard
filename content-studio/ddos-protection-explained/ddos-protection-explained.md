@@ -79,7 +79,7 @@ A quick clarification, because people mix these up. A [load balancer](https://ww
 
 <!-- ADD IMAGE: an edge or WAF dashboard showing blocked requests climbing while origin traffic stays flat -->
 
-## Where people get this wrong
+## The mistake worth avoiding
 
 Three mistakes come up again and again. They're worth naming, because each one feels reasonable and each one fails at the worst possible moment.
 

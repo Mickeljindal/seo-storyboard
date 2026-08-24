@@ -169,7 +169,7 @@ The giveaway is that `/etc/debian_version` exists on Ubuntu too, and it reports 
 
 Debian releases carry a single major number with a codename, 12 being bookworm, and the support window is structured differently from Ubuntu's, with a full-support period followed by a longer-term maintenance phase. The practical advice is identical: know which release you are on, and know whether it is still receiving security updates.
 
-## Where hosting fits
+## What the host has to get right
 
 The reason this matters commercially is that somebody has to own OS patching, and it is a job that produces nothing visible when it is done properly.
 
@@ -181,7 +181,7 @@ The honest boundary: managed means the server, stack, SSL, backups, and patching
 
 <!-- ADD IMAGE: the server health screen, or your own apt output after a clean upgrade. -->
 
-## Related reading
+## Follow the thread
 
 Once you know which distribution you are on, [extracting archives and the case against installing from a tarball](https://www.kloudbean.com/blog/extract-zip-and-tar-gz-on-linux/) depends on that answer, since the package manager differs. On keeping a server defensible, the [server hardening checklist](https://www.kloudbean.com/blog/server-hardening-checklist/) and [Fail2ban and Shorewall](https://www.kloudbean.com/blog/fail2ban-shorewall-hardening/). On who owns patching, [managed versus unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/). Before any upgrade, [server backups](https://www.kloudbean.com/blog/server-backups-guide/). On moving to a new server rather than upgrading in place, [zero downtime deployments](https://www.kloudbean.com/blog/zero-downtime-deployments/). And for connecting to the machine in the first place, [FTP versus SFTP](https://www.kloudbean.com/blog/ftp-vs-sftp/).
 

@@ -127,15 +127,15 @@ So if you know a change is coming, whether a host migration or a new server, dro
 
 Doing it the other way round, changing the record and then trying to hurry the world along, is where the flushing folklore comes from. There is no command that reaches other people's resolvers. [DNS explained](https://www.kloudbean.com/blog/dns-explained/) covers TTL and records properly, and [migrating hosting without downtime](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/) puts the TTL step in its correct place in a real move.
 
-## Where hosting fits, honestly
+## flush DNS Cache and who maintains the box
 
 Straightforwardly: nothing on this page needs a hosting provider. These are operating system commands, and DNS is a public system that belongs to nobody.
 
 Where it becomes a hosting question is the migration case, which is what sends most people looking for a flush command in the first place. On Kloudbean, free migration assistance means the cutover sequence, including lowering TTL before the switch rather than discovering it afterwards, is handled with you rather than left as a step you find out about from a support thread. SSL is issued and renewed free once the domain points at the server, so the certificate does not become a second problem the moment DNS resolves. Staging for WordPress and Laravel means you can confirm the new server serves the site correctly before any record changes at all, which is the real way to avoid a bad cutover. Seven cloud providers to move onto.
 
-The boundary as usual. Managed covers the server, the stack, TLS, backups, and patching. Your domain, your DNS records, and how long other people's resolvers hold them stay outside anyone's control.
+The boundary as usual. What is handled: the operating system, the stack, certificates, backups and patches. Your domain, your DNS records, and how long other people's resolvers hold them stay outside anyone's control.
 
-## Related reading
+## More on flush DNS Cache
 
 If you are actually debugging rather than looking up a command: [ERR_NAME_NOT_RESOLVED](https://www.kloudbean.com/blog/err-name-not-resolved/) for a name that will not resolve, including why a record you just fixed can keep failing, and [fixing slow DNS lookups](https://www.kloudbean.com/blog/fix-slow-dns-lookup/) when resolution works but drags. For the concepts behind all of it, [DNS explained](https://www.kloudbean.com/blog/dns-explained/). For the cutover where TTL actually matters, [migrating hosting with zero downtime](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/) and [pointing a custom domain at your app](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/). And when the name resolves fine but the server then fails, [500 Internal Server Error](https://www.kloudbean.com/blog/http-error-500-internal-server-error/).
 

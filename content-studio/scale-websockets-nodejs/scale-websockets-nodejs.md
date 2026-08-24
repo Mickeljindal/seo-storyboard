@@ -87,7 +87,7 @@ The deeper lesson: any real-time state you keep in a JavaScript variable, who's 
 
 Worth naming plainly: WebSockets want long-lived processes. A connection that stays open for hours is the opposite of a request-scoped serverless function, which is why real-time apps on function platforms end up constrained by execution limits, forced reconnects, and external state requirements. On Kloudbean your Node app runs always-on under PM2 on a real server, so it can hold WebSocket connections normally, and you can launch managed Redis in the same dashboard for the pub/sub adapter, running right next to your app. If you need to spread connections across servers, the built-in Flexible Load Balancer handles the front door. It's the persistent-process setup real-time actually wants.
 
-## Related reading
+## scaling WebSockets in Node.js, in more depth
 
 Redis is doing the heavy lifting here, so see [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/) and [Redis caching patterns](https://www.kloudbean.com/blog/redis-caching-patterns/). For the proxy layer, [Nginx reverse proxy for Node](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/) and [cloud load balancer explained](https://www.kloudbean.com/blog/cloud-load-balancer-explained/) cover the front door. On the scaling decision itself, read [vertical vs horizontal scaling](https://www.kloudbean.com/blog/vertical-vs-horizontal-scaling/), and for why functions struggle here, [Vercel for Node.js backends](https://www.kloudbean.com/blog/vercel-for-node-backends-limits/).
 

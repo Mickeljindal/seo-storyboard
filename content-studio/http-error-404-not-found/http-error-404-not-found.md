@@ -68,7 +68,7 @@ Steps 2 through 5 are all server wiring, which is the half of this list that cha
 
 Step 1 belongs to you either way, and it's the one people waste the most hours on. A wrong-case reference or an asset your build never produced will 404 identically on managed hosting, on a bare server, and on any CDN, because the file genuinely isn't there. For the front-end specifics see [deploy a static site](https://www.kloudbean.com/blog/deploy-static-site/), and for the broader version of this question, [why my app works locally but not in production](https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/).
 
-## Related reading
+## More on 404 Not Found
 
 The production-only version of this is explored in [why my app works locally but not in production](https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/), and the import-side of case sensitivity is in [fixing cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/). For deploying front ends, [deploy a static site](https://www.kloudbean.com/blog/deploy-static-site/) and [deploy a Next.js app](https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/). A neighbouring status code with a similar "the server answered" logic is [405 method not allowed](https://www.kloudbean.com/blog/405-method-not-allowed/).
 

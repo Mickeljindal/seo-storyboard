@@ -84,7 +84,7 @@ On Kloudbean, subusers and UAC give you the per-resource, per-action grid this a
 
 The honest boundary: the platform gives you the access model and the tools. Designing sensible roles, remembering to revoke the contractor, and deciding who on a client's side gets a login are yours, because only you know your engagements. A good model makes the right thing easy; it cannot make the decision for you.
 
-## Related reading
+## subusers and UAC in a wider setup
 
 This is one part of running a client fleet. The whole operation is in the [hosting for agencies playbook](https://www.kloudbean.com/blog/hosting-for-agencies-playbook/), and the scale version is [how agencies host 20 client apps on one server](https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/). For why scoped access is a managed-cloud property rather than a reseller one, [reseller hosting versus managed cloud](https://www.kloudbean.com/blog/reseller-hosting-vs-managed-cloud/). On keeping clients isolated at the server level, [hosting multiple apps on one server](https://www.kloudbean.com/blog/host-multiple-apps-one-server/), and for branding the experience for clients, [white-label hosting](https://www.kloudbean.com/blog/white-label-hosting-for-agencies/). Secrets deserve the same care as access: [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 

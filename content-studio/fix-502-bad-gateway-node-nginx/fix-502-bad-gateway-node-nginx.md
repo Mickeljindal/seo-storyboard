@@ -91,7 +91,7 @@ A flickering 502 that comes and goes often means the Node process is crashing an
 
 A good share of 502s are really "the Nginx and Node wiring drifted apart," wrong port, missing reload, app listening on the wrong interface. That whole class disappears when the proxy is managed for you. On Kloudbean the reverse proxy in front of your always-on Node app is configured and maintained by the platform, along with SSL, so you're not hand-editing `proxy_pass` or reloading Nginx at all. A genuine app crash can still cause a 502, that's your code, but the misconfiguration causes are off the table.
 
-## Related reading
+## Keep going
 
 The proxy layer and the crash causes are the two halves of a 502. For the proxy, see [Nginx reverse proxy for Node](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/) and [reverse proxy explained](https://www.kloudbean.com/blog/reverse-proxy-explained/). For the crashes, see [PM2 app keeps restarting](https://www.kloudbean.com/blog/pm2-app-keeps-restarting/), [ECONNREFUSED](https://www.kloudbean.com/blog/fix-econnrefused-node/), and [heap out of memory](https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/). If the code in your log is actually 500 rather than 502, the diagnosis inverts, because a 500 proves the process is alive and responding: see [500 Internal Server Error](https://www.kloudbean.com/blog/http-error-500-internal-server-error/). To catch 502s early, set up [uptime monitoring](https://www.kloudbean.com/blog/uptime-monitoring/).
 

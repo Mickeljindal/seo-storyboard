@@ -98,7 +98,7 @@ Alert on the slope, not the ceiling. A count that climbs through a quiet period 
 
 And the part no platform can do, ours firmly included: nothing about where you deploy closes a stream your error path skipped, or releases a client your route handler forgot in a `catch`. A managed server can give you a sane baseline limit, supervision, and a place to see the count. It cannot put the `finally` block in your code. Sizing is the conversation to have once the leak is gone, covered alongside where to run Node in [the managed Node.js hosting guide](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/).
 
-## Related reading
+## More on fix
 
 The other resource-exhaustion error is [JavaScript heap out of memory](https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/), which is RAM rather than descriptors. Leaks often trace back to connections, so [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) and [scaling WebSockets in Node](https://www.kloudbean.com/blog/scale-websockets-nodejs/) are close neighbours, and [graceful shutdown](https://www.kloudbean.com/blog/graceful-shutdown-nodejs/) covers closing things cleanly. For where to run Node, [the managed Node.js hosting guide](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/).
 

@@ -103,9 +103,9 @@ Cost tracks complexity here more than sticker price. Fly bills for the Machines 
 
 So if you were running regions you didn't strictly need, consolidating to one server plus a CDN is usually both a saving and a simplification. If you genuinely need distributed compute, Fly's cost is buying something real, and the comparison isn't apples to apples. Be honest about which case you're in.
 
-## The honest limits
+## The edges of this approach
 
-Kloudbean runs **Linux** stacks: Node.js (React, Vue, Angular, Express), Python (Django, Flask, FastAPI), PHP (WordPress, Laravel), Ruby, Java, and static sites. Windows Server is a Premium and Enterprise option rather than a standard one, and .NET runs on Linux. "Managed" means Kloudbean runs the server, stack, SSL, and backups, while you own and maintain the application and your data. The technical point, plainly: a single origin server is *not* distributed compute. With Cloudflare edge caching in front, your content is genuinely fast worldwide, which is what most "edge" needs are. For real multi-region compute, that's Fly's niche, and this piece won't pretend otherwise. The [full deploy walkthrough](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) covers shipping any app end to end, and [what a VPC is](https://www.kloudbean.com/blog/what-is-a-vpc/) explains network isolation, which Kloudbean offers as an Enterprise feature.
+Kloudbean runs **Linux** stacks: Node.js (React, Vue, Angular, Express), Python (Django, Flask, FastAPI), PHP (WordPress, Laravel), Ruby, Java, and static sites. Windows Server sits on the Premium and Enterprise tiers, while .NET itself runs on Linux. "Managed" means Kloudbean runs the server, stack, SSL, and backups, while you own and maintain the application and your data. The technical point, plainly: a single origin server is *not* distributed compute. With Cloudflare edge caching in front, your content is genuinely fast worldwide, which is what most "edge" needs are. For real multi-region compute, that's Fly's niche, and this piece won't pretend otherwise. The [full deploy walkthrough](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) covers shipping any app end to end, and [what a VPC is](https://www.kloudbean.com/blog/what-is-a-vpc/) explains network isolation, which Kloudbean offers as an Enterprise feature.
 
 ---
 

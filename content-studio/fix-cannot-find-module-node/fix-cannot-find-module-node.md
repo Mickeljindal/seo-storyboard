@@ -96,7 +96,7 @@ On a fresh server with no `dist` committed (as it shouldn't be), forgetting the 
 
 Most of these bugs hide in the gap between "my laptop" and "the server." A consistent build pipeline closes that gap. On Kloudbean, deploys run from a GitHub push through managed CI/CD: your install and build commands run on the server every time, in a Linux environment, with live build logs streaming to the console. That means the case-sensitivity trap and the missing-build trap surface in the build log the first time, not as a 2am production crash. You still have to write the correct import, but you find out immediately when you didn't.
 
-## Related reading
+## Once error is settled
 
 Clean builds and config prevent most of these. See [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) for a build that runs on every push, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) for the config side, and framework guides like [deploy an Express app](https://www.kloudbean.com/blog/deploy-express-app/) and [deploy a NestJS app](https://www.kloudbean.com/blog/deploy-nestjs-app/). Chasing a different error? Try [ECONNREFUSED in Node.js](https://www.kloudbean.com/blog/fix-econnrefused-node/) or [EADDRINUSE: port already in use](https://www.kloudbean.com/blog/fix-eaddrinuse-port-already-in-use-node/).
 

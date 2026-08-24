@@ -88,7 +88,7 @@ SSL is not optional. Your domain serves over HTTPS, browsers expect it, and a lo
 
 Backups are the layer nobody thinks about until the one day they'd have saved everything. Your Postgres data is the part of this whole stack you cannot rebuild from a Git push. The app is code. The database is the business.
 
-So: automatic backups on a schedule, kept somewhere separate from the database itself. And then the step people skip, actually restore one, once, into a throwaway environment, so you know the backup is real and you know the steps before you need them at 2am. A backup you've never restored is a hope, not a plan.
+So: automatic backups on a schedule, kept somewhere separate from the database itself. And then the step people skip, actually restore one, once, into a throwaway environment, so you know the backup is real and you know the steps before you need them at 2am. An untested backup is a guess wearing a plan's clothes.
 
 ## Each layer, its job, and its production concern
 

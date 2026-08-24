@@ -116,11 +116,11 @@ And here's a benefit that shows up later: the server isn't a slot for one app. Y
 
 Don't expect a smaller number in every case, because that's not always true. Vercel bills by usage and seats; a managed server is a flat monthly price for the box whatever the traffic. At genuinely tiny traffic, a hobby plan can undercut any always-on server. As usage and the team grow, the flat server tends to win, and it wins on predictability at any size, since a quiet month and a launch month cost the same. If a bill you can actually forecast is what you're after, that's the real prize here, not the lowest possible line item. Weighing the numbers for a smaller project? The [cost of running a side project](https://www.kloudbean.com/blog/cost-of-running-a-side-project/) breaks it down.
 
-## The honest limits
+## The trade-offs you are accepting
 
-Kloudbean runs Linux web stacks: Node and the modern web toolkit (React, Next.js, Vue) plus PHP, Python, Ruby, and Java when you need them. That's exactly what Lovable produces, so you're in the right place. Windows Server is a Premium and Enterprise option rather than a standard one, and .NET runs on Linux. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and automatic backups; you own the application and its data. And because it's a standard Linux box running standard code, you can move it again later. This migration off Vercel is the same move in reverse whenever you want it.
+Kloudbean runs Linux web stacks: Node and the modern web toolkit (React, Next.js, Vue) plus PHP, Python, Ruby, and Java when you need them. That's exactly what Lovable produces, so you're in the right place. For .NET, Linux is enough. For Windows Server itself, look at Premium or Enterprise. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and automatic backups; you own the application and its data. And because it's a standard Linux box running standard code, you can move it again later. This migration off Vercel is the same move in reverse whenever you want it.
 
-**A rehoming, not a rebuild.** Move your app at [kloudbean.com](https://www.kloudbean.com/). One-click databases, automatic backups, IP allow-listing, free migration, free trial, and simple Git deploy. Fresh-deploy walkthrough [here](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/); plans on [pricing](https://www.kloudbean.com/pricing/).
+**A rehoming, not a rebuild.** Move your app at [kloudbean.com](https://www.kloudbean.com/). One-click database launch · scheduled backups · allow-listed access · Git-based deploys. Fresh-deploy walkthrough [here](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/); plans on [pricing](https://www.kloudbean.com/pricing/).
 
 ## FAQ
 

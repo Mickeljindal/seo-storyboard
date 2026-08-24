@@ -94,7 +94,7 @@ Worth stepping back, because this error is a symptom of a design decision rather
 
 So the useful mental rule is that a URL a user might return to should be reachable with GET. If returning to a page requires repeating a side effect, the design is asking the browser to do something it correctly refuses to do. Once you see the error that way, the fix is obvious and the browser stops looking awkward.
 
-## Where hosting fits, honestly
+## What changes once this is in production
 
 This one is mostly yours, and it should be. It is an application design question and a response header question, and no hosting change makes a POST replayable.
 
@@ -102,7 +102,7 @@ Two smaller things do touch it. Response headers are set by your application or 
 
 Beyond that, the fix is a 303 in your route handler. That is a good outcome: a browser error that turns out to be a small, permanent improvement to your own code.
 
-## Related reading
+## Further notes on ERR_CACHE_MISS Is Not a Cache Problem
 
 For the connection-level browser errors that genuinely are transport problems, [ERR_CONNECTION_RESET](https://www.kloudbean.com/blog/err-connection-reset/). On caching more broadly, [clearing WordPress cache](https://www.kloudbean.com/blog/how-to-clear-wordpress-cache/), [CDN explained](https://www.kloudbean.com/blog/cdn-explained/), and [Redis caching patterns](https://www.kloudbean.com/blog/redis-caching-patterns/). On response headers, [the security headers guide](https://www.kloudbean.com/blog/security-headers-guide/). For request-level failures, [400 Bad Request](https://www.kloudbean.com/blog/400-bad-request/) and [fixing CORS errors](https://www.kloudbean.com/blog/fix-cors-error-node-production/). And for safe change management, [staging environments](https://www.kloudbean.com/blog/wordpress-staging-environment/).
 

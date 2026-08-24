@@ -208,7 +208,7 @@ One honest gap, since this article is largely about a rewrite change breaking an
 
 <!-- ADD IMAGE: the add-application screen, or your own nginx server block showing the public docroot and try_files line. -->
 
-## Related reading
+## Working past codeIgniter 404 Page Not Found
 
 For the same case-sensitivity trap in Node, [Cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/). When the status is not a 404, [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/) and [405 Method Not Allowed](https://www.kloudbean.com/blog/405-method-not-allowed/), which is what a verb mismatch should ideally return. For the server layer, [nginx configuration](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/) and [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/). On configuration and secrets, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). And on shipping changes safely, [zero downtime deployments](https://www.kloudbean.com/blog/zero-downtime-deployments/).
 

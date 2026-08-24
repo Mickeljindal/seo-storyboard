@@ -228,7 +228,7 @@ From an app rather than a shell, the same connection string goes in an environme
 
 <!-- ADD IMAGE: a terminal connecting to a remote managed Postgres over an sslmode=require connection string, then running backslash dt -->
 
-## Where hosting fits, honestly
+## Where the server comes into it
 
 None of these commands care where Postgres runs. `\l`, `\dt`, and the rest behave the same on your laptop, a VPS you built by hand, or a managed instance. What managed hosting changes is who runs the server underneath them, and that is the whole pitch: you keep running your psql commands and writing your queries, and someone else provisions the box, keeps it patched, and takes the backups.
 

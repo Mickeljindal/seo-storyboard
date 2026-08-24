@@ -106,7 +106,7 @@ Keep production emitting raw JSON. Pretty-printing in production just makes the 
 
 Structured logs only pay off if you can get at them. On Kloudbean your Node app runs always-on under PM2 with its output captured, so writing JSON to stdout means your logs are there in the console when you need them, alongside live build logs from your GitHub deploys. Because the app is a persistent process rather than short-lived functions, a request ID actually follows a full request through one process, which makes tracing straightforward. Ship the JSON to an external aggregator later if you want dashboards; the point is your app's logging stays simple and portable either way.
 
-## Related reading
+## More on structured Logging in Node.js
 
 Logging is one leg of production visibility. Pair it with [Node.js health checks](https://www.kloudbean.com/blog/nodejs-health-checks/) and [uptime monitoring](https://www.kloudbean.com/blog/uptime-monitoring/) so you know when to go looking, and keep `LOG_LEVEL` and friends tidy with [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). When logs point at a crash, the [PM2 restart guide](https://www.kloudbean.com/blog/pm2-app-keeps-restarting/) and [deploy crash field guide](https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/) take it from there.
 

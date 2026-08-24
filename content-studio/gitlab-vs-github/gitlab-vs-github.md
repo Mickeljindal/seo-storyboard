@@ -108,7 +108,7 @@ If you are on GitLab, that is worth knowing before you plan your pipeline. You a
 
 What is the same either way: managed servers across seven clouds with your choice of region, managed MySQL, MariaDB, PostgreSQL, Redis, Elasticsearch, and MongoDB, free SSL issued and renewed, automatic backups, and servers, applications, and databases in one dashboard.
 
-## Related reading
+## If gitLab vs GitHub was the easy part
 
 If self-hosting is your answer, [self-hosting GitLab](https://www.kloudbean.com/blog/self-host-gitlab/) covers the resource floor, sizing by team size, and what the licence being free does not include. For the deploy half, [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) and [zero downtime deployments](https://www.kloudbean.com/blog/zero-downtime-deployments/). On pipeline hygiene, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). When a deploy breaks, [a Node app crashing on deploy](https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/) and [503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/). And for a broad view of the target, [how to deploy any app](https://www.kloudbean.com/blog/how-to-deploy-any-app/).
 

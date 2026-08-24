@@ -81,13 +81,13 @@ The top four rows are the host's half, and they're the reason the platform came 
 
 The bottom five rows are the part no host supplies, and that includes us. There is no hosting plan anywhere that turns a shared credential into accounts, roles, or an audit of who did what, because none of that information exists at the gate. If you find yourself wanting any of those five, stop stretching Basic Auth and go build real authentication, ideally with a second factor. The gate is excellent at exactly one thing: making a whole environment invisible to everyone who does not hold the key. Ask it for anything more and it will fail quietly, which is the worst way for a security control to fail.
 
-## Related reading
+## Two doors along
 
 Basic Auth pairs naturally with [IP allowlisting](https://www.kloudbean.com/blog/ip-allowlisting-guide/) for private environments, and both sit above the [Shorewall firewall and Fail2ban](https://www.kloudbean.com/blog/fail2ban-and-shorewall-guide/) baseline. For the HTTPS the gate depends on, [custom domains and SSL](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/); for the response-header layer, the [security headers guide](https://www.kloudbean.com/blog/security-headers-guide/); and for real request filtering, [what a WAF does](https://www.kloudbean.com/blog/what-a-waf-does/). The overview is [secure and compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 
 ## Hide what isn't ready, in a couple of clicks.
 
-Kloudbean lets you put a Basic Auth gate in front of an app, with free auto-renewing SSL to satisfy the HTTPS rule and staging environments for WordPress and Laravel. Keep pre-launch work off search engines and away from the public. Compare the platform in [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/), or start at [kloudbean.com](https://www.kloudbean.com/).
+Kloudbean lets you put a Basic Auth gate in front of an app, with free auto-renewing SSL to satisfy the HTTPS rule and staging environments for WordPress and Laravel. Keep pre-launch work off search engines and away from the public. The platform-level view is in [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/). Otherwise, [kloudbean.com](https://www.kloudbean.com/).
 
 Basic Auth gate · Free auto-renewing SSL · Staging sites · IP Access Control
 

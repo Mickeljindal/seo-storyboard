@@ -108,7 +108,7 @@ An honest alternative piece has to say when not to switch. Render is a genuinely
 
 Live mostly in the left column and switching would cost you more than it saves. The alternative earns its place when the per-service model is multiplying your bill and the sleeping instances are in your way. Weighing the neighbors too? The [Railway](https://www.kloudbean.com/blog/railway-alternative-for-vibe-coded-apps/) and [Heroku](https://www.kloudbean.com/blog/heroku-alternative-for-modern-apps/) comparisons run the same reasoning from different angles.
 
-## The honest limits
+## Where render Alternative for Vibe-Coded Apps gets harder
 
 Kloudbean runs Linux stacks: Node, PHP, Python, Ruby, Java, Go, and the frameworks on top like React, Next.js, Vue, Laravel and Django, plus .NET on Linux. That's what vibe-coded apps are built on. Windows Server itself is a Premium and Enterprise option rather than a standard one. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you own and maintain the app and its data. And to be fair about cost: for a single tiny service, Render's low tiers can be cheaper than any always-on server, because a server you rent by the month costs the same whether it serves ten requests or ten million. The flat model wins as your app gains pieces, and it wins on predictability at any size.
 

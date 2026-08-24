@@ -150,7 +150,7 @@ The correct version of that same fix is to keep the bind address narrow and chan
 
 Some of this no host can do for you, ours included. Nobody can stop you from editing `redis.conf` on a server you control, and no platform makes a wrong `WP_REDIS_HOST` right or installs a PHP extension you never asked for. The line is roughly this: causes 1, 2 and 6 are about who runs the service, and a managed instance takes those. Causes 3, 4 and 5 are configuration inside your application, and those stay with you no matter where the cache runs.
 
-## Related reading
+## More on error Establishing a Redis Connection
 
 For the caching side, see [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/), [the Redis caching guide](https://www.kloudbean.com/blog/redis-caching-guide/), and [Redis caching patterns](https://www.kloudbean.com/blog/redis-caching-patterns/). To decide whether Redis is even the right tool, [when to use Redis vs Postgres](https://www.kloudbean.com/blog/when-to-use-redis-vs-postgres/) and [Redis vs Memcached](https://www.kloudbean.com/blog/redis-vs-memcached/). On the WordPress side, [how to clear WordPress cache](https://www.kloudbean.com/blog/how-to-clear-wordpress-cache/).
 

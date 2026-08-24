@@ -134,7 +134,7 @@ The case for running your own is narrower than people assume: a specific complia
 | Authentication fails on 587 | Wrong port and TLS mode pairing | 587 with STARTTLS, or 465 with implicit TLS |
 | WordPress sends nothing at all | Default direct sending, blocked | Configure SMTP on 587 |
 
-## Where hosting fits
+## What has to be true of your host
 
 Being straightforward about this one: the port 25 block is a cloud provider policy, and since Kloudbean runs your servers on AWS, Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, or UpCloud, that policy is the underlying provider's rather than something a management layer overrides. Any host telling you otherwise is either running its own data centre or being imprecise.
 
@@ -142,7 +142,7 @@ What is genuinely useful here is the surrounding setup. Servers come with Shorew
 
 The honest boundary: nobody can unblock port 25 on your behalf, and no host can repair sender reputation. Use a relay on 587, publish your three DNS records, and this stops being a problem you think about.
 
-## Related reading
+## If mail is still your problem
 
 If the service you are sending through is Microsoft 365, its settings and the retirement of password-based SMTP AUTH are covered in [Office 365 SMTP settings](https://www.kloudbean.com/blog/office-365-smtp-settings/). For keeping credentials separated, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). On the DNS records above, [DNS explained](https://www.kloudbean.com/blog/dns-explained/). For the refused-versus-dropped distinction used in the diagnosis, [error 521](https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/). On sending mail from queued background work rather than inside a web request, [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/). When an outbound call has no timeout and stalls a request, [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/). And for the WordPress side, [managed WordPress hosting](https://www.kloudbean.com/blog/managed-wordpress-hosting/).
 

@@ -209,7 +209,7 @@ Wherever you run it, the discipline is the same: one canonical connection string
 
 <!-- ADD IMAGE: the managed database connection details panel, with host, port, user and database shown so the reader sees a supplied URI rather than a hand-typed one -->
 
-## Related reading
+## For the next time
 
 Once you're authenticating cleanly, the next questions are about the connection itself. [Connecting Mongoose to MongoDB](https://www.kloudbean.com/blog/connect-mongoose-to-mongodb/) covers the driver options, connection events, and models. [Managed MongoDB hosting](https://www.kloudbean.com/blog/managed-mongodb-hosting/) covers running the database itself, indexing, and migrating an existing one. For connection stability under load, read [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/). And for keeping credentials out of your repo, [secrets management](https://www.kloudbean.com/blog/secrets-management/) is the companion piece to this one.
 

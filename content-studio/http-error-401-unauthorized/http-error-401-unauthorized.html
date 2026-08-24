@@ -111,7 +111,7 @@ env | grep -c API_KEY</code></pre>
   </table>
   <p>That last row is the one place these two codes blur. If reads succeed and writes fail, the credential is being recognised, so strictly it should be a 403. Some APIs return 401 anyway. If you see that pattern, stop investigating authentication and go and look at the scopes on the token.</p>
 
-  <h2>Where hosting fits</h2>
+  <h2>HTTP Error 401 Unauthorized needs a server that behaves</h2>
   <p>Most of this is your application's authentication logic, and it should be. Two of the causes are infrastructure, though, and they are the two that waste the most time: a proxy silently dropping headers, and a drifted server clock.</p>
   <p>On Kloudbean, nginx comes configured rather than left at defaults, environment variables are managed per application in the dashboard so staging and production credentials are separated by construction rather than by discipline, and servers are maintained including the unglamorous parts like time synchronisation. Where a 401 is deliberate, the platform gives you the intentional version: a basic authentication gate for staging or internal applications, alongside IP access control.</p>
   <p>The boundary: nobody else can validate your tokens or write your refresh logic. What managed infrastructure removes is the 401 that has nothing to do with authentication at all.</p>
@@ -121,7 +121,7 @@ env | grep -c API_KEY</code></pre>
     <figcaption>Credentials separated per application, so a staging key cannot quietly end up in production.</figcaption>
   </figure>
 
-  <h2>Related reading</h2>
+  <h2>Reading that picks up where this stops</h2>
   <p>Its counterpart, <a href="https://www.kloudbean.com/blog/403-forbidden-error/">403 Forbidden</a>, plus <a href="https://www.kloudbean.com/blog/400-bad-request/">400 Bad Request</a> and <a href="https://www.kloudbean.com/blog/429-too-many-requests/">429 Too Many Requests</a>. On credentials and configuration, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>. For the proxy layer that strips headers, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">the nginx reverse proxy guide</a>. On the WordPress side, <a href="https://www.kloudbean.com/blog/wp-rest-api-guide/">the WP REST API guide</a>. And for browser-side authentication failures on cross-origin calls, <a href="https://www.kloudbean.com/blog/fix-cors-error-node-production/">fixing CORS errors</a> and <a href="https://www.kloudbean.com/blog/security-headers-guide/">the security headers guide</a>.</p>
 
   <div class="cta">

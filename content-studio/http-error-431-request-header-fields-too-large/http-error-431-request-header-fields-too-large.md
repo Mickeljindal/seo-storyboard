@@ -148,7 +148,7 @@ Two cautions on all of this. These buffers are allocated per connection, so a ve
 
 Clearing cookies for your domain fixes it immediately for that person, which is worth saying in a support reply because it unblocks them in seconds. It is a workaround rather than a fix, and if you find yourself sending it more than occasionally, the header size is the thing to change rather than the users.
 
-## Where hosting fits
+## Where this meets the server
 
 Two halves, and it is worth separating them honestly.
 
@@ -158,7 +158,7 @@ The cause is usually application design, and the specific fix is somewhere to ke
 
 What no platform can do is decide which of your cookies matter or trim your token claims. That is a design decision, and the honest version is that 431 is usually a prompt to make it rather than a limit to raise.
 
-## Related reading
+## What usually comes up next
 
 The same root cause with a different status code, [400 Bad Request](https://www.kloudbean.com/blog/400-bad-request/), and its proxy-side version, [Cloudflare error 520](https://www.kloudbean.com/blog/cloudflare-error-520/), where oversized *response* headers cause the mirror-image problem. For session storage, [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/) and [caching patterns](https://www.kloudbean.com/blog/redis-caching-patterns/). On tokens and credentials, [401 Unauthorized](https://www.kloudbean.com/blog/http-error-401-unauthorized/) and [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). For the proxy layer, [the nginx reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). And on redirect chains, [302 vs 301](https://www.kloudbean.com/blog/302-found-vs-301-redirect/).
 

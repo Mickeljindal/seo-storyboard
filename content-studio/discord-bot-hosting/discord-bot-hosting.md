@@ -199,7 +199,7 @@ Once it's live, the logs are your window in. A healthy bot logs "Logged in as Yo
 
 <!-- ADD IMAGE: live log output showing "Logged in as YourBot" followed by a couple of handled commands -->
 
-## The honest limits
+## What discord Bot Hosting leaves on your plate
 
 Kloudbean runs Linux stacks, so a Node or Python bot is right at home. A bot written for a Windows-only runtime isn't the fit here. "Managed" means the server, the runtime, patching, backups, and process supervision are handled, while your bot code and its token stay yours to move whenever you like. And a bot is genuinely one of the simplest things to host well, because it skips the web-serving parts entirely. You don't need Docker or a cluster for it either. A bot is a single long-running process, so [containers are a choice, not a requirement](https://www.kloudbean.com/blog/docker-container-hosting/). It just has to stay running, which is exactly what an always-on server is for.
 

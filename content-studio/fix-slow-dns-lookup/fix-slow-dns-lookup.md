@@ -130,7 +130,7 @@ Worth saying plainly, because speed tools cause a lot of misdirected work. A DNS
 
 My rule: if `time_namelookup` is under about 100ms and under a tenth of your total, close the DNS tab and go and look at server response time, database queries, and render-blocking assets. Come back to DNS when it is actually the largest number in front of you.
 
-## Where hosting fits, honestly
+## How much of fix Slow DNS Lookup is a hosting question
 
 Being straight about the boundary: authoritative DNS speed belongs to whoever runs your DNS zone, and no hosting provider can make a slow nameserver fast. What hosting genuinely affects is the rest of that timing breakdown, which is usually the bigger number anyway.
 
@@ -138,7 +138,7 @@ Two things are relevant on Kloudbean. First, you pick which of seven clouds and 
 
 And because servers are managed, the server-side resolver path described above is part of what is maintained rather than something you discover during an incident.
 
-## Related reading
+## Where to go from here
 
 For the fundamentals of records, resolution, and propagation, start with [DNS explained](https://www.kloudbean.com/blog/dns-explained/). If you came here intending to clear a cache, [flushing your DNS cache](https://www.kloudbean.com/blog/flush-dns-cache/) covers what that does and does not fix, and it is not a speed fix. For the caching layer in front of your origin, [CDN explained](https://www.kloudbean.com/blog/cdn-explained/). On the response-time side that usually matters more, [speed up WordPress](https://www.kloudbean.com/blog/speed-up-wordpress/) and [speed up WooCommerce](https://www.kloudbean.com/blog/speed-up-woocommerce/). For caching that cuts real server work, [the Redis caching guide](https://www.kloudbean.com/blog/redis-caching-guide/). And when resolution succeeds but the connection is refused, [fixing ECONNREFUSED](https://www.kloudbean.com/blog/fix-econnrefused-node/).
 

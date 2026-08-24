@@ -112,13 +112,13 @@ Patterns that turn a clean onboarding into a support ticket a month later.
 
 **No finish line.** Without a definition of done, "done" means "I ran out of time today", and the gaps surface as incidents. The checklist is the finish line.
 
-## Where hosting fits, honestly
+## Running agency Client Onboarding Checklist in production
 
 A runbook is only as repeatable as the platform under it. What makes this checklist fast rather than a two-day ordeal is having the pieces in one place: a new isolated environment provisioned from one account, scoped client logins, staging for WordPress and Laravel so you build safely, automatic backups and free auto-renewing SSL so two of your definition-of-done checks are satisfied by default, and free migration assistance when a client is coming from elsewhere. Seven clouds and regions to place a client on when intake turns up a residency requirement. All from the one dashboard, which is what lets onboarding be a checklist rather than a tour of five separate control panels.
 
 The honest boundary: the platform makes the steps fast and consistent, but the runbook is yours to run. Collecting intake, deciding who gets which login, and sending a handover email that sounds like a person are the parts only you can do, and they are most of what the client actually experiences.
 
-## Related reading
+## A little further
 
 The other bookend is the [agency client offboarding runbook](https://www.kloudbean.com/blog/agency-client-offboarding/), for when a client eventually leaves. The strategy behind both is the [hosting for agencies playbook](https://www.kloudbean.com/blog/hosting-for-agencies-playbook/), and the scale picture is [how agencies host 20 client apps on one server](https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/). The access step is the [subusers and UAC guide](https://www.kloudbean.com/blog/subuser-and-uac-guide/); the isolation step is [hosting multiple apps on one server](https://www.kloudbean.com/blog/host-multiple-apps-one-server/). Migration in is [migrating hosting without downtime](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/), the verify step leans on [the backups guide](https://www.kloudbean.com/blog/server-backups-guide/), and the billing step is [client billing and markup](https://www.kloudbean.com/blog/client-billing-and-markup-for-hosting/).
 

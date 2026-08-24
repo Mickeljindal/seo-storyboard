@@ -138,7 +138,7 @@ I don't want to talk you out of a tool that fits. Stay on Firebase if you're ear
 
 Here's my actual opinion, for what it's worth: Firebase is one of the best places to launch and an awkward place to scale a relational product. If your app was always going to be tables and joins and reports, the sooner you pick the data model that fits and own it, the less you'll pay in workarounds later. Deploying that owned stack is its own topic, and [deploying your app to production](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) covers the full path once you've made the call.
 
-## The honest limits
+## When firebase Alternative is not enough
 
 Two things worth saying plainly, because a guide that only flatters one side isn't a guide. First, when you leave Firebase you take on the two features it gave you for free: authentication and realtime. On your own stack you implement auth (a framework library, or managed Supabase which bundles it) and, if you need live updates, you build them with WebSockets or Postgres LISTEN/NOTIFY. That's a real cost of ownership, and for some apps it's the deciding reason to stay put. Second, Kloudbean runs Linux stacks: Node, PHP, Python, Ruby, Java, and their databases. "Managed" here means the server, stack, SSL, backups, and patching are handled while your application and your data stay yours to export anytime. It isn't a drop-in clone of Firebase's client SDKs. It's the other model: you own the backend, and nothing traps you in it.
 

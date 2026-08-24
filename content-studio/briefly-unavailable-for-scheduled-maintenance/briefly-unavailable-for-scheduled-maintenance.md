@@ -121,7 +121,7 @@ wp maintenance-mode deactivate
 
 One caveat that matters if you leave it on for any length of time: WordPress serves that page with a 503 status, which is correct, because 503 means temporarily unavailable and tells search engines to come back rather than to drop the page. That is the right behaviour for minutes or hours. Left in place for days, a 503 stops looking temporary, so if you need a maintenance page for an extended period, use a proper one rather than this file. Our [guide to 503 responses](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/) covers what that status means to the rest of the internet.
 
-## Where hosting fits
+## Running it somewhere real
 
 Honestly, this is a WordPress mechanism and any host would tell you to delete the same file. What a host changes is how often you meet it and how quickly you recover.
 
@@ -129,7 +129,7 @@ The practical parts: staging for WordPress and Laravel, so updates get tested on
 
 If the maintenance message turns out to be masking something worse, the two neighbours are [the critical error page](https://www.kloudbean.com/blog/there-has-been-a-critical-error-on-this-website/) and [the database connection error](https://www.kloudbean.com/blog/fix-error-establishing-database-connection-wordpress/).
 
-## Related reading
+## If the fix did not hold
 
 On preventing this, [WordPress staging environments](https://www.kloudbean.com/blog/wordpress-staging-environment/) and [server backups](https://www.kloudbean.com/blog/server-backups-guide/). On the errors it can hide, [the critical error message](https://www.kloudbean.com/blog/there-has-been-a-critical-error-on-this-website/) and [database connection errors](https://www.kloudbean.com/blog/fix-error-establishing-database-connection-wordpress/). On the command line that avoids the whole problem, the [WP-CLI guide](https://www.kloudbean.com/blog/wordpress-cli-guide/). On what a 503 signals, [503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/). And on keeping the site defensible generally, [secure WordPress hosting](https://www.kloudbean.com/blog/secure-wordpress-hosting/).
 

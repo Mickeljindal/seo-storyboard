@@ -207,14 +207,14 @@ curl -i -X POST -F "file=@/tmp/big.bin" https://api.example.com/upload | head -1
 
   <p>Worth being clear about when <em>not</em> to bother: if your largest upload is a 5 MB profile image, presigned URLs are more machinery than the problem deserves. Raise <code>client_max_body_size</code> and move on. The architecture matters when files are large, frequent, or both.</p>
 
-  <h2>Where hosting fits, honestly</h2>
+  <h2>413 Content Too Large on somebody else's machine</h2>
   <p>The honest part first. A 413 is a configuration outcome, and on any platform where you control the proxy config, it is yours to set. No host can guess the right maximum for your application.</p>
 
   <p>What removes the frustration is not having to find the ceilings by trial and error. On Kloudbean the reverse proxy and the runtime are managed together, so the proxy and PHP settings are not two unrelated files in two locations discovered one restart at a time, and application and server logs sit in the same dashboard, which is where the <code>client intended to send too large body</code> line lives. Runtime configuration for Node and Python is editable in the UI rather than over SSH. For the architectural answer above, S3-compatible object storage is built in on every account. Seven cloud providers, free SSL, and free migration assistance if you are moving something across.</p>
 
-  <p>The boundary stays put. Managed covers the server, the stack, TLS, backups, and patching. What size of upload your application should accept, and what it does with the file afterwards, is yours.</p>
+  <p>The boundary stays put. Certificates, patches, backups and the stack come with the platform. What size of upload your application should accept, and what it does with the file afterwards, is yours.</p>
 
-  <h2>Related reading</h2>
+  <h2>Adjacent problems worth reading about</h2>
   <p>The neighbouring objections: <a href="https://www.kloudbean.com/blog/http-error-415-unsupported-media-type/">415 Unsupported Media Type</a> for the wrong content type, <a href="https://www.kloudbean.com/blog/http-error-431-request-header-fields-too-large/">431 Request Header Fields Too Large</a> when it is the headers rather than the body, and <a href="https://www.kloudbean.com/blog/http-error-408-request-timeout/">408 Request Timeout</a> when the upload was slow rather than large. When a proxy error hides behind a browser message, <a href="https://www.kloudbean.com/blog/err-blocked-by-response/">ERR_BLOCKED_BY_RESPONSE</a>. For the upload architecture, <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a>. On the proxy layer, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx as a reverse proxy for Node</a>. And if the request failed after reaching your code rather than before, <a href="https://www.kloudbean.com/blog/http-error-500-internal-server-error/">500 Internal Server Error</a>.</p>
 
   <div class="cta">

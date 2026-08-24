@@ -150,7 +150,7 @@ So your persistent data has to live outside the container. Your database goes in
 
 People search for free Docker hosting, and it's a fair thing to want. Just know the catch: a container still needs a home that stays on. Free tiers that sleep idle apps will stop your container between requests, which is fine for a demo and a problem for anything real. For learning and throwaway projects, free is great, and [free app hosting options](https://www.kloudbean.com/blog/free-app-hosting-options/) covers the honest set. For something you actually depend on, a small always-on server costs about what [running a side project](https://www.kloudbean.com/blog/cost-of-running-a-side-project/) should, and it doesn't nap on you.
 
-## The honest limits
+## What can still go wrong
 
 Underneath all of this, it's Linux. A container is your app running on a Linux host, and Kloudbean gives you that host plus managed runtimes, managed databases, and object storage around it. "Managed" means the server, the stack, SSL, patching, and backups are handled, while your image, your code, and your data stay yours to move whenever you like. What you won't find here is a one-click managed Kubernetes for general accounts (orchestration at that scale is an enterprise setup), or a Windows container stack. For running a container, or skipping Docker entirely on a standard app, a server you control covers it without the cluster tax.
 

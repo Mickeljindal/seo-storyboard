@@ -179,7 +179,7 @@ awk '{for(i=1;i<=NF;i++) if($i ~ /^proto=/) print $i}' /var/log/nginx/access.log
 
 If that shows almost everything on TLS 1.3 with a little 1.2, you can harden confidently. If a meaningful share is on 1.2 with older ciphers, you now know what disabling them would cost. This is the difference between a deliberate decision and a hopeful one.
 
-## Where hosting fits
+## The operational half of ERR_SSL_PROTOCOL_ERROR
 
 Nearly every server-side cause here is TLS configuration that has drifted: protocol versions that were current when the server was built and are now obsolete, cipher lists nobody has revisited, and a port serving plain HTTP where TLS was expected.
 
@@ -187,7 +187,7 @@ On Kloudbean, TLS configuration is maintained rather than frozen at build time, 
 
 The boundary, stated plainly: nobody else can decide how far to harden your ciphers, because only you know which clients you need to keep. And antivirus software on a visitor's laptop is beyond anyone's reach. What managed configuration removes is the slow drift into obsolescence.
 
-## Related reading
+## More on ERR_SSL_PROTOCOL_ERROR
 
 For the certificate-rejection family, [fixing SSL certificate errors](https://www.kloudbean.com/blog/fix-ssl-certificate-errors/), and for the fundamentals, [SSL and TLS explained](https://www.kloudbean.com/blog/ssl-tls-explained/). The handshake failure between a proxy and your origin is [Cloudflare error 525](https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/). For the opposite scheme mismatch, [400 Bad Request](https://www.kloudbean.com/blog/400-bad-request/). On antivirus interception in a different guise, [ERR_CONNECTION_RESET](https://www.kloudbean.com/blog/err-connection-reset/). Firefox reports these same failures under its own names, and it keeps its own root store rather than reading your operating system's, which is why it often fails where Chrome succeeds: [PR_END_OF_FILE_ERROR and PR_CONNECT_RESET_ERROR](https://www.kloudbean.com/blog/pr-end-of-file-error/). For terminating TLS in front of an app, [the nginx reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/) and [custom domain and SSL](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/). And on HSTS and related headers, [the security headers guide](https://www.kloudbean.com/blog/security-headers-guide/).
 

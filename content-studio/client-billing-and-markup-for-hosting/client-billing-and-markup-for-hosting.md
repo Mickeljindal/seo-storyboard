@@ -77,13 +77,13 @@ An opinion, since the table stays neutral. **Never pass hosting through at cost.
 
 And price the management as if it is valuable, because it is. The agencies that struggle with this almost always undercharge, not overcharge.
 
-## Where hosting fits, honestly
+## What production adds to client Billing and Markup for Hosting
 
 The platform is your cost base and your toolset, not your pricing strategy. What it can do is make the strategy workable: a predictable base you can quote on top of, one account that consolidates many clients so the per-client cost falls, subusers so a client's billing contact has a door that isn't your server, and the managed backups, patching, and SSL that are the substance of what you are billing for. On Kloudbean that is seven clouds to place clients on, free SSL, automatic backups, and free migration assistance when you bring a client's site across to consolidate it.
 
 The boundary is clean and worth stating to yourself as much as the client. The platform provides the infrastructure and the management tooling; the pricing, the plans, and the client relationship are yours, and they are where your margin actually comes from.
 
-## Related reading
+## If this was not it
 
 This is one phase of running an agency on managed hosting. The whole operation is in the [hosting for agencies playbook](https://www.kloudbean.com/blog/hosting-for-agencies-playbook/), whose billing phase this page expands. For the packaging, [white-label hosting](https://www.kloudbean.com/blog/white-label-hosting-for-agencies/) and [WordPress maintenance retainer plans](https://www.kloudbean.com/blog/wordpress-maintenance-retainer-plans/). For the hosting model that makes the margin math work, [how agencies host 20 client apps on one server](https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/) and [reseller hosting versus managed cloud](https://www.kloudbean.com/blog/reseller-hosting-vs-managed-cloud/). For the predictability that underpins a flat price, [how cloud hosting pricing works](https://www.kloudbean.com/blog/cloud-hosting-pricing-explained/). And for the access side of the client relationship, [subusers and UAC](https://www.kloudbean.com/blog/subuser-and-uac-guide/).
 

@@ -65,7 +65,7 @@ pg_restore --no-owner -d "postgres://user:pass@new-host:5432/appdb" app.dump
 
 Swap `DATABASE_URL`, redeploy, verify on the temporary URL, then switch DNS. No rearchitecting, since you're not moving between process models. Free migration assistance is included if you want us to run the first cutover with you.
 
-## Related reading
+## Other angles on cloudways Velocity vs Kloudbean
 
 More context: [a Cloudways Velocity alternative](https://www.kloudbean.com/blog/cloudways-velocity-alternative/) for the narrative version, [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/) for the wider platform comparison, and [Cloudways alternatives](https://www.kloudbean.com/blog/cloudways-alternatives/) for the field. On the Node side: [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/), [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/), and [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/).
 

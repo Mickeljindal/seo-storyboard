@@ -137,7 +137,7 @@ Rate limiting is worth having, and most of the pain comes from treating it as a 
 
 So: measure first, limit the specific endpoints that are actually attacked or expensive, always return 429 with `Retry-After` so clients can cooperate, and make sure you are counting real clients before you count anything at all. That last point is the one that turns a protective measure into an outage.
 
-## Where hosting fits
+## error Code 429 Too Many Requests needs a server that behaves
 
 The two things that make rate limiting go wrong on your own server are configuration details: whether the limiter sees real client addresses, and whether nginx is returning the honest status code. Both are the kind of thing that gets set up once and then quietly misbehaves for months.
 
@@ -145,7 +145,7 @@ On Kloudbean, nginx comes configured rather than left at defaults, Cloudflare is
 
 The honest limit: no platform can tell you what your correct request rate is, and none of this stops a third party from throttling your key. What it removes is the misconfiguration that makes your own limiter block your own users.
 
-## Related reading
+## If error Code 429 Too Many Requests is only part of the problem
 
 For neighbouring status codes, [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/), [400 Bad Request](https://www.kloudbean.com/blog/400-bad-request/), and [503 after a deploy](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/), which is what nginx returns for rate limits by default. On restoring real client addresses, [error 521](https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/) and [Cloudflare error codes](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/). To cut request volume, [Redis caching patterns](https://www.kloudbean.com/blog/redis-caching-patterns/) and [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/). To control a burst, [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/). And on the proxy layer, [the nginx reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/).
 

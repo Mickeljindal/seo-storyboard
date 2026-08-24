@@ -194,7 +194,7 @@ Acquire::https::Proxy "http://USER:PASS@proxy.example.com:8080";</code></pre>
     </tbody>
   </table>
 
-  <h2>Where hosting fits, honestly</h2>
+  <h2>Where the platform enters the picture</h2>
   <p>Most 407 errors have nothing to do with your host, and it's worth being straight about that. The proxy asking for a login usually lives in the client's network: an office, a VPN, a locked-down corporate laptop. No hosting provider can reach into that network and change it. If a 407 is stopping your users, the fix is on their side.</p>
   <p>What a managed host controls is the other half: making sure the reverse proxy in front of <em>your</em> application is configured correctly, so a 407 is never coming from your side of the wire. On Kloudbean, the reverse proxy (nginx or Apache) is set up and kept patched for you, and your application and server logs sit in the same dashboard, so you can confirm your side answered with a normal response rather than a 407. If a reverse proxy config is the culprit, our guides on <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx as a reverse proxy for Node</a> and <a href="https://www.kloudbean.com/blog/nginx-vs-apache/">nginx versus Apache</a> cover the setup.</p>
   <p>When you actually want to restrict who reaches an app, the honest tools are the ones that fit the job: IP Access Control with allow and deny rules by CIDR, and a Basic Auth gate in front of an app for staging or internal use. A Basic Auth gate returns a 401, not a 407, because it's the destination asking, not a forward proxy. That distinction is the whole article, and it's worth getting right when you set up access control too.</p>
@@ -208,7 +208,7 @@ Acquire::https::Proxy "http://USER:PASS@proxy.example.com:8080";</code></pre>
   <!-- ADD IMAGE: optional close-up of the access-control or firewall settings in the dashboard. src -> images/access-control.png -->
   <figure class="img-slot"><span><b>Add image</b><em>Optional: IP Access Control or the Basic Auth gate in the dashboard, showing intentional access restriction.</em><small>Reinforces that a deliberate gate is a 401, not a 407.</small></span></figure>
 
-  <h2>Related reading</h2>
+  <h2>What to look at next</h2>
   <p>Its origin-side twin, <a href="https://www.kloudbean.com/blog/http-error-401-unauthorized/">HTTP 401 Unauthorized</a>, and the permission version, <a href="https://www.kloudbean.com/blog/403-forbidden-error/">403 Forbidden</a>. When the verb is the problem rather than your identity, <a href="https://www.kloudbean.com/blog/405-method-not-allowed/">405 Method Not Allowed</a>, and when you're rate limited, <a href="https://www.kloudbean.com/blog/429-too-many-requests/">429 Too Many Requests</a>. For the gateway that couldn't reach upstream, <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a>. On the proxy layer itself, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">the nginx reverse proxy guide</a> and <a href="https://www.kloudbean.com/blog/nginx-vs-apache/">nginx versus Apache</a>.</p>
 
   <div class="cta">

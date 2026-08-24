@@ -126,7 +126,7 @@ systemctl status systemd-resolved</code></pre>
   <p>Worth saying plainly, because speed tools cause a lot of misdirected work. A DNS lookup normally costs somewhere between twenty and a hundred and fifty milliseconds, once, and then it is cached for the length of your TTL. If your page takes four seconds, DNS is not what is wrong. Optimising a 40ms lookup while a 1.8 second TTFB sits untouched is the most common misallocation in web performance.</p>
   <p>My rule: if <code>time_namelookup</code> is under about 100ms and under a tenth of your total, close the DNS tab and go and look at server response time, database queries, and render-blocking assets. Come back to DNS when it is actually the largest number in front of you.</p>
 
-  <h2>Where hosting fits, honestly</h2>
+  <h2>How much of fix Slow DNS Lookup is a hosting question</h2>
   <p>Being straight about the boundary: authoritative DNS speed belongs to whoever runs your DNS zone, and no hosting provider can make a slow nameserver fast. What hosting genuinely affects is the rest of that timing breakdown, which is usually the bigger number anyway.</p>
   <p>Two things are relevant on Kloudbean. First, you pick which of seven clouds and which region your server sits in, so you can put the application near the people using it rather than accepting whatever a platform assigns. Second, Cloudflare is available as a paid add-on and is included for enterprise accounts, which brings Anycast DNS and edge caching into the same setup as your hosting. That is the legitimate answer to a slow lookup: a global Anycast network in front of the domain, not a hosting change.</p>
   <p>And because servers are managed, the server-side resolver path described above is part of what is maintained rather than something you discover during an incident.</p>
@@ -136,7 +136,7 @@ systemctl status systemd-resolved</code></pre>
     <figcaption>Region choice across seven clouds, so the application sits near its users. DNS is one hop; placement affects everything after it.</figcaption>
   </figure>
 
-  <h2>Related reading</h2>
+  <h2>Where to go from here</h2>
   <p>For the fundamentals of records, resolution, and propagation, start with <a href="https://www.kloudbean.com/blog/dns-explained/">DNS explained</a>. If you came here intending to clear a cache, <a href="https://www.kloudbean.com/blog/flush-dns-cache/">flushing your DNS cache</a> covers what that does and does not fix, and it is not a speed fix. For the caching layer in front of your origin, <a href="https://www.kloudbean.com/blog/cdn-explained/">CDN explained</a>. On the response-time side that usually matters more, <a href="https://www.kloudbean.com/blog/speed-up-wordpress/">speed up WordPress</a> and <a href="https://www.kloudbean.com/blog/speed-up-woocommerce/">speed up WooCommerce</a>. For caching that cuts real server work, <a href="https://www.kloudbean.com/blog/redis-caching-guide/">the Redis caching guide</a>. And when resolution succeeds but the connection is refused, <a href="https://www.kloudbean.com/blog/fix-econnrefused-node/">fixing ECONNREFUSED</a>.</p>
 
   <div class="cta">

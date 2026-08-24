@@ -127,7 +127,7 @@ On Kloudbean, free SSL is issued and renewed automatically, TLS configuration is
 
 Where the boundary sits: a platform cannot stop you selecting Flexible mode in your own Cloudflare dashboard, and it cannot fix a certificate for a domain whose DNS does not point at the server yet. What it does remove is expiry, renewal, and protocol maintenance.
 
-## Related reading
+## SSL Handshake Failed, Error Code 525: related failures
 
 For the whole family of these codes, see [Cloudflare error codes 520 to 527](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/), plus [error 521](https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/) and [error 520](https://www.kloudbean.com/blog/cloudflare-error-520/). On certificates generally, [fixing SSL certificate errors](https://www.kloudbean.com/blog/fix-ssl-certificate-errors/) and [SSL and TLS explained](https://www.kloudbean.com/blog/ssl-tls-explained/). For setting up a custom domain and certificate from scratch, [custom domain and SSL for your app](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/). And for the records this all depends on, [DNS explained](https://www.kloudbean.com/blog/dns-explained/).
 

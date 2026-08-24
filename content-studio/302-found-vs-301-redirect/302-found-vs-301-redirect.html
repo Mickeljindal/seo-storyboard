@@ -126,7 +126,7 @@ curl -sI 'https://www.example.com/blog/post?x=1' | grep -i location</code></pre>
   <p><strong>Loops from two rules disagreeing.</strong> The failure mode of redirect configuration, covered in <a href="https://www.kloudbean.com/blog/err-too-many-redirects/">ERR_TOO_MANY_REDIRECTS</a>.</p>
   <p><strong>Redirecting a POST endpoint with 301 or 302.</strong> The method may be converted to GET and the body dropped, so the request silently does nothing. Use 307 or 308.</p>
 
-  <h2>Where hosting fits</h2>
+  <h2>The environment this expects</h2>
   <p>Redirects are configuration you write, so this is mostly yours. Two practical things do come from the platform.</p>
   <p>Free SSL issued and renewed means the HTTP to HTTPS redirect, which is the one nearly every site needs, is straightforward rather than a certificate project. And staging matters more here than people expect, because a redirect rule that is subtly wrong is difficult to spot on the site you already know and trivial to catch on a copy where you deliberately test old URLs. Getting a canonical rule wrong on production is how loops and lost paths reach real visitors.</p>
   <p>Beyond that, this is a decision rather than a feature: pick the code that matches what you actually mean, keep chains to one hop, and verify with <code>curl</code> rather than assuming.</p>
@@ -136,7 +136,7 @@ curl -sI 'https://www.example.com/blog/post?x=1' | grep -i location</code></pre>
     <figcaption>Redirect rules are worth testing against real old URLs on a copy first.</figcaption>
   </figure>
 
-  <h2>Related reading</h2>
+  <h2>Other things that break the same way</h2>
   <p>When two rules disagree, <a href="https://www.kloudbean.com/blog/err-too-many-redirects/">ERR_TOO_MANY_REDIRECTS</a>. For the 303 pattern after a form submission, <a href="https://www.kloudbean.com/blog/err-cache-miss/">ERR_CACHE_MISS</a>. On conditional responses and caching, <a href="https://www.kloudbean.com/blog/304-not-modified/">304 Not Modified</a>. For HTTPS and certificates, <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">custom domain and SSL</a> and <a href="https://www.kloudbean.com/blog/fix-ssl-certificate-errors/">fixing SSL certificate errors</a>. On headers including HSTS, <a href="https://www.kloudbean.com/blog/security-headers-guide/">the security headers guide</a>. And for the proxy layer, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">the nginx reverse proxy guide</a>.</p>
 
   <div class="cta">

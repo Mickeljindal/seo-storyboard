@@ -57,7 +57,7 @@ The fair boundary: if your project genuinely idles almost all the time and you t
 | Keep-warm ping | Mostly hidden | Pays for around-the-clock anyway | Ongoing, can fail |
 | Always-on host (Kloudbean) | No | Flat from $8/mo | Low, warm by default |
 
-## How it fits the rest of your stack
+## render Cold Starts alongside everything else
 
 Cold starts are one reason teams outgrow a free tier. For the fuller picture, [Render vs Railway vs Kloudbean](https://www.kloudbean.com/blog/render-vs-railway-vs-kloudbean/) compares the models, and [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/) covers every option. If a free database is also on your mind, note that Render's free Postgres is time-limited; the hands-on move is in [deploy a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/), and uptime checks live in [uptime monitoring](https://www.kloudbean.com/blog/uptime-monitoring/).
 

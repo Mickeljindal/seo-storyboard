@@ -184,7 +184,7 @@ On Kloudbean this is the ordinary S3 flow rather than anything bespoke: the buil
 
 When not to bother: if your largest upload is a 4 MB profile image, presigned URLs are more machinery than the problem deserves. Raise the limit and get on with your day.
 
-## Related reading
+## More on 413 Request Entity Too Large in nginx
 
 For the proxy layer itself, [nginx as a reverse proxy for Node](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/) covers the config this sits inside. For the neighbouring failures: [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/) when the upstream is gone, and [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/) when it's too slow. For the status code across every layer rather than just nginx, [413 Content Too Large](https://www.kloudbean.com/blog/http-error-413-content-too-large/).
 

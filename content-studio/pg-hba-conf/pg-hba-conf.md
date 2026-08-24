@@ -111,7 +111,7 @@ On Kloudbean, managed PostgreSQL is locked down with IP access control rather th
 
 The honest boundary: managed means the platform owns the server, the engine configuration, patching, and backups. Your schema, your queries, and your application's connection handling stay yours. If you're weighing self-managed against managed specifically because of control over files like this one, [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) lays out what each side actually owns.
 
-## Related reading
+## Deeper on pg_hba.conf Explained
 
 For the ORM-side version of the SSL error, [connecting Sequelize to a managed database](https://www.kloudbean.com/blog/connect-sequelize-to-a-database/) and [SQLAlchemy](https://www.kloudbean.com/blog/connect-sqlalchemy-to-a-database/), plus [Drizzle with Postgres](https://www.kloudbean.com/blog/connect-drizzle-to-postgres/). Once connections work, the next thing that bites is how many of them you open, covered in [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/). On making the database quick rather than merely reachable, [PostgreSQL performance tuning](https://www.kloudbean.com/blog/postgresql-performance-tuning/). For the network isolation concept, and the private networking that Enterprise plans add, [what a VPC is](https://www.kloudbean.com/blog/what-is-a-vpc/). And if you're still choosing an engine, [MySQL versus PostgreSQL](https://www.kloudbean.com/blog/mysql-vs-postgresql/).
 

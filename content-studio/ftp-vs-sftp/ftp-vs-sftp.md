@@ -118,7 +118,7 @@ rsync -avz --delete ./public/ user@server:/var/www/site/public/
 
 And if you are moving user uploads around by hand because the server keeps filling up, the answer is object storage rather than a better transfer protocol. Our guide to [storing user uploads in object storage](https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/) covers why that is the structural fix.
 
-## Where hosting fits
+## Where the server matters for FTP vs SFTP vs FTPS
 
 On a managed Linux server, SFTP is simply there, because it comes with the SSH server rather than being a separate product. That is the honest framing: it is not a feature anyone should be selling you, it is a property of the platform being a real server.
 
@@ -128,7 +128,7 @@ For teams, subusers with granular per-resource and per-action permissions mean p
 
 <!-- ADD IMAGE: the firewall configuration screen, or your own Fail2ban ban list showing blocked SSH login attempts. -->
 
-## Related reading
+## If FTP vs SFTP vs FTPS keeps coming back
 
 On securing the server around this, [the server hardening checklist](https://www.kloudbean.com/blog/server-hardening-checklist/) and [Fail2ban and Shorewall](https://www.kloudbean.com/blog/fail2ban-shorewall-hardening/). On replacing manual uploads, [auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) and [zero downtime deployments](https://www.kloudbean.com/blog/zero-downtime-deployments/). On files that should not live on your server at all, [object storage for user uploads](https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/) and [S3 compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). On the transport layer generally, [SSL and TLS explained](https://www.kloudbean.com/blog/ssl-tls-explained/). And for recovering from a mistake, [server backups](https://www.kloudbean.com/blog/server-backups-guide/).
 

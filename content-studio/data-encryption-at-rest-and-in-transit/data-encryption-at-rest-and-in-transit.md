@@ -68,13 +68,13 @@ On items one and two, the platform does most of the work: free auto-renewing SSL
 
 Item five is the one worth ending on, because no host closes it for you. Kloudbean can give you the allow-list, and it can't decide which addresses belong on it. Nobody's platform can. Same for the layer above: an SQL injection flaw, a credential committed to a repository, a session token that never expires, an admin account without MFA. Every one of those walks in through legitimate access, and decryption serves it exactly as politely as it serves you. That's not a limitation of a particular provider, it's what encryption is for and what it isn't. Get both states covered, then spend your remaining attention on the door, with the access controls and authentication in [the secure and compliant hosting guide](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 
-## Related reading
+## If this was one of several problems
 
 For how the in-transit half actually works, [SSL and TLS explained](https://www.kloudbean.com/blog/ssl-tls-explained/) and [fixing SSL certificate errors](https://www.kloudbean.com/blog/fix-ssl-certificate-errors/). Encryption at rest matters most alongside good [backups](https://www.kloudbean.com/blog/server-backups-guide/) (which should themselves be encrypted) and clear [data residency](https://www.kloudbean.com/blog/data-residency-explained/). It is one layer among many in [secure and compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/), and pairs with strong [authentication](https://www.kloudbean.com/blog/two-factor-and-social-login/) so the legitimate access it trusts is itself hard to steal.
 
 ## Encrypt both states, from day one.
 
-Kloudbean enforces TLS in transit with free auto-renewing SSL, and managed engagements add AES-256 at rest across disks, managed databases, and object storage, with customer-managed keys where regulation requires them. Compare the platform in [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/), or start at [kloudbean.com](https://www.kloudbean.com/).
+Kloudbean enforces TLS in transit with free auto-renewing SSL, and managed engagements add AES-256 at rest across disks, managed databases, and object storage, with customer-managed keys where regulation requires them. See [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/) for the head-to-head, or go straight to [kloudbean.com](https://www.kloudbean.com/).
 
 TLS enforced · Free auto-renewing SSL · AES-256 at rest (managed) · CMEK where required
 

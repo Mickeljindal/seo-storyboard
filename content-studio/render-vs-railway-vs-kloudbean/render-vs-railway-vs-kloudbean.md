@@ -91,7 +91,7 @@ Migrating a Node app is a repo, a set of environment variables, and a database. 
 
 > **Coming from Railway or Render?** The real work is the workers, the database, the env vars, and the DNS cutover, not the git push. Kloudbean's free migration assistance handles that first cutover with you, database included, and a free trial lets you prove the app runs before you move traffic.
 
-## How it fits the rest of your stack
+## The rest of the picture
 
 Weighing the wider field first? [Where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/) covers every option. The one-on-ones go deeper: [Render alternative](https://www.kloudbean.com/blog/render-alternative-for-vibe-coded-apps/) and [Railway alternative](https://www.kloudbean.com/blog/railway-alternative-for-vibe-coded-apps/). For the hands-on side, [deploy a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/).
 
