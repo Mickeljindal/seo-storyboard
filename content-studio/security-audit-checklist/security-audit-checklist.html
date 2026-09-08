@@ -139,7 +139,7 @@
 <div class="kbcta-sec-wrap">
   <div class="kbcta-sec-overlay"></div>
   <div class="kbcta-sec-content">
-    <div class="kbcta-sec-eyebrow">SECURITY &middot; HARDENED BY DEFAULT</div>
+    <div class="kbcta-sec-eyebrow"><span class="kbcta-sec-dot"></span>SECURITY &middot; HARDENED BY DEFAULT</div>
     <p class="kbcta-sec-heading">Patched, firewalled, and backed up.</p>
     <p class="kbcta-sec-description">The platform keeps the server, stack, SSL, and patching current, with automatic backups running. Application-level security stays yours, and that split is deliberate rather than hidden.</p>
     <ul class="kbcta-sec-features">
@@ -154,6 +154,7 @@
       <a class="kbcta-sec-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
       <a class="kbcta-sec-link" href="https://www.kloudbean.com/pricing/">See plans</a>
     </div>
+    <p class="kbcta-sec-note">Plans from $8/mo &middot; Free migration assistance &middot; Free trial</p>
   </div>
 </div>
 <style>
@@ -184,6 +185,35 @@
   .kbcta-sec-btn{width:100%}
   .kbcta-sec-link{text-align:center}
 }
+
+
+
+
+
+/* --- premium layer: drifting grid, floating glow, pulse dot, button shine --- */
+.kbcta-sec-wrap::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+  background-size:42px 42px;
+  -webkit-mask-image:linear-gradient(to right,transparent,rgba(0,0,0,.6),transparent);
+  mask-image:linear-gradient(to right,transparent,rgba(0,0,0,.6),transparent);
+  opacity:.5;animation:kbcta-sec-grid 18s linear infinite}
+.kbcta-sec-wrap::before{animation:kbcta-sec-glow 8s ease-in-out infinite alternate}
+.kbcta-sec-dot{position:relative;width:7px;height:7px;flex:0 0 7px;margin-right:9px;border-radius:50%;background:#fff;animation:kbcta-sec-pulse 2s infinite}
+.kbcta-sec-btn{position:relative;overflow:hidden}
+.kbcta-sec-btn::before{content:"";position:absolute;top:0;left:-120%;width:70%;height:100%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);transform:skewX(-20deg);
+  animation:kbcta-sec-shine 4.5s ease-in-out infinite}
+.kbcta-sec-btn:hover::before{animation-play-state:paused}
+/* Carries the price, so it must not be the dimmest thing in the block. */
+.kbcta-sec-note{position:relative;z-index:3;margin:22px 0 0;font-size:13px;line-height:1.55;color:rgba(255,255,255,.74)}
+@keyframes kbcta-sec-grid{0%{transform:translate(0,0)}100%{transform:translate(42px,42px)}}
+@keyframes kbcta-sec-glow{0%{transform:translate(0,0) scale(1);opacity:.7}100%{transform:translate(-60px,-70px) scale(1.2);opacity:1}}
+@keyframes kbcta-sec-pulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.55)}70%{box-shadow:0 0 0 7px rgba(255,255,255,0)}100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}}
+@keyframes kbcta-sec-shine{0%,55%{left:-120%}75%,100%{left:150%}}
+@media(prefers-reduced-motion:reduce){
+  .kbcta-sec-wrap::before,.kbcta-sec-wrap::after,.kbcta-sec-dot,.kbcta-sec-btn::before{animation:none!important}
+}
+@media(max-width:768px){.kbcta-sec-note{font-size:12px}}
 </style>
 
   <h2>FAQ</h2>

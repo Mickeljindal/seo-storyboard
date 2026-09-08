@@ -127,7 +127,7 @@
 <div class="kbcta-agency-wrap">
   <div class="kbcta-agency-overlay"></div>
   <div class="kbcta-agency-content">
-    <div class="kbcta-agency-eyebrow">FOR AGENCIES &middot; MANY CLIENTS, ONE CONSOLE</div>
+    <div class="kbcta-agency-eyebrow"><span class="kbcta-agency-dot"></span>FOR AGENCIES &middot; MANY CLIENTS, ONE CONSOLE</div>
     <p class="kbcta-agency-heading">One login. Every client app.</p>
     <p class="kbcta-agency-description">Consolidate the dashboards: isolated apps on managed servers, per-client databases, per-app backups you can restore individually, and permissions scoped per resource and action.</p>
     <ul class="kbcta-agency-features">
@@ -142,6 +142,7 @@
       <a class="kbcta-agency-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
       <a class="kbcta-agency-link" href="https://www.kloudbean.com/pricing/">See plans</a>
     </div>
+    <p class="kbcta-agency-note">Plans from $8/mo &middot; Free migration assistance &middot; Free trial</p>
   </div>
 </div>
 <style>
@@ -172,6 +173,35 @@
   .kbcta-agency-btn{width:100%}
   .kbcta-agency-link{text-align:center}
 }
+
+
+
+
+
+/* --- premium layer: drifting grid, floating glow, pulse dot, button shine --- */
+.kbcta-agency-wrap::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+  background-size:42px 42px;
+  -webkit-mask-image:linear-gradient(to right,transparent,rgba(0,0,0,.6),transparent);
+  mask-image:linear-gradient(to right,transparent,rgba(0,0,0,.6),transparent);
+  opacity:.5;animation:kbcta-agency-grid 18s linear infinite}
+.kbcta-agency-wrap::before{animation:kbcta-agency-glow 8s ease-in-out infinite alternate}
+.kbcta-agency-dot{position:relative;width:7px;height:7px;flex:0 0 7px;margin-right:9px;border-radius:50%;background:#fff;animation:kbcta-agency-pulse 2s infinite}
+.kbcta-agency-btn{position:relative;overflow:hidden}
+.kbcta-agency-btn::before{content:"";position:absolute;top:0;left:-120%;width:70%;height:100%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);transform:skewX(-20deg);
+  animation:kbcta-agency-shine 4.5s ease-in-out infinite}
+.kbcta-agency-btn:hover::before{animation-play-state:paused}
+/* Carries the price, so it must not be the dimmest thing in the block. */
+.kbcta-agency-note{position:relative;z-index:3;margin:22px 0 0;font-size:13px;line-height:1.55;color:rgba(255,255,255,.74)}
+@keyframes kbcta-agency-grid{0%{transform:translate(0,0)}100%{transform:translate(42px,42px)}}
+@keyframes kbcta-agency-glow{0%{transform:translate(0,0) scale(1);opacity:.7}100%{transform:translate(-60px,-70px) scale(1.2);opacity:1}}
+@keyframes kbcta-agency-pulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.55)}70%{box-shadow:0 0 0 7px rgba(255,255,255,0)}100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}}
+@keyframes kbcta-agency-shine{0%,55%{left:-120%}75%,100%{left:150%}}
+@media(prefers-reduced-motion:reduce){
+  .kbcta-agency-wrap::before,.kbcta-agency-wrap::after,.kbcta-agency-dot,.kbcta-agency-btn::before{animation:none!important}
+}
+@media(max-width:768px){.kbcta-agency-note{font-size:12px}}
 </style>
 
   <h2>FAQ</h2>

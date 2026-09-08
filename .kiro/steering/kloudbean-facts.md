@@ -232,8 +232,29 @@ MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB.
   premium/enterprise (dedicated cloud project) WITH egress AND ingress fees. Never say "no egress"
   about GCS. Never attribute the S3 storage to Cloudflare/R2 (R2-like, but not named).
 
+### PRICING IS PER-PROVIDER AND PER-REGION (owner-confirmed, Sep 2026). READ BEFORE QUOTING A PRICE.
+
+The entry price depends on WHICH CLOUD and WHICH REGION the server runs in, because Kloudbean
+provisions on 7 different providers. Quoting one number everywhere is wrong.
+
+- **$8/mo is the LINODE entry price.** It is the cheapest baseline and it is the right number for
+  general, region-agnostic content.
+- **LINODE HAS NO SAUDI DATA CENTRE.** So $8/mo is NOT available for in-Kingdom hosting, and quoting
+  it on Saudi content is a factual error a prospect will catch on the pricing page.
+- **KSA / Dammam starts from $36/mo**, because in-Kingdom hosting runs on Google Cloud's Dammam
+  region (me-central2), which costs more than Linode.
+
+**RULE: match the price to the geography the article is about.**
+- Saudi / KSA / Dammam / in-Kingdom / PDPL / NCA content -> "from $36/mo".
+- General or region-agnostic content -> "from $8/mo".
+- A region with no confirmed figure -> do not invent one. Say "pricing varies by cloud and region"
+  and link the pricing page.
+- Always suggest verifying current pricing on the pricing page, since these move.
+
+This applies to CTAs as much as body copy: a CTA on a Dammam article saying "$8/mo" is a broken promise.
+
 ### Pricing & commercial (owner-confirmed)
-- Standard from $8/mo (still fine as entry pitch; owner left it unchanged).
+- Standard from $8/mo on Linode (see the per-provider rule above before using this number).
 - Enterprise: from US$7,500/month, custom pricing for wider scope. OWNER CONFIRMED this is PUBLISHABLE.
   Phrase as "enterprise plans start from $7,500/mo, with custom pricing for wider scope" and still
   suggest verifying current pricing on the pricing page. Don't splash it on every page, but it's fine

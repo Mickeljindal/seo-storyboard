@@ -21,6 +21,15 @@ Status: Shipped · Visibility: Internal
 - Carries over the transferable parts: authority layers, create/don't-create, the mandatory cannibalisation check, opportunity scoring, information gain, the accuracy firewall, humanisation, product placement, no competitor hand-offs, and the cross-article template-slop audit.
 - Phased setup (product truth → steering set → writing standard → gates → first batch) with a stop-and-approve point after the first single article.
 
+## v1.12.0 — 2026-09-07 — Conversion-focused CTAs with region-aware pricing
+Status: Shipped · Visibility: Public
+- **Every CTA now states a price.** All 396 end-of-article CTAs carried a headline, features and buttons but **no price and no trust signal**, which is the single biggest conversion gap in a bottom-of-page CTA. Each now ends with a note line: the entry price, free migration assistance, and the free trial.
+- **Pricing is region-aware, because it has to be.** Kloudbean provisions across 7 clouds at different prices: **$8/mo is the Linode entry point, and Linode has no Saudi data centre**, so in-Kingdom hosting runs on Google Cloud Dammam and starts at **$36/mo**. Quoting $8 on a Saudi article is a promise the pricing page would break. 18 in-Kingdom articles now show the Dammam price, 5 enterprise articles show the enterprise figure with its dedicated onboarding manager and DevOps engineer, and 3 provider comparisons that genuinely weigh the region show both so neither number misleads.
+- Recorded the per-provider pricing rule in `kloudbean-facts.md`, since a single global price was the underlying error.
+- **Premium visual layer across all 11 topic variants** (ai, move, fix, run, db, sec, wp, agency, gov, ksa, ent), matching the hand-built reference CTAs: a drifting background grid, a floating ambient glow, a pulsing status dot in the eyebrow, and a shine sweep across the button. All of it disabled under `prefers-reduced-motion`, and all CSS scoped per variant so nothing leaks into the theme.
+- The existing per-article CTA copy and topic matching were left intact; this adds what was missing rather than rewriting 396 CTAs.
+- New script: `upgrade-ctas.mjs`, idempotent so it can be re-run safely.
+
 ## v1.11.1 — 2026-09-07 — Right shape per diagram, and a clean validator across the library
 Status: Shipped · Visibility: Public
 - **Two new visual types, because four charts kept failing for the right reason.** They were not a rendering problem, they were the wrong shape: "a short storage bar next to a tall egress bar" is not a line chart, and "a naive deploy beside an overlapping deploy" is not one either. Added **`bars`** (magnitude between named things) and **`timeline`** (two scenarios over elapsed time, so a reader sees one has an outage gap and the other does not).

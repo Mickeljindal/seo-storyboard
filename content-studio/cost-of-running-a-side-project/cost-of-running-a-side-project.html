@@ -187,7 +187,7 @@ Everything shown must be technically accurate. Do not invent numbers, prices, or
 <div class="kbcta-run-wrap">
   <div class="kbcta-run-overlay"></div>
   <div class="kbcta-run-content">
-    <div class="kbcta-run-eyebrow">MANAGED CLOUD &middot; ONE DASHBOARD</div>
+    <div class="kbcta-run-eyebrow"><span class="kbcta-run-dot"></span>MANAGED CLOUD &middot; ONE DASHBOARD</div>
     <p class="kbcta-run-heading">Ship the app, not the infrastructure.</p>
     <p class="kbcta-run-description">Pick from seven clouds, run your app on a managed server you control, and keep databases, storage, and deploys in the same dashboard instead of four separate vendors.</p>
     <ul class="kbcta-run-features">
@@ -203,6 +203,7 @@ Everything shown must be technically accurate. Do not invent numbers, prices, or
       <a class="kbcta-run-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
       <a class="kbcta-run-link" href="https://www.kloudbean.com/pricing/">See plans</a>
     </div>
+    <p class="kbcta-run-note">Plans from $8/mo &middot; Free migration assistance &middot; Free trial</p>
   </div>
 </div>
 <style>
@@ -233,6 +234,35 @@ Everything shown must be technically accurate. Do not invent numbers, prices, or
   .kbcta-run-btn{width:100%}
   .kbcta-run-link{text-align:center}
 }
+
+
+
+
+
+/* --- premium layer: drifting grid, floating glow, pulse dot, button shine --- */
+.kbcta-run-wrap::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+  background-size:42px 42px;
+  -webkit-mask-image:linear-gradient(to right,transparent,rgba(0,0,0,.6),transparent);
+  mask-image:linear-gradient(to right,transparent,rgba(0,0,0,.6),transparent);
+  opacity:.5;animation:kbcta-run-grid 18s linear infinite}
+.kbcta-run-wrap::before{animation:kbcta-run-glow 8s ease-in-out infinite alternate}
+.kbcta-run-dot{position:relative;width:7px;height:7px;flex:0 0 7px;margin-right:9px;border-radius:50%;background:#fff;animation:kbcta-run-pulse 2s infinite}
+.kbcta-run-btn{position:relative;overflow:hidden}
+.kbcta-run-btn::before{content:"";position:absolute;top:0;left:-120%;width:70%;height:100%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);transform:skewX(-20deg);
+  animation:kbcta-run-shine 4.5s ease-in-out infinite}
+.kbcta-run-btn:hover::before{animation-play-state:paused}
+/* Carries the price, so it must not be the dimmest thing in the block. */
+.kbcta-run-note{position:relative;z-index:3;margin:22px 0 0;font-size:13px;line-height:1.55;color:rgba(255,255,255,.74)}
+@keyframes kbcta-run-grid{0%{transform:translate(0,0)}100%{transform:translate(42px,42px)}}
+@keyframes kbcta-run-glow{0%{transform:translate(0,0) scale(1);opacity:.7}100%{transform:translate(-60px,-70px) scale(1.2);opacity:1}}
+@keyframes kbcta-run-pulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.55)}70%{box-shadow:0 0 0 7px rgba(255,255,255,0)}100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}}
+@keyframes kbcta-run-shine{0%,55%{left:-120%}75%,100%{left:150%}}
+@media(prefers-reduced-motion:reduce){
+  .kbcta-run-wrap::before,.kbcta-run-wrap::after,.kbcta-run-dot,.kbcta-run-btn::before{animation:none!important}
+}
+@media(max-width:768px){.kbcta-run-note{font-size:12px}}
 </style>
 
   <h2>FAQ</h2>
