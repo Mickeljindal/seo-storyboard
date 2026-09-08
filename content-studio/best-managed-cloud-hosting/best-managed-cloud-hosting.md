@@ -126,7 +126,7 @@ Everything above, condensed to a scorecard. Run any candidate host down the midd
 | Pricing model | Plan-ability, no nasty months | Flat and predictable, few metered surprises |
 | Migration | Friction to arrive and to leave | Assisted, low-downtime, both directions |
 
-## Where Kloudbean fits
+## How Kloudbean performs against the checklist
 
 Now the part where I'm allowed to have a horse in the race, held to the same checklist. Kloudbean is managed cloud hosting built around one idea: run your whole stack from a single dashboard, on infrastructure you own, without becoming your own sysadmin.
 
@@ -156,7 +156,7 @@ On **pricing**, standard plans start from $8/mo, which keeps a first project hon
 
 Run Kloudbean down the checklist and it ticks the boxes that matter for a team that wants to own its app without running a server. It won't be the right pick for someone who wants a pure serverless event platform, or who needs a Windows and .NET stack. That's the honest edge of the fit. If you want the head-to-heads, see [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/) and, when you're choosing whether to resell, [reseller hosting vs managed cloud](https://www.kloudbean.com/blog/reseller-hosting-vs-managed-cloud/). And once you've picked a host, [how to deploy an app](https://www.kloudbean.com/blog/how-to-deploy-any-app/) gets you live.
 
-## The honest limits
+## What this hosting model still leaves to you
 
 Two caveats, because a buyer's guide that only flatters one option isn't a guide. Managed cloud is Linux territory: Node, PHP, Python, Ruby, Java, Go, and the frameworks on top, plus WordPress and the usual databases. It isn't the home for a Windows-only, IIS-and-SQL-Server application as-is. And "managed" is a division of labor, not a magic wand: the platform runs the server layer, you still own your application, your access decisions, and your data model. On compliance, treat it as shared responsibility. The platform provides infrastructure controls and continues to mature its posture; your application-level compliance is still yours to own, and no honest host should hand you a "certified and done" story for your app.
 

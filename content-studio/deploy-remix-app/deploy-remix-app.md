@@ -90,7 +90,7 @@ Two artifacts, two jobs. `build/client/` is the static stuff a browser downloads
 
 People trip here by uploading only `build/client/` and wondering why the app is blank or 404s on real routes. Nothing is running the loaders. You shipped the passengers and left the driver at home.
 
-<!-- ADD IMAGE: The build folder after npm run build, with build/server/index.js sitting next to the build/client assets. -->
+![After running npm run build](images/gen-1-terminal.png)
 
 ## Two ways to run it: remix-serve or your own Express server
 
@@ -153,7 +153,7 @@ Here's the concrete path through the Kloudbean console. Remix runs as a standard
 
 In **Applications, Add Application**, pick the Node.js stack and a datacenter near your users. Remix builds are Vite builds, and Vite likes memory, so give the box headroom. 2 GB of RAM is a comfortable start. The platform sets up the Node runtime, a process manager, a reverse proxy, and a firewall so you're not wiring those by hand.
 
-![The Kloudbean Add Application screen: adding a Remix app on the Node.js stack](../assets/console/add-application.png)
+![The Kloudbean Add Application screen: adding a Remix app on the Node.js stack](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 *Add Application: a Remix app is a Node app. Pick the Node.js stack and the platform provisions the process manager and proxy around it.*
 
@@ -166,13 +166,13 @@ Deploys come from Git, so your repo is the source of truth, not a folder on your
 - **Port:** the port your app listens on, read from `PORT`.
 - **Install / Build / Start:** `npm ci`, then `npm run build`, then `npm start` (which runs `remix-serve ./build/server/index.js`).
 
-![The Kloudbean Git Deployment tab: connect the repo, set Build to npm run build and Start to remix-serve, then Pull and Deploy](../assets/console/git-deployment.png)
+![The Kloudbean Git Deployment tab: connect the repo, set Build to npm run build and Start to remix-serve, then Pull and Deploy](../assets/console-real/shots/git_connect_step_4.png)
 
 *Git Deployment: connect the repo, set Build to npm run build and Start to npm start, then Pull and Deploy. The build log streams live as it clones, installs, builds, and boots.*
 
 Hit **Pull & Deploy** and the console streams every step, so a failure shows the exact line, not a spinner. Turn on automated deployment and each push to your branch rebuilds and ships itself, the Git-to-live loop the per-seat platforms rent you, on a server you control. The pattern is covered in [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-<!-- ADD IMAGE: Live build logs streaming a Remix Vite build, line by line, during a deploy. -->
+![Remix Vite build in real time](images/gen-2-flow.png)
 
 ### The proxy and SSL you don't have to build
 
@@ -223,7 +223,7 @@ The split is worth saying out loud: secrets live in loaders and actions and stay
 
 In the console, set these under **Environment Variables**. A **Paste .env Content** tab lets you drop your whole file in as key/value pairs. Set `DATABASE_URL` and your secrets, save, and they're on `process.env` at runtime, out of Git and out of the client bundle.
 
-![The Kloudbean environment variables editor with DATABASE_URL and secret keys set for a Remix app](../assets/console/env-vars.png)
+![The Kloudbean environment variables editor with DATABASE_URL and secret keys set for a Remix app](../assets/console-real/shots/nodespm_env_step_1.png)
 
 *Environment Variables: paste your .env, set DATABASE_URL and your secrets, save. Loaders and actions read them from process.env at runtime.*
 
@@ -255,7 +255,7 @@ First deploys stumble in predictable places. Knowing them turns a 30-minute stal
 
 **Build tooling skipped.** Something sets `NODE_ENV=production` before install, npm skips `devDependencies` where Vite and the Remix plugin live, and the build dies with a missing-module error. Let install pull everything, then build. When a deploy 503s, read the app's error log first. It's almost always one of these, in plain text.
 
-<!-- ADD IMAGE: The app error log with a build failure line highlighted, such as a missing module or a server import pulled into the client. -->
+![Identify the issue before guessing](images/gen-3-flow.png)
 
 ## Before you rely on this
 
@@ -263,13 +263,21 @@ Two things worth saying straight. First, this is a Linux Node deployment. Remix 
 
 Second, your server lives in one region, not a global edge. Remix can target edge runtimes, but on a server you own it runs in the datacenter you picked. For most apps a well-placed server with its database beside it is faster than people expect, since you skip cold starts and the trip to a far-off database. If you serve a latency-critical audience worldwide, put Cloudflare in front (a paid add-on, free on Enterprise) so pages cache at the edge while your app runs on your hardware. "Managed" means the server, stack, SSL, backups, and patching are handled. Your code and data stay yours, on an ordinary Linux box you can move whenever you like.
 
----
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-### Build it. Push it. Watch the server boot.
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Deploy your Remix app from Git onto a managed Node server you own, with the reverse proxy, SSL, and process manager already handled, and a managed database a click away. Start at [kloudbean.com](https://www.kloudbean.com/) from $8/mo, or talk to us about Enterprise. Sizes on [pricing](https://www.kloudbean.com/pricing/).
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
 
-Node.js stack · Git deploy with live logs · Free auto-renewing SSL · Managed databases · Automatic backups · Free migration · Free trial
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

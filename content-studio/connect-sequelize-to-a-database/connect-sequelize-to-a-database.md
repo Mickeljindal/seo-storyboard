@@ -94,7 +94,7 @@ module.exports = User;
 
 By default Sequelize adds `createdAt` and `updatedAt` timestamps and pluralizes the table name to `Users`. Handy, and also the reason a lot of migration errors mention `Users` with a capital U. One thing the model does not do: defining it never touches the live schema. Creating the table is the migration's job.
 
-<!-- ADD IMAGE: Your editor open on models/user.js, the Model.init call visible. -->
+![Comparison of database connection in production](images/gen-1-comparison.png)
 
 ## Size the Sequelize connection pool
 
@@ -197,7 +197,7 @@ module.exports = {
 
 Then `db:migrate` becomes a deploy step. Run it after the build and before the new version takes traffic, so the schema is always ahead of the code that needs it. On Kloudbean's managed CI/CD you drop `npx sequelize-cli db:migrate` into the deploy step and watch it stream in the live build logs.
 
-<!-- ADD IMAGE: Terminal output of npx sequelize-cli db:migrate applying a pending migration. -->
+![Using Sequelize CLI](images/gen-2-terminal.png)
 
 ## Postgres or MySQL: same Sequelize, different dialect
 
@@ -246,7 +246,7 @@ Everything above assumes a real database on the other end: always on, backed up,
 
 **Step 4. Run migrations as part of the deploy.** Add `npx sequelize-cli db:migrate` to the deploy step so the schema updates before the new code serves a request, and watch it apply in the live build logs. Wiring it through CI? [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) shows the pattern.
 
-<!-- ADD IMAGE: The managed database connection details panel after launch: host, port, database, user. -->
+![Connection details after launch](images/gen-3-flow.png)
 
 **Step 5. Verify with a health check.** Your `authenticate()` log line is the confirmation. A clean "Database connection OK" in the logs means the string, the network, and the pool all agree. A crash there means fix the config, not the code.
 
@@ -300,13 +300,20 @@ const users = await User.findAll({
 
 If a list endpoint got slow after you added a relation, look here first. It's almost always the culprit.
 
----
+<!-- cta:start -->
+**One click to a real database.**
 
-**Give your Sequelize app a database that's ready for production.**
+Launch MySQL, MariaDB, PostgreSQL, Redis, Memcached, MongoDB, or Elasticsearch in a click, reachable from your app server with automatic backups from minute one. Standard connection strings, standard dumps, no proprietary format.
 
-Launch managed PostgreSQL or MySQL, drop the connection string into one environment variable, size the pool, and run your migrations with IP allow-listing and automatic backups. Start free at [kloudbean.com](https://www.kloudbean.com/), and see plans from $8/mo on [pricing](https://www.kloudbean.com/pricing/).
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
 
-One-click databases · Automatic backups · Env vars in the UI · Free migration · Free trial
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

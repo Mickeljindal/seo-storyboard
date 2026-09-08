@@ -126,8 +126,16 @@
   <p>Open the <strong>DBS</strong> section and hit <strong>Launch Database</strong>. Pick <strong>MongoDB</strong> from the engine list, name it, and create it. A couple of minutes later it's provisioned, locked to your app server's IP, and already being backed up.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen with MongoDB among the managed engine choices">
-    <figcaption>DBS then Launch Database: choose MongoDB from the seven managed engines, and it arrives provisioned and backed up.</figcaption>
+    <img src="../assets/console-real/shots/database_step_1.png" alt="Open Managed Databases and add a new database">
+    <figcaption>Open Managed Databases and add a new database</figcaption>
+  </figure>
+  <figure>
+    <img src="../assets/console-real/shots/mongodb_launch_step_1.png" alt="Choose mongodb, size, and region">
+    <figcaption>Choose mongodb, size, and region</figcaption>
+  </figure>
+  <figure>
+    <img src="../assets/console-real/shots/mongodb_launch_step_2.png" alt="The managed mongodb is created with its own host and SSL">
+    <figcaption>The managed mongodb is created with its own host and SSL</figcaption>
   </figure>
 
   <p>You'll get the connection details: host, port (MongoDB's default is <code>27017</code>), database name, username, and password. Keep them handy for the next step, and keep them out of your code.</p>
@@ -138,7 +146,7 @@
   <p>Your app should read its connection from the <strong>environment</strong>, never from a value typed into the source. Open <strong>Runtime Configuration</strong> then <strong>Environment Variables</strong> and add it. Most MongoDB drivers look for <code>MONGODB_URI</code>, though the name is up to you:</p>
 
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables panel holding the MongoDB connection string safely outside the code">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean console Environment Variables panel holding the MongoDB connection string safely outside the code">
     <figcaption>Runtime Configuration then Environment Variables: the MongoDB connection string lives here, never in your repository.</figcaption>
   </figure>
 
@@ -196,7 +204,21 @@ db = client.appdb</code></pre>
   </table>
 
   <!-- ADD IMAGE: a MongoDB collection viewed in Compass or a GUI, showing a few documents with different shapes. Swap for a real screenshot: src -> images/mongo-collection.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Concrete hint: a collection open in MongoDB Compass showing a few documents with slightly different fields.</em><small>Makes "flexible schema" concrete.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #1
+Create a left-to-right architecture / flow diagram for a technical blog post titled "Managed MongoDB Hosting: When to Use It, and When Not To".
+
+What it must show: Concrete hint: a collection open in MongoDB Compass showing a few documents with slightly different fields.
+Also: Makes "flexible schema" concrete.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-flow.png" alt="Concrete hint: a collection open in MongoDB Compass showing a few documents with slightly different fields.">
+    <figcaption>Document view in MongoDB Compass</figcaption>
+  </figure>
 
   <h2>Modeling documents: a schema even when the database doesn't demand one</h2>
   <p>MongoDB won't force a schema on you. That doesn't mean you should skip designing one. The single most useful modeling decision in MongoDB is <strong>embed versus reference</strong>, and it's worth getting right early:</p>
@@ -219,7 +241,21 @@ db.orders.find({ userId: 123 }).explain("executionStats")</code></pre>
   <p>MongoDB indexes the <code>_id</code> field for you automatically. Everything else is on you. Run <code>explain("executionStats")</code> on any query that feels slow and look at whether it hit an index or scanned the collection. A single well-placed compound index is usually the biggest speedup you'll find.</p>
 
   <!-- ADD IMAGE: terminal output of explain() showing an index scan versus a collection scan. Swap for a real screenshot: src -> images/mongo-explain.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Concrete hint: terminal showing explain() output, an index scan next to a slow COLLSCAN.</em><small>Backs up the indexing section.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #2
+Create a realistic terminal / command-line screenshot for a technical blog post titled "Managed MongoDB Hosting: When to Use It, and When Not To".
+
+What it must show: Concrete hint: terminal showing explain() output, an index scan next to a slow COLLSCAN.
+Also: Backs up the indexing section.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-terminal.png" alt="Concrete hint: terminal showing explain() output, an index scan next to a slow COLLSCAN.">
+    <figcaption>Optimize your MongoDB queries</figcaption>
+  </figure>
 
   <h2>Migrating off MongoDB Atlas (or any Mongo)</h2>
   <p>Already have data on Atlas, a self-hosted box, or another provider? It's all the same MongoDB underneath, so a move is a plain dump and restore:</p>
@@ -231,7 +267,21 @@ mongorestore --uri="mongodb://appuser:s3cret@10.0.0.5:27017/appdb" dump/</code><
   <p>Then repoint <code>MONGODB_URI</code> at the new database and redeploy. Because it's standard MongoDB with standard tools, there's no proprietary format to fight, which is the point of an Atlas alternative you actually control. If you'd rather not run the cutover yourself, Kloudbean's <strong>free migration assistance</strong> can do it with you.</p>
 
   <!-- ADD IMAGE: terminal running mongodump then mongorestore end to end. Swap for a real screenshot: src -> images/mongo-migrate.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Concrete hint: terminal running mongodump on the old cluster then mongorestore into the new managed MongoDB.</em><small>Makes the migration steps concrete.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #3
+Create a realistic terminal / command-line screenshot for a technical blog post titled "Managed MongoDB Hosting: When to Use It, and When Not To".
+
+What it must show: Concrete hint: terminal running mongodump on the old cluster then mongorestore into the new managed MongoDB.
+Also: Makes the migration steps concrete.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-terminal.png" alt="Concrete hint: terminal running mongodump on the old cluster then mongorestore into the new managed MongoDB.">
+    <figcaption>Real migration steps for database transfer</figcaption>
+  </figure>
 
   <h2>Security and backups, without the checklist fatigue</h2>
   <p>A database holds the data you least want leaked, so a few basics aren't optional:</p>
@@ -245,11 +295,55 @@ mongorestore --uri="mongodb://appuser:s3cret@10.0.0.5:27017/appdb" dump/</code><
   <h2>How managed MongoDB scales</h2>
   <p>Start simple. A single managed instance carries most apps a long way, and the first scaling move is almost always to <strong>resize the server</strong> for more CPU, RAM, and storage. Beyond that, MongoDB's own scaling story is <strong>replica sets</strong> for availability (copies that keep serving if one node dies) and <strong>sharding</strong> for spreading a very large dataset across machines. Those are advanced setups you grow into, not day-one decisions. Before any of it, caching your hottest reads in <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a> is usually the cheapest win, because the query that never reaches MongoDB is the fastest one. If you're weighing running it all yourself against a managed instance, <a href="https://www.kloudbean.com/blog/managed-database-vs-self-managed/">managed database vs self-managed</a> lays out the real tradeoffs.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run MongoDB on infrastructure you control.</p>
-    <p style="margin:0 0 .6em">Launch a managed MongoDB with automatic backups, IP allow-listing, and free migration help, connected with one environment variable, on the same dashboard as your app. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">One-click MongoDB · Automatic backups · Free migration · Free trial · From $8/mo</p>
+<div class="kbcta-db-wrap">
+  <div class="kbcta-db-overlay"></div>
+  <div class="kbcta-db-content">
+    <div class="kbcta-db-eyebrow">MANAGED DATABASES &middot; SEVEN ENGINES</div>
+    <p class="kbcta-db-heading">A database you can dump and take with you.</p>
+    <p class="kbcta-db-description">Seven managed engines, provisioned and patched for you, with access controlled and backups running automatically. Your schema, your queries, and your data stay exportable with the standard tools.</p>
+    <ul class="kbcta-db-features">
+      <li>&#10003; Seven managed engines</li>
+      <li>&#10003; One-click launch</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Controlled access</li>
+      <li>&#10003; Standard connection strings</li>
+      <li>&#10003; Free migration assistance</li>
+    </ul>
+    <div class="kbcta-db-buttons">
+      <a class="kbcta-db-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-db-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-db: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-db-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#04202B;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-db-wrap *{box-sizing:border-box}
+.kbcta-db-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #04202B 0%, #073947 55%, rgba(14,116,144,.62) 100%);pointer-events:none}
+.kbcta-db-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-db-content{position:relative;z-index:3;max-width:700px}
+.kbcta-db-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-db-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-db-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-db-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-db-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-db-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-db-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#064454;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-db-btn:hover,.kbcta-db-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-db-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-db-link:hover,.kbcta-db-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-db-wrap{padding:36px 24px}
+  .kbcta-db-heading{font-size:31px}
+  .kbcta-db-description{font-size:16px}
+  .kbcta-db-features li{white-space:normal}
+  .kbcta-db-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-db-btn{width:100%}
+  .kbcta-db-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

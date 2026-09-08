@@ -37,7 +37,7 @@ The first enterprise question is almost never about speed. It's access. In a rea
 
 The control here is **least privilege**: subusers with User Access Control, scoped per resource and per action, so each person gets exactly what their role needs and nothing more. A deploy engineer can ship without being able to delete a server. An editor can publish without seeing billing. Add social login (Google, GitHub, LinkedIn) so identity ties back to accounts you already govern, a **Basic Auth gate** in front of staging or internal environments, and **IP access control** to fence admin to known networks. That's the difference between "we think only the right people have access" and being able to show it.
 
-<!-- ADD IMAGE: the User Access Control screen, a subuser with permissions scoped to one application and one action set. -->
+![Scope permissions for a subuser](images/gen-1-flow.png)
 
 ## Proof of who changed what
 
@@ -45,7 +45,7 @@ Access control decides who *can* act. An audit trail records what they actually 
 
 Kloudbean's **Audit Trail** (an Enterprise feature) is an immutable, searchable, account-wide log of activity, with CSV export for the compliance folder. Immutable is the word that matters: a log someone can quietly edit isn't evidence. Being able to hand an auditor a clean export of who did what, across the whole account, is often the single thing that turns "we hope we're compliant" into "here, look."
 
-<!-- ADD IMAGE: the Audit Trail view, a searchable activity log with a filter applied and a CSV export button. -->
+![Searchable activity log with filter and CSV export](images/gen-2-flow.png)
 
 ## Where the data lives, and who can reach it
 
@@ -53,7 +53,7 @@ Regulated organisations often have hard rules about where data physically sits. 
 
 Because Kloudbean provisions on seven tier-1 clouds (AWS, AWS Lightsail, Google Cloud, DigitalOcean, Linode, Vultr, and UpCloud), you pick the provider and region on purpose to meet a [data-residency](https://www.kloudbean.com/blog/data-residency-explained/) requirement. By default the database is locked down with IP allow-listing, so only your app server can reach it, not the public internet where scanners look. And on Enterprise plans the whole site can sit on a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/), with the database and internal services off the public internet entirely. Data residency plus private networking is a combination most enterprise questionnaires ask about directly.
 
-![The Kloudbean console: choosing the cloud provider and region when provisioning, to meet a data-residency requirement](../assets/console/add-server.png)
+![The Kloudbean console: choosing the cloud provider and region when provisioning, to meet a data-residency requirement](../assets/console-real/shots/launch_server_step_1.png)
 
 ## The hardening you inherit
 
@@ -67,7 +67,7 @@ Enterprise traffic isn't a flat line. A launch, a press hit, a campaign, a filin
 
 For changing the site safely, you get **staging** for WordPress (and Laravel), so nobody edits production live. And when a workload genuinely needs more than a bigger server and a load balancer, that's the enterprise path: Kubernetes, autoscaling, and custom architectures, handled as a custom engagement rather than a self-serve toggle. This is where the "acts like your in-house infra and DevOps team" model earns its keep. If you want the general mechanics first, [scalable WordPress hosting](https://www.kloudbean.com/blog/scalable-wordpress-hosting/) covers the ordinary rungs, and [autoscaling explained](https://www.kloudbean.com/blog/autoscaling-explained/) is honest about when you actually need it. Most sites don't, and a good partner will tell you so.
 
-<!-- ADD IMAGE: an overview of several enterprise WordPress environments (production, staging, regional) managed side by side. -->
+![Features and Security](images/gen-3-comparison.png)
 
 ## The enterprise review checklist
 
@@ -92,9 +92,20 @@ Compliance is **shared**, and this trips up a lot of buyers. A platform being [S
 
 So judge the eight rows above, not the badge on the plan. A plan labelled "Enterprise" that can't show you an audit log or let you pick a region is a name. A setup that quietly does all of it is enterprise-grade whatever it's called. And if you run client sites rather than one org's estate, the [agency operations playbook](https://www.kloudbean.com/blog/agency-wordpress-hosting/) is the sibling to this one.
 
-**WordPress your security review can sign off on.** Run enterprise WordPress with scoped access, an immutable audit trail, private networking, and region choice at [kloudbean.com](https://www.kloudbean.com/). Talk options on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**The enterprise path, run for you.**
 
-Least-privilege access · Audit Trail · Region choice · Automatic backups · Free migration
+Kubernetes, autoscaling, private networking, and the account-wide audit trail are part of the Enterprise package, delivered as a custom setup rather than a toggle on a standard plan. Pricing is scoped to the engagement.
+
+- Kubernetes (Enterprise)
+- Autoscaling (Enterprise)
+- Private networking (Enterprise)
+- Audit trail (Enterprise)
+- Custom architecture
+- In-Kingdom available
+
+[Start free](https://console.kloudbean.com/register) · [Talk to a cloud expert](https://calendly.com/kloudbean)
+<!-- cta:end -->
 
 ## FAQ
 

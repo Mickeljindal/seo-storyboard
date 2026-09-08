@@ -126,9 +126,21 @@ Three homes, in rough order of how much you manage. Your own workstation is perf
 
 Kloudbean is one managed option in that last bucket: it runs GPU servers across several clouds and regions, so you can keep the model and its data in a region you choose, and DeepSeek is a one-click install if you want the fastest possible start. Useful to know, but secondary to the point of this page, which is that the memory math and the serving choices above decide your setup wherever you run it.
 
----
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-**Run the numbers before you rent the card.** If you'd rather not manage the server, drivers, and backups yourself, Kloudbean runs managed GPU servers across several clouds and regions. Details at [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -108,11 +108,21 @@ When you do hit one of those triggers, the last thing you want is to bolt on a s
 
 That is how it works on Kloudbean. The Flexible Load Balancer (FLB) is built in and can be enabled on any account when you need it, with application pools to group the servers it sends traffic to, SSL management handled in one place, and access logs so you can see what it is doing. Until you reach a trigger, you leave it off and run your single server. When capacity or availability makes it time, you turn it on.
 
----
+<!-- cta:start -->
+**One dashboard for the whole stack.**
 
-**Reach a trigger? Turn the balancer on.** Kloudbean's Flexible Load Balancer is built in, so when a second server makes sense you enable it instead of assembling it: application pools, SSL management, and access logs included. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
 
-Built-in load balancer · Application pools · SSL management · Access logs · Managed databases · Automatic backups · Free SSL
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

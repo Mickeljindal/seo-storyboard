@@ -574,6 +574,17 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
       }
     }
 
+    // 6a. GROWTH — queue trend, thread, community and reply-drafting work that is
+    // due. Enqueues only; the jobs themselves are drained just below. Gathering and
+    // drafting are automated here, posting and emailing never are.
+    try {
+      const { runGrowthCycle } = await import("./growth-autopilot");
+      const g = await runGrowthCycle();
+      if (g.queued.length) log(`Growth: queued ${g.queued.join(", ")}`);
+    } catch (e) {
+      result.errors.push(`growth cycle: ${String((e as Error)?.message ?? e)}`);
+    }
+
     // 6b. JOB QUEUE — drain durable bulk jobs (build/optimize/publish) server-side.
     try {
       const { drainJobs } = await import("./job-queue");

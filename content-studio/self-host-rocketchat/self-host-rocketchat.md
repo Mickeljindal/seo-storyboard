@@ -67,7 +67,7 @@ Two more traps sit right next to the replica set, and they cause most of the rem
 
 *Clients reach the Rocket.Chat Node app over HTTPS and websockets through your SSL-terminating proxy. The app talks to managed MongoDB in the same account, with only its app-server IP whitelisted. The replica set is what produces the oplog and change streams Rocket.Chat needs for instant messaging.*
 
-<!-- ADD IMAGE: A mongo shell showing rs.status() with the replica set reporting a healthy primary. -->
+![First boot to admin creation](images/gen-2-flow.png)
 
 ## Self-hosted Rocket.Chat vs Slack, honestly
 
@@ -94,23 +94,23 @@ You're running two things that talk to each other: managed MongoDB (as a replica
 4. **Point your domain and turn on SSL.** Map `chat.example.com` to the app, issue a free certificate, and make sure the proxy forwards websocket upgrades.
 5. **Start it and create the admin.** On first boot Rocket.Chat runs a setup wizard where you create the admin account and name the workspace.
 
-![The Kloudbean console Launch Database screen used to provision managed MongoDB for Rocket.Chat](../assets/console/launch-database.png)
+![The Kloudbean console Launch Database screen used to provision managed MongoDB for Rocket.Chat](../assets/console-real/shots/psql_launch_step_1.png)
 
 *Step 1: launch managed MongoDB. Backups come with it, and you whitelist your app server's IP so only it can connect; the replica set is the MongoDB-level piece you arrange so Rocket.Chat gets its oplog.*
 
-![The Kloudbean console Add Application screen where the Rocket.Chat Node app is created on the managed Node runtime](../assets/console/add-application.png)
+![The Kloudbean console Add Application screen where the Rocket.Chat Node app is created on the managed Node runtime](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 *Step 2: add the application on the managed Node runtime. This is the process that serves Rocket.Chat.*
 
 If you deploy from a Git repository, managed CI/CD can build and start the app on every push. The [deploy a Node app](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) guide covers that flow end to end.
 
-<!-- ADD IMAGE: The Rocket.Chat setup wizard running on your own domain right after first boot. -->
+![Ensure the replica set is live before connecting Rocket.Chat](images/gen-1-terminal.png)
 
 ## The config that matters: MONGO_URL, ROOT_URL, PORT
 
 These few lines decide whether your Rocket.Chat is stable or flaky. Set them in the Environment Variables screen and restart so the app picks them up.
 
-![The Kloudbean console Environment Variables screen holding Rocket.Chat's MONGO_URL and ROOT_URL out of the code repository](../assets/console/env-vars.png)
+![The Kloudbean console Environment Variables screen holding Rocket.Chat's MONGO_URL and ROOT_URL out of the code repository](../assets/console-real/shots/nodespm_env_step_1.png)
 
 *Step 3: Rocket.Chat's connection string and public URL live here, in Runtime Configuration then Environment Variables, out of your repo.*
 
@@ -148,7 +148,7 @@ proxy_set_header Host $host;
 proxy_set_header X-Forwarded-Proto $scheme;
 ```
 
-![The Kloudbean console SSL certificate screen issuing a free certificate for the Rocket.Chat chat domain](../assets/console/ssl-certificate.png)
+![The Kloudbean console SSL certificate screen issuing a free certificate for the Rocket.Chat chat domain](../assets/console-real/shots/le_ssl_step_1.png)
 
 *Step 4: issue a free SSL certificate for `chat.example.com`. With SSL on and websockets upgraded, `ROOT_URL` should use `https://`.*
 
@@ -173,11 +173,21 @@ When usage grows, the levers are simple. Resize the server up; vertical headroom
 
 Running other tools yourself too? The [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup is a good map, and the sibling [self-host Supabase](https://www.kloudbean.com/blog/self-host-supabase/) guide walks a similar own-your-data path for a backend. And if internal team chat with air-gapped or compliance needs is the priority, [self-hosting Mattermost](https://www.kloudbean.com/blog/self-host-mattermost/) is the focused alternative to weigh.
 
----
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-**Own your team chat, top to bottom.** Run the Rocket.Chat Node app on a managed server, backed by managed MongoDB with backups and access locked to your app server's IP, your history in your region and your bill flat. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Managed Node runtime · Managed MongoDB · Free SSL · Automatic backups · Free migration · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

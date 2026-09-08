@@ -109,7 +109,7 @@ Here's the mistake I'd watch for, because it looks like diligence. A team picks 
 
 Call it Dammam theatre. It's residency you can point at, wrapped around a data flow nobody looked at. The fix isn't to tear down the in-Kingdom setup, which is correct and worth keeping. The fix is to look at the arrow. Minimize what the prompt carries, redact the identifiers the task doesn't need, and if the data truly can't leave, self-host the model instead. Residency is about where the data goes, not where the servers sit.
 
-## Where Kloudbean fits
+## What a Saudi AI deployment needs from its platform
 
 This is where the whole-stack-in-one-place part earns its keep. On Kloudbean you launch an always-on server (Node or Python, no cold starts) directly on Google Cloud's Dammam region, me-central2, which sits physically inside Saudi Arabia. Beside it you run a managed database, and there are seven engines to pick from (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB), all in the same region. Postgres carries your embeddings through the pgvector extension where your plan enables it. You get S3-compatible object storage for uploaded files, with no egress fees on the data you pull back out, plus automatic backups, free SSL, and Git deploy, all from one dashboard. You lock the database down by whitelisting your app server's IP, so only your app can reach it. That's the in-Kingdom home for everything except the arrow.
 

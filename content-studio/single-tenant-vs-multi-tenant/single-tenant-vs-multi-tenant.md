@@ -78,7 +78,7 @@ Read this as isolation versus efficiency. Almost everything else follows from th
 
 Two rows deserve more than a table cell. **Blast radius** is the one people learn the hard way: in a shared-everything design, one bad migration, one runaway query, or one leaked `WHERE` clause is an all-customers event. And the classic multi-tenant bug is exactly that, a query that forgot `WHERE tenant_id = ?` and quietly returned another customer's rows. That's not hypothetical, it's the reason RLS exists. Single-tenant makes that specific catastrophe structurally impossible, which is precisely why regulated buyers ask for it.
 
-<!-- ADD IMAGE: a simple whiteboard sketch, three boxed tenant stacks on one side, one shared app plus a tenant_id table on the other -->
+![Single-Tenant vs Multi-Tenant](images/gen-1-comparison.png)
 
 ## Which layer are we even talking about?
 
@@ -92,7 +92,7 @@ Here's an opinion, not a hedge. Most SaaS should start multi-tenant. It's cheape
 
 Single-tenant earns its cost when isolation stops being a preference and becomes a requirement. That's a big regulated customer with contract language about dedicated environments. It's a [data-residency](https://www.kloudbean.com/blog/data-residency-explained/) obligation that says this tenant's data lives in this country, full stop. It's a workload heavy and predictable enough that sharing genuinely hurts, or a customer who needs the app customized beyond a feature flag. When one of those shows up, single-tenant isn't a luxury, it's the spec. Before then, it's usually money set on fire.
 
-<!-- ADD IMAGE: a short decision cue, three yes-or-no triggers (regulated contract, data-residency clause, heavy predictable load) pointing to single-tenant, everything else to multi-tenant -->
+![Quick self-check](images/gen-2-flow.png)
 
 ## How hosting maps to tenancy
 
@@ -100,11 +100,11 @@ Once you've decided at which layer you need isolation, hosting is how you delive
 
 For single-tenant isolation, you give a customer their own server and their own managed database, locked down so only their app server's IP can reach it, and you can pin the region for residency. Granular User Access Control (UAC) and subusers let you scope who can touch which resource, which matters when "isolated" also means "only these people administer it." Enterprise and government setups can go further, putting each tenant on a [private network or dedicated VPC](https://www.kloudbean.com/blog/what-is-a-vpc/) with custom architectures.
 
-![The Kloudbean console launching a dedicated server, single-tenant at the infrastructure layer](../assets/console/add-server.png)
+![The Kloudbean console launching a dedicated server, single-tenant at the infrastructure layer](../assets/console-real/shots/launch_server_step_1.png)
 
 Or you run a shared app efficiently, and here's the pragmatic middle a lot of teams and agencies land on: rent one dedicated server (single-tenant to the outside world, so it's isolated and predictable) and run several of your own apps or clients on it (multi-tenant to you, so it's economical). You get isolation from everyone else and efficiency inside your own box.
 
-![The Kloudbean console running several applications on one dedicated server](../assets/console/add-application.png)
+![The Kloudbean console running several applications on one dedicated server](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 If that agency-style split is your model, [reseller hosting versus managed cloud](https://www.kloudbean.com/blog/reseller-hosting-vs-managed-cloud/) digs into it, and the whole managed-versus-raw question sits in [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/). I won't oversell the point: Kloudbean gives you the building blocks (isolated servers, managed databases, IP allow-listing, UAC, and private networking on Enterprise) to implement whichever tenancy your architecture calls for. The design decision is still yours.
 
@@ -114,11 +114,20 @@ Don't agonize over day one. This isn't a one-way door. Most teams start multi-te
 
 The boundary, plainly: there's no universal winner, only a trade you make on purpose. Isolation costs money, sharing saves it. A managed host on a Linux stack can support both: a dedicated server with the database locked to its app server's IP (and private networking or dedicated VPCs plus custom setups on Enterprise) when isolation is the requirement, or efficient shared use of a box you own when it isn't. Either way, your application and data stay yours while the platform runs the server, stack, SSL, and backups underneath. Decide by asking what you actually need to isolate, and what that isolation is worth.
 
----
+<!-- cta:start -->
+**Bring the app. Keep the deploy flow.**
 
-**Isolate what matters. Share the rest.** Build single-tenant isolation or an efficient shared setup on the cloud you choose, with dedicated servers, managed databases, and IP allow-listing (private networking on Enterprise). Start free at [kloudbean.com](https://www.kloudbean.com/), or see plans on [pricing](https://www.kloudbean.com/pricing/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-Dedicated servers · Managed databases · IP allow-listing · User Access Control · Free migration help · Free trial
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

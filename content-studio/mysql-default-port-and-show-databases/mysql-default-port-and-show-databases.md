@@ -57,7 +57,7 @@ bind-address = 127.0.0.1
 
 `port` is the obvious one, and you rarely change it. `bind-address` is the one that matters for safety. Bound to `127.0.0.1`, MySQL accepts connections only from the same machine. Bound to `0.0.0.0`, it accepts them from anywhere the firewall lets through. Read the next section before you touch that, because flipping it to `0.0.0.0` is the single most common way a database ends up exposed.
 
-<!-- ADD IMAGE: a terminal running ss -ltnp with the 3306 line highlighted, showing 127.0.0.1:3306 versus 0.0.0.0:3306 -->
+![Restricting MySQL access to the app server](images/gen-2-panel.png)
 
 ## Never put 3306 on the public internet
 
@@ -69,7 +69,7 @@ So here is the anti-pattern to burn into memory: setting `bind-address = 0.0.0.0
 
 The fix is structural, not a longer password. Keep MySQL bound to localhost or a private address, and let only your application tier reach it. If the app and database share a server, bind to `127.0.0.1` and you're done. If they sit on separate machines, put the database on a private address and allow only the app server's IP through the firewall. You reach the database from your app, never from a browser or a public client.
 
-<!-- ADD IMAGE: inline SVG in the HTML shows two exposures of port 3306, an unsafe public 0.0.0.0 bind versus a private bind reachable only from the whitelisted app server -->
+![Execute SHOW DATABASES](images/gen-3-flow.png)
 
 Need to reach a private database from your own machine now and then? Tunnel over SSH instead of opening the port. This forwards your local 3306 through an encrypted SSH session to the server, so the database port never touches the public internet:
 
@@ -80,7 +80,7 @@ ssh -L 3306:localhost:3306 user@your-server
 
 The deeper version of this, locking a managed database to a single app server with IP allow-listing, is in [database private access control](https://www.kloudbean.com/blog/database-private-access-control/).
 
-<!-- ADD IMAGE: a firewall rule list showing 3306 allowed only from the app server IP, not from 0.0.0.0/0 -->
+![Real network connections to MySQL](images/gen-1-terminal.png)
 
 ## List databases: SHOW DATABASES and the information_schema way
 
@@ -189,7 +189,7 @@ mysql -h db.example.com -P 3306 -u appuser -p --ssl-mode=REQUIRED appdb
 
 A few habits that save you later. Give the app its own least-privileged user rather than `root`. Keep the credentials in an environment variable in your app, never committed to Git. And if a lot of connections are in play, put a pool in front so MySQL isn't drowning in them, which is covered in [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/). The full app-side wiring, env vars and all, is in [how to add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
 
-![Launching a managed MySQL database in the Kloudbean console with automatic backups and access controls](../assets/console/launch-database.png)
+![Launching a managed MySQL database in the Kloudbean console with automatic backups and access controls](../assets/console-real/shots/mysql_launch_step_1.png)
 
 ## Does your host matter for this?
 
@@ -199,13 +199,24 @@ On Kloudbean, MySQL and MariaDB are two of seven managed engines (the others bei
 
 The honest boundary, said once. Managed covers the server, the engine, backups, and patching. Your schema, your data, and the queries you run stay yours, and a plain `mysqldump` export walks out the door with you whenever you want.
 
-**Run MySQL on a database you don't have to babysit.** Managed MySQL and MariaDB across seven clouds, provisioned in a few clicks, with automatic backups on from minute one and access locked to your app server's IP instead of the open internet. Free SSL. Free migration assistance. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
-
-One-click MySQL and MariaDB · Automatic backups · IP allow-listing · Free SSL · Free migration · One dashboard
-
 ## Other MySQL questions that follow this one
 
 More on the database side of things: [managed MySQL hosting](https://www.kloudbean.com/blog/managed-mysql-hosting/) for what running it as a service actually covers, and [managed MariaDB hosting](https://www.kloudbean.com/blog/managed-mariadb-hosting/) if you're on the fork. Still choosing an engine? [MySQL vs PostgreSQL](https://www.kloudbean.com/blog/mysql-vs-postgresql/) is the honest head to head. When queries get slow, [MySQL performance tuning](https://www.kloudbean.com/blog/mysql-performance-tuning/) takes it from the slow query log onward. On the connection side, [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) and [database private access control](https://www.kloudbean.com/blog/database-private-access-control/). Working in Postgres instead? The psql equivalent is [Postgres list tables and databases in psql](https://www.kloudbean.com/blog/psql-list-databases-and-tables/).
+
+<!-- cta:start -->
+**One click to a real database.**
+
+Seven managed engines, provisioned and patched for you, with access controlled and backups running automatically. Your schema, your queries, and your data stay exportable with the standard tools.
+
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

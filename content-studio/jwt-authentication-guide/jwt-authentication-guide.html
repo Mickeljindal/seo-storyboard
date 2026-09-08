@@ -49,7 +49,21 @@ base64url( HMACSHA256(headerB64 + "." + payloadB64, JWT_SECRET) )</code></pre>
   <p>Two things trip people up here, so let me be blunt about both. The payload is <strong>readable, not secret</strong>. It is base64, not encryption. Anyone holding the token can decode the claims, so never put a password, an API key, or anything sensitive in there. And the signature is the <strong>only</strong> thing that makes the token trustworthy. If someone edits the payload to say <code>"role": "admin"</code>, the signature no longer matches, and a server that checks the signature rejects it. A server that skips the check gets owned. That is the whole security model in one line.</p>
 
   <!-- ADD IMAGE: swap this slot for a real screenshot. src -> images/jwt-decoded.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A decoder view splitting one token into its three colored parts: header, payload, signature.</em><small>A jwt.io style breakdown works well here.</small></span></figure>
+  <!-- IMAGE GENERATE [panel] #1
+Create a clean settings / configuration panel UI mockup for a technical blog post titled "JWT Authentication: A Practical Guide for Node and Python".
+
+What it must show: A decoder view splitting one token into its three colored parts: header, payload, signature.
+Also: A jwt.io style breakdown works well here.
+
+A white card with a small uppercase section label, then labelled rows. Highlight the row that carries the point with a violet border. Optional green check line at the bottom confirming the result.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-panel.png" alt="A decoder view splitting one token into its three colored parts: header, payload, signature.">
+    <figcaption>Inspecting the token structure</figcaption>
+  </figure>
 
   <h2>How JWT authentication works, end to end</h2>
   <p>The flow is short. The user logs in with a password once. The server checks it, then signs a JWT with a secret only the server knows and sends it back. From then on the client attaches that token to every request, either in an <code>Authorization: Bearer</code> header or an HttpOnly cookie. The server verifies the signature and the expiry on each request and either serves the response or returns a 401. No database hit to check who is calling.</p>
@@ -197,6 +211,20 @@ def current_user(request: Request):
   <p>Django and Flask follow the same pattern with their own request objects. To put it live, see <a href="https://www.kloudbean.com/blog/deploy-fastapi-app/">deploy a FastAPI app</a>.</p>
 
   <!-- ADD IMAGE: swap this slot for a real screenshot. src -> images/cookie-httponly-devtools.png -->
+  <!-- IMAGE CAPTURE [browser-shot] #2
+SCREENSHOT NEEDED (do not generate this one).
+This slot shows a real browser window (address bar, devtools, or tabs), so an AI image would be inaccurate and a reader could tell.
+Capture: Browser devtools, Application tab, showing the auth cookie with HttpOnly and Secure both checked.
+Note: Proves the token is not reachable from JavaScript.
+Crop to 16:9, keep text legible at 1200px wide, and blur or fake any real credentials, tokens, IPs or customer data.
+-->
+  <!-- IMAGE CAPTURE [browser-shot] #1
+SCREENSHOT NEEDED (do not generate this one).
+This slot shows a real browser window (address bar, devtools, or tabs), so an AI image would be inaccurate and a reader could tell.
+Capture: Browser devtools, Application tab, showing the auth cookie with HttpOnly and Secure both checked.
+Note: Proves the token is not reachable from JavaScript.
+Crop to 16:9, keep text legible at 1200px wide, and blur or fake any real credentials, tokens, IPs or customer data.
+-->
   <figure class="img-slot"><span><b>Add image</b><em>Browser devtools, Application tab, showing the auth cookie with HttpOnly and Secure both checked.</em><small>Proves the token is not reachable from JavaScript.</small></span></figure>
 
   <h2>Access token vs refresh token</h2>
@@ -252,7 +280,21 @@ await db.refreshTokens.save({ userId: user.id, tokenHash });</code></pre>
   </ul>
 
   <!-- ADD IMAGE: swap this slot for a real diagram. src -> images/refresh-rotation.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A small sequence sketch of refresh rotation: old refresh token retired, new access and refresh tokens issued together.</em><small>Show the reuse-detection branch too.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #3
+Create a left-to-right architecture / flow diagram for a technical blog post titled "JWT Authentication: A Practical Guide for Node and Python".
+
+What it must show: A small sequence sketch of refresh rotation: old refresh token retired, new access and refresh tokens issued together.
+Also: Show the reuse-detection branch too.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-flow.png" alt="A small sequence sketch of refresh rotation: old refresh token retired, new access and refresh tokens issued together.">
+    <figcaption>Token lifecycle</figcaption>
+  </figure>
 
   <h2>Common JWT mistakes</h2>
   <p>Most JWT incidents are not exotic. They are the same handful of errors, over and over. Skip these and you have avoided the majority of them:</p>
@@ -279,7 +321,7 @@ await db.refreshTokens.save({ userId: user.id, tokenHash });</code></pre>
     <li><strong>Create the app on a managed runtime.</strong> Add your Express, FastAPI, Django, or Flask app. The runtime, stack, and patching are handled, so you focus on the auth logic.</li>
   </ol>
   <figure>
-    <img src="../assets/console/add-application.png" alt="The Kloudbean console adding an application on a managed Node or Python runtime">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="The Kloudbean console adding an application on a managed Node or Python runtime">
     <figcaption>Add your app on a managed Node or Python runtime. You own the code; the platform runs the stack.</figcaption>
   </figure>
 
@@ -287,7 +329,7 @@ await db.refreshTokens.save({ userId: user.id, tokenHash });</code></pre>
     <li><strong>Put the signing secret in environment variables.</strong> Open Runtime Configuration, then Environment Variables, and add your keys. They never touch the repo.</li>
   </ol>
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables screen holding the JWT signing secret, kept out of code">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean console Environment Variables screen holding the JWT signing secret, kept out of code">
     <figcaption>Store <code>JWT_SECRET</code> (and <code>JWT_REFRESH_SECRET</code>, or your RS256 keys) here, never in source.</figcaption>
   </figure>
 
@@ -303,20 +345,78 @@ JWT_REFRESH_SECRET=a-different-long-random-string
     <li><strong>Turn on free SSL.</strong> JWT auth over plain HTTP is broken by design, because anyone on the path reads the token. Enable HTTPS so <code>secure: true</code> cookies work and tokens stay encrypted in transit.</li>
   </ol>
   <figure>
-    <img src="../assets/console/ssl-certificate.png" alt="The Kloudbean console issuing a free SSL certificate so JWT authentication runs over HTTPS">
+    <img src="../assets/console-real/shots/le_ssl_step_1.png" alt="The Kloudbean console issuing a free SSL certificate so JWT authentication runs over HTTPS">
     <figcaption>Free SSL means tokens travel over HTTPS. Non-negotiable for any auth system.</figcaption>
   </figure>
 
   <!-- ADD IMAGE: swap this slot for your own screenshot. src -> images/your-app-login.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Your app's login response setting the auth cookie, viewed in the network tab.</em><small>Optional: shows the Set-Cookie header with HttpOnly and Secure.</small></span></figure>
+  <!-- IMAGE GENERATE [panel] #4
+Create a clean settings / configuration panel UI mockup for a technical blog post titled "JWT Authentication: A Practical Guide for Node and Python".
+
+What it must show: Your app's login response setting the auth cookie, viewed in the network tab.
+Also: Optional: shows the Set-Cookie header with HttpOnly and Secure.
+
+A white card with a small uppercase section label, then labelled rows. Highlight the row that carries the point with a violet border. Optional green check line at the bottom confirming the result.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-4-panel.png" alt="Your app's login response setting the auth cookie, viewed in the network tab.">
+    <figcaption>Headers set in the network tab</figcaption>
+  </figure>
 
   <p>Managed here means the server, stack, SSL, backups, and patching are handled, while your code and your data stay yours. It is Linux, and it deploys straight from GitHub, so shipping an auth fix is a push. Keeping secrets out of code is covered in more depth in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Ship your auth on a runtime that gets out of the way.</p>
-    <p style="margin:0 0 .6em">Run your Node or Python app with env-var secrets, free SSL, and Git deploys, so your JWT code is the only auth you have to think about. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Managed Node &amp; Python · Env-var secrets · Free SSL · Automatic backups · Free migration · Free trial</p>
+<div class="kbcta-sec-wrap">
+  <div class="kbcta-sec-overlay"></div>
+  <div class="kbcta-sec-content">
+    <div class="kbcta-sec-eyebrow">SECURITY &middot; HARDENED BY DEFAULT</div>
+    <p class="kbcta-sec-heading">Patched, firewalled, and backed up.</p>
+    <p class="kbcta-sec-description">The platform keeps the server, stack, SSL, and patching current, with automatic backups running. Application-level security stays yours, and that split is deliberate rather than hidden.</p>
+    <ul class="kbcta-sec-features">
+      <li>&#10003; Shorewall firewall</li>
+      <li>&#10003; Fail2ban</li>
+      <li>&#10003; OS patching handled</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; IP access control</li>
+      <li>&#10003; Automatic backups</li>
+    </ul>
+    <div class="kbcta-sec-buttons">
+      <a class="kbcta-sec-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-sec-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-sec: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-sec-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-sec-wrap *{box-sizing:border-box}
+.kbcta-sec-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-sec-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-sec-content{position:relative;z-index:3;max-width:700px}
+.kbcta-sec-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-sec-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-sec-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-sec-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-sec-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-sec-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-sec-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-sec-btn:hover,.kbcta-sec-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-sec-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-sec-link:hover,.kbcta-sec-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-sec-wrap{padding:36px 24px}
+  .kbcta-sec-heading{font-size:31px}
+  .kbcta-sec-description{font-size:16px}
+  .kbcta-sec-features li{white-space:normal}
+  .kbcta-sec-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-sec-btn{width:100%}
+  .kbcta-sec-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

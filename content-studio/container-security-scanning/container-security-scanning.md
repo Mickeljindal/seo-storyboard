@@ -82,11 +82,11 @@ trivy image --exit-code 1 --severity CRITICAL,HIGH --ignore-unfixed myapp:latest
 
 That `--exit-code 1` is the whole game. Without it, CI stays green and the report scrolls past unread. With it, a critical CVE blocks the pipeline, and someone has to look. Set the threshold where your team can actually live: blocking on `CRITICAL,HIGH` is a common, sensible line. Block on everything down to `LOW` and you'll get alert fatigue by Friday, then start ignoring the tool entirely, which is worse than not having it.
 
-<!-- ADD IMAGE: your CI build log showing the scan step running and the build going red on a CRITICAL finding -->
+![Scan triggers build failure on CRITICAL CVE](images/gen-1-flow.png)
 
 Where does the scan step live? Wherever your build runs. If you deploy from Git with a managed pipeline, it's a build command like any other, and the output streams into your build log next to the install and compile steps. Kloudbean's managed CI/CD works that way, with live build logs, so a failing scan is something you watch go red rather than something you find in an email later. One scope note before you plan around it: containers aren't part of the standard plan here, they come in under premium and enterprise customisation, so a container pipeline is a conversation rather than a checkbox. More on that flow in [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/), and on running containers themselves in [Docker container hosting](https://www.kloudbean.com/blog/docker-container-hosting/).
 
-![The Kloudbean console: deploying from a Git repository with build commands and a live build log](../assets/console/git-deployment.png)
+![The Kloudbean console: deploying from a Git repository with build commands and a live build log](../assets/console-real/shots/git_connect_step_4.png)
 
 ## Reading the results without losing your mind
 
@@ -98,7 +98,7 @@ Your first scan of a fat base image can spit out a hundred findings. Don't panic
 
 A healthy place to land is "no known critical or high vulnerabilities, and here's why the remaining lows are acceptable." That's a defensible position. "Zero findings on every scan forever" is not a real thing, and anyone promising it is selling you something.
 
-<!-- ADD IMAGE: a real Trivy or Grype scan table, package, installed version, fixed version, and severity, sorted by CRITICAL -->
+![Critical Vulnerabilities Found](images/gen-2-comparison.png)
 
 
 
@@ -136,7 +136,7 @@ One distinction that trips teams up here: the packages inside your image are not
 
 Rebuild, re-scan, confirm the criticals are gone. Bake that loop into the pipeline and staying clean becomes routine instead of a fire drill. If you want to go further, pin the base image by digest (`node:20-slim@sha256:...`) so a rebuild can't silently pull a different image than the one you scanned.
 
-<!-- ADD IMAGE: before and after, the same app scanned on a full base image versus a slim or distroless base, side by side -->
+![Security findings drop with a leaner base](images/gen-3-comparison.png)
 
 ## Where scanning stops (the honest part)
 
@@ -162,7 +162,20 @@ Where a platform can help is narrower than the marketing in this space suggests,
 
 And the part no host closes, ours very much included: choosing a lean current base image, keeping your dependencies bumped, dropping root in your Dockerfile, and deciding what severity blocks a build. Those are four decisions inside your repository. A platform can run them for you on a schedule. It cannot make them for you, and a provider claiming to secure your image is describing a machine that doesn't exist. Same division of labour as [managed versus unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) generally.
 
-**Fix it while it's still cheap.** Ship from Git on a managed pipeline, drop your scan step into the build, and read the results in the live build log at [kloudbean.com](https://www.kloudbean.com/). Managed CI/CD from Git · Live build logs · Managed OS patching · Shorewall + Fail2ban · Automatic backups · Free trial. Plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Close the doors you keep forgetting.**
+
+Every server ships with a Shorewall firewall and Fail2ban, free auto-renewing SSL, automatic backups, and OS patching handled. Add IP access control or a Basic Auth gate when a site should not be public.
+
+- Shorewall firewall
+- Fail2ban
+- OS patching handled
+- Free SSL
+- IP access control
+- Automatic backups
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

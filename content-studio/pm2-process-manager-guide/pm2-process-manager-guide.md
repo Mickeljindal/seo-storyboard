@@ -60,7 +60,7 @@ That `-i max` does the heavy lifting. It reads the core count and forks that man
 
 You can point PM2 at whatever your app starts with: a TypeScript build's `dist/server.js`, an `npm start` script, a binary. But you'll want `pm2 start ecosystem.config.js` long term. Typing flags by hand doesn't scale past day one.
 
-<!-- ADD IMAGE: terminal output of pm2 list showing the app online across several workers with uptime and restart counts. -->
+![Cluster mode in action](images/gen-1-terminal.png)
 
 ## Define it once: the `ecosystem.config.js` file
 
@@ -95,7 +95,7 @@ pm2 start ecosystem.config.js --env production
 
 The `env` blocks are for non-secret config like `NODE_ENV` and `PORT`. Real secrets (your database URL, API keys) don't belong in a committed file; keep those in the environment on the server. The fields that matter most are `instances` and `exec_mode: 'cluster'` for multi-core, and `max_memory_restart`, your seatbelt against a slow leak.
 
-<!-- ADD IMAGE: pm2 monit split view showing per-process CPU and memory bars. -->
+![Live monitoring view for each worker](images/gen-2-comparison.png)
 
 ## PM2 cluster mode: how many instances should you run?
 
@@ -161,7 +161,7 @@ process.send && process.send('ready');
 
 Two things reload won't solve. Long-lived stateful connections (WebSockets, SSE) still drop when their worker retires; the socket was pinned to that process. And reload runs new code against your existing database, so a breaking schema change can still take the app down. Process-level zero downtime is only one piece, covered in [zero-downtime deployments](https://www.kloudbean.com/blog/zero-downtime-deployments/).
 
-<!-- ADD IMAGE: terminal showing pm2 reload walking through workers one by one with a checkmark per worker. -->
+![PM2 manages the process lifecycle](images/gen-3-terminal.png)
 
 ## Logs, monitoring, and memory limits
 
@@ -202,7 +202,7 @@ pm2 save        # snapshot the current process list
 
 Then prove it. Reboot the server on purpose and run `pm2 list` once it's back. App online? Done. Trusting this without testing it is how the 4am story starts.
 
-<!-- ADD IMAGE: terminal showing the sudo command that pm2 startup prints, and pm2 save confirming the process list was written. -->
+![Ensure PM2 processes survive reboots](images/gen-4-terminal.png)
 
 ## Run the PM2 process manager on Kloudbean's managed Node runtime
 
@@ -210,15 +210,15 @@ Everything above is what you do on a raw server where you own the supervisor. On
 
 **1. Add a Node application.** Pick the Node.js runtime and set your start command. This is where the managed stack takes over supervising the process, and where PM2 multi-process is available when one core stops being enough.
 
-![The Kloudbean Add Application screen: adding a Node.js app and setting its runtime and start command](../assets/console/add-application.png)
+![The Kloudbean Add Application screen: adding a Node.js app and setting its runtime and start command](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 **2. Deploy from Git.** Connect your GitHub repo and let managed CI/CD build and deploy on every push, with the build log streaming live. You're not SSHing in to run `pm2 start` by hand each deploy; the pipeline builds and the platform keeps the process alive. Setup is in [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-![The Kloudbean Git deployment screen: connect a repo and deploy a Node app through managed CI/CD](../assets/console/git-deployment.png)
+![The Kloudbean Git deployment screen: connect a repo and deploy a Node app through managed CI/CD](../assets/console-real/shots/git_connect_step_4.png)
 
 **3. Watch it across workers.** The server health view shows CPU, memory, and disk, so you can see whether cluster mode is spreading load and catch a climbing memory line before it pages you. It's the `pm2 monit` view, minus the SSH session.
 
-![The Kloudbean server health view: CPU, memory, and disk for a Node app kept alive by the managed process manager](../assets/console/server-health.png)
+![The Kloudbean server health view: CPU, memory, and disk for a Node app kept alive by the managed process manager](../assets/console-real/shots/server_health_step_2.png)
 
 One boundary, because people ask: cluster mode uses the cores on the server you already have. It is not autoscaling, and a standard managed app won't grow servers by itself. When one box runs out of cores, the next step is more instances behind the built-in Flexible Load Balancer. For most apps, right-sizing one server and using all its cores is plenty. Setting up from scratch? Start with [deploying a Node app to managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/), or the [deploy an Express app](https://www.kloudbean.com/blog/deploy-express-app/) walkthrough.
 
@@ -226,11 +226,21 @@ One boundary, because people ask: cluster mode uses the cores on the server you 
 
 PM2 isn't the only way to supervise Node. systemd, the init system already on your Linux box, does the same core job with no extra dependency (but no cluster mode). If you're weighing the two, we compared them in [PM2 vs systemd](https://www.kloudbean.com/blog/pm2-vs-systemd/).
 
----
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-**Keep the Node process up without hand-rolling a supervisor.** Deploy from Git, let the managed Node runtime run your app under PM2 (multi-process supported), watch health in one dashboard, and add a managed database and free SSL when you need them. Start at [kloudbean.com](https://www.kloudbean.com/); sizes and plans (from $8/mo, Enterprise custom) are on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-PM2 multi-process · Cluster mode across cores · Git deploy with live logs · Managed databases · Free auto-renewing SSL · Free migration · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

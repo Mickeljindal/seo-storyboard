@@ -157,11 +157,20 @@ The honest limit: nothing here validates your JSON or encodes your URLs. Applica
 
 For neighbouring status codes, [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/), [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/), and [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/). The same oversized-header problem behind a proxy appears as [Cloudflare error 520](https://www.kloudbean.com/blog/cloudflare-error-520/). To move session data out of cookies, [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/). For the proxy layer, [the nginx reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). On cross-origin requests that fail for related reasons, [fixing CORS errors](https://www.kloudbean.com/blog/fix-cors-error-node-production/). And for TLS termination, [SSL and TLS explained](https://www.kloudbean.com/blog/ssl-tls-explained/).
 
-## Defaults that do not lock out your best customers
+<!-- cta:start -->
+**Deploys that tell you what broke.**
 
-Managed servers with nginx request limits configured for real applications, free SSL with correct termination, and managed Redis for session data that should not be riding in a cookie. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-Managed nginx config · Free SSL · Managed Redis · One dashboard · Free migration
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 
@@ -174,7 +183,7 @@ Because a private window sends no accumulated cookies. That behaviour is close t
 **How do I fix a 400 Bad Request caused by cookies?**
 Immediately, clearing cookies for that domain fixes it for the affected user. On the server, raise `client_header_buffer_size` and `large_client_header_buffers` in nginx and reload. Then address the cause by moving session data into Redis, trimming unused JWT claims, and checking which third-party scripts are setting large cookies.
 
-**What does "the plain HTTP request was sent to HTTPS port" mean?**
+**What does 'the plain HTTP request was sent to HTTPS port' mean?**
 Something requested `http://` against a port configured for TLS, so nginx answered with a 400 and that specific message. Check the scheme the client is using, and if a load balancer or CDN sits in front, check whether it is forwarding unencrypted traffic to an encrypted upstream. It commonly appears right after putting a proxy in front of a working server.
 
 **Can invalid characters in a URL cause a 400?**

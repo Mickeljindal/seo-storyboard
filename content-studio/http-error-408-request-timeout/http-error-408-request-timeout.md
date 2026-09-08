@@ -101,9 +101,20 @@ The boundary stays where it always is. Patching, TLS renewal, backups and stack 
 
 The opposite direction, and the one people usually actually have: [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/). At the edge, [522 connection timed out](https://www.kloudbean.com/blog/cloudflare-error-522-connection-timed-out/) covers the two separate clocks Cloudflare runs. When the silent close surfaces as something else, [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/) and [cloud load balancers explained](https://www.kloudbean.com/blog/cloud-load-balancer-explained/). When the client is the one who gave up rather than the server, that is nginx's [499 client closed request](https://www.kloudbean.com/blog/nginx-499-client-closed-request/). For a connection killed mid-flight rather than stalled, [ERR_CONNECTION_RESET](https://www.kloudbean.com/blog/err-connection-reset/). On the proxy layer itself, [nginx as a reverse proxy for Node](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). And if the failure is really about what you sent rather than how slowly, [415 Unsupported Media Type](https://www.kloudbean.com/blog/http-error-415-unsupported-media-type/).
 
-**Correlate the log line against what actually happened.** Managed servers across seven clouds with a managed reverse proxy and maintained timeout configuration, plus server health metrics beside both server and application logs in one dashboard. Free SSL issued and renewed. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Deploys that tell you what broke.**
 
-Managed reverse proxy · Server metrics · App and server logs · Free SSL · One dashboard
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
+
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

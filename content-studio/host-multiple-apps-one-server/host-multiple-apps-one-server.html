@@ -136,7 +136,21 @@ server {
 &lt;/VirtualHost&gt;</code></pre>
 
   <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
-  <figure class="img-slot"><span><b>Add image</b><em>Console: the Domain Aliases and SSL screen for one co-hosted app, its domain mapped and a free certificate issued.</em><small>Shows per-app routing plus SSL. Optional.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #1
+Create a left-to-right architecture / flow diagram for a technical blog post titled "How to Host Multiple Apps on One Server".
+
+What it must show: Console: the Domain Aliases and SSL screen for one co-hosted app, its domain mapped and a free certificate issued.
+Also: Shows per-app routing plus SSL. Optional.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-flow.png" alt="Console: the Domain Aliases and SSL screen for one co-hosted app, its domain mapped and a free certificate issued.">
+    <figcaption>Set up per-app routing and SSL</figcaption>
+  </figure>
 
   <p>Add a domain, add a block, reload the proxy, and that domain now reaches its app. On a managed platform you don't hand-edit these files. You add an application, point a domain at it, and the routing plus a free SSL certificate are wired up for you. But it's worth knowing what's happening underneath, because this is the mechanism.</p>
 
@@ -158,7 +172,21 @@ GRANT ALL PRIVILEGES ON app_b.* TO 'app_b'@'localhost';</code></pre>
   <p>Now app_a can only ever see <code>app_a</code>, and a problem in one database can't reach into another. A managed database per app makes this even cleaner, and each one is backed up on its own. That's the version I'd default to: on Kloudbean a managed database is one click per app, allow-listed to the server's IP, with its own automatic and on-demand backups, so restoring one client's data doesn't mean rolling back everybody's. Seven engines are available that way, MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch and MongoDB, which matters when the apps sharing your box don't share a stack. More on that in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>. The one time sharing a database is fine is when the apps are genuinely one system (a frontend and its own API, say). Unrelated apps, never.</p>
 
   <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
-  <figure class="img-slot"><span><b>Add image</b><em>A database list on one server showing a separate database per app: app_a, app_b, app_c.</em><small>Reinforces one-database-per-app. Optional.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "How to Host Multiple Apps on One Server".
+
+What it must show: A database list on one server showing a separate database per app: app_a, app_b, app_c.
+Also: Reinforces one-database-per-app. Optional.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="A database list on one server showing a separate database per app: app_a, app_b, app_c.">
+    <figcaption>One database per app</figcaption>
+  </figure>
 
   <h2>Headroom and the noisy neighbour</h2>
   <p>The one real risk of packing apps onto a server is resource contention. If they all get busy at once, they compete for the same CPU and RAM. Two habits keep that from biting.</p>
@@ -185,14 +213,28 @@ GRANT ALL PRIVILEGES ON app_b.* TO 'app_b'@'localhost';</code></pre>
   <p>What makes those signals cheap to act on is not having to rebuild anything when you do. Adding an application to a server on Kloudbean gives it its own user, web root, process, routing and free SSL, one at a time, so the four boundaries above come as the default shape rather than something you assemble per app. Deploys come from Git per app, and cron for each one is defined in the dashboard instead of a single crontab where three clients' jobs sit in one file.</p>
 
   <figure>
-    <img src="../assets/console/add-application.png" alt="The Kloudbean console showing several applications running on one server, each with its own domain and its own place in the console">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="The Kloudbean console showing several applications running on one server, each with its own domain and its own place in the console">
     <figcaption>Add each app to the same server, each with its own domain. The console keeps every app's routing, user, and SSL separate.</figcaption>
   </figure>
 
   <p>So <code>client-one.com</code>, <code>client-two.com</code>, and <code>api.mine.com</code> can all live on one server, each answering only for its own traffic, each with its own managed database and its own automatic <a href="https://www.kloudbean.com/blog/server-backups-guide/">backups</a>. You add them one at a time, and the platform keeps the routing and SSL straight. When one app earns its own box, moving it is a redeploy. This is the general, technical build. If you're running many client sites and want the operational playbook (billing, handoff, standardising the fleet), that's a different angle covered in the <a href="https://www.kloudbean.com/blog/hosting-for-agencies-playbook/">agency hosting playbook</a> and <a href="https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/">how agencies host 20 client apps</a>.</p>
 
   <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
-  <figure class="img-slot"><span><b>Add image</b><em>The server resource graph with several apps running, CPU and memory sitting comfortably below the ceiling.</em><small>Shows healthy headroom across co-hosted apps.</small></span></figure>
+  <!-- IMAGE GENERATE [graph] #3
+Create a clean line chart / time-series graph for a technical blog post titled "How to Host Multiple Apps on One Server".
+
+What it must show: The server resource graph with several apps running, CPU and memory sitting comfortably below the ceiling.
+Also: Shows healthy headroom across co-hosted apps.
+
+Label both axes. Draw the trend the description implies. Add a dashed red threshold line only if a limit is being hit. Legible axis labels, no 3D, no gradient clutter.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-graph.png" alt="The server resource graph with several apps running, CPU and memory sitting comfortably below the ceiling.">
+    <figcaption>CPU and memory stay within limits</figcaption>
+  </figure>
 
   <p>Want just an app plus its own API and database on one box, rather than many tenants? That narrower setup is walked through in <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">host an app, API, and database on one server</a>. And if you're weighing doing all this yourself versus a managed setup, <a href="https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/">managed vs unmanaged hosting</a> lays out the trade.</p>
 
@@ -201,11 +243,56 @@ GRANT ALL PRIVILEGES ON app_b.* TO 'app_b'@'localhost';</code></pre>
   <p>Which means a few failures stay yours on any host, ours included. No platform fixes an app that leaks memory until the kernel starts killing its neighbours. No platform stops one app's unrotated logs from filling the disk that every other app needs. And no platform decides for you that a client's traffic has outgrown a shared box. What managed hosting does cover is narrower and worth stating exactly: the server, the stack, SSL, patching, and per-app backups. Your code and your data stay yours.</p>
   <p>None of that argues against co-hosting. Most single-app servers idle most of the day, and running four apps on one right-sized box is better engineering than paying for four bored ones. Just watch the shared resources, and treat the first sign of contention as information rather than an emergency.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Use the whole server, not 10% of it.</p>
-    <p style="margin:0 0 .6em">Put several apps on one right-sized server, each isolated with its own user, database, and backups. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; sizes and plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Many apps, one server · Isolated per app · Per-app databases · Automatic backups · Built-in load balancer · Free trial</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">You built the app. Give it a real home.</p>
+    <p class="kbcta-ai-description">Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

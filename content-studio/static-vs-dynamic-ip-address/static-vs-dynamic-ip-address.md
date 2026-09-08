@@ -127,9 +127,20 @@ You want a fixed public IP when you host something the outside world reaches by 
 
 The cleanest way to get one is not to fight your home ISP for a static IP. It is to put the thing that needs a fixed address on a server that comes with one. Pointing a domain at that address, with a certificate on top, is covered in [custom domain and SSL for your app](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/), and how the encryption behind it works is in [SSL and TLS explained](https://www.kloudbean.com/blog/ssl-tls-explained/).
 
----
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-**Give your server an address that stays put.** If you want a fixed public IP without negotiating with an ISP, a managed cloud server from Kloudbean comes with a stable public address you can point a DNS A record at, plus IP access control to allow or deny connections by CIDR. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
+
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

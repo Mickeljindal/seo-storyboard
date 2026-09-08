@@ -376,11 +376,29 @@ export async function publishContentStudioArticle(
       return { src, url: up.url, id: up.id, hero: /hero\.(png|jpe?g|webp)$/i.test(path.basename(abs)) };
     }),
   );
+  let heroUrl: string | null = null;
   for (const u of uploads) {
     if (!u) continue;
     body = body.split(`src="${u.src}"`).join(`src="${u.url}"`);
     imagesUploaded++;
-    if (featuredId == null && u.hero) featuredId = u.id;
+    if (u.hero) {
+      if (featuredId == null) featuredId = u.id;
+      heroUrl = u.url;
+    }
+  }
+
+  // The hero is the post's FEATURED image, so remove it from the body to avoid
+  // the same image showing twice (once as the featured image at the top, once
+  // inline as the first figure). Handles the hero wrapped in a <figure> as well
+  // as a bare <img>.
+  if (heroUrl) {
+    const esc = heroUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    body = body
+      .replace(
+        new RegExp(`<figure\\b[^>]*>\\s*<img\\b[^>]*src="${esc}"[^>]*>\\s*(?:<figcaption[^>]*>[\\s\\S]*?</figcaption>\\s*)?</figure>`, "i"),
+        "",
+      )
+      .replace(new RegExp(`<img\\b[^>]*src="${esc}"[^>]*>`, "i"), "");
   }
 
   // Never publish a link we cannot honour. Articles link to each other but go
@@ -405,13 +423,24 @@ export async function publishContentStudioArticle(
   // HTML lump. Still published AS WRITTEN: no TOC, no injected links, no
   // generated hero. Text, headings, lists, tables, images and code become real
   // blocks; the SVG diagrams and styled callouts stay as editable HTML blocks.
+  // Best meta, chosen automatically so AIOSEO never ends up blank: prefer the
+  // file's <title>/<meta description>, then the stored fields, then derive from
+  // the H1 and the first real paragraph of the body.
+  const firstPara = body
+    .match(/<p\b[^>]*>([\s\S]*?)<\/p>/i)?.[1]
+    ?.replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const metaTitleFinal = (fileMetaTitle || article.meta_title || fileTitle || article.title || "").trim();
+  const metaDescFinal = (fileDesc || article.meta_description || firstPara || "").trim().slice(0, 160);
+
   const blocks = htmlToGutenbergBlocks(body);
   const payload = buildPostPayload(
     {
       title: fileTitle || article.title,
       url_slug: slug,
-      meta_title: fileMetaTitle || article.meta_title,
-      meta_description: fileDesc || article.meta_description,
+      meta_title: metaTitleFinal,
+      meta_description: metaDescFinal,
       // Ignore the (possibly stale) stored brief so the current file always wins.
       brief: null,
       content_html: blocks,
@@ -445,6 +474,24 @@ export async function publishContentStudioArticle(
     return { ok: false, error: String((e as Error)?.message ?? e), images: imagesUploaded };
   }
 
+  // Write AIOSEO meta + OG image for the post. The WP REST create path above
+  // sets Yoast/RankMath post meta and the featured image, but never AIOSEO's own
+  // tables or the OG image, which is exactly what had to be set by hand before.
+  // og_image is the featured (hero) image. Best-effort: never fails the publish.
+  try {
+    const { setPostSeo } = await import("./wp-plugin-client");
+    await setPostSeo({
+      post_id: post.id,
+      meta_title: metaTitleFinal,
+      meta_description: metaDescFinal,
+      focus_keyword: (article as { target_keyword?: string | null }).target_keyword ?? "",
+      canonical_url: post.link,
+      og_image_url: heroUrl ?? undefined,
+    });
+  } catch (e) {
+    console.warn(`[publish] AIOSEO meta not written for ${slug}:`, (e as Error)?.message);
+  }
+
   const perf = (article.performance_data as Record<string, unknown> | null) ?? {};
   await articlesRepo.updateArticle(articleId, {
     published_url: post.link,
@@ -470,6 +517,30 @@ export async function publishContentStudioArticle(
       await pingUrlsForIndexing([post.link]);
     } catch {
       /* indexing is best-effort */
+    }
+  }
+
+  // Publishing is the middle of the job, not the end. Now that the article is
+  // live and we know its REAL url, queue the distribution drafts: every channel
+  // asset plus an email broadcast draft, ready for a human to post and send.
+  //
+  // Queued as a job rather than run inline for two reasons: a distribution
+  // problem must never fail a successful publish, and the queue already gives us
+  // the timeout, retry and rate-limit handling this needs.
+  if (status === "publish" && post.link) {
+    try {
+      const { enqueueJobs } = await import("@/server/db/repos/jobs");
+      await enqueueJobs([
+        {
+          type: "distribute_article",
+          payload: { articleId, url: post.link },
+          label: `Distribute: ${slug}`,
+        },
+      ]);
+      const { ensureJobRunner } = await import("./job-runner");
+      ensureJobRunner();
+    } catch (e) {
+      console.warn(`[publish] distribution not queued for ${slug}:`, (e as Error)?.message);
     }
   }
 

@@ -42,7 +42,7 @@ Then, to actually point the domain to your app, create DNS records at your regis
 
 That's the whole DNS for a web app in most cases: one A record and one CNAME. The A record maps a name straight to an IPv4 address; if your server has IPv6, an `AAAA` record does the same for it. A CNAME maps a name to *another name* rather than an IP, which is why `www` can follow the apex around if the underlying IP ever changes.
 
-<!-- ADD IMAGE: the Domain Aliases screen with the apex and www domains added, so readers see where the domain goes in the console -->
+![the Domain Aliases screen with the apex and www domains added, so readers see where the domain goes in the console](../assets/console-real/shots/domain_alias_step_2.png)
 
 ## Stage 2: let DNS propagate (the honest wait)
 
@@ -62,7 +62,7 @@ With the certificate installed, your site answers on `https://`. One thing left:
 
 After that, renewal is not your job. Let's Encrypt certificates are short-lived by design, and on a managed platform they renew automatically before they expire. You set this up once and stop thinking about it. That's a real difference from running a bare VPS, where renewal is a cron job you write, babysit, and get paged about when it silently fails.
 
-<!-- ADD IMAGE: the browser address bar showing your own domain with the HTTPS padlock, the payoff shot for the whole guide -->
+![Steps to get a free SSL certificate](images/gen-2-flow.png)
 
 ## Don't pay for a basic SSL certificate
 
@@ -94,7 +94,20 @@ Almost every problem here is one of four, and none is a dead end. It's the ordin
 
 On Kloudbean, adding a domain and issuing a free Let's Encrypt certificate are console operations on your **Linux** server, and renewal is automatic. Two honest notes. Propagation time is inherent to DNS, so a short wait after you change records is normal, not a red flag. And your DNS records live at your registrar, not in the hosting console: the console tells the server which domains to answer for and handles the certificate, but the actual A and CNAME records are managed wherever the domain is registered. Get those two right and HTTPS for your deployed app is a few calm steps. If you built in a tool like Lovable, the whole deploy-then-domain path is in [deploying a Lovable app to your own server](https://www.kloudbean.com/blog/deploy-lovable-app-to-your-own-server/), and once the domain's live you'll want [auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) so updates ship on every push.
 
-**Your address. The padlock. Done.** Point your domain and issue free SSL at [kloudbean.com](https://www.kloudbean.com/), with a free trial and your first migration done for you. The full deploy path is in the [deploy guide](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/); server sizes are on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Patched, firewalled, and backed up.**
+
+The platform keeps the server, stack, SSL, and patching current, with automatic backups running. Application-level security stays yours, and that split is deliberate rather than hidden.
+
+- Shorewall firewall
+- Fail2ban
+- OS patching handled
+- Free SSL
+- IP access control
+- Automatic backups
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

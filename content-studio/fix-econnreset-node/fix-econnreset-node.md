@@ -50,7 +50,7 @@ You'll also see the phrase `socket hang up`, which Node reports as `ECONNRESET` 
 | `ECONNRESET` | RST arrived on an established connection | The peer was there, accepted you, then tore it down |
 | `EPIPE` | You wrote to a socket already closed at the other end | Same story as a reset, caught while writing |
 
-<!-- ADD IMAGE: annotated terminal screenshot of a read ECONNRESET stack trace with code, errno and syscall circled. src -> images/econnreset-stack.png -->
+![Real error encountered during Node.js session](images/gen-1-terminal.png)
 
 ## So who reset the connection?
 
@@ -121,7 +121,7 @@ Deploys do the same thing on purpose. A restart kills the old process, and anyth
 
 That correlation is only as easy as your access to both timelines. It's the reason Kloudbean runs Node apps as persistent processes under PM2 with app and build logs streaming in the console beside deployment history: a restart reads as a restart, at a timestamp you can line up against the reset burst, instead of appearing as an unexplained network incident. On a setup where you have neither, this cause is the one people misdiagnose longest.
 
-<!-- ADD IMAGE: diagram of the four reset authors, client, proxy, server process, database, with an RST arrow from each. src -> images/who-reset-it.png -->
+![Identify the source of the RST](images/gen-2-flow.png)
 
 ### 4. The body was too big for the peer
 
@@ -224,7 +224,7 @@ Resets are awkward to debug remotely because the cause usually sits outside your
 
 Also worth checking on the database side: whether the server-side idle or wait timeout is shorter than your pool's, which is the same rule from earlier applied to whatever you're connecting to. [Managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) covers where those settings live. And while you're changing connection settings, resist the urge to widen access to make a reset stop. A reset is not a permission problem, so opening the database to a broader address range fixes nothing and costs you something. Keep the allow-list to your app server's IP.
 
-<!-- ADD IMAGE: screenshot of live streaming app logs beside deployment history, showing a restart lined up with a reset burst. src -> images/live-logs.png -->
+![Deployment history with process restart](images/gen-3-flow.png)
 
 ## What the reset already proved, and what that leaves you
 
@@ -246,9 +246,20 @@ The rest is code, and no platform writes it for you, ours included. Nobody else 
 
 The sibling error, when nothing was listening at all: [ECONNREFUSED in Node.js](https://www.kloudbean.com/blog/fix-econnrefused-node/). Connection layer: [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/). Restart half: [graceful shutdown in Node.js](https://www.kloudbean.com/blog/graceful-shutdown-nodejs/) and [Node app crashing on deploy](https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/). And to make any of this findable later, [structured logging in Node.js](https://www.kloudbean.com/blog/structured-logging-nodejs/).
 
-**See the restart, and you've found the reset.** Run your Node app on Kloudbean with live app and build logs, deployment history, persistent processes under PM2, and managed databases in the same dashboard. Deploy from GitHub, from $8/mo. Start at [kloudbean.com](https://www.kloudbean.com/) or check [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Fewer mysteries on the next deploy.**
 
-Live logs · Deployment history · Managed databases · Automatic backups · Free SSL · GitHub deploys
+Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.
+
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

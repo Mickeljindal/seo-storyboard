@@ -51,7 +51,7 @@ docker build -t myapp .
 docker run -d --env-file .env -p 3000:3000 myapp
 ```
 
-<!-- ADD IMAGE: terminal, docker build then docker run, image building in layers and the container starting -->
+![Local dev cycle with Docker](images/gen-1-terminal.png)
 
 That `--env-file .env` matters. Your secrets and config should be passed in at run time, not baked into the image. An image can end up in a registry or a teammate's laptop, and you don't want a database password riding along inside it. Same rule as everywhere else: config in the environment, not the artifact. We cover the whole pattern in [environment variables, done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
@@ -130,11 +130,11 @@ Kloudbean's angle is a little different from the container-first platforms, and 
 
 **The native path, which most people should use.** Kloudbean runs managed runtimes for Node, Python, PHP, Ruby, and Java. Connect a Git repo and it builds and deploys your app on every push, streams the build log live, keeps the process running, and puts SSL in front. No Dockerfile to write or maintain. For a standard app, that removes the very reason a lot of people reached for Docker in the first place.
 
-![The Kloudbean console Git deployment screen: connect a repo and deploy a Node, Python, PHP, Ruby, or Java app from Git, no Dockerfile required](../assets/console/git-deployment.png)
+![The Kloudbean console Git deployment screen: connect a repo and deploy a Node, Python, PHP, Ruby, or Java app from Git, no Dockerfile required](../assets/console-real/shots/git_connect_step_4.png)
 
 **The do-it-yourself container path.** Because it's a real server you control, you can SSH in, install Docker, and run your own containers or a `docker compose` stack, exactly as you would on any Linux box. You manage those containers yourself. That's the honest boundary worth stating clearly: running your containers is something you do on the server, not a one-click managed build button. If a Dockerfile is central to how you work, you're free to use it. If it isn't, the native runtime is less to maintain.
 
-<!-- ADD IMAGE: terminal over SSH on the server, docker compose up bringing a small stack online -->
+![Docker Compose up in action](images/gen-2-terminal.png)
 
 Either path, the same rule holds for state. Your database goes in a [managed database](https://www.kloudbean.com/blog/managed-postgresql-hosting/) and your files go in [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/), so nothing important lives inside a container. And if you're truly at the scale that needs Kubernetes, autoscaling, and orchestration across many machines, that's Kloudbean's enterprise territory, set up for you, not a switch a solo developer should be flipping alone.
 
@@ -144,7 +144,7 @@ Wherever your container lands, one principle matters more than the hosting decis
 
 So your persistent data has to live outside the container. Your database goes in a managed database, not inside the app container. User uploads go to object storage, not the container's disk. Any file you must keep gets a real volume, never the ephemeral filesystem. Get this right and you can redeploy and restart freely with zero data loss. Get it wrong and a routine redeploy quietly wipes something you needed. A common mistake we see: a container writing uploads to a local folder, then losing every file the next time it's replaced. Treat the container as replaceable and the data as precious, kept somewhere the container isn't.
 
-<!-- ADD IMAGE: simple sketch of an app container with arrows out to a managed database and object storage, state living outside the container -->
+![Direct connections](images/gen-3-flow.png)
 
 ## What about free Docker hosting?
 
@@ -154,11 +154,21 @@ People search for free Docker hosting, and it's a fair thing to want. Just know 
 
 Underneath all of this, it's Linux. A container is your app running on a Linux host, and Kloudbean gives you that host plus managed runtimes, managed databases, and object storage around it. "Managed" means the server, the stack, SSL, patching, and backups are handled, while your image, your code, and your data stay yours to move whenever you like. What you won't find here is a one-click managed Kubernetes for general accounts (orchestration at that scale is an enterprise setup), or a Windows container stack. For running a container, or skipping Docker entirely on a standard app, a server you control covers it without the cluster tax.
 
----
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-**Use exactly as much machinery as you need. No more.** Run a standard app straight from Git with no Dockerfile, or take a Linux server you control and run your own containers on it. Start free at [kloudbean.com](https://www.kloudbean.com/); sizes and plans on [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Managed runtimes · Git deploy · Managed databases · Object storage · A server you own · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

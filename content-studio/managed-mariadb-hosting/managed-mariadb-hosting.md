@@ -93,7 +93,7 @@ ERROR 1366 (HY000): Incorrect string value: '\xF0\x9F\x98\x80' for column 'title
 
 That error is a rite of passage on older MySQL and MariaDB defaults. Set `utf8mb4` at the database, connection, and column level and it disappears. Do it from day one.
 
-![The Kloudbean console showing a MariaDB connection string set as an environment variable, not in code](../assets/console/env-vars.png)
+![The Kloudbean console showing a MariaDB connection string set as an environment variable, not in code](../assets/console-real/shots/nodespm_env_step_1.png)
 
 > **Coming from MySQL?** Moving to MariaDB is usually a dump-and-load with zero app changes. Same driver, same port, same tooling. Point `DATABASE_URL` at the new database and redeploy; your ORM is none the wiser.
 
@@ -111,13 +111,17 @@ Almost every framework talks to MariaDB using its MySQL settings. There's rarely
 
 The full walkthrough (env vars, migrations, verifying a write sticks) lives in [how to add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). Everything there works for MariaDB; wherever it says MySQL, the MariaDB path is identical. I won't repeat it here; this piece is about the engine, not the wiring.
 
-<!-- ADD IMAGE: a database client (TablePlus, DBeaver) connected to the managed MariaDB, listing your tables -->
+![MariaDB client connects to managed database](images/gen-1-flow.png)
 
 ## Launching a managed MariaDB
 
 Open the DBS section and hit Launch Database. Kloudbean runs seven managed engines: MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB. Pick MariaDB, name it, create it. A minute or two later it's provisioned, secured with IP allow-listing, and already being backed up, and you get the connection details (host, port 3306, database name, user, password) for that `DATABASE_URL`.
 
-![The Kloudbean console Launch Database screen with MariaDB among the managed engine choices](../assets/console/launch-database.png)
+![Open Managed Databases and add a new database](../assets/console-real/shots/database_step_1.png)
+
+![Choose mariadb, size, and region](../assets/console-real/shots/mariadb_launch_step_1.png)
+
+![The managed mariadb is created with its own host and SSL](../assets/console-real/shots/mariadb_launch_step_2.png)
 
 That's the point of managed MariaDB database hosting. Installing MariaDB takes five minutes. The bill arrives later, in month four, at 2am, when the disk fills or a backup you never tested turns out empty. Managed means the platform carries that weight:
 
@@ -128,7 +132,7 @@ That's the point of managed MariaDB database hosting. Installing MariaDB takes f
 
 You still own what's yours: the schema, the queries, the data. Managed hosting operates the database; it never owns what's inside it, and a standard `mysqldump` walks the whole thing out whenever you want. For the full case on handing off operations, [managed database vs self-managed](https://www.kloudbean.com/blog/managed-database-vs-self-managed/) makes it in detail.
 
-<!-- ADD IMAGE: the automatic backups list with a restore point selected -->
+![Backup selected for restore](images/gen-2-flow.png)
 
 ## Moving an existing MariaDB or MySQL database in
 
@@ -142,7 +146,7 @@ mysql -h NEW_HOST -u USER -p appdb < appdb.sql
 
 Point `DATABASE_URL` at the new database, redeploy, done. Two honest caveats. If the source used a MySQL-8-specific feature your target doesn't match, test the import first. And for a large or production database where a solo cutover is nerve-wracking, Kloudbean's free migration assistance will run it with you.
 
-<!-- ADD IMAGE: terminal showing a mysqldump export and the mysql import finishing -->
+![Real mysqldump and mysql commands](images/gen-3-terminal.png)
 
 ## Keeping managed MariaDB fast and safe
 
@@ -154,7 +158,7 @@ You don't need to tune anything on day one. But it helps to know the levers so a
 - **Buffer pool.** The main memory knob is `innodb_buffer_pool_size`. On a dedicated database box, a common starting point is roughly 60 to 70% of RAM, so hot data lives in memory instead of thrashing the disk.
 - **Cache hot reads.** Put a managed Redis in front of your most repeated queries and MariaDB barely sees them.
 
-<!-- ADD IMAGE: the IP Access Control view showing MariaDB reachable only from your app server's IP, not the public internet -->
+![MariaDB reachable only from app server](images/gen-4-flow.png)
 
 One anti-pattern worth calling out, the classic MariaDB and MySQL production stumble: leaving `max_connections` at a low default while a busy PHP site spawns a worker per request. Traffic climbs, workers pile up, and the site throws `Too many connections` while the database sits mostly idle. The fix is right-sizing that limit for your actual RAM and caching repeat reads, not panic-buying a bigger server.
 
@@ -164,11 +168,20 @@ A managed MariaDB is one tile in a bigger picture, and the picture is the pitch:
 
 The boundary, stated once: these are Linux-based managed engines. Your schema, queries, and data stay yours, exportable with a normal dump whenever you leave.
 
----
+<!-- cta:start -->
+**Managed, backed up, and still yours.**
 
-**Run MariaDB without babysitting it.** Launch a managed MariaDB, patched and backed up from minute one, locked to your app server's IP, with the same mysql driver your app uses. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+Seven managed engines, provisioned and patched for you, with access controlled and backups running automatically. Your schema, your queries, and your data stay exportable with the standard tools.
 
-One-click MariaDB and MySQL · Automatic backups · Free migration · Free trial
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

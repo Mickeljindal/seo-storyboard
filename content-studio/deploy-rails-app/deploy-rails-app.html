@@ -111,7 +111,7 @@ bundle exec puma -C config/puma.rb   # listens on the assigned port</code></pre>
   <p>Push once to wire it up. From then on, deploying is a <code>git push</code>: the precompile and migrate steps run themselves in order, and Puma restarts on the new code. That's the payoff for setting the sequence up once. On <a href="https://www.kloudbean.com/">Kloudbean</a> you connect the repo under <strong>Deploy Code &#8594; Git Deployment</strong> and fill those fields.</p>
 
   <figure>
-    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Deploy Code / Git Deployment screen: a Rails repo connected with bundle install, assets:precompile, db:migrate and the Puma start command set">
+    <img src="../assets/console-real/shots/git_connect_step_4.png" alt="The Kloudbean Deploy Code / Git Deployment screen: a Rails repo connected with bundle install, assets:precompile, db:migrate and the Puma start command set">
     <figcaption>Deploy Code &#8594; Git Deployment: set the build sequence and the Puma start command once, then push to deploy.</figcaption>
   </figure>
 
@@ -134,20 +134,34 @@ RAILS_SERVE_STATIC_FILES=true
 RAILS_MAX_THREADS=5</code></pre>
 
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean Environment Variables screen: RAILS_MASTER_KEY, SECRET_KEY_BASE and DATABASE_URL set for a Rails app via Paste .env">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean Environment Variables screen: RAILS_MASTER_KEY, SECRET_KEY_BASE and DATABASE_URL set for a Rails app via Paste .env">
     <figcaption>Runtime Configuration: paste the env block and Rails reads the master key, secret base and database URL from the server.</figcaption>
   </figure>
 
   <p>More on why secrets belong in the environment and not the codebase: <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
 
   <!-- Swap this slot for a real screenshot. src -> images/rails-boot-error.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The boot failure in context: a production.log tail showing the Missing encryption key error, or the Logs Viewer App Errors tab with the same message.</em><small>Makes the number-one Rails first-deploy failure recognizable.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #1
+Create a realistic terminal / command-line screenshot for a technical blog post titled "Deploying a Rails App: The Questions Everyone Actually Asks".
+
+What it must show: The boot failure in context: a production.log tail showing the Missing encryption key error, or the Logs Viewer App Errors tab with the same message.
+Also: Makes the number-one Rails first-deploy failure recognizable.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-terminal.png" alt="The boot failure in context: a production.log tail showing the Missing encryption key error, or the Logs Viewer App Errors tab with the same message.">
+    <figcaption>Identify the root cause of boot failure</figcaption>
+  </figure>
 
   <h2>What about the database and migrations?</h2>
   <p>Launch a managed Postgres and connect it with a single <code>DATABASE_URL</code> environment variable. Rails reads that automatically, no config file editing needed.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean Launch Database screen: creating a managed Postgres for a Rails app, connected with DATABASE_URL">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean Launch Database screen: creating a managed Postgres for a Rails app, connected with DATABASE_URL">
     <figcaption>Launch a managed Postgres, then connect Rails with one <code>DATABASE_URL</code>. It's backed up and on the same box.</figcaption>
   </figure>
 
@@ -186,10 +200,56 @@ RAILS_MAX_THREADS=5</code></pre>
   <h2>What you own, what Kloudbean runs</h2>
   <p>Rails is a Ruby app, and Ruby on Linux is exactly what a managed server runs, so nothing here fights the platform. Kloudbean keeps the box healthy: the Ruby stack, the web server in front of Puma, free SSL, the firewall, and server-level backups, on any of its seven clouds. You own the Rails app: its credentials, its migrations, its Active Storage config, any Sidekiq workers. It's a standard Linux server running standard Ruby, so you can move hosts whenever you like. Working in other frameworks too? The Python checklist is <a href="https://www.kloudbean.com/blog/deploy-django-app/">deploy a Django app</a>, and running app plus database on one box is covered in <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">host your app, API, and database on one server</a>.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Puma, Postgres, and Sidekiq if you need it.</p>
-    <p style="margin:0">Deploy your Rails app on a server you own at <a href="https://www.kloudbean.com/">kloudbean.com</a>, and let the release step run migrations on every push. Managed Postgres &amp; Redis · Automatic backups · Free Let's Encrypt SSL · Git deploy · Free migration · Free trial. Sizes on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">Take it off localhost for good.</p>
+    <p class="kbcta-ai-description">Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

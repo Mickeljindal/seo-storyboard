@@ -107,11 +107,20 @@ Being straight about the limit: no host can stop you setting Cloudflare to Flexi
 
 On certificates and TLS, see [fixing SSL certificate errors](https://www.kloudbean.com/blog/fix-ssl-certificate-errors/) and [SSL and TLS explained](https://www.kloudbean.com/blog/ssl-tls-explained/). For the DNS records these errors depend on, [DNS explained](https://www.kloudbean.com/blog/dns-explained/). For the caching layer, [CDN explained](https://www.kloudbean.com/blog/cdn-explained/). On the overlapping status codes, [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/) and [503 after a deploy](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/). A plain [500 Internal Server Error](https://www.kloudbean.com/blog/http-error-500-internal-server-error/) is worth separating out, because a 500 passes through Cloudflare from your origin rather than being generated at the edge, so it is always yours to debug. And when a long request should not be in a web request at all, [background jobs](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/).
 
-## Stop debugging your own firewall at midnight
+<!-- cta:start -->
+**Read the log, fix it, ship again.**
 
-Managed servers with Shorewall and Fail2ban configured, free SSL issued and renewed, Cloudflare available as an add-on, and servers, apps, and databases in one dashboard. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.
 
-Managed servers · Free SSL · Firewall and Fail2ban configured · Cloudflare add-on · One dashboard
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

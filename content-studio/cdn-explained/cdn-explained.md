@@ -36,7 +36,7 @@ The mechanics are simpler than the marketing makes them sound. Edge caching come
 
 You can watch this happen in about ten seconds. Most CDNs stamp a response header you can read. A value of `X-Cache: HIT` means the edge served it; `MISS` means it had to go back to origin. Run `curl -I` against the same asset twice and you'll usually see a miss, then a hit.
 
-<!-- ADD IMAGE: DevTools Network tab (or a curl -I output) showing an X-Cache response header with a value of HIT on a cached file. -->
+![Proof the edge answered without touching your origin](images/gen-1-terminal.png)
 
 ## TTL and cache headers: who decides how long a copy lives?
 
@@ -61,7 +61,7 @@ ETag: "a1b2c3d4"
 
 Set the TTL too short and the edge keeps re-fetching, so you throw away most of the benefit. Set it too long and visitors see stale content after you ship a change. The clean fix for that second problem is fingerprinting: build your files with a hash in the name, like `app.9f2c1.js`, so a new build gets a new URL. Then you can cache those assets almost forever, and the short-lived HTML that points to them is the only thing that needs to expire quickly.
 
-<!-- ADD IMAGE: response headers for a static asset, showing Cache-Control with a max-age and an ETag. -->
+![Edge to origin communication](images/gen-2-flow.png)
 
 ## What a CDN speeds up, and what it can't
 
@@ -79,7 +79,7 @@ Static assets are the sweet spot: images, CSS, JavaScript bundles, fonts, video.
 
 The classic mistake is caching HTML that has no business being cached. Cache a logged-in page too aggressively and the edge can hand User B a copy of User A's account page. That isn't a speed win, it's a data leak. Personalized responses belong at the origin, and you keep the edge off them with a header like `Cache-Control: private, no-store`. I've seen this exact bug ship to production more than once, and it's always because someone put a blanket cache rule on `/` without thinking about who's logged in.
 
-<!-- ADD IMAGE: a CDN analytics view showing the share of requests served from cache vs the share that reached the origin. -->
+![Edge vs Origin Requests](images/gen-3-comparison.png)
 
 ## CDN vs load balancer: not the same job
 
@@ -109,13 +109,23 @@ Kloudbean doesn't ask you to bolt a separate CDN onto your stack by hand. Cloudf
 
 The philosophy matches the rest of the platform: servers, managed databases, object storage, and the edge in front of them, from one dashboard instead of four vendors and four bills. Standard plans start from $8/mo, and Enterprise is custom pricing, so check the [pricing page](https://www.kloudbean.com/pricing/) for current numbers. If you're weighing hosts, [what makes the best managed cloud hosting](https://www.kloudbean.com/blog/best-managed-cloud-hosting/) lays out what actually matters.
 
-<!-- IMAGE: ../assets/console/dashboard.png : the Kloudbean dashboard showing servers, applications, databases, and storage in one place. -->
+<!-- IMAGE: ../assets/console-real/shots/dashboard.png : the Kloudbean dashboard showing servers, applications, databases, and storage in one place. -->
 
----
+<!-- cta:start -->
+**One dashboard for the whole stack.**
 
-**Fix the origin, then make it global.** Run your app on a well-placed managed server, then put Cloudflare Enterprise edge caching in front of it, all from one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/) and compare plans on [pricing](https://www.kloudbean.com/pricing/).
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
 
-One dashboard · 7 clouds · Managed databases · Cloudflare edge caching · Free SSL · Automatic backups · Free migration
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -110,11 +110,21 @@ Structured logs only pay off if you can get at them. On Kloudbean your Node app 
 
 Logging is one leg of production visibility. Pair it with [Node.js health checks](https://www.kloudbean.com/blog/nodejs-health-checks/) and [uptime monitoring](https://www.kloudbean.com/blog/uptime-monitoring/) so you know when to go looking, and keep `LOG_LEVEL` and friends tidy with [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). When logs point at a crash, the [PM2 restart guide](https://www.kloudbean.com/blog/pm2-app-keeps-restarting/) and [deploy crash field guide](https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/) take it from there.
 
-## Logs you can search when it matters
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-Run always-on Node under PM2 with output captured in the console and live build logs on every GitHub deploy, so structured JSON logging is useful from day one. Flat pricing from $8/mo. Start at [kloudbean.com](https://www.kloudbean.com/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Always-on under PM2 · Logs in the console · Live build logs · GitHub deploys · Flat from $8/mo
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -64,7 +64,7 @@ People say Vercel gets expensive. That's half the story. The real issue is the s
 
 A flat server inverts that. You pick a size, you pay that, and a launch week costs the same as a dead week. I won't pretend it's always the smaller number (more on that below), but for anyone trying to commit a hosting cost to a budget, predictable beats occasionally-cheap almost every time. If cost predictability is your whole reason for looking, the [cost of running a side project](https://www.kloudbean.com/blog/cost-of-running-a-side-project/) breaks the numbers down further.
 
-<!-- ADD IMAGE: A Vercel usage dashboard or invoice with the function, bandwidth, and seat line items called out. -->
+![Cost breakdown for a full-stack app](images/gen-1-flow.png)
 
 ## What a full-stack Vercel alternative actually needs to do
 
@@ -72,7 +72,7 @@ Once you know the shape you want, the criteria write themselves. A real Vercel a
 
 That's the gap [Kloudbean](https://www.kloudbean.com/) is built for. Instead of running your backend as functions, it runs your app as one always-on process on a real server it provisions and manages for you, on the cloud you choose (AWS, Google Cloud, DigitalOcean, Linode, Vultr, UpCloud, or Lightsail, so seven providers, not one opinionated platform). You connect a Git repo and deploy from a console. Same muscle memory, different thing underneath.
 
-![Kloudbean console Deploy Code / Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy](../assets/console/git-deployment.png)
+![Kloudbean console Deploy Code / Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy](../assets/console-real/shots/git_connect_step_4.png)
 
 Your Next.js app doesn't need a special adapter to live here. The standard production server is exactly what runs.
 
@@ -84,7 +84,7 @@ next start        # a long-lived Node process that reads process.env.PORT
 
 The database lands right beside it. Launch a managed Postgres or MySQL from the console (there are six engines: Postgres, MySQL, MariaDB, Redis, MongoDB, Elasticsearch) and point the app at it over the local network.
 
-![Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance next to the application](../assets/console/launch-database.png)
+![Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance next to the application](../assets/console-real/shots/psql_launch_step_1.png)
 
 ```
 # the app and its data on the same box, reached over the local network
@@ -106,7 +106,7 @@ Often, yes. An honest alternative piece has to say when not to switch, so here's
 
 If you live in the left column, switching would cost you more than it saves. The alternative earns its place the moment your app is genuinely full-stack and the serverless model is in your way. If you've already decided, the [move-off-Vercel guide](https://www.kloudbean.com/blog/move-lovable-app-off-vercel/) walks the migration step by step, and the [deploy walkthrough](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) covers a fresh deploy. Weighing other platforms too? The [Fly.io](https://www.kloudbean.com/blog/fly-io-alternative/) and [Heroku](https://www.kloudbean.com/blog/heroku-alternative-for-modern-apps/) comparisons run the same reasoning.
 
-<!-- ADD IMAGE: The Kloudbean dashboard with the server, the app, and its managed database together in one view. -->
+![The Kloudbean dashboard with the server, the app, and its managed database together in one view.](../assets/console-real/shots/psql_launch_step_1.png)
 
 ## A fair word on cost and the edge
 
@@ -118,9 +118,20 @@ Second, the edge. A single server lives in the regions you pick, not on a global
 
 Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and the frameworks on top like React, Next.js, Vue, Laravel, and Django. That covers what nearly every Vercel-hosted app is built on. Nothing stops .NET on Linux; Windows Server is where the tier matters. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and backups; you own and maintain the application and its data. You can move hosts whenever you like, because underneath it's a standard Linux box running standard code.
 
-## A server, not a workaround
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-See how the whole stack on one owned server compares for your app at [kloudbean.com](https://www.kloudbean.com/). One-click databases, automatic backups, IP allow-listing, free migration, free trial, and git deploy. Plans on [pricing](https://www.kloudbean.com/pricing/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
+
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

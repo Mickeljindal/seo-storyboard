@@ -68,7 +68,7 @@ The table below is the whole article in one grid. Read the middle column as what
 | **Third-party + cloud** | The provider side, hardened and documented | Assessing and managing every vendor, including your host |
 | **Awareness + training** | Nothing here | Training staff, phishing drills, building the security culture |
 
-<!-- ADD IMAGE: a one-page ECC responsibility matrix you can hand to an assessor or a Saudi procurement reviewer. -->
+![ECC Compliance and Management](images/gen-1-comparison.png)
 
 ## Where hosting genuinely helps: the infrastructure controls
 
@@ -80,7 +80,7 @@ ECC leans hard on network security and on protecting the systems themselves. On 
 
 Want an extra layer? BitNinja is available as an added security option on higher tiers. Treat it as a bonus, not the baseline. The firewall, Fail2ban, and patching are the floor, and they're already under your feet. That baseline maps cleanly onto the network and hardening subdomains of Cybersecurity Defence.
 
-![The Kloudbean console firewall settings showing Shorewall and Fail2ban enabled by default, with BitNinja as an added option](../assets/console/firewall.png)
+![The Kloudbean console firewall settings showing Shorewall and Fail2ban enabled by default, with BitNinja as an added option](../assets/console-real/shots/app_ip_whitelisting.png)
 
 ### Identity and access management
 
@@ -88,19 +88,19 @@ ECC spends real attention on who can touch a system and how. The platform gives 
 
 One honest boundary: the platform gives you the access machinery. Actually running least privilege, reviewing who has what, and removing people the day they leave, that discipline is yours. The tool can't fire a stale account for you.
 
-![The Kloudbean console security screen enabling two-factor authentication and per-user access control for an ECC access-management control](../assets/console/user-2fa-security.png)
+![The Kloudbean console security screen enabling two-factor authentication and per-user access control for an ECC access-management control](../assets/console-real/shots/updating_account_password.png)
 
 ### Backups, resilience, and recovery
 
 Cybersecurity Resilience is its own ECC domain, and backups sit right at the center of it. A clean, recent, restorable copy is what saves you from ransomware, a bad migration, or a fat-fingered delete. Kloudbean backs up automatically. The step almost everyone skips is testing a restore before they actually need one. Do it once, so the path is proven. A backup nobody has restored is an assumption. The platform provides the backups. Your retention schedule and your written continuity plan are the parts an assessor will still ask you for.
 
-![The Kloudbean console backups screen showing automatic, restorable server and application backups](../assets/console/manage-backups.png)
+![The Kloudbean console backups screen showing automatic, restorable server and application backups](../assets/console-real/shots/app_backup_step_2.png)
 
 ### Logging, monitoring, and the audit trail
 
 ECC wants event logs and monitoring, and, crucially, it wants evidence that your controls operated over time. This is where logs earn their keep. Access logs record what happened. On Enterprise, the Audit Trail is an immutable, searchable, account-wide log of activity with CSV export, built with compliance in mind. For an assessment or a post-incident timeline, that log is the difference between "we think" and "we can show you". It turns a pile of good controls into the evidence an assessor accepts. You still own the reviewing, the alerting, and the decision about what "normal" looks like.
 
-<!-- ADD IMAGE: the audit trail view with a searchable, timestamped activity log and a CSV export button. -->
+![From activity to export](images/gen-2-flow.png)
 
 ## The ECC domains no host can cover
 
@@ -151,11 +151,21 @@ Two lists, because ECC is two jobs. The first is mostly clicks and configuration
 
 > **One caveat, said plainly:** this is a map, not legal or audit advice. It shows how ECC responsibilities split between a host and your organization. For a real assessment or a high-stakes tender, confirm the specifics with a qualified cybersecurity assessor or someone versed in the NCA's current controls.
 
----
+<!-- cta:start -->
+**The technical controls, documented.**
 
-**Get the infrastructure controls right on day one.** Launch on a hardened, managed stack, keep it in-Kingdom on Google Cloud's Dammam region if you need to, and run the whole thing from one dashboard, so you can spend your effort on the governance only your organization can own. Plans start from $8/mo, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/), and always verify current details there.
+On managed enterprise engagements Kloudbean builds and maintains the infrastructure controls, with evidence delivered as managed reports and in-Kingdom hosting available. The policy, staffing, and application-layer work remains yours, which is the honest boundary.
 
-Firewall + Fail2ban baseline · Free auto-renewing SSL · Automatic backups · Audit trail (Enterprise) · Free migration assistance · Free trial
+- In-Kingdom (Dammam) available
+- Centralised logging
+- Immutable log storage
+- Private database access
+- MFA and least privilege
+- Automatic backups
+- Evidence as managed reports
+
+[Start free](https://console.kloudbean.com/register) · [Talk to a cloud expert](https://calendly.com/kloudbean)
+<!-- cta:end -->
 
 ## FAQ
 

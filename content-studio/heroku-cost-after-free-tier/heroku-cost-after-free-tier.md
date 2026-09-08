@@ -54,11 +54,21 @@ The honest boundary, because it matters: Heroku's git-push-and-it-deploys simpli
 
 If Heroku's cost is what's pushing you, it's worth seeing the wider picture. [A Heroku alternative for modern apps](https://www.kloudbean.com/blog/heroku-alternative-for-modern-apps/) covers the move in depth, [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/) lays out every option, and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) explains the database side. Curious how metered platforms compare? [Why is my Railway bill so high](https://www.kloudbean.com/blog/why-is-my-railway-bill-so-high/) and [Render vs Railway vs Kloudbean](https://www.kloudbean.com/blog/render-vs-railway-vs-kloudbean/) are useful cost reads.
 
-## Put your whole stack on one flat bill
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-Run your Node app, worker, managed database, and Redis in one dashboard on a predictable plan from $8/mo, deployed from GitHub, with no egress meter and free migration off Heroku. Start at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Whole stack, one dashboard · Flat from $8/mo · No egress metering · GitHub deploys · Free migration
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

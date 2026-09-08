@@ -28,7 +28,7 @@ Start with the file you already understand. On a disk, a file has a path like `/
 
 You don't mount a bucket, you talk to it over HTTP: store, fetch, delete. That's what makes object storage cheap and elastic. Google replicates your objects, so one dead disk loses nothing, there's no volume to fill, and you can rebuild the server anytime without the files noticing. For the deeper filesystem-versus-object walkthrough, the sibling guide on [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/) takes it apart slowly. GCS is the same idea in Google's tooling.
 
-<!-- ADD IMAGE: a GCS bucket object list with keys like uploads/ and exports/, showing size and last-modified -->
+![Object retrieval process](images/gen-1-flow.png)
 
 ## Managed Google Cloud Storage buckets on Kloudbean
 
@@ -36,7 +36,13 @@ Kloudbean added managed GCS buckets in December 2025. You create a Google Cloud 
 
 It sits beside the built-in S3-compatible object storage Kloudbean has offered since November 2024, with full AWS S3 SDK and CLI compatibility since March 2025. The real win isn't one bucket type over another. It's that both live in one account, so your files, servers, databases, and apps share a single login instead of scattering across consoles you forget to check.
 
-![The Kloudbean console showing object storage buckets in the same dashboard as servers and databases](../assets/console/s3-buckets.png)
+![Open S3 Object Storage](../assets/console-real/shots/storage_bucket_step_1.png)
+
+![Create a new bucket](../assets/console-real/shots/storage_bucket_step_2.png)
+
+![Name the bucket and set its access](../assets/console-real/shots/storage_bucket_step_3.png)
+
+![The bucket is ready for objects](../assets/console-real/shots/storage_bucket_step_4.png)
 
 ## GCS or S3-compatible buckets: which should you pick?
 
@@ -84,7 +90,7 @@ Here's the same decision as a table you can scan:
 | **On Kloudbean since** | Dec 2025 | Nov 2024 (S3 API Mar 2025) |
 | **Keeps files off the server** | Yes | Yes |
 
-![Choosing a cloud and region in Kloudbean, with Google Cloud regions including Dammam available](../assets/console/add-server-region.png)
+![Choosing a cloud and region in Kloudbean, with Google Cloud regions including Dammam available](../assets/console-real/shots/selecting_server_location.png)
 
 ## Public vs private buckets, and why the default matters
 
@@ -103,7 +109,7 @@ A useful test: if it's a file your app reads or writes, and it isn't code, it pr
 
 Two things stay out. Your *live* database, which needs fast random-access storage a bucket can't give it, so run a [managed database](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) and only park its *backups* in a bucket. And your running app code, which gets deployed to the server, not fetched from storage.
 
-<!-- ADD IMAGE: a bucket's access control set to private, with the signed-URL option visible -->
+![Signed URL generation process](images/gen-2-flow.png)
 
 ## Working with GCS buckets: gcloud and gsutil basics
 
@@ -153,7 +159,7 @@ await storage.bucket("my-bucket").upload("avatar.png", {
 
 The credentials never appear in the source. Storage keys are as sensitive as a database password, so keep them in environment variables and out of Git. If you want the S3 toolchain instead of Google's, that's the signal you belong on Kloudbean's [S3-compatible buckets](https://www.kloudbean.com/blog/s3-compatible-object-storage/), where the same `aws` CLI and SDK calls work by pointing at an endpoint.
 
-<!-- ADD IMAGE: a terminal running gcloud storage cp, uploading a file to a gs:// bucket -->
+![Using gcloud storage cp](images/gen-3-terminal.png)
 
 ## The one storage habit worth burning in
 
@@ -173,11 +179,21 @@ A bucket is one piece of owning your whole stack instead of renting slices from 
 
 Managed GCS buckets run alongside the S3-compatible buckets, and both are for files: uploads, media, static assets, backups, exports. They're not a database, so keep live data in a [managed database](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) and store only its backups in a bucket. Kloudbean runs Linux stacks, and "managed" means the platform provisions the bucket and handles access controls while the objects stay yours to export. Standard plans start from $8/mo, Enterprise is custom, and storage terms change, so confirm the current numbers on the pricing page.
 
----
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-**Keep the files in a bucket and the server disposable.** Kloudbean gives you managed Google Cloud Storage buckets and S3-compatible object storage in the same dashboard as your servers, managed databases, and apps. Public and private access, objects you can export anytime, one login and one bill. Start free at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Managed GCS buckets · S3-compatible storage · Public & private access · Automatic backups · One dashboard · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

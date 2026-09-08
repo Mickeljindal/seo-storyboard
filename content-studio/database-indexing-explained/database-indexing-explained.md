@@ -79,7 +79,7 @@ EXPLAIN SELECT * FROM orders WHERE customer_id = 42;
 
 That `type: ALL` with `key: NULL` and rows in the millions is the same story as a `Seq Scan`. Add the right index and `type` becomes `ref`, `key` shows your index, `rows` collapses. MySQL 8 also has `EXPLAIN ANALYZE` for real timings.
 
-<!-- ADD IMAGE: your own EXPLAIN ANALYZE output before and after adding the index, side by side. -->
+![Seq Scan on customers](images/gen-1-terminal.png)
 
 ## What you should actually index, and why
 
@@ -122,7 +122,7 @@ SELECT status, total FROM orders WHERE customer_id = 42;
 
 Covering indexes help hot read paths. Don't sprinkle them everywhere: a wide one is bigger and slower to write, which brings us to the part people skip.
 
-<!-- ADD IMAGE: your table's index list (\d orders in psql, or SHOW INDEX FROM orders in MySQL). -->
+![Index scan becomes more efficient](images/gen-3-graph.png)
 
 ## The tradeoff: indexes make writes slower
 
@@ -179,7 +179,7 @@ LIMIT 10;
 
 **Re-run EXPLAIN ANALYZE and confirm.** The scan should become an index scan and the time should drop. If not, you indexed the wrong thing or hit one of the five mistakes. Measure, don't assume. On big Postgres tables, build with `CREATE INDEX CONCURRENTLY` so you don't lock writes while it builds.
 
-<!-- IMAGE: Kloudbean console server health view showing CPU pinned on a database that is missing an index (../assets/console/server-health.png) -->
+<!-- IMAGE: Kloudbean console server health view showing CPU pinned on a database that is missing an index (../assets/console-real/shots/server_health_step_2.png) -->
 
 *A database pinned at high CPU under normal traffic is often one missing index, not a too-small server. Check the plan before you answer this graph with a resize.*
 
@@ -197,19 +197,26 @@ Indexing is your job. It lives in your schema and your queries, and no host can 
 
 A server health view shows you when a database pins the CPU, so you go read the plan instead of guessing. And because it runs on a real server with room to resize, you get the honest choice: fix the index first, grow the box only when the plans are clean. Pooling is the companion lever on connections, and caching hot reads in [managed Redis](https://www.kloudbean.com/blog/redis-caching-patterns/) keeps repeat queries off the database. New to this? Start with [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). Still choosing an engine? [MySQL vs PostgreSQL](https://www.kloudbean.com/blog/mysql-vs-postgresql/) lays out the tradeoffs.
 
-<!-- ADD IMAGE: your query latency graph dropping after the index ships, or the plan flipping to an index scan in your client. -->
+![Review existing indexes before adding more](images/gen-1-terminal.png)
 
-<!-- IMAGE: Kloudbean console launching a managed PostgreSQL, MySQL, or MariaDB database (../assets/console/launch-database.png) -->
+<!-- IMAGE: Kloudbean console launching a managed PostgreSQL, MySQL, or MariaDB database (../assets/console-real/shots/psql_launch_step_1.png) -->
 
 *A managed PostgreSQL, MySQL, or MariaDB, locked to your app server's IP, with automatic backups. You add indexes and read EXPLAIN on it like any standard database.*
 
----
+<!-- cta:start -->
+**A database you can dump and take with you.**
 
-**A managed database where you own the schema, we run the engine.**
+Seven managed engines, provisioned and patched for you, with access controlled and backups running automatically. Your schema, your queries, and your data stay exportable with the standard tools.
 
-Launch a managed PostgreSQL, MySQL, or MariaDB in minutes, add your indexes, and read EXPLAIN like normal. Automatic backups, IP allow-listing, a server health view, and free migration help, all on one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
 
-Managed PostgreSQL, MySQL & MariaDB · Automatic backups · Resize on demand · Free migration · Free trial
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

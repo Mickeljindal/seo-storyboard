@@ -42,7 +42,21 @@
   <p>None of this makes Vercel a bad product. It makes it the wrong shape for an app whose center of gravity is the database. That's a fit problem, not a quality problem.</p>
 
   <!-- ADD IMAGE: swap this slot for a real screenshot of the Vercel Marketplace storage/integrations page. src -> images/vercel-marketplace.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The Vercel Marketplace storage page showing databases come from partners like Neon and Supabase, not Vercel itself.</em><small>Grounds the "no first-party database" point in something real. Author supplies.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #1
+Create a left-to-right architecture / flow diagram for a technical blog post titled "The Best Vercel Alternative for Databases".
+
+What it must show: The Vercel Marketplace storage page showing databases come from partners like Neon and Supabase, not Vercel itself.
+Also: Grounds the "no first-party database" point in something real. Author supplies.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-flow.png" alt="The Vercel Marketplace storage page showing databases come from partners like Neon and Supabase, not Vercel itself.">
+    <figcaption>Databases come from partners, not Vercel</figcaption>
+  </figure>
 
   <h2>The Vercel serverless connection limits problem, in plain terms</h2>
   <p>This one surprises people, so I'll spell it out. A serverless function spins up for a request and disappears after, and each one wants its own database connection. Postgres caps how many connections it accepts at once, often around 100 on smaller instances. Send a burst of traffic, a few hundred functions wake up together, and they all grab a connection at the same instant. You blow past the cap and queries start failing:</p>
@@ -145,7 +159,10 @@ datasource db {
   <p>That's the gap <a href="https://www.kloudbean.com/">Kloudbean</a> fills. You run your Next.js or Node app on a managed server it provisions for you, on the cloud you pick (AWS, Lightsail, Google Cloud, DigitalOcean, Linode, Vultr, or UpCloud, so seven providers, not one). Then you launch a managed database on the same server, and the app reaches it over localhost. Same push-to-deploy muscle memory, different thing underneath. Honest tradeoff: it's a persistent server, not a serverless edge, so it won't beat Vercel on cold starts or global delivery. What it fixes is the data-layer sprawl.</p>
 
   <!-- ADD IMAGE: swap this slot for a real screenshot of the Kloudbean dashboard showing a server with its app and managed database together. src -> images/one-dashboard.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The Kloudbean dashboard with a server, its Next.js app, and a managed database visible together in one view.</em><small>Reinforces the whole-stack-in-one-place payoff. Author supplies.</small></span></figure>
+  <figure>
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean dashboard with a server, its Next.js app, and a managed database visible together in one view.">
+    <figcaption>Choose the engine, size, and region</figcaption>
+  </figure>
 
   <h2>How to move the data layer (without rewriting the app)</h2>
   <p>You don't have to leave Vercel-shaped code behind. The app stays standard Node. Next.js database hosting comes down to changing where the database lives and where the connection string points. Four steps to a managed database for Next.js that sits on the same server as the app.</p>
@@ -154,7 +171,7 @@ datasource db {
   <p>Open the <strong>DBS</strong> section and hit <strong>Launch Database</strong>. Kloudbean runs seven managed engines: PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, and MongoDB. For most Next.js apps that's Postgres. Pick it, name it, create it. A minute or two later it's provisioned, secured, and being backed up. No separate signup, no second provider.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen with a choice of managed PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, or MongoDB">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean console Launch Database screen with a choice of managed PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, or MongoDB">
     <figcaption>DBS then Launch Database: pick PostgreSQL or MySQL and it's provisioned on your server, locked to your app server's IP, backed up automatically.</figcaption>
   </figure>
 
@@ -166,18 +183,32 @@ next start        # a long-lived Node process reading process.env.PORT</code></p
   <p>If you want the framework-specific walkthrough, see <a href="https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/">deploying Next.js to your own server</a> and the more general <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app to a managed cloud</a>.</p>
 
   <figure>
-    <img src="../assets/console/add-application.png" alt="The Kloudbean console Add Application screen where you create the app that will connect to the managed database">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="The Kloudbean console Add Application screen where you create the app that will connect to the managed database">
     <figcaption>Add Application: create the app, connect the repo, and it lives on the same server as the database it talks to.</figcaption>
   </figure>
 
   <!-- ADD IMAGE: swap this slot for a real screenshot of the Git deployment tab with live build logs. src -> images/git-deploy-logs.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The Git deployment tab mid-deploy, with build logs streaming so a push-to-deploy reads like the flow you already know.</em><small>Shows the DX carries over from Vercel. Author supplies.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "The Best Vercel Alternative for Databases".
+
+What it must show: The Git deployment tab mid-deploy, with build logs streaming so a push-to-deploy reads like the flow you already know.
+Also: Shows the DX carries over from Vercel. Author supplies.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="The Git deployment tab mid-deploy, with build logs streaming so a push-to-deploy reads like the flow you already know.">
+    <figcaption>Real-time build logs stream</figcaption>
+  </figure>
 
   <h3>Step 3: Point the app at the database through an environment variable</h3>
   <p>Your app reads its connection from the <strong>environment</strong>, never from the source. Open <strong>Runtime Configuration</strong> then <strong>Environment Variables</strong> and add it. Because the database is on the same server, you point at localhost, not a public endpoint on another provider:</p>
 
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables screen where the DATABASE_URL connection string is stored safely, not in code">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean console Environment Variables screen where the DATABASE_URL connection string is stored safely, not in code">
     <figcaption>Runtime Configuration then Environment Variables: the connection lives here, on the same server, never in your repository.</figcaption>
   </figure>
 
@@ -224,11 +255,55 @@ mysql -h NEW_HOST -u USER -p appdb &lt; dump.sql</code></pre>
   <h2>Where this fits, and where it stops</h2>
   <p>Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and the frameworks on top like Next.js, React, Vue, Laravel, and Django. That's what nearly every Vercel-hosted app is built on. Windows Server is not a standard-plan feature, but .NET on Linux is. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you own the app and its data, and you can export the database and leave whenever you like, because underneath it's a standard Linux box running standard Postgres or MySQL. Auto-scaling and Kubernetes are enterprise and custom-setup features, not a default. For the problem this article is about, a managed database next to your app is about as simple as it gets.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Your app and its database, in one place.</p>
-    <p style="margin:0 0 .6em">Keep the git-push deploys you like from Vercel, and put a real managed database next to your app on the same server. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Managed Postgres and MySQL · Automatic backups · Git push deploy · Free migration · Free trial · From $8/mo</p>
+<div class="kbcta-move-wrap">
+  <div class="kbcta-move-overlay"></div>
+  <div class="kbcta-move-content">
+    <div class="kbcta-move-eyebrow">MIGRATE &middot; FLAT, PREDICTABLE PRICING</div>
+    <p class="kbcta-move-heading">A rehoming, not a rewrite.</p>
+    <p class="kbcta-move-description">Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.</p>
+    <ul class="kbcta-move-features">
+      <li>&#10003; Free migration assistance</li>
+      <li>&#10003; Free trial</li>
+      <li>&#10003; Seven cloud providers</li>
+      <li>&#10003; Flat monthly price</li>
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Git deploy</li>
+    </ul>
+    <div class="kbcta-move-buttons">
+      <a class="kbcta-move-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-move-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-move: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-move-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#0A0730;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-move-wrap *{box-sizing:border-box}
+.kbcta-move-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #0A0730 0%, #1B0F5A 58%, rgba(79,26,243,.55) 100%);pointer-events:none}
+.kbcta-move-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.28) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-move-content{position:relative;z-index:3;max-width:700px}
+.kbcta-move-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-move-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-move-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-move-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-move-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-move-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-move-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#2A0E7A;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-move-btn:hover,.kbcta-move-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-move-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-move-link:hover,.kbcta-move-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-move-wrap{padding:36px 24px}
+  .kbcta-move-heading{font-size:31px}
+  .kbcta-move-description{font-size:16px}
+  .kbcta-move-features li{white-space:normal}
+  .kbcta-move-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-move-btn{width:100%}
+  .kbcta-move-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

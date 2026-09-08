@@ -57,7 +57,7 @@ Most people think HTTPS "just encrypts stuff." Encryption is only one of three j
 
 That third one is the quiet hero. Encryption without authentication is a trap: your data is scrambled beautifully, just not to the person you think. TLS ties encryption and identity together, so a man-in-the-middle can't slip between you and the real server without the certificate check failing loudly.
 
-<!-- ADD IMAGE: a browser address bar showing the padlock, with the certificate details popover open (issuer, valid dates, domain). -->
+![One hop per box](images/gen-2-flow.png)
 
 ## How the TLS handshake works, without the math
 
@@ -119,7 +119,7 @@ Encryption has to end somewhere, because your application code needs to read the
 
 On most real setups it isn't your app doing that. It's the web server or reverse proxy out front (Nginx or Apache), or a load balancer, that holds the certificate, ends the encrypted connection, and passes plain HTTP to your app over a private network behind it. One place owns the cert and speaks HTTPS to the world. Your app speaks plain HTTP internally and never touches a `.pem` file. For the full picture of that front-door server, see [how a reverse proxy works](https://www.kloudbean.com/blog/reverse-proxy-explained/). The one rule: keep that plain-HTTP hop on a private network, not the open internet. Terminating TLS only helps if you don't then expose the plaintext on the next hop.
 
-<!-- ADD IMAGE: a sketch of TLS terminating at the proxy or load balancer, with plain HTTP on a private network behind it. -->
+![Error path when connection is not private](images/gen-3-flow.png)
 
 ## Why SSL certificates expire, and why that's a good thing
 
@@ -129,7 +129,11 @@ The catch bites people all the time. A certificate that isn't renewed before it 
 
 So automate it and stop thinking about it. A cron-driven renewal, or a platform that renews for you, is the entire answer. Nobody should be renewing certificates by hand in 2026. If you are, you've scheduled a future outage and just don't know the date yet. If one's already gone red on you, here's a focused walkthrough for [fixing common SSL certificate errors](https://www.kloudbean.com/blog/fix-ssl-certificate-errors/).
 
-![Free auto-renewing SSL for an application in the Kloudbean console, terminated at the platform proxy layer](../assets/console/ssl-certificate.png)
+![Open the SSL Certificate section](../assets/console-real/shots/ssl_certs_step_1.png)
+
+![Issue a free Let's Encrypt certificate for your domain](../assets/console-real/shots/le_ssl_step_1.png)
+
+![The certificate is installed and active](../assets/console-real/shots/le_ssl_install_success.png)
 *Free auto-renewing SSL in the Kloudbean console. The certificate refreshes before it expires, so there's no renewal to forget and no .pem file to manage.*
 
 ## The SSL/TLS errors you'll actually run into
@@ -157,17 +161,26 @@ Need TLS terminated at the edge with a CDN for global speed? Cloudflare is an op
 ![Cloudflare edge TLS and CDN as an optional add-on in the Kloudbean console, on top of the included free SSL](../assets/console/cloudflare.png)
 *Cloudflare edge TLS and CDN is an optional add-on (free on Enterprise). The built-in free SSL is there regardless.*
 
-<!-- ADD IMAGE: the dashboard showing servers, apps, and databases under one login, with SSL status visible per app. -->
+![the dashboard showing servers, apps, and databases under one login, with SSL status visible per app.](../assets/console-real/shots/dashboard.png)
 
 ## SSL vs TLS: what to actually remember
 
 Strip it right down. SSL is the old name, TLS is what actually runs, and every real HTTPS site today speaks TLS 1.2 or 1.3. TLS does three jobs, not one: it encrypts your data, it detects tampering, and it proves you reached the genuine server. The certificate proves that last part, signed by a CA your browser already trusts. And the number one reason HTTPS breaks in the wild isn't some clever attack. It's a certificate that expired because nobody renewed it. Automate that, or hand it to a platform that does, and the padlock takes care of itself.
 
----
+<!-- cta:start -->
+**The server layer, hardened for you.**
 
-**Stop babysitting certificates. Ship with the padlock already on.** Deploy on Kloudbean and every app and site gets free, auto-renewing SSL, terminated at the proxy for you, so you never generate a `.pem` file or diarize a renewal again. Start free at [kloudbean.com](https://www.kloudbean.com/), and compare plans from $8/mo on [pricing](https://www.kloudbean.com/pricing/).
+The platform keeps the server, stack, SSL, and patching current, with automatic backups running. Application-level security stays yours, and that split is deliberate rather than hidden.
 
-Free auto-renewing SSL · Managed web server · One dashboard · 7 clouds · Free migration · Free trial
+- Shorewall firewall
+- Fail2ban
+- OS patching handled
+- Free SSL
+- IP access control
+- Automatic backups
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

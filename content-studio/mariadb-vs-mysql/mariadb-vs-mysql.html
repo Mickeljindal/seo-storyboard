@@ -132,7 +132,21 @@ CREATE TABLE events (id INT PRIMARY KEY, payload JSON);
   <p>If your queries are slow on one, they'll be slow on the other, and the fix is the same. Add the right indexes. Run <code>EXPLAIN</code> on the ugly queries. Kill the N+1 patterns your ORM loves to generate. Cache the hot reads. We keep a full <a href="https://www.kloudbean.com/blog/mysql-performance-tuning/">MySQL performance tuning</a> guide, and <a href="https://www.kloudbean.com/blog/database-connection-pooling/">connection pooling</a> is usually the first real bottleneck a busy app hits, on either engine. Choose on fit and licensing, not on a benchmark screenshot someone posted in 2019.</p>
 
   <!-- Replace with your own image. Save it into images/ and set src -> images/your-file.png with descriptive alt text. -->
-  <figure class="img-slot"><span><b>Add image</b><em>A benchmark you ran yourself: MariaDB vs MySQL on the same hardware and your own query mix.</em><small>Optional. Honest numbers beat a generic chart.</small></span></figure>
+  <!-- IMAGE GENERATE [graph] #1
+Create a clean line chart / time-series graph for a technical blog post titled "MariaDB vs MySQL: Which One Should You Actually Run?".
+
+What it must show: A benchmark you ran yourself: MariaDB vs MySQL on the same hardware and your own query mix.
+Also: Optional. Honest numbers beat a generic chart.
+
+Label both axes. Draw the trend the description implies. Add a dashed red threshold line only if a limit is being hit. Legible axis labels, no 3D, no gradient clutter.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-comparison.png" alt="A benchmark you ran yourself: MariaDB vs MySQL on the same hardware and your own query mix.">
+    <figcaption>Your query mix on identical hardware</figcaption>
+  </figure>
 
   <h2>Is MariaDB a drop-in replacement for MySQL?</h2>
   <p>It started life as exactly that, and for a lot of apps it still behaves like one. Same wire protocol, same port 3306, same <code>mysql://</code> connection scheme, the same <code>mysqldump</code> and <code>mysql</code> client tools, and connectors that mostly interchange. WordPress, WooCommerce, Laravel, Drupal, most ORMs: point them at either and they run.</p>
@@ -156,7 +170,21 @@ DB_NAME=appdb</code></pre>
   <p>After importing, run your test suite and click through the JSON-heavy and report-heavy pages first. That's where drift hides. For a bigger or busier database, our free migration assistance can move it with minimal downtime.</p>
 
   <!-- Replace with your own image. Save it into images/ and set src -> images/your-file.png with descriptive alt text. -->
-  <figure class="img-slot"><span><b>Add image</b><em>Your terminal mid-migration: mysqldump exporting, then the mysql client importing into the new engine.</em><small>Optional. A real screen recording frame works great here.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #2
+Create a realistic terminal / command-line screenshot for a technical blog post titled "MariaDB vs MySQL: Which One Should You Actually Run?".
+
+What it must show: Your terminal mid-migration: mysqldump exporting, then the mysql client importing into the new engine.
+Also: Optional. A real screen recording frame works great here.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-terminal.png" alt="Your terminal mid-migration: mysqldump exporting, then the mysql client importing into the new engine.">
+    <figcaption>Exporting MySQL data for import</figcaption>
+  </figure>
 
   <h2>MariaDB or MySQL for WordPress?</h2>
   <p>Both work, and both are officially supported. WordPress needs MySQL 5.5.5+ or MariaDB 10.0+, and it honestly does not care which one is underneath. Plenty of managed WordPress hosts default to MariaDB precisely because it's a clean, fully-open drop-in, and the extra thread pool and engines don't hurt. WooCommerce is the same story. If you're running WordPress or Woo, choose either based on what your host offers and what your team knows. You won't feel a difference in the admin or on the storefront. Building something new that isn't WordPress? The more interesting fork in the road is usually <a href="https://www.kloudbean.com/blog/mysql-vs-postgresql/">MySQL vs PostgreSQL</a>, not MariaDB vs MySQL.</p>
@@ -184,27 +212,85 @@ DB_NAME=appdb</code></pre>
   </ol>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen with MariaDB and MySQL among the one-click managed engines">
+    <img src="../assets/console-real/shots/mariadb_launch_step_1.png" alt="The Kloudbean console Launch Database screen with MariaDB and MySQL among the one-click managed engines">
     <figcaption>DBS &rarr; Launch Database: MariaDB and MySQL are both one-click, provisioned and backed up on your server.</figcaption>
   </figure>
 
   <p>The connection details go into your app's environment, never into the repository. Open <strong>Runtime Configuration &rarr; Environment Variables</strong> and drop them in:</p>
 
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables screen holding the database connection string safely outside the code">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean console Environment Variables screen holding the database connection string safely outside the code">
     <figcaption>Runtime Configuration &rarr; Environment Variables: the connection string lives here for both MariaDB and MySQL.</figcaption>
   </figure>
 
   <p>Because both speak the same protocol and share tooling, you can start on one and move to the other later without rewriting your app. Want the per-engine details? See <a href="https://www.kloudbean.com/blog/managed-mariadb-hosting/">managed MariaDB hosting</a> and <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL hosting</a>.</p>
 
   <!-- Replace with your own image. Save it into images/ and set src -> images/your-file.png with descriptive alt text. -->
-  <figure class="img-slot"><span><b>Add image</b><em>The WordPress Site Health screen showing the database server and version, MariaDB or MySQL.</em><small>Optional. Good proof point for the WordPress section.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #3
+Create a left-to-right architecture / flow diagram for a technical blog post titled "MariaDB vs MySQL: Which One Should You Actually Run?".
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run MariaDB or MySQL without babysitting it.</p>
-    <p style="margin:0 0 .6em">Both are one-click managed engines with automatic backups, IP allow-listing, and free migration help, deployed next to your app with simple Git deploys. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">One-click databases · Automatic backups · Free migration · Free trial</p>
+What it must show: The WordPress Site Health screen showing the database server and version, MariaDB or MySQL.
+Also: Optional. Good proof point for the WordPress section.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-flow.png" alt="The WordPress Site Health screen showing the database server and version, MariaDB or MySQL.">
+    <figcaption>WordPress queries the database server and version</figcaption>
+  </figure>
+
+<div class="kbcta-move-wrap">
+  <div class="kbcta-move-overlay"></div>
+  <div class="kbcta-move-content">
+    <div class="kbcta-move-eyebrow">MIGRATE &middot; FLAT, PREDICTABLE PRICING</div>
+    <p class="kbcta-move-heading">Move it once. Own it after.</p>
+    <p class="kbcta-move-description">Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.</p>
+    <ul class="kbcta-move-features">
+      <li>&#10003; Free migration assistance</li>
+      <li>&#10003; Free trial</li>
+      <li>&#10003; Seven cloud providers</li>
+      <li>&#10003; Flat monthly price</li>
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Git deploy</li>
+    </ul>
+    <div class="kbcta-move-buttons">
+      <a class="kbcta-move-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-move-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-move: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-move-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#0A0730;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-move-wrap *{box-sizing:border-box}
+.kbcta-move-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #0A0730 0%, #1B0F5A 58%, rgba(79,26,243,.55) 100%);pointer-events:none}
+.kbcta-move-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.28) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-move-content{position:relative;z-index:3;max-width:700px}
+.kbcta-move-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-move-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-move-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-move-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-move-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-move-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-move-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#2A0E7A;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-move-btn:hover,.kbcta-move-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-move-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-move-link:hover,.kbcta-move-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-move-wrap{padding:36px 24px}
+  .kbcta-move-heading{font-size:31px}
+  .kbcta-move-description{font-size:16px}
+  .kbcta-move-features li{white-space:normal}
+  .kbcta-move-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-move-btn{width:100%}
+  .kbcta-move-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

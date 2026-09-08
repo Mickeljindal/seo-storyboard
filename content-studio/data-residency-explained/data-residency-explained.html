@@ -101,19 +101,33 @@
   <p>On Kloudbean you're picking across seven clouds: AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud, each with its own regions. Choose an EU region and your app server and database run in the EU. The managed database is locked down with IP allow-listing so only your app server can reach it rather than the open internet, so it isn't exposed for any scanner to find. On Enterprise plans it can go further onto a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network (VPC)</a>. You're not filing a ticket and hoping. You're clicking a region at launch.</p>
 
   <figure>
-    <img src="../assets/console/add-server.png" alt="The Kloudbean console: choosing the cloud and region deliberately when provisioning a server">
+    <img src="../assets/console-real/shots/launch_server_step_1.png" alt="The Kloudbean console: choosing the cloud and region deliberately when provisioning a server">
     <figcaption>The residency decision, made once: pick the cloud and region when you provision, and your data lives there.</figcaption>
   </figure>
 
   <p>Same move for the database. A managed engine launches into the region and network you choose, and it's backed up for you from there.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console: launching a managed database into a chosen region, locked to your app server's IP">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean console: launching a managed database into a chosen region, locked to your app server's IP">
     <figcaption>A managed database launches into the region you pick and stays locked to your app server's IP.</figcaption>
   </figure>
 
   <!-- ADD IMAGE: swap this slot for a real <figure> with an <img> (src -> images/region-map.png) and a <figcaption>. -->
-  <figure class="img-slot"><span><b>Add image</b><em>A simple map or region picker showing your chosen region highlighted against the alternatives.</em><small>Makes "pick on purpose" visual.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #1
+Create a left-to-right architecture / flow diagram for a technical blog post titled "Data Residency Explained: Where Your Data Lives, and Why It's the Law".
+
+What it must show: A simple map or region picker showing your chosen region highlighted against the alternatives.
+Also: Makes "pick on purpose" visual.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-flow.png" alt="A simple map or region picker showing your chosen region highlighted against the alternatives.">
+    <figcaption>Choose the region for your data</figcaption>
+  </figure>
 
   <h2>The copies people forget: backups, logs, the CDN, and your SaaS</h2>
   <p>This is where residency quietly goes wrong, and it's the part thin guides skip. You lock your primary database to a region, feel done, and forget that your data has been quietly copying itself somewhere else the whole time. Four copies catch people out.</p>
@@ -126,7 +140,21 @@
   <p>None of these are exotic. They're the default plumbing of a normal app. The mistake isn't using them. It's not knowing they hold copies. Map the copies before someone asks you to.</p>
 
   <!-- ADD IMAGE: swap this slot for a real <figure> with an <img> (src -> images/data-map.png) and a <figcaption>. -->
-  <figure class="img-slot"><span><b>Add image</b><em>A "where the copies live" sketch: primary DB, backups, logs, CDN edge, and SaaS vendors, each tagged with a region.</em><small>Turn the four gotchas into one diagram.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "Data Residency Explained: Where Your Data Lives, and Why It's the Law".
+
+What it must show: A "where the copies live" sketch: primary DB, backups, logs, CDN edge, and SaaS vendors, each tagged with a region.
+Also: Turn the four gotchas into one diagram.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="A &quot;where the copies live&quot; sketch: primary DB, backups, logs, CDN edge, and SaaS vendors, each tagged with a region.">
+    <figcaption>Primary DB, backups, logs, CDN edge, SaaS</figcaption>
+  </figure>
 
   <h2>A decision you can make in five minutes</h2>
   <p>You don't need a workshop for this. Walk down the list, stop at the first row that fits, and you have your region. Law and contracts decide it when they apply. Everything else is a tiebreaker.</p>
@@ -149,7 +177,21 @@
   <p>Frankfurt is an easy one. The harder version of this conversation is when the clause names somewhere less obvious, and that's where breadth of regions stops being a spec-sheet item. Across its seven clouds Kloudbean can provision into 80-plus data centres, with in-country hosting available in around 35 countries, from Dammam and Dubai to São Paulo, Sydney, Seoul, and Johannesburg. Whether you can say yes to a clause is often just a question of whether anyone runs a region there.</p>
 
   <!-- ADD IMAGE: swap this slot for a real <figure> with an <img> (src -> images/security-questionnaire.png) and a <figcaption>. -->
-  <figure class="img-slot"><span><b>Add image</b><em>A vendor security questionnaire with the "where is customer data stored?" row filled in confidently.</em><small>The moment residency earns its keep.</small></span></figure>
+  <!-- IMAGE GENERATE [panel] #3
+Create a clean settings / configuration panel UI mockup for a technical blog post titled "Data Residency Explained: Where Your Data Lives, and Why It's the Law".
+
+What it must show: A vendor security questionnaire with the "where is customer data stored?" row filled in confidently.
+Also: The moment residency earns its keep.
+
+A white card with a small uppercase section label, then labelled rows. Highlight the row that carries the point with a violet border. Optional green check line at the bottom confirming the result.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-panel.png" alt="A vendor security questionnaire with the &quot;where is customer data stored?&quot; row filled in confidently.">
+    <figcaption>Ensuring data residency compliance</figcaption>
+  </figure>
 
   <h2>What it costs to fix this after the fact</h2>
   <p>The reason to spend five minutes on the region at launch is that the retrofit is genuinely expensive, in ways that don't show up as a line on an invoice.</p>
@@ -162,11 +204,56 @@
   <p>For the deeper regulatory angle, go to <a href="https://www.kloudbean.com/blog/gdpr-compliant-hosting/">GDPR-compliant hosting</a>, <a href="https://www.kloudbean.com/blog/soc2-compliant-hosting/">SOC 2 hosting</a>, and <a href="https://www.kloudbean.com/blog/pci-compliant-hosting/">PCI-compliant hosting</a>. If you're buying for a regulated org, <a href="https://www.kloudbean.com/blog/enterprise-wordpress-hosting/">enterprise hosting</a> covers the audit-trail and access side. And treat this article as a plain-English map, not legal advice. For a high-stakes case, confirm the details with someone qualified.</p>
   <p>For the deeper regulatory angle, go to <a href="https://www.kloudbean.com/blog/gdpr-compliant-hosting/">GDPR-compliant hosting</a>, <a href="https://www.kloudbean.com/blog/soc2-compliant-hosting/">SOC 2 hosting</a>, and <a href="https://www.kloudbean.com/blog/pci-compliant-hosting/">PCI-compliant hosting</a>. If you're buying for a regulated org, <a href="https://www.kloudbean.com/blog/enterprise-wordpress-hosting/">enterprise hosting</a> covers the audit-trail and access side. And treat this article as a plain-English map, not legal advice. For a high-stakes case, confirm the details with someone qualified.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Choose the region before it chooses you.</p>
-    <p style="margin:0 0 .6em">Launch servers, managed databases, and object storage in the exact region your users and contracts require, on infrastructure you can point at a country on day one. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.85">Region choice across 7 clouds · Automatic backups · Free migration assistance · Free trial</p>
+<div class="kbcta-run-wrap">
+  <div class="kbcta-run-overlay"></div>
+  <div class="kbcta-run-content">
+    <div class="kbcta-run-eyebrow">MANAGED CLOUD &middot; ONE DASHBOARD</div>
+    <p class="kbcta-run-heading">Ship the app, not the infrastructure.</p>
+    <p class="kbcta-run-description">Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.</p>
+    <ul class="kbcta-run-features">
+      <li>&#10003; Seven cloud providers</li>
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration assistance</li>
+    </ul>
+    <div class="kbcta-run-buttons">
+      <a class="kbcta-run-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-run-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-run: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-run-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-run-wrap *{box-sizing:border-box}
+.kbcta-run-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-run-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-run-content{position:relative;z-index:3;max-width:700px}
+.kbcta-run-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-run-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-run-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-run-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-run-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-run-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-run-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-run-btn:hover,.kbcta-run-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-run-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-run-link:hover,.kbcta-run-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-run-wrap{padding:36px 24px}
+  .kbcta-run-heading{font-size:31px}
+  .kbcta-run-description{font-size:16px}
+  .kbcta-run-features li{white-space:normal}
+  .kbcta-run-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-run-btn{width:100%}
+  .kbcta-run-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

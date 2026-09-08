@@ -45,7 +45,7 @@ Both are in-memory stores you put in front of a database, so they get compared c
 
 My position, plainly: for most apps, I'd start with Redis. It does everything Memcached does and more, and one managed Redis can be your cache, session store, rate limiter, and job queue at once. Memcached earns its slot when you want exactly one thing, a large no-frills cache that spreads across many CPU cores without tuning. Narrow, but real. If that's not you, read [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/) and pick Redis.
 
-<!-- ADD IMAGE: show the Memcached stats command over telnet, with get_hits and get_misses visible. -->
+![Cache and database side by side](images/gen-2-comparison.png)
 
 ## When NOT to use Memcached
 
@@ -73,7 +73,7 @@ The common thread: the data is rebuildable, and you value raw throughput and sim
 
 Memcached is one of seven managed database engines on Kloudbean, alongside MySQL, MariaDB, PostgreSQL, Redis, Elasticsearch, and MongoDB. You launch it the same way you'd launch any of them. Open the **DBS** section, pick Memcached, give it a name, create it. A minute or two later it's running on your server, with the host and port to connect with.
 
-![The Kloudbean console launching a managed Memcached instance from a choice of managed engines](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed Memcached instance from a choice of managed engines](../assets/console-real/shots/psql_launch_step_1.png)
 _DBS then Launch Database: Memcached is one of seven managed engines, provisioned on your server in a couple of minutes._
 
 Two things here are easy to miss.
@@ -82,11 +82,11 @@ First, **locked-down access**. Your Memcached instance runs in the same account 
 
 Second, **backups**. For the durable engines, automatic backups are the headline. For a pure Memcached cache there's nothing worth backing up: the data is a disposable copy of what already lives in your database. So there's no restore button on a cache, and that's fine. It's the nature of a volatile cache.
 
-<!-- ADD IMAGE: show the managed databases list with Memcached running next to a MySQL or Postgres instance. -->
+![Configure W3 Total Cache to use Memcached](images/gen-3-panel.png)
 
 The real win: cache, database, and app in one dashboard, on one server, on one bill. No separate cache vendor, no second login, no cross-provider network to reason about. Running Memcached on cloud for a WordPress store or a Laravel API uses the same console you already have.
 
-![The Kloudbean dashboard showing servers, apps, and managed databases in one place](../assets/console/dashboard.png)
+![The Kloudbean dashboard showing servers, apps, and managed databases in one place](../assets/console-real/shots/dashboard.png)
 _One dashboard for the whole stack: servers, apps, and managed engines like Memcached in the same place._
 
 ## Connecting to Memcached (port 11211)
@@ -156,7 +156,7 @@ WordPress is the classic Memcached use case. On every page load it fires a pile 
 
 Redis does the same job through the Redis Object Cache plugin. For WordPress specifically, either is fine. Pick Memcached for pure simplicity, Redis if you'll also use it for a queue or rate limiting. Don't run both for the object cache. One backend, chosen on purpose.
 
-<!-- ADD IMAGE: show a WordPress object cache setting (W3 Total Cache) pointed at Memcached with status enabled. -->
+![Get hit/miss stats concretely](images/gen-1-terminal.png)
 
 ## Caching patterns that actually hold up
 
@@ -178,13 +178,20 @@ Three habits keep this healthy:
 
 Get those three right and Memcached quietly lifts a big slice of repeat load off your database. For richer strategies (write-through, tag-based invalidation, warming a cold cache), [Redis caching patterns](https://www.kloudbean.com/blog/redis-caching-patterns/) goes deeper on caching design, most of which applies to Memcached too.
 
----
+<!-- cta:start -->
+**A database you can dump and take with you.**
 
-**Put a cache in front of your database in a couple of clicks.**
+Launch MySQL, MariaDB, PostgreSQL, Redis, Memcached, MongoDB, or Elasticsearch in a click, reachable from your app server with automatic backups from minute one. Standard connection strings, standard dumps, no proprietary format.
 
-Launch managed Memcached right next to your app, in the same account and dashboard as your database. One login, one server, one bill. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
 
-One-click cache engines · Memcached and Redis · Free migration · Free trial
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

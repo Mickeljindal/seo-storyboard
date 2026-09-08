@@ -91,7 +91,7 @@ With those four changes in, the deploy is short. A managed server hands you the 
 
 Click **Add Server**, pick a cloud provider (Kloudbean runs seven: AWS, Amazon Lightsail, Google Cloud, DigitalOcean, Vultr, Akamai Linode, and UpCloud), choose the **Node.js** stack, a location near your users, and a size. 2 GB is a comfortable start for a single API. If you're putting several apps on one box, or an Express API beside a front end, add each one under **Applications, Add Application** and pick its stack. Multiple apps per server is a first-class thing here, not a hack.
 
-![The Kloudbean Add Application screen: adding an Express Node.js app to a server and choosing its stack](../assets/console/add-application.png)
+![The Kloudbean Add Application screen: adding an Express Node.js app to a server and choosing its stack](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 ### Connect Git and set the runtime
 
@@ -104,9 +104,9 @@ Deploys come from Git, which is what you want. The repo is the source of truth, 
 
 Hit **Pull & Deploy** and the build log streams live, so you watch clone, install, build, and start scroll past instead of guessing. Turn on automated deployment and every push to that branch ships itself. That's the same continuous-deploy loop the big platforms sell, on a box you own. The details are in [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-![The Kloudbean Git Deployment tab: repository URL, branch, and the install, build, and start commands for an Express app](../assets/console/git-deployment.png)
+![The Kloudbean Git Deployment tab: repository URL, branch, and the install, build, and start commands for an Express app](../assets/console-real/shots/git_connect_step_4.png)
 
-<!-- ADD IMAGE: the runtime config panel filled in for Express: App Directory, Port, Node version, and the Install/Build/Start commands. -->
+![Configure your Express app for production](images/gen-1-panel.png)
 
 ### Let PM2 keep it alive
 
@@ -119,7 +119,7 @@ pm2 start app.js -i max
 
 Start with a single instance. Turn on clustering when your metrics actually ask for it. One caveat that trips people the moment they cluster: in-memory state stops being shared. A sessions object, a local rate-limiter, or a cache that's just a `Map` now has one copy per instance, so a user hits instance A and their session isn't on instance B. Move that state into managed Redis and it's shared again. The full PM2 story, graceful `SIGTERM` shutdown and cluster mode in depth, lives in [deploy a Node app to managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/).
 
-<!-- ADD IMAGE: a terminal running pm2 list: the Express app online, its uptime, and restart count. -->
+![Steps to configure custom domain and SSL](images/gen-3-flow.png)
 
 ### Set environment variables (and NODE_ENV)
 
@@ -127,13 +127,13 @@ Your database URL, API keys, and any config that differs between laptop and prod
 
 Set `NODE_ENV=production` too. Express uses it to cache view templates and trim verbose error output, and it changes how installs behave. Watch this real gotcha: with `NODE_ENV=production` set, `npm ci` can skip `devDependencies`, so if your build step needs the TypeScript compiler or a bundler that's sitting in `devDependencies`, the build fails with a "command not found" that looks nothing like the real cause. Either move build-time tools into `dependencies`, or install with `npm ci --include=dev` for the build. The broader why-and-how is in [environment variables, done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
-![The Kloudbean Environment Variables editor with a paste-dot-env tab and a key/value list for an Express app](../assets/console/env-vars.png)
+![The Kloudbean Environment Variables editor with a paste-dot-env tab and a key/value list for an Express app](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ### Point a domain and turn on SSL
 
 Add your custom domain in the app's domain settings, point its DNS at the server, and install a free auto-renewing SSL certificate. Renewal is automatic, so no calendar reminder and no plain-HTTP API in 2026. A pure Express API with no browser front end still gets a domain and HTTPS. Clients call it over TLS the same way.
 
-<!-- ADD IMAGE: the domain and SSL panel: a custom domain added and a free auto-renewing certificate issued. -->
+![pm2 list shows the app running](images/gen-1-terminal.png)
 
 ## Hosting an Express API with a managed database
 
@@ -169,11 +169,21 @@ Fix the one thing it names and **Pull & Deploy** again. The full triage is in [f
 
 **A founder note, since we see this constantly:** the overwhelming majority of Express deploy failures are configuration, not code. Port, host, a missing env var, a wrong start command. Your routes are almost never the problem. So when a deploy breaks, resist the urge to reread your controllers. Check the four things above first. It's faster, and it's usually right.
 
----
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-**Your Express app, live on a server you own.** Deploy from Git, let PM2 keep it up, wire in a managed database, and get free auto-renewing SSL, without hand-rolling a single Nginx config. Start at [kloudbean.com](https://www.kloudbean.com/); sizes and plans (from $8/mo, Enterprise custom) are on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Seven clouds, one dashboard · Git deploy with live logs · PM2 process management · Managed databases · Free auto-renewing SSL · Free migration · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

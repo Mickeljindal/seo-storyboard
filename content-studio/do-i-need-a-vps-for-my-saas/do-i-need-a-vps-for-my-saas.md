@@ -128,9 +128,21 @@ You don't have to get this right once and forever. Treat it as stages, and let a
 
 Now the part that no amount of hosting fixes, ours very much included. A managed platform takes over patching, the stack, SSL, backups, and the server. It does not touch your app. An unindexed query stays slow. A migration that locks a table locks it on any provider. An n+1 in your ORM is an n+1 forever until someone reads the code. If your product is slow or fragile because of decisions inside it, moving hosts moves the problem to a nicer dashboard and changes nothing else. Your code and your data are yours in every direction, including out, which is also what makes any of these stages reversible. If it helps to see what "managed" covers in detail before you decide, [what is a managed server](https://www.kloudbean.com/blog/what-is-a-managed-server/) lists the boundary properly.
 
----
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-**Run the product, not the server.** If you want a server for your SaaS with the stack, SSL, backups, and patching handled, while your code and data stay yours, that's what Kloudbean is for. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

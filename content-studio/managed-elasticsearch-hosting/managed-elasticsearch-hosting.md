@@ -89,7 +89,7 @@ The store example ties three together. A shopper searches "wool socks," and Elas
 
 Logs are the other big one. The ELK stack (Elasticsearch, Logstash, Kibana) exists because Elasticsearch ingests a flood of log lines into time-based indices and lets you search and chart them. If you've ever grepped across a week of logs and given up, that's the problem it solves.
 
-<!-- ADD IMAGE: a store search results page with a facet sidebar (brand, price, in stock) and ranked results -->
+![From user to results](images/gen-1-flow.png)
 
 ## How it fits: index a copy of your data
 
@@ -103,7 +103,11 @@ Start with a batch reindex. It's boring, it's debuggable, and you can always reb
 
 Launching the engine is the easy bit. Open the DBS section, hit Launch Database, and pick Elasticsearch from the managed engines. Kloudbean runs seven: PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, and MongoDB. A minute or two later it's provisioned on your server, secured, and already being backed up.
 
-![The Kloudbean console, Launch Database, choosing managed Elasticsearch from the list of managed engines](../assets/console/launch-database.png)
+![Open Managed Databases and add a new database](../assets/console-real/shots/database_step_1.png)
+
+![Choose elasticsearch, size, and region](../assets/console-real/shots/es_launch_step_1.png)
+
+![The managed elasticsearch is created with its own host and SSL](../assets/console-real/shots/es_launch_step_2.png)
 
 ## Connecting to Elasticsearch on port 9200
 
@@ -111,7 +115,7 @@ Elasticsearch listens for client traffic over HTTP on port **9200**. You can hit
 
 Keep those in environment variables, never in your source. Open Runtime Configuration, then Environment Variables, and add them, the same way you'd wire up any managed database.
 
-![The Kloudbean console, Environment Variables, storing the Elasticsearch connection details outside the code](../assets/console/env-vars.png)
+![The Kloudbean console, Environment Variables, storing the Elasticsearch connection details outside the code](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ```bash
 # one connection URL, with credentials
@@ -201,7 +205,7 @@ curl "https://10.0.0.6:9200/products/_search" -u elastic:$ES_PASSWORD \
 
 The `match` clause does the fuzzy, analyzed, relevance-ranked part on the `text` field. The `term` filter does an exact yes/no check on a boolean and doesn't affect scoring. That split, scoring queries in `must` and exact filters in `filter`, is the backbone of nearly every real Elasticsearch query.
 
-<!-- ADD IMAGE: a terminal or Kibana view of a _search response, with the hits array and _score values visible -->
+![Real-time monitoring](images/gen-3-flow.png)
 
 ## Why Elasticsearch is a beast to self-host
 
@@ -211,17 +215,26 @@ That's just the sizing. Running a cluster well also means managing shards and re
 
 Managed hosting collapses that. The instance is sized and provisioned for you, the engine is patched, it's locked down with IP allow-listing so only your app reaches it, not the open internet (and on Enterprise it can sit on a [private network](https://www.kloudbean.com/blog/what-is-a-vpc/)), and it's backed up on a schedule you don't maintain. If you want to understand the backup side in general, [the server backups guide](https://www.kloudbean.com/blog/server-backups-guide/) covers how automatic backups and restores work across the platform. You still own your indices and can export them whenever you like.
 
-<!-- ADD IMAGE: cluster health (green/yellow/red) and JVM heap usage -->
+![Viewing a search with relevance scoring](images/gen-1-terminal.png)
 
 ## Managed Elasticsearch, or run the cluster yourself?
 
 Self-hosting is fine for learning or a throwaway project. For anything users depend on, a managed instance in the same account as your app and database, in one dashboard, means one place to launch it, one bill, and no cluster babysitting. If you're weighing where that infrastructure should live, [DigitalOcean vs Kloudbean](https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/) lays out the raw-VPS-versus-managed tradeoff. And mind that the two engines scale differently: Elasticsearch grows by adding nodes and shards, while your primary database usually scales reads with [read replicas](https://www.kloudbean.com/blog/database-read-replicas-scaling/). Keep the roles clear and each stays simple.
 
----
+<!-- cta:start -->
+**A database you can dump and take with you.**
 
-**Give your app search that actually feels like search.** Launch managed Elasticsearch beside your database, index a copy of your data, and connect with one URL, on infrastructure you control. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Launch MySQL, MariaDB, PostgreSQL, Redis, Memcached, MongoDB, or Elasticsearch in a click, reachable from your app server with automatic backups from minute one. Standard connection strings, standard dumps, no proprietary format.
 
-One-click Elasticsearch · IP allow-listing · Automatic backups · Free migration · Free trial
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

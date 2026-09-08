@@ -106,7 +106,21 @@
   <p>A flat server inverts that. You pick a size, you pay that, and a launch week costs the same as a dead week. I won't pretend it's always the smaller number (more on that below), but for anyone trying to commit a hosting cost to a budget, predictable beats occasionally-cheap almost every time. If cost predictability is your whole reason for looking, the <a href="https://www.kloudbean.com/blog/cost-of-running-a-side-project/">cost of running a side project</a> breaks the numbers down further.</p>
 
   <!-- IMAGE SLOT: replace this figure with a real <figure><img><figcaption> (src -> images/vercel-bill.png) -->
-  <figure class="img-slot"><span><b>Add image</b><em>A Vercel usage dashboard or invoice with the function, bandwidth, and seat line items called out.</em><small>Grounds the cost-shape argument in something real. Author supplies.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #1
+Create a left-to-right architecture / flow diagram for a technical blog post titled "A Vercel Alternative for Full-Stack Apps".
+
+What it must show: A Vercel usage dashboard or invoice with the function, bandwidth, and seat line items called out.
+Also: Grounds the cost-shape argument in something real. Author supplies.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-flow.png" alt="A Vercel usage dashboard or invoice with the function, bandwidth, and seat line items called out.">
+    <figcaption>Cost breakdown for a full-stack app</figcaption>
+  </figure>
 
   <h2>What a full-stack Vercel alternative actually needs to do</h2>
   <p>Once you know the shape you want, the criteria write themselves. A real Vercel alternative for a full-stack app should give you a persistent process (so long-running work, websockets, and background jobs just run), a database you launch next to the app instead of across the network, a flat and budgetable price, standard code with no lock-in, and the push-to-deploy flow you'd miss if it vanished. That last one is the reason people stall. They assume owning a server means giving up the developer experience. It doesn't have to.</p>
@@ -114,7 +128,7 @@
   <p>That's the gap <a href="https://www.kloudbean.com/">Kloudbean</a> is built for. Instead of running your backend as functions, it runs your app as one always-on process on a real server it provisions and manages for you, on the cloud you choose (AWS, Google Cloud, DigitalOcean, Linode, Vultr, UpCloud, or Lightsail, so seven providers, not one opinionated platform). You connect a Git repo and deploy from a console. Same muscle memory, different thing underneath.</p>
 
   <figure>
-    <img src="../assets/console/git-deployment.png" alt="Kloudbean console Deploy Code / Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy">
+    <img src="../assets/console-real/shots/git_connect_step_4.png" alt="Kloudbean console Deploy Code / Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy">
     <figcaption>Application Administration, then Deploy Code: connect the repo, set the build and start commands, Pull and Deploy. Auto-deploy on push with live build logs streaming in the console.</figcaption>
   </figure>
 
@@ -127,7 +141,7 @@ next start        # a long-lived Node process that reads process.env.PORT</code>
   <p>The database lands right beside it. Launch a managed Postgres or MySQL from the console (there are six engines: Postgres, MySQL, MariaDB, Redis, MongoDB, Elasticsearch) and point the app at it over the local network.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance next to the application">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance next to the application">
     <figcaption>Launch a managed database next to the app. The connection string points at localhost, not out across the internet to a metered service.</figcaption>
   </figure>
 
@@ -152,7 +166,10 @@ DATABASE_URL=postgres://kb_user:pass@postgres-123456.kloudbeansite.com:5432/appd
   <p>If you live in the left column, switching would cost you more than it saves. The alternative earns its place the moment your app is genuinely full-stack and the serverless model is in your way. If you've already decided, the <a href="https://www.kloudbean.com/blog/move-lovable-app-off-vercel/">move-off-Vercel guide</a> walks the migration step by step, and the <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy walkthrough</a> covers a fresh deploy. Weighing other platforms too? The <a href="https://www.kloudbean.com/blog/fly-io-alternative/">Fly.io</a> and <a href="https://www.kloudbean.com/blog/heroku-alternative-for-modern-apps/">Heroku</a> comparisons run the same reasoning.</p>
 
   <!-- IMAGE SLOT: replace this figure with a real <figure><img><figcaption> (src -> images/one-dashboard.png) -->
-  <figure class="img-slot"><span><b>Add image</b><em>The Kloudbean dashboard with the server, the app, and its managed database together in one view.</em><small>Reinforces the whole-stack-in-one-place payoff. Author supplies.</small></span></figure>
+  <figure>
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean dashboard with the server, the app, and its managed database together in one view.">
+    <figcaption>Choose the engine, size, and region</figcaption>
+  </figure>
 
   <h2>A fair word on cost and the edge</h2>
   <p>Two honest caveats, because you'd find them anyway. First, cost: at genuinely tiny traffic, Vercel's hobby tier can undercut any always-on server, because a server you're renting by the month costs the same whether it serves ten requests or ten million. The flat model wins as usage and team size grow, and it wins on predictability at any size, but it's not automatically the cheapest number at near-zero traffic.</p>
@@ -161,10 +178,55 @@ DATABASE_URL=postgres://kb_user:pass@postgres-123456.kloudbeansite.com:5432/appd
   <h2>Where vercel Alternative for Full-Stack Apps gets harder</h2>
   <p>Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and the frameworks on top like React, Next.js, Vue, Laravel, and Django. That covers what nearly every Vercel-hosted app is built on. Nothing stops .NET on Linux; Windows Server is where the tier matters. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and backups; you own and maintain the application and its data. You can move hosts whenever you like, because underneath it's a standard Linux box running standard code.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A server, not a workaround.</p>
-    <p style="margin:0">See how the whole stack on one owned server compares for your app at <a href="https://www.kloudbean.com/">kloudbean.com</a>. One-click databases, automatic backups, IP allow-listing, free migration, free trial, and git deploy. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+<div class="kbcta-move-wrap">
+  <div class="kbcta-move-overlay"></div>
+  <div class="kbcta-move-content">
+    <div class="kbcta-move-eyebrow">MIGRATE &middot; FLAT, PREDICTABLE PRICING</div>
+    <p class="kbcta-move-heading">A rehoming, not a rewrite.</p>
+    <p class="kbcta-move-description">Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.</p>
+    <ul class="kbcta-move-features">
+      <li>&#10003; Free migration assistance</li>
+      <li>&#10003; Free trial</li>
+      <li>&#10003; Seven cloud providers</li>
+      <li>&#10003; Flat monthly price</li>
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Git deploy</li>
+    </ul>
+    <div class="kbcta-move-buttons">
+      <a class="kbcta-move-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-move-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-move: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-move-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#0A0730;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-move-wrap *{box-sizing:border-box}
+.kbcta-move-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #0A0730 0%, #1B0F5A 58%, rgba(79,26,243,.55) 100%);pointer-events:none}
+.kbcta-move-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.28) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-move-content{position:relative;z-index:3;max-width:700px}
+.kbcta-move-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-move-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-move-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-move-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-move-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-move-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-move-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#2A0E7A;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-move-btn:hover,.kbcta-move-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-move-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-move-link:hover,.kbcta-move-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-move-wrap{padding:36px 24px}
+  .kbcta-move-heading{font-size:31px}
+  .kbcta-move-description{font-size:16px}
+  .kbcta-move-features li{white-space:normal}
+  .kbcta-move-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-move-btn{width:100%}
+  .kbcta-move-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

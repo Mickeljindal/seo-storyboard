@@ -85,11 +85,20 @@ And there's a category no host touches, ours firmly included. A firewall doesn't
 
 This is the host layer of a larger picture. For the application layer, [what a WAF actually does](https://www.kloudbean.com/blog/what-a-waf-does/); for volumetric attacks, [DDoS protection explained](https://www.kloudbean.com/blog/ddos-protection-explained/); and for the response-header layer, the [security headers guide](https://www.kloudbean.com/blog/security-headers-guide/). To restrict who can reach a service by address, [IP allowlisting](https://www.kloudbean.com/blog/ip-allowlisting-guide/), and to gate a whole app behind a password, the [Basic Auth gate guide](https://www.kloudbean.com/blog/basic-auth-gate-guide/). The overview that ties it together is [secure and compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 
-## Start with the doors already closed.
+<!-- cta:start -->
+**Deploys that tell you what broke.**
 
-Every Kloudbean server ships with baseline hardening: Shorewall firewall and Fail2ban configured automatically, free auto-renewing SSL, and a patched OS. The floor of server security, without the setup. See how it compares in [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/), or start at [kloudbean.com](https://www.kloudbean.com/).
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-Shorewall + Fail2ban baseline · Free auto-renewing SSL · Patched OS · One dashboard
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

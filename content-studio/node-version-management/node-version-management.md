@@ -19,7 +19,7 @@ The Node.js version you run feels like a background detail until the day it is t
 >
 > Run an even-numbered Active LTS version. Node releases a new major roughly every six months, and only the even-numbered majors become LTS (Long Term Support), with about 30 months of maintenance; odd-numbered majors are short-lived, around eight months, and are not meant for production. So use the current Active LTS in production, and skip odd versions there. Pin it so your machine and your server match: set the engines field in package.json and an .nvmrc file, and use nvm locally. Watch for the native-module trap, packages with compiled bindings can break when the Node major version changes and need a reinstall or rebuild. On Kloudbean you set the Node version for your app in the console, so local and production can be kept aligned deliberately.
 
-<!-- ADD IMAGE: hero, a package.json engines field and .nvmrc pinning a Node LTS version so local and production match -->
+![Select the Node version for your app](images/gen-1-panel.png)
 
 ## Why the Node version matters more than it looks
 
@@ -80,11 +80,21 @@ And be clear on the split, because it's the part people get wrong when they assu
 
 For running Node in production overall, [the best managed Node.js hosting guide](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/) and [deploying a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/). Keeping the process alive is [the PM2 process manager guide](https://www.kloudbean.com/blog/pm2-process-manager-guide/). When a version mismatch shows up as a module error, [fixing cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/) helps, and when it shows up as an OpenSSL build failure, [the digital envelope routines error](https://www.kloudbean.com/blog/fix-digital-envelope-routines-unsupported-node/) is the fix. Configuration that should travel with the version is covered in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
-## Set the Node version, keep every environment in step.
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-On Kloudbean you set your app's Node version in the console, deploy from Git, and run it under PM2 on a managed, patched server, so local and production stay aligned. Compare where to run Node in [the managed Node.js hosting guide](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/), or start at [kloudbean.com](https://www.kloudbean.com/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Node runtime config · Git-based deploys · PM2 support · Managed, patched stack
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

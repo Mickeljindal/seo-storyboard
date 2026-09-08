@@ -100,7 +100,7 @@ Vertical scaling wins on effort. It loses on two things, exactly when you switch
 
 So the rule is short. Resize the box while it's cheap and easy. Reach for more boxes when you bump the ceiling of one machine, or when downtime from a single failure stops being acceptable. Those two triggers are the same ones behind [deciding whether you need a load balancer yet](https://www.kloudbean.com/blog/do-i-need-a-load-balancer/), because scaling out is what a balancer is for. Plenty of busy apps [run happily on one well-sized server](https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/) for a long time. Don't build for a fleet on day one.
 
-![The Kloudbean console showing how to launch or resize a server to more CPU and RAM, which is vertical scaling](../assets/console/add-server.png)
+![The Kloudbean console showing how to launch or resize a server to more CPU and RAM, which is vertical scaling](../assets/console-real/shots/launch_server_step_1.png)
 
 ## The prerequisite everyone skips: your app has to be stateless
 
@@ -130,7 +130,7 @@ app.use(session({
 
 Getting the app stateless is the real work of scaling out. The load balancer on top is almost trivial by comparison. Do this once and running across several servers stops being scary, whether you scale by hand or later [automate it](https://www.kloudbean.com/blog/autoscaling-explained/).
 
-<!-- ADD IMAGE: Before and after: sessions and uploads moving off a single server's memory and disk into shared Redis and object storage. -->
+![Sessions and uploads moving off a single server](images/gen-1-comparison.png)
 
 ## Where the database fits (it scales on its own axis)
 
@@ -146,7 +146,7 @@ So measure before you scale anything. If app CPU is pinned and the database is b
 
 Same logic for memory. An app swapping because it's out of RAM needs a bigger box (scale up), not more boxes. Adding nodes to fix a per-node memory shortage just gives you more starved nodes.
 
-![The Kloudbean console showing the built-in Flexible Load Balancer spreading traffic across an application pool of servers, which is horizontal scaling](../assets/console/flb-load-balancer.png)
+![The Kloudbean console showing the built-in Flexible Load Balancer spreading traffic across an application pool of servers, which is horizontal scaling](../assets/console-real/shots/flb_launch_step_2.png)
 
 ## How you scale up and out on Kloudbean
 
@@ -158,7 +158,7 @@ Both axes are here. It's worth being precise about what's a switch you flip vers
 
 One honest boundary, stated plainly: **Kloudbean does not autoscale a standard account automatically.** Adding and removing nodes on their own based on live traffic, along with Kubernetes and fully custom architectures, is an **enterprise and custom-setup capability**, not a toggle a regular plan flips. For everyday growth you resize (up) and run a pool behind the FLB (out) yourself, which covers what most apps ever need. If your traffic is genuinely spiky and you want the automation, that's the enterprise conversation. It all runs on infrastructure from the world's largest clouds, managed from one dashboard, which is the point of [managed cloud hosting](https://www.kloudbean.com/blog/best-managed-cloud-hosting/).
 
-<!-- ADD IMAGE: The dashboard showing a server resize alongside the load balancer pool, so scale up and scale out sit side by side. -->
+![Dashboard view of server resize and load balancer pool](images/gen-2-comparison.png)
 
 ## The order most apps should actually follow
 
@@ -173,13 +173,22 @@ Put it together and scaling stops being a scary word. It's a ladder, and most pr
 
 Notice how much of that ladder is "scale up and keep the app clean." The exotic stuff sits at the top, where most apps never go. Let real traffic, not fashion, tell you when to climb the next rung.
 
-<!-- ADD IMAGE: A ladder graphic of the six steps: one server, scale up, go stateless, scale out, scale the database, automate last. -->
+![Steps to increase capacity](images/gen-3-flow.png)
 
----
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-**Scale up when it's easy, out when it's needed.** Resize a server in a couple of clicks, then spread traffic across a pool with the built-in Flexible Load Balancer the day one box isn't enough. One dashboard for servers, managed databases, object storage, and the load balancer. Start free at [kloudbean.com](https://www.kloudbean.com/) or compare plans on [pricing](https://www.kloudbean.com/pricing/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-Resizable servers · Built-in Flexible Load Balancer · Managed databases · Object storage · Free migration · Free trial
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

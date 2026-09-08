@@ -108,7 +108,7 @@ print(len(english), len(arabic))  # measure. do not assume they are equal.
 
 Once you can see your real numbers, the fixes are ordinary. Trim the history you send. Set `max_tokens` deliberately for Arabic replies. Don't pad prompts with instructions the model already follows. If you're wiring up streaming and cost control for a chat app in general, [how to host an AI chatbot in production](https://www.kloudbean.com/blog/host-ai-chatbot-in-production/) covers the money side of it.
 
-<!-- ADD IMAGE: a token counter or tokenizer output comparing the same sentence in English and Arabic, with the Arabic token count clearly higher. -->
+![English vs Arabic token count comparison](images/gen-1-flow.png)
 
 ## Which Arabic do your users actually speak?
 
@@ -139,7 +139,7 @@ Streaming adds a twist. When you append tokens one at a time into an RTL bubble,
 
 One more digit gotcha: Arabic content might use Western digits (0 to 9) or Eastern Arabic-Indic digits (the ٠ to ٩ set), sometimes both on one screen. Pick a convention, render it consistently, and remember that prices and phone numbers are exactly where a bidi slip is most visible to a user.
 
-<!-- ADD IMAGE: a chat bubble showing Arabic text with an embedded Latin brand word and a phone number, rendered correctly with bidi isolation next to a broken version where the number jumps. -->
+![Arabic chat bubble rendering](images/gen-2-comparison.png)
 
 ## Storing Arabic text without turning it into question marks
 
@@ -164,7 +164,7 @@ That's the whole AI-app version of the story. The CMS version, WordPress specifi
 
 Which is a decent argument for letting someone else provision the database. A managed Postgres or MySQL on Kloudbean comes up with sane Unicode defaults rather than whatever a hand-rolled install inherited from a decade-old template, and MySQL and MariaDB are both there among the seven managed engines if your stack wants them. You still set the connection charset in your app. Nobody can do that part for you, because it's a line in your pool config.
 
-<!-- ADD IMAGE: the Kloudbean console launching a managed Postgres or MySQL database, with a note that Postgres is UTF-8 and MySQL uses utf8mb4 so Arabic stores cleanly. -->
+![the Kloudbean console launching a managed Postgres or MySQL database, with a note that Postgres is UTF-8 and MySQL uses utf8mb4 so Arabic st](../assets/console-real/shots/psql_launch_step_1.png)
 
 ## Arabic retrieval: normalize before you embed
 
@@ -215,15 +215,23 @@ Only that last one is a hosting decision, which is why the platform showed up in
 
 Everything above the last bullet is yours, and it's worth saying plainly because it's most of the work. No host writes your dialect handling, chooses your embedding model, sets your connection charset, or wraps a phone number in `<bdi>`. Move to Dammam with mojibake in your pipeline and you'll have fast, in-region question marks. Managed covers the server, the stack, SSL, backups, and patching; the Arabic layer is code in your repo. Two precise notes to close: private networking and a VPC come with the Enterprise package, so on a standard plan IP allow-listing on the database is your access model, and on compliance the platform is built to align with and support the common frameworks while the app-level obligations stay with you. No platform makes an organisation certified. Anyone telling you otherwise is selling something. If you're weighing whether to run the model yourself, [self-host an LLM](https://www.kloudbean.com/blog/self-host-an-llm/) works through what that costs.
 
-<!-- ADD IMAGE: the Kloudbean Add Server screen with Google Cloud Dammam (me-central2) Saudi Arabia selected, for low latency to Saudi users. -->
+![Latency to Saudi users improves](images/gen-3-graph.png)
 
----
+<!-- cta:start -->
+**Keep your data inside the Kingdom.**
 
-**Ship an Arabic AI app that stays up, loads fast for Gulf users, and stores every character intact.**
+Provision in Google Cloud's Dammam region (me-central2) so the server, the managed database, and the backups all stay on Saudi soil, managed from a single dashboard.
 
-Run it on an always-on server with a managed database that speaks Unicode, deploy straight from Git, and provision inside Saudi Arabia when you need to. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+- Dammam (me-central2)
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- One dashboard
+- Free migration assistance
 
-Always-on Node and Python · Managed PostgreSQL and MySQL with Unicode storage · pgvector embeddings · Managed Redis · In-Kingdom GCP Dammam region · Free SSL · Git deploy · IP allow-listing
+[Start free](https://console.kloudbean.com/register) · [Talk to a cloud expert](https://calendly.com/kloudbean)
+<!-- cta:end -->
 
 ## FAQ
 

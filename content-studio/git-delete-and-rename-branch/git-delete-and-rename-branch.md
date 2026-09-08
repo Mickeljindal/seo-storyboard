@@ -81,7 +81,7 @@ git push origin :old-feature
 
 Both forms delete the same remote branch. The `--delete` form is easier to read and remember. The older colon form, `git push origin :old-feature`, literally means push nothing into that remote branch, which Git reads as delete it. You will still meet the colon form in old answers and scripts, so it is worth recognizing.
 
-Because this is a push, you need write access to the remote. If the delete is rejected on permissions, the problem is your access, not the command. And deleting a shared branch deserves a pause: once it is gone it is gone for the whole team, so make sure the work is merged or genuinely unwanted first. One extra thing to check before you delete: whether anything automated is watching that branch. A deploy pipeline pointed at a branch that no longer exists doesn't complain, it just stops shipping, and nobody notices until someone asks why their merge isn't live.
+Because this is a push, you need write access to the remote. If the delete is rejected on permissions, the problem is your access, not the command. And deleting a shared branch deserves a pause: once it is gone it is gone for the whole team, so make sure the work is merged or genuinely unwanted first. One extra thing to check before you delete: whether anything automated is watching that branch. A deploy pipeline pointed at a branch that no longer exists doesn't complain, it just stops shipping, and nobody notices until someone asks why their merge isn't live. If a Kloudbean deployment is connected to that branch, deployment history and live build logs distinguish a missing push from a failed build.
 
 ## Rename a local branch
 
@@ -192,9 +192,21 @@ So three habits carry over from everything above: prune dead branches, keep the 
 
 Being straight about the scope, though: this is a Git article, and Git is where the fix lives. No host recovers a force-pushed history or resurrects an unmerged branch you force-deleted. That's `git reflog` on whichever machine still has the objects, and if nobody has them, they're gone. A deploy platform's job here is narrow and worth exactly what it is: making it obvious which branch is live and what the last push did.
 
----
+<!-- cta:start -->
+**Own the server. Skip the server admin.**
 
-**Ship the branch you meant to ship.** Kloudbean's managed CI/CD connects your Git repo and deploys on every push, with deployment history and live build logs in one dashboard. Managed CI/CD · Deploy on every push · Live build logs · Free migration · Free trial. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
+
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

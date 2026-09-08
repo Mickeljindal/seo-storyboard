@@ -129,7 +129,21 @@ node build         # starts the server, listens on 0.0.0.0:3000</code></pre>
   <p>That's a real long-running process, the same shape an Express app takes in production. It binds to port 3000 by default; move it with the <code>PORT</code> and <code>HOST</code> variables. In production you want two things around it: Nginx terminating SSL on 443 and forwarding to 3000, and a supervisor (PM2) that restarts the process on a crash or reboot. A terminal running <code>node build</code> is a demo. PM2 plus Nginx is a service. On managed hosting both are wired up for you, so you skip the 11pm config session.</p>
 
   <!-- ADD IMAGE: a terminal after node build, showing the "Listening on 0.0.0.0:3000" line. Swap for a real screenshot: src -> images/node-build-terminal.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A terminal running node build with the "Listening on 0.0.0.0:3000" line visible.</em><small>Grounds the "it's a process, not files" point.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #1
+Create a realistic terminal / command-line screenshot for a technical blog post titled "How to Deploy a SvelteKit App to Production the Right Way".
+
+What it must show: A terminal running node build with the "Listening on 0.0.0.0:3000" line visible.
+Also: Grounds the "it's a process, not files" point.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-terminal.png" alt="A terminal running node build with the &quot;Listening on 0.0.0.0:3000&quot; line visible.">
+    <figcaption>Grounds the 'it's a process, not files' point</figcaption>
+  </figure>
 
   <h3>The ORIGIN gotcha that breaks form actions</h3>
   <p>This one costs people an afternoon, so learn it before it bites. Behind a reverse proxy, SvelteKit can't reliably know the public URL it's being served on. HTTP just doesn't tell it. When it guesses wrong, your form actions start failing with this exact message:</p>
@@ -171,7 +185,7 @@ export const prerender = true;</code></pre>
   <h3>Launch a server and add the app</h3>
   <p>Click <strong>Add Server</strong>, choose a cloud provider (seven to pick from: AWS, Amazon Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud), select the <strong>Node.js</strong> stack, and pick a datacenter near your users. SvelteKit builds are Vite builds, so give them headroom; 2GB of RAM is a comfortable start. A few minutes later the server is up with Node, a web server, PM2, a firewall, and SSL in place. Running more than one project? Add each under <strong>Applications</strong>.</p>
   <figure>
-    <img src="../assets/console/add-application.png" alt="The Kloudbean Add Application screen: adding a Node.js app for a SvelteKit deploy on an existing server">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="The Kloudbean Add Application screen: adding a Node.js app for a SvelteKit deploy on an existing server">
     <figcaption>Add Application: run your SvelteKit app beside an API or a second project on one server. Multiple apps per box is a first-class feature here.</figcaption>
   </figure>
 
@@ -184,13 +198,26 @@ export const prerender = true;</code></pre>
     <li><strong>Install / Build / Start:</strong> <code>npm ci</code>, then <code>npm run build</code>, then <code>node build</code>.</li>
   </ul>
   <figure>
-    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Git Deployment tab: connect the repo, set Build to npm run build and Start to node build, then Pull and Deploy">
+    <img src="../assets/console-real/shots/git_connect_step_4.png" alt="The Kloudbean Git Deployment tab: connect the repo, set Build to npm run build and Start to node build, then Pull and Deploy">
     <figcaption>Git Deployment: connect the repo, set Build to npm run build and Start to node build, then Pull and Deploy. Live build logs stream as it goes.</figcaption>
   </figure>
   <p>Hit <strong>Pull &amp; Deploy</strong>. The console streams the pull, install, build, and start steps live, so when something fails you see the exact line, not a spinner. Turn on automated deployment and every push to your branch reruns <code>npm run build</code> and ships itself. That's the git-to-live loop the per-seat platforms rent you, on a server you own.</p>
 
   <!-- ADD IMAGE: Build and Deployment History with a deploy open and live logs streaming the SvelteKit build. Swap for a real screenshot: src -> images/build-history-logs.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Build and Deployment History with a deploy open and the SvelteKit build streaming line by line.</em></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "How to Deploy a SvelteKit App to Production the Right Way".
+
+What it must show: Build and Deployment History with a deploy open and the SvelteKit build streaming line by line.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="Build and Deployment History with a deploy open and the SvelteKit build streaming line by line.">
+    <figcaption>Each step of the deployment process</figcaption>
+  </figure>
 
   <h3>Environment variables, the SvelteKit way</h3>
   <p>SvelteKit is unusually clear about environment variables, and getting it right saves you from leaking a secret into the browser bundle. There are four modules, and the split is the whole point:</p>
@@ -204,7 +231,7 @@ export const prerender = true;</code></pre>
 const db = connect(env.DATABASE_URL);   // runtime, server-only, never shipped to the browser</code></pre>
   <p>In the console, open <strong>Environment Variables</strong>. A <strong>Paste .env Content</strong> tab lets you drop your whole file in and convert it to key/value. Set <code>DATABASE_URL</code>, your secrets, and <code>ORIGIN</code> here. Because <code>$env/dynamic/private</code> reads them at runtime, you rotate a secret by editing it in the dashboard and restarting, no rebuild. Why a <code>PUBLIC_</code> value freezes the moment the build runs is in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean environment variables editor with a Paste .env Content tab and a key value list including DATABASE_URL and ORIGIN">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean environment variables editor with a Paste .env Content tab and a key value list including DATABASE_URL and ORIGIN">
     <figcaption>Environment Variables: paste your .env, set DATABASE_URL and ORIGIN, save. Runtime secrets stay out of Git and out of the client bundle.</figcaption>
   </figure>
 
@@ -214,7 +241,20 @@ const db = connect(env.DATABASE_URL);   // runtime, server-only, never shipped t
   <p>Then add your custom domain, point DNS at the server, and install a free auto-renewing certificate so the site loads over HTTPS. If DNS records and certificate steps are new territory, the full walkthrough is in <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">custom domain and SSL for your app</a>. Set <code>ORIGIN</code> to that same domain while you're here, so form actions behave the instant the domain goes live.</p>
 
   <!-- ADD IMAGE: the app's domain and SSL panel with a custom domain added and a Let's Encrypt certificate issued. Swap for a real screenshot: src -> images/domain-ssl-panel.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The domain and SSL panel with a custom domain added and a free certificate issued.</em></span></figure>
+  <!-- IMAGE GENERATE [flow] #3
+Create a left-to-right architecture / flow diagram for a technical blog post titled "How to Deploy a SvelteKit App to Production the Right Way".
+
+What it must show: The domain and SSL panel with a custom domain added and a free certificate issued.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-flow.png" alt="The domain and SSL panel with a custom domain added and a free certificate issued.">
+    <figcaption>Configure custom domain and free certificate</figcaption>
+  </figure>
 
   <h2>Where SvelteKit deploys actually break</h2>
   <p>The failures are boringly repeatable, and every one maps to a decision above. Knowing them turns a 30-minute stall into a 30-second fix.</p>
@@ -228,11 +268,56 @@ const db = connect(env.DATABASE_URL);   // runtime, server-only, never shipped t
   <p>Two things worth saying straight. First, this is a Linux Node deployment. SvelteKit compiles to a Node server through <code>adapter-node</code>, which runs great on a managed Linux box. It isn't a Windows or .NET target, which is fine, because SvelteKit isn't either.</p>
   <p>Second, your server lives in one region, not spread across a global edge network. For most apps a well-placed server with the database right beside it is faster than people expect, since you skip cold starts and round trips to a far-off database. If you truly serve a latency-critical audience on every continent, put Cloudflare in front (a paid add-on, free on Enterprise) so pages cache at the edge while the app runs on hardware you own. "Managed" means the server, stack, SSL, backups, and patching are handled; your code and data stay yours, on a standard Linux box you can move whenever you like.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Set the adapter. Push. Watch it build.</p>
-    <p style="margin:0 0 .6em">Deploy your SvelteKit app from Git onto a managed server you own, with PM2, Nginx, and SSL already handled. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>, and if you're moving off a per-seat host, read the <a href="https://www.kloudbean.com/blog/netlify-alternative-for-full-stack-apps/">Netlify alternative for full-stack apps</a>. Sizes and plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Seven clouds, one dashboard · Git deploy with live logs · Free auto-renewing SSL · Managed databases · Automatic backups · Free migration · Free trial</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">Take it off localhost for good.</p>
+    <p class="kbcta-ai-description">Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

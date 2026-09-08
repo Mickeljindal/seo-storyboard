@@ -129,11 +129,20 @@ That's also the honest limit of switching hosts. No platform turns `new Client()
 
 One scoping note so you don't plan around the wrong thing: on a standard plan the managed database is locked down with IP allow-listing, one rule naming your app server. Network isolation in a VPC is an Enterprise capability, not the default.
 
-## Give your AI app a home that stays awake
+<!-- cta:start -->
+**Bring the app. Keep the deploy flow.**
 
-**If cold starts, timeouts, and connection storms are the reason you're here, move to an always-on process.** Run it with a managed database, managed Redis for your queue, free SSL, and Git deploys, all in one dashboard. No scale-to-zero tax, no scattered stack. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-Always-on (no cold starts) · Managed database + pool · Managed Redis · Free SSL · Git deploy · Automatic backups · Free migration · IP allow-listing
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

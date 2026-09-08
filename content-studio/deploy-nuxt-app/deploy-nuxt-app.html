@@ -132,17 +132,31 @@ npx nuxi generate     # static:  creates .output/public/ full of HTML</code></pr
 
   <p>Add the app first. In <strong>Applications, Add Application</strong>, pick the Node.js stack. Nuxt runs as a standard Node app, so there's no special adapter to install and nothing exotic to configure. Give the build some headroom; Nuxt builds are memory-hungry, so 2 GB or more of RAM makes for a smoother first deploy.</p>
   <figure>
-    <img src="../assets/console/add-application.png" alt="The Kloudbean Add Application screen: adding a Nuxt SSR app on the Node.js stack">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="The Kloudbean Add Application screen: adding a Nuxt SSR app on the Node.js stack">
     <figcaption>Add Application: a Nuxt SSR app is just a Node app. Pick the stack and the platform sets up the process manager and proxy.</figcaption>
   </figure>
 
   <p>Now connect Git. In <strong>Code Delivery, Git Deployment</strong>, link GitHub over OAuth, paste your repo URL, choose a branch, and clone. Then set the runtime fields: the app directory (where your <code>package.json</code> lives), the port, the Node version (20 or newer for current Nuxt), and your commands. Install with <code>npm ci</code>, build with <code>npm run build</code>, start with <code>npm start</code>. Hit <strong>Pull &amp; Deploy</strong> and the build log streams live, so you watch clone, install, build, and boot go past in real time.</p>
   <figure>
-    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Git Deployment tab: connect the repo, pick a branch, and set the Nuxt build and start commands">
+    <img src="../assets/console-real/shots/git_connect_step_4.png" alt="The Kloudbean Git Deployment tab: connect the repo, pick a branch, and set the Nuxt build and start commands">
     <figcaption>Git Deployment: connect the repo, set install, build, and start. Every push can rebuild from here with live logs.</figcaption>
   </figure>
   <!-- ADD IMAGE: the runtime config panel with App Directory, Port, Node version, and the Install / Build / Start commands filled in for Nuxt. Swap for a real screenshot: src -> images/nuxt-runtime-config.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The runtime configuration panel: App Directory, Port, Node version, and Install npm ci, Build npm run build, Start npm start.</em><small>Shows exactly where the build artifact and the running process get defined.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #1
+Create a realistic terminal / command-line screenshot for a technical blog post titled "How to Deploy a Nuxt App: Server or Static, Decide That First".
+
+What it must show: The runtime configuration panel: App Directory, Port, Node version, and Install npm ci, Build npm run build, Start npm start.
+Also: Shows exactly where the build artifact and the running process get defined.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-terminal.png" alt="The runtime configuration panel: App Directory, Port, Node version, and Install npm ci, Build npm run build, Start npm start.">
+    <figcaption>Define build and start commands</figcaption>
+  </figure>
 
   <p>Last, make it findable. Add your custom domain in the app's domain settings, point DNS at the server, and install a free auto-renewing SSL certificate. The full walkthrough lives in <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">custom domain and SSL for your app</a>. Turn on automated deployment and every <code>git push</code> to your branch rebuilds and ships itself. That's the same Git-to-live loop the per-seat platforms rent you, running on hardware you control.</p>
 
@@ -166,11 +180,25 @@ NUXT_PUBLIC_API_BASE=https://api.example.com</code></pre>
   <p>Here's the payoff, and the part that surprises people coming from Vite or Next. In an <strong>SSR</strong> app, Nuxt resolves <code>runtimeConfig</code> on the server at startup and hands the public values to the browser at render time. So changing a <code>NUXT_PUBLIC_</code> value takes effect after an env update and a restart. No rebuild. Compare that to a Vite SPA, where <a href="https://www.kloudbean.com/blog/deploy-vue-app/"><code>VITE_</code> variables bake into the bundle at build time</a>, or Next.js, where <code>NEXT_PUBLIC_</code> does the same. Nuxt SSR reads config later, which is a small quality-of-life win you feel every time you flip a URL. One caveat: for a <code>nuxt generate</code> static build, those public values are inlined when you generate, so there you do regenerate to change them. Static is static.</p>
   <p>In the dashboard, set these under <strong>Runtime Configuration, Environment Variables</strong>. There's a <strong>Paste .env Content</strong> tab so you can drop your whole file in and convert it to key/value. Secrets like <code>apiSecret</code> stay on the server and never touch your repo, which is the entire point.</p>
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean environment variables editor with NUXT_ prefixed variables set for a Nuxt app">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean environment variables editor with NUXT_ prefixed variables set for a Nuxt app">
     <figcaption>Environment Variables: paste your .env, set NUXT_ and NUXT_PUBLIC_ values, save. For SSR they apply on restart, no rebuild.</figcaption>
   </figure>
   <!-- ADD IMAGE: your NUXT_ and NUXT_PUBLIC_ variables entered as key/value pairs in the dashboard before a deploy. Swap for a real screenshot: src -> images/nuxt-env-vars.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>NUXT_API_SECRET and NUXT_PUBLIC_API_BASE entered as key value pairs before a deploy.</em><small>Makes the server-only vs public split concrete.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #2
+Create a side-by-side comparison table for a technical blog post titled "How to Deploy a Nuxt App: Server or Static, Decide That First".
+
+What it must show: NUXT_API_SECRET and NUXT_PUBLIC_API_BASE entered as key value pairs before a deploy.
+Also: Makes the server-only vs public split concrete.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-comparison.png" alt="NUXT_API_SECRET and NUXT_PUBLIC_API_BASE entered as key value pairs before a deploy.">
+    <figcaption>Key settings for deployment</figcaption>
+  </figure>
   <p>If any of this feels fuzzy, the difference between build-time and runtime config is worth twenty minutes: <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a> covers the whole model.</p>
 
   <h2>Connecting a database or an API to your Nuxt server</h2>
@@ -191,7 +219,21 @@ export default defineEventHandler(async () =&gt; {
   <p>The output is plain HTML, CSS, and JavaScript. It needs no process to keep alive, no reverse proxy pointed at a port, nothing to restart at 3am. You publish the folder and a CDN serves it fast from close to each visitor. Kloudbean's free static site hosting fits this exactly: custom domains, free SSL, and built-in visit analytics, at no cost. And because every route is a real HTML file, you get the SEO of server-rendered pages without running a server.</p>
   <p>When should you pick this over SSR? When your content doesn't change per user and doesn't need live data on load. Blogs, docs, landing pages, portfolios. The trade is that updating content means a rebuild and republish, which for a mostly-static site is a fine price. If your app is a mix, remember Nuxt can prerender some routes and render others on the server, but that hybrid setup wants a running server, so it lands back in the SSR path above.</p>
   <!-- ADD IMAGE: the .output/public/ folder after nuxt generate, showing the prerendered .html files. Swap for a real screenshot: src -> images/nuxt-generate-output.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The .output/public/ folder after nuxt generate, with the prerendered HTML files visible.</em><small>A file-tree screenshot lands the "it's just files" point.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #3
+Create a left-to-right architecture / flow diagram for a technical blog post titled "How to Deploy a Nuxt App: Server or Static, Decide That First".
+
+What it must show: The .output/public/ folder after nuxt generate, with the prerendered HTML files visible.
+Also: A file-tree screenshot lands the "it's just files" point.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-flow.png" alt="The .output/public/ folder after nuxt generate, with the prerendered HTML files visible.">
+    <figcaption>From nuxt generate to output files</figcaption>
+  </figure>
 
   <h2>Where Nuxt SSR deploys actually break</h2>
   <p>Most first deploys stumble, and the Nuxt-specific failures are predictable. Here's where to look before you start guessing.</p>
@@ -205,17 +247,76 @@ export default defineEventHandler(async () =&gt; {
   <p>The tabs matter here. <strong>App Errors</strong> holds your app's error log, which is where a <code>window is not defined</code> from server-side rendering turns up. <strong>App Info</strong> holds the informational log, so a successful boot line lands there. <strong>Web Requests Logs</strong> is the web server's access log of every request served, which is how you tell a request that never arrived from one that arrived and crashed. Search is built in, so paste the error string instead of scrolling. Build failures are a different place again: build output streams live during the deploy and stays in <strong>Build and Deployment History</strong>, which is where the skipped-devDependencies case is visible.</p>
   <p>If you'd rather work in a terminal or the File Manager, the same files sit at <code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs</code>, named <code>app.info.log</code> and <code>app.error.log</code>.</p>
   <!-- ADD IMAGE: The Logs Viewer on the App Errors tab showing a window is not defined or hydration warning. Swap for a real screenshot: src -> images/nuxt-error-log.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The Logs Viewer on the App Errors tab with a ReferenceError: window is not defined line highlighted.</em><small>Reinforces reading the log before guessing.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #4
+Create a left-to-right architecture / flow diagram for a technical blog post titled "How to Deploy a Nuxt App: Server or Static, Decide That First".
+
+What it must show: The Logs Viewer on the App Errors tab with a ReferenceError: window is not defined line highlighted.
+Also: Reinforces reading the log before guessing.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-4-flow.png" alt="The Logs Viewer on the App Errors tab with a ReferenceError: window is not defined line highlighted.">
+    <figcaption>Follow the error path</figcaption>
+  </figure>
 
   <h2>Known rough edges</h2>
   <p>Two things worth saying plainly. First, Kloudbean runs Nuxt as a <strong>Node app on Linux</strong>, which is exactly what Nuxt targets, so you're on the happy path. There's no Windows or .NET angle here, and you won't need one. Second, "managed" is a division of labor, not magic: the platform provisions the server, the Node runtime, the process manager, the proxy, SSL, and backups. You still own your code, your data, and your rendering decisions. That's the good split, and because underneath it's an ordinary Linux box, you can move hosts whenever you want.</p>
   <p>The one real difference from an edge platform is geography. Your SSR server sits in the region you choose, not spread across a global edge. For most apps a well-placed server next to its database is plenty fast. If you serve a latency-sensitive audience worldwide, you can put <strong>Cloudflare Enterprise edge caching</strong> in front (a paid add-on, free on Enterprise) so responses cache at the edge while your app runs on hardware you own. Weighing the move off a serverless host? The <a href="https://www.kloudbean.com/blog/vercel-alternative-for-full-stack-apps/">Vercel alternative for full-stack apps</a> lays out the trade honestly.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Pick your Nuxt mode, then ship it.</p>
-    <p style="margin:0 0 .6em">Run a Nuxt SSR app as a live Node process, or host <code>nuxt generate</code> output as static files, both on Kloudbean, both in one dashboard with your databases and storage. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> from $8/mo, or talk to us about Enterprise. Sizes on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Node process for SSR · Free static site hosting · Custom domain + SSL · Managed databases · Git auto-deploy with live logs · Free migration · Free trial</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">You built the app. Give it a real home.</p>
+    <p class="kbcta-ai-description">Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

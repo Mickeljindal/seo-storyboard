@@ -101,21 +101,30 @@ In production, EADDRINUSE usually means one thing: you started a second copy of 
 
 This is where a managed platform quietly removes the whole class of problem. On Kloudbean your Node app is deployed from GitHub and run under PM2 for you, bound to the port the platform assigns, as a single managed process. You don't hand-start a second copy over SSH, so the "two apps, one port" collision that causes most production EADDRINUSE just doesn't come up. Restarts go through the dashboard or a git push, cleanly.
 
-![The Kloudbean console setting the PORT environment variable so the Node app binds to the port the platform assigns instead of a hardcoded one](../assets/console/env-vars.png)
+![The Kloudbean console setting the PORT environment variable so the Node app binds to the port the platform assigns instead of a hardcoded one](../assets/console-real/shots/nodespm_env_step_1.png)
 
 *Runtime Configuration then Environment Variables: bind to the assigned `PORT` here instead of hardcoding one, and the collision disappears.*
 
-<!-- ADD IMAGE: a terminal running lsof -i :3000 then kill, freeing the port and letting the app start -->
+![Free the port for your app](images/gen-1-terminal.png)
 
 ## EADDRINUSE and the rest of the stack
 
 Ports, processes, and clean restarts are the same story. Go deeper with [the PM2 process manager guide](https://www.kloudbean.com/blog/pm2-process-manager-guide/), keep your port out of code with [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/), and make restarts seamless with [zero-downtime deployments](https://www.kloudbean.com/blog/zero-downtime-deployments/). Deciding where to run the app? [Where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/) covers the options, and [deploy a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) is the hands-on version.
 
----
+<!-- cta:start -->
+**Fewer mysteries on the next deploy.**
 
-**Run your Node app as one clean managed process.** Deploy from GitHub, let PM2 run it on the assigned port, and restart from the dashboard instead of fighting stray processes over SSH. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-Deploy from GitHub · PM2 process management · Clean restarts · Environment variables in the UI · Free migration
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -42,7 +42,7 @@ Kloudbean does this too: **free static site hosting** with your own custom domai
 
 **The catch:** it's static only. The moment you need code running on a server, a database, or background jobs, a static host can't help, and you'll pair it with one of the options below for the dynamic half. That's normal. A lot of good architectures are a static front end plus a small API.
 
-<!-- ADD IMAGE: a static site live on its own domain with the SSL padlock showing, plus the visit-analytics view. -->
+![Request timing comparison](images/gen-2-flow.png)
 
 ## Hosting a full-stack app
 
@@ -58,7 +58,7 @@ Free backend hosting is really the same story as a full-stack app, with one extr
 
 **The catch:** sleeping hurts an API more than a site, per-request or per-hour caps are easy to trip, and there's usually no real uptime guarantee. Fine for a bot, a cron target, or a demo endpoint. Risky for anything another system depends on. A small always-on box removes the cold start entirely, which is why a Discord bot or a webhook receiver tends to graduate quickly, see [Discord bot hosting](https://www.kloudbean.com/blog/discord-bot-hosting/) and [deploying a Node app to managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/).
 
-<!-- ADD IMAGE: a request timing panel showing the slow first response after a cold start next to a fast warm one. -->
+![Performance and Reliability](images/gen-3-comparison.png)
 
 ## Hosting a database for free
 
@@ -94,19 +94,29 @@ So the failure isn't using free hosting. It's using free hosting for the one thi
 
 The good news: moving off free isn't a rebuild. Your app is code in a repo, maybe with a database, so graduating to an always-on server is a redeploy. Connect the Git repo, bring your environment variables, point the domain, done. Cheap app hosting on a small managed server gives you the always-on foundation without the cold starts or the sysadmin homework.
 
-![The Kloudbean console: deploy an app to a small always-on managed server](../assets/console/add-application.png)
+![The Kloudbean console: deploy an app to a small always-on managed server](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 Push to your main branch and it builds and deploys, with live build logs streaming so you can watch it go out. That's the same simple flow whether it's a Node API, a Django app, or a static front end. There's a full walkthrough in [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/), and if you're deciding whether to self-manage or not, [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) settles it.
 
-![The Kloudbean console: connect a Git repository so every push builds and deploys](../assets/console/git-deployment.png)
+![The Kloudbean console: connect a Git repository so every push builds and deploys](../assets/console-real/shots/git_connect_step_4.png)
 
 <!-- ADD IMAGE: a before and after showing a free tier waking slowly on the left, an always-on server responding instantly on the right. -->
 
----
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-**Free where it fits. Always-on when it counts.** Host a static front end free, then land the dynamic half on a small always-on server with no cold starts, at [kloudbean.com](https://www.kloudbean.com/). Plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Free static hosting · Always-on servers · Free SSL · Simple Git deploy · Free migration · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

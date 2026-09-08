@@ -70,7 +70,7 @@ Start with the identity card. Open `package.json` (or `requirements.txt` for a P
 
 That tiny file tells you a lot. The `scripts` are the buttons for running the app: `start` is how it runs for real, `dev` is how you run it while working, `build` packages it up. The `dependencies` are the libraries it's built on, and you can look each one up in ten seconds. Here `express` is the web server, `react` draws the screen, and `pg` is how the app talks to a PostgreSQL database. You just learned the app's whole shape without reading a single line of its logic.
 
-<!-- ADD IMAGE: your editor's file tree (Cursor or VS Code) with the top-level folders visible, so a reader can match this map to their own project. -->
+![Cursor vs VS Code for readability](images/gen-1-comparison.png)
 
 ## Find the entry point, then follow one request
 
@@ -78,7 +78,7 @@ Every app has a starting point, the file that boots everything up. In a Node app
 
 From there, the trick is to read top-down, not line-by-line. Pick one thing the app does, say loading the orders page, and follow just that path. A request flows in a predictable shape: the browser asks for a URL, a route matches it, a handler function runs, that handler maybe reads or writes the database, and a response travels back to the browser. Follow that one thread and ignore everything it doesn't touch.
 
-<!-- ADD IMAGE: a request-flow diagram. Browser (frontend, on the user's device) sends a request across a dashed server boundary to a Route, which calls a Handler, which reads or writes the Database, and the response travels back. Note that secrets are safe only on the server side. Brand colors navy #000f27, purple #4F1AF3, green #40b75f. -->
+![Navigate the codebase](images/gen-2-flow.png)
 
 *The path every request takes. To understand a feature, find its route, open the handler, and follow only that thread.*
 
@@ -114,7 +114,7 @@ Now that you can navigate, here's where to point that skill first. Three kinds o
 
 This is a comprehension pass, not a hardening pass. Once you know where these things live, the companion [AI-built app security checklist](https://www.kloudbean.com/blog/ai-built-app-security-checklist/) covers the fix for each risky pattern, and [deploying an AI agent without exposing API keys](https://www.kloudbean.com/blog/deploy-ai-agent-without-exposing-api-keys/) goes deep on the secrets one.
 
-<!-- ADD IMAGE: a project-wide search (VS Code Cmd/Ctrl+Shift+F) showing results for a term like api.openai.com or process.env, so a reader sees how to locate API calls and secrets without reading every file. Blur any real values. -->
+![Real workflow in action](images/gen-3-terminal.png)
 
 ## Read an error like a detective
 
@@ -181,9 +181,21 @@ Reading the code tells you what should happen. Logs tell you what did happen. On
 
 Where those logs live depends on your host. Kloudbean, for what it's worth here, puts application and server logs in one dashboard and keeps your secrets in environment-variable settings in the UI, so keys stay out of the code where they belong. That's a convenience, not the point of this page. The point is that between reading the code and reading the logs, your app is no longer a black box. You can see what it's built from and what it's doing.
 
----
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-**You can read your own app now. That's the whole game.** When you're ready to run it somewhere you can actually see it, Kloudbean gives you application and server logs in one place, managed servers and databases, and environment-variable settings so keys never touch your code. Free migration if you're moving, and standard plans from $8/mo (check current details on [pricing](https://www.kloudbean.com/pricing/)). Start at [kloudbean.com](https://www.kloudbean.com/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

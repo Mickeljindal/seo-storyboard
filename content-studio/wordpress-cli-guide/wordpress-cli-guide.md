@@ -11,7 +11,7 @@ secondary_keywords:
   - wp-cli guide
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 6 — WordPress & Frontend
+cluster: 6 - WordPress & Frontend
 ---
 
 ![WP-CLI, managing WordPress from the command line](images/hero.png)
@@ -62,7 +62,7 @@ For a one-off post edit, none of this matters and the admin is fine. For anythin
 
 WP-CLI runs on the server, over SSH, so you need shell access to where WordPress actually lives. On a managed server you connect over SSH into the same environment your site is deployed in and run `wp` commands right there. It's an ordinary Linux box with WordPress on it, and you log in like any other.
 
-![The Kloudbean console, where you connect over SSH to the server your WordPress site runs on](../assets/console/git-deployment.png)
+![The Kloudbean console, where you connect over SSH to the server your WordPress site runs on](../assets/console-real/shots/git_connect_step_4.png)
 
 Commands act on the WordPress install in whatever directory you're standing in, so run them from your site's folder, or add `--path=/var/www/html` to point WP-CLI at it. And if all you want is scheduled tasks, you don't even need SSH for that: cron jobs can be set from the Kloudbean dashboard directly, no terminal required. WP-CLI is for the hands-on work.
 
@@ -90,7 +90,7 @@ wp db export backup.sql
 wp db import backup.sql
 ```
 
-<!-- ADD IMAGE: terminal showing wp db export writing a .sql file, then ls confirming the file size -->
+![Full database backup in one command](images/gen-1-terminal.png)
 
 ### The migration lifesaver: wp search-replace
 
@@ -108,7 +108,7 @@ wp search-replace 'https://staging.example.com' 'https://example.com'
 
 This one command is why WP-CLI is central to a clean move. It's a big part of the [zero-downtime migration](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/) flow, and it's the safe answer to the raw-SQL replace that breaks so many sites.
 
-<!-- ADD IMAGE: output of wp search-replace with --dry-run showing the replacement count per table -->
+![Impact of wp search-replace](images/gen-2-comparison.png)
 
 ### Cache
 
@@ -187,7 +187,7 @@ wp cache flush
 
 Save that, and your entire update ritual is one command. Wire the same idea into your [deploy step](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) and updates happen on every release without anyone remembering to click a thing. That's the real jump: not faster clicking, but no clicking.
 
-<!-- ADD IMAGE: a terminal running the maintenance script end to end, ending with "Success: The cache was flushed." -->
+![Weekly routine in one run](images/gen-3-terminal.png)
 
 ## Where WP-CLI bites you, and when to just use the dashboard
 
@@ -201,11 +201,20 @@ My honest take after enough of these: for anything you're doing more than twice,
 
 One boundary worth stating plainly. WP-CLI needs shell access, which a managed server provides because it's a real Linux box, not a locked black box. Managed means the server, the WordPress stack, SSL, and backups are handled for you; the install and whatever you do with WP-CLI on it stay yours. If you want the deeper caching and query wins alongside this, the [speed up WordPress guide](https://www.kloudbean.com/blog/speed-up-wordpress/) and [multisite hosting guide](https://www.kloudbean.com/blog/wordpress-multisite-hosting/) pick up where the CLI leaves off.
 
----
+<!-- cta:start -->
+**Managed stack, staging, and backups.**
 
-**Type it, don't click it.** Run WordPress on a managed server with real SSH and WP-CLI ready, so maintenance and migrations take seconds. Start free at [kloudbean.com](https://www.kloudbean.com/), see [pricing](https://www.kloudbean.com/pricing/).
+The stack, the patching, SSL, and backups are handled, so your work stays on the site rather than the box. Staging is one click, and the managed database sits right next to the app.
 
-SSH + WP-CLI ready · Managed WordPress · Staging sites · Cron from the dashboard · Automatic backups · Free migration
+- Managed WordPress stack
+- One-click staging
+- Managed MySQL and MariaDB
+- Automatic backups
+- Free SSL
+- Built-in load balancer
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

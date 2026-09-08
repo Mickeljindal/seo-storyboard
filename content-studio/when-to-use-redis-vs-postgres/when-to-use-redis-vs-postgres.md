@@ -16,7 +16,7 @@ One keeps the truth. The other keeps things fast. Every question about your data
 
 The classic slip is treating Redis like a smaller, faster Postgres. It isn't. Once you see two jobs, "do I need Redis" stops being a versus question and becomes "do I have a job that fits Redis yet."
 
-<!-- ADD IMAGE: a two-lane diagram, Postgres as durable system of record on top, Redis as ephemeral hot layer below, with the app feeding both -->
+![Demonstrating Redis commands in action](images/gen-1-terminal.png)
 
 *Same request, two stores. Postgres keeps the truth on disk. Redis keeps the hot bits fast in memory. Lose Redis and the app gets slow. Lose Postgres and you lose data.*
 
@@ -60,7 +60,7 @@ Redis keeps its whole dataset in memory, which is why it answers in well under a
 
 The thread through all of these: the data is either a copy of something durable (a cache) or cheap to lose (a counter, a session, a retryable job). When it doesn't fit that shape, Redis is a loaded gun pointed at your data.
 
-<!-- ADD IMAGE: a redis-cli session running INCR, ZADD, then GET, so the reader sees the data structures are real -->
+![Observing cache hits and misses](images/gen-2-terminal.png)
 
 ## When to use Redis vs PostgreSQL: a decision guide
 
@@ -140,7 +140,7 @@ async function getProduct(id) {
 
 When the product changes, write Postgres first, then delete the key so the next read repopulates it. There's real depth here (TTL choices, invalidation, cache stampede), all covered in [Redis caching patterns](https://www.kloudbean.com/blog/redis-caching-patterns/).
 
-<!-- ADD IMAGE: a terminal running redis-cli MONITOR while the app serves traffic, showing GET on a hit and SET on a miss -->
+![Maxmemory Reached and Keys Evicted](images/gen-3-graph.png)
 
 ### Session store: one shared login state
 
@@ -205,19 +205,19 @@ These come up constantly, and every one is avoidable once you've named it.
 
 The unifying rule fits in one sentence. If Redis disappeared this second, your app should get slow, not lose data. If that isn't true, something durable is in the wrong lane.
 
-<!-- ADD IMAGE: a Redis memory graph reaching maxmemory and evicting keys, so the volatility point is visible -->
+![Memory limit reached, keys start being removed](images/gen-1-graph.png)
 
 ## Running Postgres and Redis together on Kloudbean
 
 The patterns above run anywhere. What changes is how much babysitting is yours. On Kloudbean, PostgreSQL and Redis are both managed engines, two of the seven on offer (alongside MySQL, MariaDB, [Memcached](https://www.kloudbean.com/blog/managed-memcached-hosting/), Elasticsearch, and MongoDB). Launch each from the same place, and the platform patches and backs them up while you use them.
 
-![The Kloudbean console launching a managed database, with PostgreSQL, Redis, MySQL, MariaDB, and more as one-click choices](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed database, with PostgreSQL, Redis, MySQL, MariaDB, and more as one-click choices](../assets/console-real/shots/psql_launch_step_1.png)
 
 Because each is a one-click launch, running both is just two launches in one account, right next to your app. Your app reaches Postgres and Redis by their connection strings, each locked to your app server's IP so nothing else can connect, which erases a class of connection and firewall headaches and keeps connection reuse cheap (the same reason an always-on server makes [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) simpler than serverless).
 
 You wire both the same way: one connection value each, read from the environment, so rotating a password is a config change, not a code change.
 
-![The Kloudbean console environment variables screen holding DATABASE_URL and REDIS_URL for the app to read](../assets/console/env-vars.png)
+![The Kloudbean console environment variables screen holding DATABASE_URL and REDIS_URL for the app to read](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ```bash
 # Both connections as environment variables, in the same account
@@ -225,15 +225,24 @@ DATABASE_URL=postgresql://appuser:secret@10.0.0.5:5432/appdb
 REDIS_URL=redis://:secret@10.0.0.6:6379/0
 ```
 
-<!-- ADD IMAGE: the dashboard with a managed Postgres and a managed Redis in the same account, to show both engines living together -->
+![the dashboard with a managed Postgres and a managed Redis in the same account, to show both engines living together](../assets/console-real/shots/dashboard.png)
 
 Managed means the platform provisions, patches, and backs up the engine, locked to your app server's IP, while your schema and data stay yours to export anytime. Both run on Linux. Setting up the durable side first? [Adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) walks the full flow, and adding Redis after is the same pattern with one more env var. For engine details, see [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) and [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/). One honest note: Kloudbean doesn't autoscale a standard app. Autoscaling and Kubernetes are enterprise and custom setups, not a toggle on a normal account.
 
----
+<!-- cta:start -->
+**Bring the app. Keep the deploy flow.**
 
-**Run the truth and the fast layer side by side.** Launch managed PostgreSQL for your source of truth and managed Redis for the hot paths, both one click, both locked to your app server's IP, both backed up. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-One-click Postgres and Redis · Automatic backups · Free migration · Free trial · Simple Git deploy
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

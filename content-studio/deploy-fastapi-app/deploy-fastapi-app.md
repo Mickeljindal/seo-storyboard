@@ -57,7 +57,7 @@ gunicorn main:app -k uvicorn.workers.UvicornWorker --workers 4 --bind 0.0.0.0:$P
 
 Second, **something to keep it alive**: a process manager that restarts the app if it crashes or the box reboots. On managed cloud that supervision is built in. You hand over the start command and the platform keeps it running, no init scripts to write. Note the `$PORT` in both commands. The app must bind the port the platform assigns, not a hard-coded one, or the web server in front connects to nothing and you get a 503. That single mistake causes a big share of "it deployed but won't load" tickets, same as it does for [a Node app reading the wrong port](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/).
 
-![The Kloudbean Deploy Code / Git Deployment tab: Install set to pip install requirements, Start set to the Uvicorn command binding the assigned port](../assets/console/git-deployment.png)
+![The Kloudbean Deploy Code / Git Deployment tab: Install set to pip install requirements, Start set to the Uvicorn command binding the assigned port](../assets/console-real/shots/git_connect_step_4.png)
 
 ## Myth 3: "It's async, so nothing ever blocks"
 
@@ -92,7 +92,7 @@ Pick one shape on purpose. Fully async (an async driver like `asyncpg`, `async d
 
 FastAPI is quick, so a single modest server handles more traffic than most people expect. My opinion, plainly: Uvicorn with a few workers behind the managed web server is the sane default, and most FastAPI apps never need more than that. When you do outgrow one box, you don't leap to container orchestration. You add a second server and put a **load balancer** in front to spread requests across both.
 
-![The Kloudbean console load balancer spreading traffic across two FastAPI app servers with health checks](../assets/console/flb-load-balancer.png)
+![The Kloudbean console load balancer spreading traffic across two FastAPI app servers with health checks](../assets/console-real/shots/flb_launch_step_2.png)
 
 That's real horizontal scaling without the Kubernetes tax. Kubernetes is a fine tool at large scale, and Kloudbean does offer k8s and autoscaling for enterprise setups that truly need them, but reaching for it on day one solves a problem you don't have yet. Start simple, scale the simple thing. If you want the deeper version of this argument, it's in [autoscaling, explained](https://www.kloudbean.com/blog/autoscaling-explained/) and [what a load balancer actually does](https://www.kloudbean.com/blog/cloud-load-balancer-explained/).
 
@@ -108,15 +108,29 @@ Flask and Django are WSGI apps served by Gunicorn. FastAPI is an ASGI app served
 
 Add your secrets and database URL under **Runtime Configuration → Environment Variables** with the **Paste .env** tab, launch a [managed Postgres or MySQL](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) on the same box, point a domain, and install free Let's Encrypt SSL. Deployed a Flask app before? Then you already know this, you just swap `gunicorn app:app` for the Uvicorn command. The full WSGI walkthrough is [deploy a Flask app](https://www.kloudbean.com/blog/deploy-flask-app/), and the settings-first version is [deploy a Django app](https://www.kloudbean.com/blog/deploy-django-app/).
 
-![The Kloudbean Environment Variables screen: FastAPI database URL and secrets pasted in as a .env](../assets/console/env-vars.png)
+![The Kloudbean Environment Variables screen: FastAPI database URL and secrets pasted in as a .env](../assets/console-real/shots/fastapi_env_step_1.png)
 
 One nice payoff once it's live: FastAPI generates interactive API docs for free at `/docs` (Swagger UI) and `/redoc`. Deploy, and they're immediately at `yourdomain.com/docs` with zero extra setup, which makes handing an API to a frontend team genuinely pleasant.
 
-<!-- ADD IMAGE: Browser at yourdomain.com/docs showing FastAPI's auto-generated Swagger UI, live on the deployed app. -->
+![One hop per box](images/gen-1-flow.png)
 
 None of this fights the platform. FastAPI is Python on Linux, which is exactly what a managed server runs. Kloudbean keeps the server healthy, supervises your Uvicorn workers, handles SSL, and takes server-level backups. You own the app code, the worker count, the secrets, and the data. The myths all come from treating "fast and async" as if it needed exotic hosting. It doesn't. It needs a normal server, sensibly configured, and it flies. When it does 503, that means the app isn't running, and the cause is almost always the port, a missing env var, or the start command. Read the traceback in the dashboard: **Application Administration → Logs Viewer**, then the **App Errors** tab, which is the app's own error log. **App Info** and **Web Requests Logs** are separate tabs, and there's a search box for finding one exception in a busy file. Build failures live in **Build and Deployment History** instead, streaming live while the deploy runs. The same files are on disk at `/home/admin/hosted-sites/<app_system_user>/app-logs/` (`app.error.log` and `app.info.log`) if you'd rather use a terminal or the File Manager. The checklist is [fixing a 503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
 
-**Fast doesn't mean complicated.** Deploy your FastAPI app, Uvicorn workers and all, at [kloudbean.com](https://www.kloudbean.com/). Git deploy · Managed Postgres · Auto SSL · Load balancer when you need it · Free migration · Free trial. Sizes on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Take it off localhost for good.**
+
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

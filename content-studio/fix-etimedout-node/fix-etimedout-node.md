@@ -36,7 +36,7 @@ Most cloud security groups, most default server firewalls, and Shorewall-style s
 | `ETIMEDOUT` | No reply at all | Packets are being dropped, or the address is unreachable | Firewall or security group, allow-list, DNS, wrong host |
 | `ECONNRESET` | Connection established, then killed | You reached the service and it or something in between cut the socket | Idle timeouts, proxy limits, peer crash, TLS mismatch |
 
-<!-- ADD IMAGE: a terminal showing the same host tested twice, once returning "Connection refused" and once hanging until timeout, side by side. -->
+![Test the same host twice, showing different results](images/gen-1-terminal.png)
 
 ## connect ETIMEDOUT is not the same as a Node request timeout
 
@@ -94,7 +94,7 @@ On a box where `nc` and `curl` are both missing, `telnet db.internal 5432` gives
 
 Here's the discipline that saves time. Each result *eliminates* a layer. A successful `nc` permanently rules out firewalls for that host and port, so don't go back and re-check them. A hanging `nc` permanently rules out credentials, connection strings, ORM config, and pool settings, because none of those are involved before a handshake completes. People burn hours rotating database passwords over an ETIMEDOUT. The password was never sent.
 
-<!-- ADD IMAGE: annotated output of curl -v stalling at "Trying 203.0.113.9:443..." with the stall point circled. -->
+![Output of curl -v stalling at 'Trying 203.0.113.9:443...'](images/gen-2-terminal.png)
 
 ## The real causes of connect ETIMEDOUT, and the fix for each
 
@@ -148,7 +148,7 @@ Raise a timeout only when you have evidence the peer legitimately needs that lon
 
 The other half of this is visibility. Log the code, the syscall, the address and port on every failed outbound call, or you'll be guessing next time. [Structured logging](https://www.kloudbean.com/blog/structured-logging-nodejs/) makes the difference between "the API timed out" and "we timed out connecting to 10.0.3.14:5432 from web-2," which is a fix instead of a shrug.
 
-<!-- ADD IMAGE: a small diagram of one hanging upstream call consuming request handlers until the pool is exhausted. -->
+![Hanging upstream call consumes request handlers](images/gen-3-flow.png)
 
 ## Timeouts to a database are usually a rule, not a bug
 
@@ -162,13 +162,20 @@ None of that makes timeouts impossible. A dropped packet somewhere else on the i
 
 Timeout errors form a family, and it's easy to grab the wrong guide. If your *own* app is the slow one and a proxy in front of it gave up waiting, that's a [504 gateway timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/), the mirror image of this article: there, you're the peer that went silent. If you got a refusal rather than silence, [ECONNREFUSED in Node.js](https://www.kloudbean.com/blog/fix-econnrefused-node/) covers it, and the fix list is completely different. And if the timeouts are only against your database under load, [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) walks through the sizing and connection side of it.
 
----
+<!-- cta:start -->
+**Fewer mysteries on the next deploy.**
 
-**See your server and your database access rules in one place.**
+Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.
 
-Run your Node app with a managed database on Kloudbean, with IP Access Control, automatic backups, free SSL, and Git deploys, so "which addresses can reach this database" is one screen away. Plans start from $8/mo; check current pricing at [kloudbean.com/pricing](https://www.kloudbean.com/pricing/).
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
 
-Managed databases · IP allow-listing · Automatic backups · Free SSL · Git deploys · Free trial
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

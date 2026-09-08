@@ -30,7 +30,7 @@ It's a way for *other software* to read and write your WordPress content over HT
 
 Two request styles cover almost everything you'll do. You **GET** data to read it, openly if it's public. You **POST** (or `PUT`/`DELETE`) to change it, with credentials. The diagram below is the whole mental model.
 
-<!-- ADD IMAGE: diagram of the REST API. A client makes an open GET that returns JSON with no auth, and an authenticated POST that needs an Application Password as a Basic header and returns 201 or 401 -->
+![API request flow](images/gen-1-flow.png)
 
 ```
 CLIENT                         WORDPRESS
@@ -84,7 +84,7 @@ const one = await fetch(
 
 One thing that trips people up: there are more posts than the array shows. Total counts come back in response *headers*, not the body. Read `X-WP-Total` and `X-WP-TotalPages`, then page through with `?page=2`. If you request `per_page=500` hoping to grab everything at once, WordPress caps you at 100 and you'll quietly miss the rest.
 
-<!-- ADD IMAGE: the raw JSON response for /wp-json/wp/v2/posts open in a browser tab -->
+![Flow through WordPress admin](images/gen-2-flow.png)
 
 ## Authenticating writes with Application Passwords
 
@@ -117,7 +117,7 @@ await fetch('https://example.com/wp-json/wp/v2/posts', {
 
 Two other methods exist, for two other jobs. For JavaScript running *inside* wp-admin (same origin), WordPress uses your login cookie plus a **nonce** sent as an `X-WP-Nonce` header (WordPress hands it to your script via `wpApiSettings.nonce`). For third-party apps acting for other users, **OAuth** or **JWT** via a plugin is the usual route. For server-to-server work, Application Passwords are the simplest thing that's actually secure, and my default.
 
-<!-- ADD IMAGE: the Application Passwords section on a user profile, generating a new password for an integration -->
+![One hop per box](images/gen-3-flow.png)
 
 ## Creating, updating, and deleting content
 
@@ -202,11 +202,20 @@ Prefer the terminal for debugging content? WP-CLI reads and writes the same data
 
 <!-- ADD IMAGE: a front-end app rendering content it pulled from the WordPress REST API, next to the JSON it fetched -->
 
----
+<!-- cta:start -->
+**Managed stack, staging, and backups.**
 
-**Content any app can read, on a backend you control.** Host WordPress and its REST API on a managed, HTTPS-ready server, with a Node or static front end right beside it, at [kloudbean.com](https://www.kloudbean.com/). Plans on [pricing](https://www.kloudbean.com/pricing/).
+Run WordPress and WooCommerce on a managed server with a staging site, automatic backups, free auto-renewing SSL, and a managed MySQL or MariaDB beside it. Pick the cloud and the region yourself.
 
-Managed WordPress · Free SSL · Managed MySQL · Node/static front ends · Automatic backups · Free migration · Free trial
+- Managed WordPress stack
+- One-click staging
+- Managed MySQL and MariaDB
+- Automatic backups
+- Free SSL
+- Built-in load balancer
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

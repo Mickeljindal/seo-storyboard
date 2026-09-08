@@ -122,7 +122,21 @@
   <p>The one real edge a hosted monitor has: it checks from many global locations you never have to run. That matters for a worldwide audience, and you can only approximate it by running Uptime Kuma in a couple of regions yourself. For most teams the ownership, unlimited monitors, and flat cost still win. Plenty of people run both, Uptime Kuma for the deep internal picture and a light external monitor for a distant second opinion.</p>
 
   <!-- To add your own screenshot here, replace this whole figure with a real figure/img/figcaption. Image path: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Your live Uptime Kuma dashboard with a row of green monitors and one red, so readers see the payoff.</em><small>A real shot of your own instance beats any mockup.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #1
+Create a left-to-right architecture / flow diagram for a technical blog post titled "How to Self-Host Uptime Kuma in Production".
+
+What it must show: Your live Uptime Kuma dashboard with a row of green monitors and one red, so readers see the payoff.
+Also: A real shot of your own instance beats any mockup.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-flow.png" alt="Your live Uptime Kuma dashboard with a row of green monitors and one red, so readers see the payoff.">
+    <figcaption>Real-time monitoring</figcaption>
+  </figure>
 
   <h2>Deploy Uptime Kuma on a managed Node server</h2>
   <p>Here's the production path end to end. Five steps, and the order is deliberate: durable data first, then the app, then config, then the deploy, then SSL.</p>
@@ -131,7 +145,7 @@
   <p>Start with the database, the piece you least want to lose. Provision a managed MariaDB instance, create a database named <code>uptimekuma</code>, and note its internal host and credentials. Managed means it's provisioned, patched, and backed up for you, and you whitelist your monitor's IP so it reaches the database without a public port. Prefer SQLite? Skip this and make sure the data directory lands on a persistent volume instead.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen used to provision managed MariaDB so Uptime Kuma monitoring history survives redeploys">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean console Launch Database screen used to provision managed MariaDB so Uptime Kuma monitoring history survives redeploys">
     <figcaption>Launch managed MariaDB first. Your monitoring history lives here, so it's the piece you back up and keep. Details in the <a href="https://www.kloudbean.com/blog/managed-mariadb-hosting/">managed MariaDB hosting</a> guide.</figcaption>
   </figure>
 
@@ -139,7 +153,7 @@
   <p>Add an application as a Node app and point it at the Uptime Kuma source (the official <code>louislam/uptime-kuma</code> repo, or your fork). Worth being straight: there's no magic one-click Uptime Kuma button. You're running the real Node app on a managed Node runtime, which lets you update on your own schedule. The <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app</a> guide has the long form.</p>
 
   <figure>
-    <img src="../assets/console/add-application.png" alt="The Kloudbean console Add Application screen where the Uptime Kuma Node app is added to a managed server">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="The Kloudbean console Add Application screen where the Uptime Kuma Node app is added to a managed server">
     <figcaption>Add Application as a Node app, then connect the Uptime Kuma repository. It's a standard Node project, so nothing exotic is needed.</figcaption>
   </figure>
 
@@ -147,7 +161,7 @@
   <p>To use managed MariaDB, set Uptime Kuma's database environment variables in the console, not in a file you might commit. Skip these and Uptime Kuma falls back to its default SQLite file.</p>
 
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables screen where the Uptime Kuma MariaDB connection details are configured">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean console Environment Variables screen where the Uptime Kuma MariaDB connection details are configured">
     <figcaption>Runtime Configuration then Environment Variables: the MariaDB connection details live here, safely out of your Git repo.</figcaption>
   </figure>
 
@@ -177,7 +191,7 @@ npm run build
 node server/server.js   # starts Uptime Kuma on port 3001</code></pre>
 
   <figure>
-    <img src="../assets/console/git-deployment.png" alt="The Kloudbean console Git deployment screen building and deploying the Uptime Kuma Node app from GitHub with live build logs">
+    <img src="../assets/console-real/shots/git_connect_step_4.png" alt="The Kloudbean console Git deployment screen building and deploying the Uptime Kuma Node app from GitHub with live build logs">
     <figcaption>Connect GitHub and every push rebuilds and redeploys Uptime Kuma. The live build logs show it installing, building the frontend, and starting the server on port 3001.</figcaption>
   </figure>
 
@@ -185,7 +199,7 @@ node server/server.js   # starts Uptime Kuma on port 3001</code></pre>
   <p>Point a subdomain like <code>status.yourdomain.com</code> at the app, issue a free SSL certificate, and the dashboard is now served over HTTPS. On the first visit Uptime Kuma runs a short setup wizard where you create the admin account. Choose a strong password right there, because this dashboard maps out your whole infrastructure.</p>
 
   <figure>
-    <img src="../assets/console/ssl-certificate.png" alt="The Kloudbean console SSL certificate screen issuing free HTTPS for the self-hosted Uptime Kuma dashboard">
+    <img src="../assets/console-real/shots/le_ssl_step_1.png" alt="The Kloudbean console SSL certificate screen issuing free HTTPS for the self-hosted Uptime Kuma dashboard">
     <figcaption>Issue free SSL so the Uptime Kuma dashboard and its admin login are encrypted. This one is a non-decision: turn it on.</figcaption>
   </figure>
 
@@ -208,14 +222,42 @@ node server/server.js   # starts Uptime Kuma on port 3001</code></pre>
   <p>My advice: don't just monitor the homepage. Monitor a real health endpoint that touches your database, and put a keyword monitor on a page that only renders correctly when the app is genuinely working. That pairing catches the failures a naive ping misses.</p>
 
   <!-- To add your own screenshot here, replace this whole figure with a real figure/img/figcaption. Image path: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The Uptime Kuma add-monitor screen, or a finished public status page built from your monitors.</em><small>Optional. Shows readers where monitors and status pages are configured.</small></span></figure>
+  <!-- IMAGE GENERATE [graph] #2
+Create a clean line chart / time-series graph for a technical blog post titled "How to Self-Host Uptime Kuma in Production".
+
+What it must show: The Uptime Kuma add-monitor screen, or a finished public status page built from your monitors.
+Also: Optional. Shows readers where monitors and status pages are configured.
+
+Label both axes. Draw the trend the description implies. Add a dashed red threshold line only if a limit is being hit. Legible axis labels, no 3D, no gradient clutter.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-graph.png" alt="The Uptime Kuma add-monitor screen, or a finished public status page built from your monitors.">
+    <figcaption>Public status page view count</figcaption>
+  </figure>
 
   <h2>Notifications: wire one before you need it</h2>
   <p>A monitor that notices an outage and tells no one is decoration. Uptime Kuma ships with over 90 notification integrations, including Slack, email (SMTP), Telegram, Discord, and webhooks. Wire up at least one, attach it to your monitors, then test it on purpose. Trigger a failure and confirm the message lands where your team will see it at an awkward hour. An alert you've never seen arrive is one you can't trust.</p>
   <p>A couple of channels beats one, since people miss email. A Slack or Telegram ping is harder to sleep through, and a webhook can escalate to an on-call tool.</p>
 
   <!-- To add your own screenshot here, replace this whole figure with a real figure/img/figcaption. Image path: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>An Uptime Kuma outage alert as it lands in Slack or Telegram, so readers see the notification actually arrive.</em><small>A real alert screenshot makes the point better than words.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #3
+Create a left-to-right architecture / flow diagram for a technical blog post titled "How to Self-Host Uptime Kuma in Production".
+
+What it must show: An Uptime Kuma outage alert as it lands in Slack or Telegram, so readers see the notification actually arrive.
+Also: A real alert screenshot makes the point better than words.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-flow.png" alt="An Uptime Kuma outage alert as it lands in Slack or Telegram, so readers see the notification actually arrive.">
+    <figcaption>Notification journey</figcaption>
+  </figure>
 
   <h2>Security: lock the dashboard, protect the data</h2>
   <p>Self-hosting means the security defaults are yours to set. None of this is heavy, and skipping it is how a quiet monitoring box turns into a liability.</p>
@@ -233,17 +275,62 @@ node server/server.js   # starts Uptime Kuma on port 3001</code></pre>
   <p>The reasoning is boring and correct. If your monitor shares fate with your app, it can't warn you about the failures that take them both down together, and those hurt most. A small box in another region that only runs Uptime Kuma is some of the cheapest reliability insurance going. You can even watch that server's own health from the console, so the watcher doesn't go dark unnoticed.</p>
 
   <figure>
-    <img src="../assets/console/server-health.png" alt="The Kloudbean console server health view showing the small independent server that runs the self-hosted Uptime Kuma monitor">
+    <img src="../assets/console-real/shots/server_health_step_2.png" alt="The Kloudbean console server health view showing the small independent server that runs the self-hosted Uptime Kuma monitor">
     <figcaption>Run Uptime Kuma on its own small server and keep an eye on that server's health too. The watcher needs watching, lightly.</figcaption>
   </figure>
 
   <p>If this is your first self-hosted tool, you're in good company. The <a href="https://www.kloudbean.com/blog/best-self-hosted-tools/">best self-hosted tools</a> roundup is worth a browse, <a href="https://www.kloudbean.com/blog/self-host-supabase/">self-hosting Supabase</a> is a natural next step for a backend you own, and for the broader theory of what to watch and how to alert without crying wolf, read <a href="https://www.kloudbean.com/blog/uptime-monitoring/">uptime monitoring</a>.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Know before your users do.</p>
-    <p style="margin:0 0 .6em">Run the Uptime Kuma Node app on a managed server, keep its history in managed MariaDB, and host it on its own independent box. The OS, SSL, and backups are handled, so you watch your stack instead of babysitting the watcher. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Managed Node runtime · Managed MariaDB · Automatic backups · Free SSL · Free migration · Free trial</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">Take it off localhost for good.</p>
+    <p class="kbcta-ai-description">Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

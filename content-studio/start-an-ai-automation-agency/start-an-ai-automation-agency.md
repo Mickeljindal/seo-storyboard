@@ -36,7 +36,7 @@ Here's the part the hype skips: most of the value is boring. It's moving a lead 
 
 So sell the outcome, not the technology. Clients don't want "an AI workflow." They want three hours of their week back, or an end to the copy-paste errors that keep biting them. Frame every offer as removed manual work, fewer mistakes, or faster turnaround. The tools are how you deliver that. They're not the pitch.
 
-<!-- ADD IMAGE: your automation tool open on a real client workflow. src -> images/workflow-editor.png -->
+![From trigger to completion](images/gen-2-flow.png)
 
 ## Who actually pays for automation work
 
@@ -118,13 +118,20 @@ I won't hand you a number, because anyone promising a specific figure per client
 
 Whatever the model, anchor the conversation on value, not effort. If a workflow saves a person most of a day each week, that's the number the client feels, and it's a far better anchor than an hourly rate that quietly punishes you for getting fast. Charge for the outcome. Attach a retainer. And resist the race to the bottom, because the cheapest automation shop is a miserable business to run and an easy one to undercut. Test your pricing with real clients rather than trusting anyone's screenshot, this article included.
 
----
+<!-- cta:start -->
+**One login. Every client app.**
 
-**Host every client automation in one place, cleanly separated.**
+Consolidate the dashboards: isolated apps on managed servers, per-client databases, per-app backups you can restore individually, and permissions scoped per resource and action.
 
-When self-hosting n8n makes sense for your agency, Kloudbean runs it on a managed server so you don't have to be the sysadmin. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+- One dashboard
+- Per-client isolation
+- Subusers and access control
+- Per-app backups
+- Git deploys
+- Free migration assistance
 
-One-click n8n · Managed databases · Subusers and UAC · Automatic backups · Free SSL · 7 clouds
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

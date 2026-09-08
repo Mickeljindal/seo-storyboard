@@ -53,7 +53,7 @@ Geography adds a fair caveat. Dammam sits in the Eastern Province, close to Riya
 
 Because the Dammam region is physically in Saudi Arabia, putting your workload there is what makes your data resident in-Kingdom. On a managed setup that means the whole stack stays put: the server, the managed database beside it, and the backups all live in `me-central2`. That last one trips people up. A backup quietly written to another country undoes your residency, so keeping copies in-region matters as much as the primary.
 
-<!-- ADD IMAGE: Your managed database and backups set to the Dammam region. Residency holds for the data and its copies too. -->
+![Ensuring data and backups are in Dammam](images/gen-1-flow.png)
 
 Be careful with the compliance leap, though. Hosting in the Kingdom is a strong, real base for the location parts of PDPL and the NCA's controls, but it isn't a certificate and it doesn't finish the job by itself. Consent, lawful basis, retention, and data-subject rights stay your responsibility at the application layer. That's the shared-responsibility model. For the KSA-specific how-to-guarantee-and-verify version, see [data residency in Saudi Arabia](https://www.kloudbean.com/blog/data-residency-saudi-arabia/). For the plain-English concept, [data residency explained](https://www.kloudbean.com/blog/data-residency-explained/) covers residency versus sovereignty without the regional detail.
 
@@ -82,15 +82,15 @@ The setup is short, because the hard part is a single click. From empty account 
 3. **Deploy your app and turn on free SSL.** Point a domain at the server and issue an auto-renewing certificate. HTTPS becomes one step instead of a recurring chore.
 4. **Run the whole stack from one dashboard.** Server, database, storage, SSL, and backups sit under a single login, which makes "where does this run" an easy question for an auditor.
 
-![Add Server: choose Google Cloud and the Dammam (me-central2) region to place your workload inside Saudi Arabia.](../assets/console/add-server-region.png)
+![Add Server: choose Google Cloud and the Dammam (me-central2) region to place your workload inside Saudi Arabia.](../assets/console-real/shots/selecting_server_location.png)
 
-<!-- ADD IMAGE: A close crop of the region selector with Dammam (me-central2) highlighted and confirmed. This is the single click that pins residency. -->
+![Pinning residency with a single click](images/gen-2-flow.png)
 
 The database step is worth doing at launch, so it lands in the same region from the start. The full pattern, connection strings and migrations included, is in [how to add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). In-Kingdom, the steps are identical; you've just pinned the region to Dammam first.
 
-![The managed database launches into the same Dammam region, locked to your app server's IP, backed up automatically.](../assets/console/launch-database.png)
+![The managed database launches into the same Dammam region, locked to your app server's IP, backed up automatically.](../assets/console-real/shots/psql_launch_step_1.png)
 
-![One dashboard for the whole stack, so proving where things run is a glance, not a project.](../assets/console/dashboard.png)
+![One dashboard for the whole stack, so proving where things run is a glance, not a project.](../assets/console-real/shots/dashboard.png)
 
 <!-- ADD IMAGE: Your live site on its custom domain with the HTTPS padlock, served from Dammam. Proof the in-Kingdom stack is live. -->
 
@@ -109,13 +109,21 @@ To keep it honest, here are the boundaries. Google Cloud operates the Dammam dat
 
 And me-central2 is the in-Kingdom choice among Kloudbean's seven clouds, not the only Saudi region out there. If your audience and obligations are global, Dammam is a tiebreaker rather than a requirement. If they're Saudi, it's usually the first decision you make, and it's a single click at launch. For the buyer's-guide framing of that decision, start at the pillar: [cloud hosting in Saudi Arabia](https://www.kloudbean.com/blog/cloud-hosting-saudi-arabia/).
 
----
+<!-- cta:start -->
+**In-Kingdom hosting, managed for you.**
 
-**Launch in the Dammam region without touching raw GCP.**
+Launch a managed server and managed databases in Google Cloud's Dammam region (me-central2), keep automatic backups in-Kingdom, and run the whole stack from one dashboard.
 
-Pick Google Cloud's Dammam region (me-central2) when you add a server, keep your database and backups in-Kingdom, and manage the whole stack from one dashboard. Plans start from $8/mo, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
+- Dammam (me-central2)
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- One dashboard
+- Free migration assistance
 
-In-Kingdom GCP Dammam region · Managed databases · Automatic backups · Free SSL · Free migration assistance · Free trial
+[Start free](https://console.kloudbean.com/register) · [Talk to a cloud expert](https://calendly.com/kloudbean)
+<!-- cta:end -->
 
 ## FAQ
 

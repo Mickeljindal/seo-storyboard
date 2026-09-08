@@ -36,7 +36,7 @@ The **start command** runs every single time your app boots. Not just on deploy.
 
 So build produces, start runs. Build is a one-time setup step. Start is the thing that stays alive. If you remember nothing else, remember this: a build command that installs and compiles is not interchangeable with a start command that runs a server. They're different fields because they're different jobs.
 
-<!-- ADD IMAGE: the add-application settings showing the Build Command and Start Command fields filled in. Swap for src -> images/build-start-fields.png -->
+![Configure your AI-generated app](images/gen-1-terminal.png)
 
 ## What runs when
 
@@ -59,7 +59,7 @@ It isn't. A dev server and a production server are built for opposite goals. The
 
 My firm opinion, said plainly: never use a dev server as your production start command, even though it appears to work. `npm run dev` in production is borrowed time. It survives the demo and falls over under the first real load, usually at the worst possible moment. Use the production start command instead. For most Node apps that's `npm start` wired to `node dist/server.js`, or `next start` for Next.js. The `npm start vs npm run build` confusion is really this same split: `build` prepares, `start` serves.
 
-<!-- ADD IMAGE: a side-by-side of a dev script versus a production start command in package.json, dev highlighted as wrong for the start field. -->
+![Choose the right start command](images/gen-2-terminal.png)
 
 ## When the build never happened, start has nothing to run
 
@@ -109,7 +109,7 @@ gunicorn myproject.wsgi --bind 0.0.0.0:$PORT
 uvicorn main:app --host 0.0.0.0 --port $PORT
 ```
 
-<!-- ADD IMAGE: the scripts block of a real package.json, with dev, build, and start labelled by which deploy field each one belongs in. -->
+![Define how your app is built and started](images/gen-3-panel.png)
 
 ## Read the build log before you change anything
 
@@ -119,7 +119,7 @@ A build log runs top to bottom through the phases: fetch your code, install depe
 
 That one read saves you from the classic mistake: editing the start command over and over while the log plainly shows the install step failing. If the failure is a version mismatch during install (modern syntax the server's runtime doesn't recognize), that's a runtime pin, and [Node version management](https://www.kloudbean.com/blog/node-version-management/) covers it. Fix the phase that actually broke, not the one you happened to be looking at.
 
-<!-- ADD IMAGE: a build log with the failing phase highlighted, showing install versus compile versus bundle. -->
+![Identifying the failing phase](images/gen-4-comparison.png)
 
 ## The port gotcha: start has to listen where the platform tells it
 
@@ -144,13 +144,23 @@ On Kloudbean these aren't hidden away. When you add a Node or Python application
 
 The honest boundary: managed means the platform runs the server, the stack, SSL, backups, and patching. Your build command, your start command, and your code stay yours to set and own. Kloudbean makes the deploy repeatable. It can't guess that your start command should be `node dist/server.js` and not `npm run dev`. That part is the two fields we just walked through, and now you know what goes in them. For the bigger picture of everything AI builders leave you to wire up, [the last mile of vibe coding](https://www.kloudbean.com/blog/last-mile-of-vibe-coding/) is the map, and [why AI apps fail in production](https://www.kloudbean.com/blog/why-ai-apps-fail-in-production/) collects the usual suspects.
 
-<!-- ADD IMAGE: the Git deployment view after a successful push, build log on screen. Swap for src -> images/git-deploy.png -->
+![Real-time deployment process](images/gen-5-flow.png)
 
-## Get the two commands right, then deploy from Git
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-**Set your build command, start command, and Node version once, connect Git, and let every push deploy itself.** Kloudbean puts those fields in plain sight when you add a Node or Python app, streams the build log so you can see which phase ran, and ships free SSL on your domain. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Set build + start command · Pick your Node version · Git deploy on every push · Live build logs · Free SSL
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

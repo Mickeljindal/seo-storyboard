@@ -125,7 +125,7 @@
   <p>That's where the pile collapses. When hosting stops being per-seat, the database stops being a metered tier, and three projects stop being three plans, the infrastructure line goes from "scales with everything" to "one predictable number." In this example, a single well-sized server in the low hundreds a month replaced the whole infrastructure stack, and because the traffic fit comfortably on one box, the effective figure landed near $100. The roughly $540 of genuine third-party SaaS didn't move, because it never should.</p>
 
   <figure>
-    <img src="../assets/console/add-application.png" alt="The Kloudbean console Add Application screen, adding a second or third app to a server you already pay for instead of buying another plan">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="The Kloudbean console Add Application screen, adding a second or third app to a server you already pay for instead of buying another plan">
     <figcaption>Add Application. Project two and three are extra apps on the server you already own, each with its own domain, not another monthly plan.</figcaption>
   </figure>
 
@@ -151,7 +151,21 @@
   <p>Here's my actual opinion, after watching a lot of these bills. The goal isn't the lowest possible number. It's a number you can forecast. A flat server costs the same in a quiet month and a viral one, so you can budget it, and a launch that goes well doesn't arrive with a usage-overage hangover. For a small team, a bill you can predict at the start of the month and recognize at the end of it is worth more than shaving off the last few dollars. Cheapest is a trap when "cheapest" also means "unknowable until the invoice lands."</p>
 
   <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/bill-before-after.png) and a <figcaption> -->
-  <figure class="img-slot"><span><b>Add image</b><em>A simple before/after of the monthly total: a long itemized invoice with many line items next to a one-line flat server charge.</em><small>Reinforces the teardown; use a mocked or anonymized example, no real vendor names or account data.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #1
+Create a side-by-side comparison table for a technical blog post titled "How One Team Cut a $4,000 Hosting Bill to $100".
+
+What it must show: A simple before/after of the monthly total: a long itemized invoice with many line items next to a one-line flat server charge.
+Also: Reinforces the teardown; use a mocked or anonymized example, no real vendor names or account data.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-comparison.png" alt="A simple before/after of the monthly total: a long itemized invoice with many line items next to a one-line flat server charge.">
+    <figcaption>Monthly charges comparison</figcaption>
+  </figure>
 
   <h2>Run the teardown on your own bill</h2>
   <p>You don't need a $4,000 bill for this to matter. Pull up your last invoice and sort every line into two piles:</p>
@@ -162,7 +176,20 @@
   <p>Add up pile one. If it's a meaningful number, and if you're running more than one app, on a team, with real traffic, it usually is, the case makes itself. If it's small, you've just confirmed you're fine where you are, which is also a useful answer. Either way you now know your real infrastructure spend as a single figure, which is more than most teams can say before they do this. The <a href="https://www.kloudbean.com/blog/how-to-cut-your-cloud-bill/">cut your cloud bill guide</a> goes deeper on the exercise, and <a href="https://www.kloudbean.com/blog/cloud-hosting-pricing-explained/">cloud hosting pricing explained</a> unpacks the metered shapes.</p>
 
   <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/two-piles-worksheet.png) and a <figcaption> -->
-  <figure class="img-slot"><span><b>Add image</b><em>The "two piles" worksheet: invoice lines sorted into "infrastructure (consolidates)" and "third-party SaaS (stays)" columns.</em></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "How One Team Cut a $4,000 Hosting Bill to $100".
+
+What it must show: The "two piles" worksheet: invoice lines sorted into "infrastructure (consolidates)" and "third-party SaaS (stays)" columns.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="The &quot;two piles&quot; worksheet: invoice lines sorted into &quot;infrastructure (consolidates)&quot; and &quot;third-party SaaS (stays)&quot; columns.">
+    <figcaption>Sorting costs into infrastructure and SaaS</figcaption>
+  </figure>
 
   <h2>How the consolidation actually happens</h2>
   <p>The practical path is undramatic, which is the point. You launch a managed server, deploy each app from its Git repo, move each app's database onto a managed instance on that server, port the environment variables, and cut each domain over with SSL. Apps that lived on three platforms now live on one, behind their own domains, sharing a server you pay for once. Do it one app at a time so nothing goes dark, and decommission each old plan only after its app is confirmed live on the new box. The <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy walkthrough</a> covers the steps, running the whole stack on <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">one server</a> explains the architecture, and the agencies who do this at scale describe the same pattern in <a href="https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/">hosting 20 client apps</a>.</p>
@@ -180,10 +207,55 @@
   <p>One scope note before you plan a move. Kloudbean runs Linux stacks: Node, PHP, Python, Go, Ruby, Java, .NET on the Linux-supported versions, and frameworks like React, Next.js, Vue, Laravel, Django, and WordPress. Windows Server sits on premium and enterprise plans, so if you need IIS specifically, raise it before you scope the migration rather than after.</p>
   <p>And the part no host fixes, ours very much included. If your bill is high because one endpoint runs an N+1 query on every page load, or because a background job re-processes the same rows every night, moving it to a flat server just relocates the problem behind a fixed price. It'll be cheaper. It'll still be wrong. Same with the third-party SaaS in pile two: nobody's hosting plan cancels your email or analytics subscription. Consolidation is a pricing-shape fix, and it's a good one, but it doesn't touch application decisions. Those stay yours on every platform. If an unmanaged box still looks cheaper on paper, the <a href="https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/">real cost of an unmanaged VPS</a> is the honest comparison, and side projects have their own math in <a href="https://www.kloudbean.com/blog/cost-of-running-a-side-project/">the cost of running a side project</a>.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A bill you own, not one that owns you.</p>
-    <p style="margin:0">See what a flat, owned server would cost you on <a href="https://www.kloudbean.com/pricing/">pricing</a>, or start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> with your first migration done for you.</p>
+<div class="kbcta-fix-wrap">
+  <div class="kbcta-fix-overlay"></div>
+  <div class="kbcta-fix-content">
+    <div class="kbcta-fix-eyebrow">DEPLOY &middot; LOGS THAT TELL YOU WHY</div>
+    <p class="kbcta-fix-heading">Deploys that tell you what broke.</p>
+    <p class="kbcta-fix-description">Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.</p>
+    <ul class="kbcta-fix-features">
+      <li>&#10003; Live build logs</li>
+      <li>&#10003; Deployment history</li>
+      <li>&#10003; Logs viewer</li>
+      <li>&#10003; Managed process restarts</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Git deploy</li>
+    </ul>
+    <div class="kbcta-fix-buttons">
+      <a class="kbcta-fix-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-fix-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-fix: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-fix-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-fix-wrap *{box-sizing:border-box}
+.kbcta-fix-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-fix-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-fix-content{position:relative;z-index:3;max-width:700px}
+.kbcta-fix-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-fix-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-fix-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-fix-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-fix-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-fix-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-fix-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-fix-btn:hover,.kbcta-fix-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-fix-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-fix-link:hover,.kbcta-fix-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-fix-wrap{padding:36px 24px}
+  .kbcta-fix-heading{font-size:31px}
+  .kbcta-fix-description{font-size:16px}
+  .kbcta-fix-features li{white-space:normal}
+  .kbcta-fix-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-fix-btn{width:100%}
+  .kbcta-fix-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

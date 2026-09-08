@@ -128,11 +128,20 @@ If you land on the self-host path, you still need somewhere to run it, and you d
 
 If, when you're honest, you mostly used Supabase for its database, the leaner route is a plain managed PostgreSQL instead of the whole bundle. Kloudbean runs that as its own product, backed up and locked to your app server's IP. The hands-on version is in [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), and there's a dedicated [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) page. None of this makes Kloudbean a replacement for Supabase Cloud. It's simply one place to run Supabase if you've decided self-hosting is your path.
 
----
+<!-- cta:start -->
+**Bring the app. Keep the deploy flow.**
 
-**Decided to self-host? Give it a soft landing.** Launch Supabase in one click on a managed server, with the OS, SSL, and backups handled and your data in your region. Start at [kloudbean.com](https://www.kloudbean.com/), or see plans on [pricing](https://www.kloudbean.com/pricing/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-One-click Supabase · Managed PostgreSQL · Automatic backups · Free SSL · Free migration · Free trial
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

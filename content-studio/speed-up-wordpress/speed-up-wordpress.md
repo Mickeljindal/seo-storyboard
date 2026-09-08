@@ -10,7 +10,7 @@ secondary_keywords:
   - cdn wordpress
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 6 — WordPress & Frontend
+cluster: 6 - WordPress & Frontend
 ---
 
 ![How to speed up WordPress: a page-load timeline showing where the milliseconds go and which lever shrinks each part](images/hero.png)
@@ -40,11 +40,11 @@ If you do one thing, do this. **Page caching** stores a ready-made copy of each 
 
 Then add **object caching** with Redis. Where page caching serves whole finished pages, object caching keeps the results of individual database queries in fast memory, so WordPress stops re-running the same lookups. That's the piece most people skip, and it's the one that helps logged-in pages, carts, and dynamic content that a page cache can't fully hold. Launch a managed Redis, point WordPress at it, done.
 
-![The Kloudbean console: launching a managed Redis to use as a WordPress object cache](../assets/console/launch-database.png)
+![The Kloudbean console: launching a managed Redis to use as a WordPress object cache](../assets/console-real/shots/psql_launch_step_1.png)
 
 I'll take a position here, because it's earned every time we look at a "slow WordPress" ticket: most slow WordPress is a caching problem, not a theme problem. People rip out a theme they spent months on when the real fix was two caching layers they never switched on. If you want the mechanics of cache layers and when to clear them, see [how to clear the WordPress cache](https://www.kloudbean.com/blog/how-to-clear-wordpress-cache/), and for the object-cache side, [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/).
 
-<!-- ADD IMAGE: a PageSpeed Insights before-and-after, showing the score jump once caching is switched on. -->
+![Caching impact on performance](images/gen-1-flow.png)
 
 ## The host underneath, and a current PHP
 
@@ -52,7 +52,7 @@ Your site can only ever be as fast as the machine it runs on. Two things live he
 
 There's also **opcache**, which keeps compiled PHP in memory so it isn't recompiled on every request. On a well-tuned managed stack this is already on, PHP is kept current, and the server is tuned for WordPress, so a chunk of your performance is handled before you touch a setting. That's the quiet argument for managed hosting: the boring server work is done.
 
-<!-- ADD IMAGE: the runtime settings showing the PHP version selector set to a current 8.x release. -->
+![Select the current 8.x release for best performance](images/gen-2-panel.png)
 
 ## Your heaviest asset is almost always images
 
@@ -77,7 +77,7 @@ Here's the myth to drop: "too many plugins" isn't the problem. *Heavy* plugins a
 
 Deactivate and delete anything you're not using, since it's weight and risk even when idle. Then, if the site's still slow, profile it. A tool like Query Monitor shows you which plugins add the most load and the most queries, and the culprit is usually obvious once you look. Fix or replace that one, and you've often done more than every other tweak on this page.
 
-<!-- ADD IMAGE: Query Monitor open on a slow page, with the heaviest plugin and its queries highlighted. -->
+![Heaviest plugin queries spike, slowing page load](images/gen-3-graph.png)
 
 ## The smaller wins: minify, defer, tidy the database
 
@@ -93,11 +93,20 @@ There's a line where "my site is slow" stops being a per-site tuning job and bec
 
 Notice the shape of this list. The first few items hold nearly all the speed: caching, a right-sized host with current PHP, and images. The rest is useful polish. A good managed host quietly handles a big slice of the top (server caching, tuned current PHP with opcache, an easy managed Redis, a CDN a click away), which leaves you the content-side calls: your images, your plugins, and what you build. It's a Linux stack under all of it. Measure, fix the big things first, and skip the parts that never mattered. And if security's next on your list, [secure WordPress hosting](https://www.kloudbean.com/blog/secure-wordpress-hosting/) is the companion to this one.
 
----
+<!-- cta:start -->
+**Let someone else patch the server.**
 
-**Biggest wins first, on a stack that's already tuned.** Run WordPress on a cache-ready managed stack at [kloudbean.com](https://www.kloudbean.com/). Plans on [pricing](https://www.kloudbean.com/pricing/).
+The stack, the patching, SSL, and backups are handled, so your work stays on the site rather than the box. Staging is one click, and the managed database sits right next to the app.
 
-Managed Redis · Current PHP + opcache · CDN a click away · Object storage · Staging · Free migration · Free trial
+- Managed WordPress stack
+- One-click staging
+- Managed MySQL and MariaDB
+- Automatic backups
+- Free SSL
+- Built-in load balancer
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

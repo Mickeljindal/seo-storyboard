@@ -162,11 +162,20 @@ Honest boundary: nothing here prevents a security plugin from blocking your own 
 
 If the refusal is a legal one rather than a permission one, that has its own code and its own rules: [451 Unavailable For Legal Reasons](https://www.kloudbean.com/blog/http-error-451-unavailable-for-legal-reasons/), which exists because 403 was judged unsuitable for the legal case. For the neighbouring status codes, [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/), [503 after a deploy](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/), and [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/). When a proxy sits in front, [Cloudflare error codes](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/) and [error 521](https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/), which covers restoring real visitor addresses. On WordPress specifics, [the critical error message](https://www.kloudbean.com/blog/there-has-been-a-critical-error-on-this-website/), [the WP-CLI guide](https://www.kloudbean.com/blog/wordpress-cli-guide/), and [secure WordPress hosting](https://www.kloudbean.com/blog/secure-wordpress-hosting/). For bucket permissions, [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). And for headers that interact with access control, [the security headers guide](https://www.kloudbean.com/blog/security-headers-guide/).
 
-## Correct permissions from the first deploy
+<!-- cta:start -->
+**Read the log, fix it, ship again.**
 
-Applications provisioned with the right ownership and permissions, IP access control and a basic auth gate when you want a 403 on purpose, S3-compatible buckets with public and private controls, and free migration assistance so a hand-copied site does not arrive broken. Start at [kloudbean.com](https://www.kloudbean.com/).
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-Managed permissions · IP access control · Basic auth gate · S3 buckets · Free migration
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

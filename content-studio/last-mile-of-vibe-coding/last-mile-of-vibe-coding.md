@@ -71,7 +71,7 @@ You don't need all of it on day one. You need the database and the secrets right
 - SQLite is great in development and the wrong choice in production for anything with more than one user. Move before launch, not after the data loss.
 - Most production failures are configuration, not code. A missing environment variable, a hard-coded `localhost`, or a server bound to `127.0.0.1` instead of `0.0.0.0` accounts for a huge share of "it worked on my machine."
 
-## Where Kloudbean fits
+## Where the deployment layer begins
 
 The reason this last mile hurts is that the pieces usually live in different places: one host for the app, another for the database, a third for files, a console you have to learn for each. Kloudbean puts them in one dashboard. You launch a server, add a managed Postgres or MySQL and a managed Redis, get object storage, backups, and free SSL, and deploy from Git on every push. Apps run always-on, so there are no cold starts, and you lock the database down by whitelisting your app server's IP so only it can connect. We run our own tools this way, so this is the setup we actually use, not a brochure.
 

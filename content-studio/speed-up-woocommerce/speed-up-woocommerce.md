@@ -55,10 +55,10 @@ define( 'WP_CACHE', true );
 
 Then enable the drop-in from the plugin and confirm it connects. Memcached works too if that's what you know. Both are solid; Redis is the more common default because the tooling around it is richer. There's more on when each fits in [Redis caching patterns](https://www.kloudbean.com/blog/redis-caching-patterns/), and the provisioning side in [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/) and [managed Memcached hosting](https://www.kloudbean.com/blog/managed-memcached-hosting/).
 
-![The Kloudbean console launching a managed Redis to use as a WooCommerce object cache](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed Redis to use as a WooCommerce object cache](../assets/console-real/shots/psql_launch_step_1.png)
 *DBS then Launch Database: a managed Redis (or Memcached) becomes your object cache. This is the single biggest WooCommerce win on a database-heavy store.*
 
-<!-- ADD IMAGE: the Redis Object Cache plugin in wp-admin showing a connected, active status. -->
+![Execution flow](images/gen-2-flow.png)
 
 ### 2. Full-page cache with cart, checkout, and account excluded
 
@@ -102,7 +102,7 @@ WHERE autoload = 'yes';
 
 If that total is into the megabytes, you've found real work. Track each large row back to a plugin. If it belongs to something you removed, it's safe to delete or flip its autoload off. One caution: WordPress 6.6 and later can store the flag as `'on'` or `'auto'` too, not only `'yes'`, so check for those values on newer installs. Back up before you delete anything, which brings us to a habit worth keeping: read the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/) and take a snapshot before touching the database directly.
 
-<!-- ADD IMAGE: a database client showing the autoload query result, with a couple of oversized rows highlighted. -->
+![Ensure they are optimized for performance](images/gen-3-panel.png)
 
 ### 4. Drain the Action Scheduler backlog
 
@@ -151,10 +151,10 @@ The store-specific fixes come first because they're what a blog never needs. But
 
 You watch a lot of this from the server itself. If PHP workers are saturated or the database is pinned, the CPU and memory graphs tell you before your customers do.
 
-![The Kloudbean server health view showing CPU, RAM, and disk usage to spot database or PHP pressure on a WooCommerce store](../assets/console/server-health.png)
+![The Kloudbean server health view showing CPU, RAM, and disk usage to spot database or PHP pressure on a WooCommerce store](../assets/console-real/shots/server_health_step_2.png)
 *The server health view. When a store feels slow, this is where you see whether it's CPU, memory, or database pressure rather than guessing.*
 
-<!-- ADD IMAGE: the PHP runtime settings, version on a current 8.x release, memory limit visible. -->
+![Single login vs. Separate logins](images/gen-4-comparison.png)
 
 ## Quick reference: symptom to cause to fix
 
@@ -191,13 +191,20 @@ One dashboard for the app, the database, and the object cache is the practical p
 
 <!-- ADD IMAGE: the dashboard with the store app, its MySQL database, and a Redis object cache side by side. -->
 
----
+<!-- cta:start -->
+**Managed stack, staging, and backups.**
 
-**A store that stays quick under real traffic.**
+Run WordPress and WooCommerce on a managed server with a staging site, automatic backups, free auto-renewing SSL, and a managed MySQL or MariaDB beside it. Pick the cloud and the region yourself.
 
-Run WooCommerce on a stack with a managed object cache and database in the same account as the app, tuned PHP, and staging to test changes safely. Start at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+- Managed WordPress stack
+- One-click staging
+- Managed MySQL and MariaDB
+- Automatic backups
+- Free SSL
+- Built-in load balancer
 
-Managed Redis & Memcached · Managed MySQL & MariaDB · Automatic backups · Staging · Free SSL · Free migration · Free trial
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

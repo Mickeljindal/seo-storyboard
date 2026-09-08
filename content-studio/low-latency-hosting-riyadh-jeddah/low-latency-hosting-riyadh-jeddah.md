@@ -49,7 +49,7 @@ Kloudbean provisions across seven clouds (AWS, AWS Lightsail, Google Cloud, Lino
 
 One honest nuance, because geography matters. Dammam sits in the Eastern Province, roughly 400 km from Riyadh but closer to 1,300 km from Jeddah on the Red Sea coast. So a Jeddah user sees low tens of milliseconds rather than single digits, still far better than a 100 ms trip to Europe. Hosting near Riyadh helps the whole Kingdom; it just helps Riyadh most. If residency is also on your mind, see the pillar guide to [cloud hosting in Saudi Arabia](https://www.kloudbean.com/blog/cloud-hosting-saudi-arabia/) and the deeper [data residency in Saudi Arabia](https://www.kloudbean.com/blog/data-residency-saudi-arabia/) breakdown.
 
-<!-- ADD IMAGE: a synthetic test from a Middle East node showing TTFB from a Europe origin next to a Dammam origin. -->
+![Real execution path](images/gen-1-flow.png)
 
 ## What a CDN can fix, and what it can't
 
@@ -108,11 +108,11 @@ If `Connect` and `TTFB` are both high while the server is idle, that gap is dist
 
 Synthetic tests help, but your real users are on mobile networks in Riyadh and Jeddah, not your fiber. Real user monitoring (RUM) collects timings from actual visitors: the free `web-vitals` library, an APM, or Chrome UX Report field data. It shows the p75 case that averages hide. And watch your server's resources, since a box out of CPU or RAM adds delay of its own.
 
-![The Kloudbean console showing server health with CPU, RAM, and disk, useful context when separating server delay from network latency for Saudi users](../assets/console/server-health.png)
+![The Kloudbean console showing server health with CPU, RAM, and disk, useful context when separating server delay from network latency for Saudi users](../assets/console-real/shots/server_health_step_2.png)
 
 *Server health in the Kloudbean console. Rule out an overloaded server before blaming the network.*
 
-<!-- ADD IMAGE: two traceroutes side by side, one routing through Europe, one staying in-region. -->
+![Hop count and path visualization](images/gen-2-comparison.png)
 
 ## How to get low latency hosting for Riyadh and Jeddah users
 
@@ -123,17 +123,17 @@ The fix is short, because the expensive part is one decision made at launch. On 
 3. **Add a CDN for the static layer.** Optional but worth it, so the edge serves images and public pages while the nearby origin handles dynamic calls.
 4. **Measure again from the Kingdom.** Re-run ping and TTFB after the move. Numbers, not vibes.
 
-![The Kloudbean console showing seven clouds with Google Cloud's Dammam (me-central2) Saudi Arabia region selected for low latency hosting near Riyadh and Jeddah](../assets/console/add-server-region.png)
+![The Kloudbean console showing seven clouds with Google Cloud's Dammam (me-central2) Saudi Arabia region selected for low latency hosting near Riyadh and Jeddah](../assets/console-real/shots/selecting_server_location.png)
 
 *Add Server: pick Google Cloud and the Dammam (me-central2) region so Saudi users get the short hop, not the continental one.*
 
 Because the whole stack sits under one login, you're not stitching a server here and a database there and a load balancer somewhere else. When traffic outgrows one server, a [cloud load balancer](https://www.kloudbean.com/blog/cloud-load-balancer-explained/) keeps requests inside the region, and one view shows where every piece runs.
 
-![The Kloudbean dashboard showing the whole stack (servers, applications, databases) in one view, so region placement is easy to confirm](../assets/console/dashboard.png)
+![The Kloudbean dashboard showing the whole stack (servers, applications, databases) in one view, so region placement is easy to confirm](../assets/console-real/shots/dashboard.png)
 
 *One dashboard for the whole stack, so you can confirm at a glance that server and database are both in the Dammam region.*
 
-<!-- ADD IMAGE: a browser network waterfall showing a low TTFB after the region move. -->
+![Real visit payoff shot](images/gen-3-flow.png)
 
 ## When does region choice actually matter?
 
@@ -147,11 +147,21 @@ To keep it honest: moving to Dammam fixes network distance, usually the biggest 
 
 The usual boundaries apply. Kloudbean runs Linux stacks (PHP, Node, Python, Ruby, Java, and their databases), not Windows or .NET. It doesn't own a data center in Saudi Arabia; the in-Kingdom capability comes from Google Cloud's Dammam region (`me-central2`). The numbers here are distance-based floors, hedged on purpose, not guaranteed benchmarks. What you can count on is the physics: a closer server means a shorter round trip.
 
----
+<!-- cta:start -->
+**Run it in Dammam, not a region abroad.**
 
-**Put the server where your users are.** Launch a managed server and database in Google Cloud's Dammam region (me-central2) and cut the round trip for Riyadh and Jeddah users, all from one dashboard. Plans start from $8/mo, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
+Provision in Google Cloud's Dammam region (me-central2) so the server, the managed database, and the backups all stay on Saudi soil, managed from a single dashboard.
 
-In-Kingdom Dammam region · App and database co-located · Automatic backups · Free SSL · Free migration assistance · Free trial
+- Dammam (me-central2)
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- One dashboard
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [Talk to a cloud expert](https://calendly.com/kloudbean)
+<!-- cta:end -->
 
 ## FAQ
 

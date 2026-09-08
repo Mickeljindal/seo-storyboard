@@ -83,15 +83,20 @@ The honest boundary is clean. The platform provides the staging, backups, securi
 
 How to price these tiers is [client billing and markup for hosting](https://www.kloudbean.com/blog/client-billing-and-markup-for-hosting/), where the care plan is exactly this retainer. The hosting underneath is [agency WordPress hosting](https://www.kloudbean.com/blog/agency-wordpress-hosting/), and keeping those sites fast is [speed up WordPress](https://www.kloudbean.com/blog/speed-up-wordpress/). The backups the plan depends on, at fleet scale, are in [the multi-client backup strategy](https://www.kloudbean.com/blog/multi-client-backup-strategy/). The wider operation is the [hosting for agencies playbook](https://www.kloudbean.com/blog/hosting-for-agencies-playbook/), and a client joins via the [onboarding checklist](https://www.kloudbean.com/blog/agency-onboarding-checklist/).
 
----
+<!-- cta:start -->
+**Let someone else patch the server.**
 
-### Make the maintenance you already do a plan clients renew.
+The stack, the patching, SSL, and backups are handled, so your work stays on the site rather than the box. Staging is one click, and the managed database sits right next to the app.
 
-Staging to apply updates safely, automatic off-box backups, baseline security hardening, and free SSL, across seven clouds from one dashboard. Free migration assistance to bring existing sites onto the plan. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+- Managed WordPress stack
+- One-click staging
+- Managed MySQL and MariaDB
+- Automatic backups
+- Free SSL
+- Built-in load balancer
 
-WordPress staging · Automatic backups · Security hardening · Free SSL · One dashboard
-
----
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

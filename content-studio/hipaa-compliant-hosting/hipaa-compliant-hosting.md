@@ -77,7 +77,7 @@ Look at the right column. That's most of HIPAA, and no server touches it. The fa
    └────────────────────────────────┘   └───────────────────────────────┘
 ```
 
-<!-- ADD IMAGE: a data-flow map for your own app: every place PHI is collected, where it travels, and every service that can see it -->
+![One hop per box](images/gen-1-flow.png)
 
 ## How Kloudbean's controls support a HIPAA-aligned setup
 
@@ -105,37 +105,37 @@ Before anything else, keep PHI off the public internet. Launch your managed data
 
 Every page and API call that carries PHI runs over HTTPS, with no mixed content. On a managed host that's a free SSL certificate that issues and renews itself, so there's no excuse to serve health data over plain HTTP.
 
-![The Kloudbean console issuing a free SSL certificate so PHI is encrypted in transit](../assets/console/ssl-certificate.png)
+![The Kloudbean console issuing a free SSL certificate so PHI is encrypted in transit](../assets/console-real/shots/le_ssl_step_1.png)
 
 ### Step 3. Lock down who can reach production
 
 Give every teammate a unique login, never a shared one, and grant the narrowest role that does the job. Use subusers and granular access control for least privilege, and restrict where admins can connect from with IP allow-lists. When a review asks who can reach PHI, you want a precise answer, not a shrug.
 
-![The Kloudbean console showing subusers and granular User Access Control for least-privilege access to PHI](../assets/console/subusers-uac.png)
+![The Kloudbean console showing subusers and granular User Access Control for least-privilege access to PHI](../assets/console-real/shots/uac_resources_access.png)
 
 ### Step 4. Harden the server and close ports
 
 Unpatched software and open ports start a lot of breaches. Keep the OS and stack patched, and run baseline protections like a firewall and brute-force blocking by default, not as a task you hope to remember. It pays off the day someone starts probing.
 
-![The Kloudbean console firewall settings closing unused ports in front of the server holding PHI](../assets/console/firewall.png)
+![The Kloudbean console firewall settings closing unused ports in front of the server holding PHI](../assets/console-real/shots/app_ip_whitelisting.png)
 
 ### Step 5. Turn on automatic backups
 
 HIPAA cares about availability and recoverability, not just secrecy. Automatic backups stored off the main server mean a bad day doesn't erase patient records. Do the step everyone skips: actually test a restore, so you know your backups work before the moment you need them.
 
-![The Kloudbean console managing automatic backups of the database that stores PHI](../assets/console/manage-backups.png)
+![The Kloudbean console managing automatic backups of the database that stores PHI](../assets/console-real/shots/app_backup_step_2.png)
 
 ### Step 6. Keep PHI out of logs, URLs, and side tools
 
 This is where healthcare apps quietly break their own compliance. PHI leaks into places nobody classified as sensitive: request logs that capture full bodies, patient IDs in URL query strings that land in access logs, an error tracker shipping stack traces to a third party you never signed a BAA with. Scrub PHI before it's logged, keep it out of URLs, and audit every service your app talks to.
 
-<!-- ADD IMAGE: your logging or error-tracker config with PHI fields masked or dropped before anything is written -->
+![PHI fields redacted or dropped](images/gen-2-panel.png)
 
 ### Step 7. Line up your BAAs and your risk analysis
 
 Now the part only you can do. List every vendor that creates, receives, stores, or transmits PHI for you: host, email provider, SMS gateway, analytics, error tracker. Each is a business associate, and HIPAA generally expects a signed BAA with each. Then write your risk analysis and your access and retention policies. This is the half that actually keeps you compliant.
 
-<!-- ADD IMAGE: your vendor and BAA tracker: every service that touches PHI, and whether a signed agreement is in place -->
+![Services touching PHI and BAA status](images/gen-3-flow.png)
 
 > **Please read this part.** This is general educational information, not legal advice. HIPAA has real nuance, and your specific situation (the PHI you handle, your role as a covered entity or business associate, your risk analysis) deserves a qualified compliance professional. Before you store real PHI anywhere, confirm two things: that you've done a proper risk analysis, and that you have a BAA with every vendor that will touch that data. Confirm BAA availability with any provider directly.
 
@@ -147,11 +147,21 @@ My honest opinion after plenty of healthcare builds: most early teams overspend 
 
 Where Kloudbean fits: on the infrastructure side, giving you the controls your HIPAA work stands on, from free SSL and IP allow-listing to access control, automatic backups, and, on enterprise, private networking (VPC) and an immutable Audit Trail. It runs on tier-1 clouds that maintain their own data-center security programs. What it won't do, because no honest host can, is make your app HIPAA-compliant for you or sell you a certification that doesn't exist. Mapping several obligations at once? The siblings pair well: [SOC 2 compliant hosting](https://www.kloudbean.com/blog/soc2-compliant-hosting/), [PCI compliant hosting](https://www.kloudbean.com/blog/pci-compliant-hosting/), [GDPR compliant hosting](https://www.kloudbean.com/blog/gdpr-compliant-hosting/), and the broader [secure and compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/) overview.
 
----
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-**Build healthcare apps on a foundation you can stand behind.** Run your app on infrastructure with hardening, encryption in transit, IP allow-listing, access controls, and automatic backups, all on one dashboard. Talk to us about enterprise Audit Trail and custom setups for regulated workloads. Start with a free trial and free migration assistance at [kloudbean.com](https://www.kloudbean.com/), and see plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Free SSL · IP allow-listing · Subuser access control · Shorewall + Fail2ban · Automatic backups · Enterprise Audit Trail
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## HIPAA hosting FAQ
 

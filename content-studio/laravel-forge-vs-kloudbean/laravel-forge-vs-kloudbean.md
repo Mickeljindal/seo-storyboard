@@ -95,11 +95,20 @@ And the part neither model fixes: your app. An N+1 query firing 400 times on the
 
 For the broader version of this decision, [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) and the roundup in [Cloudways alternatives](https://www.kloudbean.com/blog/cloudways-alternatives/), which covers the wider control-panel category. For the same raw-versus-managed question against a cloud, [DigitalOcean vs Kloudbean](https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/) and [Google Cloud vs Kloudbean](https://www.kloudbean.com/blog/gcp-vs-kloudbean/). To actually ship a Laravel app on managed infrastructure, [deploy a Laravel app](https://www.kloudbean.com/blog/deploy-laravel-app/), and for the database side, [managed vs self-managed databases](https://www.kloudbean.com/blog/managed-database-vs-self-managed/).
 
-## Want the server managed, not just the setup?
+<!-- cta:start -->
+**Move it once. Own it after.**
 
-Kloudbean runs the whole stack for you across seven clouds: managed servers and databases, free SSL, automatic backups, staging, and one dashboard, for Laravel and far beyond. Free migration and a free trial. Start at [kloudbean.com](https://www.kloudbean.com/), or weigh the wider field in [Cloudways alternatives](https://www.kloudbean.com/blog/cloudways-alternatives/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-Fully managed servers · Seven managed DB engines · Seven clouds · One dashboard · Free migration
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

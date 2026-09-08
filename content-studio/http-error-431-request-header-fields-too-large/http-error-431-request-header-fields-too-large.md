@@ -162,11 +162,20 @@ What no platform can do is decide which of your cookies matter or trim your toke
 
 The same root cause with a different status code, [400 Bad Request](https://www.kloudbean.com/blog/400-bad-request/), and its proxy-side version, [Cloudflare error 520](https://www.kloudbean.com/blog/cloudflare-error-520/), where oversized *response* headers cause the mirror-image problem. For session storage, [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/) and [caching patterns](https://www.kloudbean.com/blog/redis-caching-patterns/). On tokens and credentials, [401 Unauthorized](https://www.kloudbean.com/blog/http-error-401-unauthorized/) and [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). For the proxy layer, [the nginx reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). And on redirect chains, [302 vs 301](https://www.kloudbean.com/blog/302-found-vs-301-redirect/).
 
-## Somewhere to put state that is not a cookie
+<!-- cta:start -->
+**Deploys that tell you what broke.**
 
-Managed Redis in the same account and dashboard as your application, with nginx configured for real workloads rather than defaults, from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.
 
-Managed Redis · Managed nginx · Automatic backups · Flat from $8/mo
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -94,7 +94,7 @@ Most frameworks give you this read/write split without hand-rolling connection l
 | Prisma | The `@prisma/extension-read-replicas` extension |
 | Raw Node / pg | Two pools; route by whether the query writes |
 
-<!-- ADD IMAGE: your read/write routing in one glance: writes to primary, reads to replica, and the read-your-own-writes exception -->
+![Primary writes, replicas reads, with exceptions](images/gen-1-panel.png)
 
 ## Try the cheaper levers first
 
@@ -106,7 +106,7 @@ Now the opinion I'll stand behind: most "the database is slow" incidents are not
 
 So the sensible order is: index, then cache, then resize, and only then reach for a read replica when the reads that *remain* still overwhelm the primary. Replicas are powerful. They're also a bigger, more permanent hammer than a cache, so swing the small tools first.
 
-<!-- ADD IMAGE: a database CPU graph before and after caching the hot reads, showing the drop -->
+![Caching improves read performance](images/gen-2-graph.png)
 
 ## When a replica is genuinely the right call
 
@@ -125,7 +125,7 @@ Replicas scale reads, so they're the wrong tool if reads aren't your bottleneck.
 
 These two get conflated constantly, so pin the distinction. A read replica exists to *share read load*, a performance goal. High-availability (HA) failover exists to *survive a failure*, an uptime goal, using a standby that takes over if the primary dies. They can overlap (a replica is sometimes promoted to primary in a failure, and many managed setups offer both), but they solve different problems. When you're planning, name which one you actually need: more read capacity, more uptime, or both. A healthy pattern for a serious app is a standby for safety plus one or more replicas for load. They complement each other rather than compete.
 
-![The Kloudbean console launching a managed database engine](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed database engine](../assets/console-real/shots/psql_launch_step_1.png)
 
 ## How this maps to a managed stack
 
@@ -133,11 +133,20 @@ In practice, Kloudbean covers the early, cheaper part of that ladder: managed [P
 
 Worth separating one thing: scaling the *database* is a different axis from scaling the *app tier*. If your app servers are the bottleneck rather than the database, a built-in [Flexible Load Balancer](https://www.kloudbean.com/blog/cloud-load-balancer-explained/) spreads traffic across multiple app nodes. If you're still deciding how much to manage yourself, the [managed vs self-managed](https://www.kloudbean.com/blog/managed-database-vs-self-managed/) comparison is a good companion, and the broader picture of wiring a database into your app lives in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
 
----
+<!-- cta:start -->
+**One click to a real database.**
 
-**Scale your database the sane way, in order.** Start with a managed database that's easy to index, cache, and resize as you grow. Kloudbean runs six managed engines with automatic backups and IP allow-listing, plus managed Redis for the caching that comes first. Start free at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+Launch MySQL, MariaDB, PostgreSQL, Redis, Memcached, MongoDB, or Elasticsearch in a click, reachable from your app server with automatic backups from minute one. Standard connection strings, standard dumps, no proprietary format.
 
-Managed databases · Automatic backups · Managed Redis · Resize on demand · Free trial
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

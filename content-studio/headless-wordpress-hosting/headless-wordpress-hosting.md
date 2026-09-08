@@ -39,9 +39,9 @@ Keep them together. When the front end and the backend sit on the same platform,
 
 This mixed setup is exactly what Kloudbean is built for. It runs the WordPress backend on its managed PHP and MySQL stack, and it runs a Node or static front end right alongside it, on whichever of the seven supported clouds you pick. One place, one login, both halves side by side in one account. That's the practical difference between headless being tidy and headless being a chore.
 
-![The Kloudbean console: adding the WordPress backend and a separate front-end app side by side on one platform](../assets/console/add-application.png)
+![The Kloudbean console: adding the WordPress backend and a separate front-end app side by side on one platform](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
-<!-- ADD IMAGE: the dashboard listing both apps, the WordPress backend and the Next.js or Astro front end, on the same server. -->
+![the dashboard listing both apps, the WordPress backend and the Next.js or Astro front end, on the same server.](../assets/console-real/shots/dashboard.png)
 
 ## When headless is genuinely worth it
 
@@ -100,7 +100,7 @@ query {
 
 Neither is "better." REST is zero-setup and dead simple. GraphQL is more efficient when your pages pull lots of related data. Start with REST unless you already know your pages are query-heavy, and if you want the argument outside a WordPress context, [the honest GraphQL versus REST comparison](https://www.kloudbean.com/blog/graphql-vs-rest/) covers caching and complexity in more depth. For the full how-to on endpoints, auth, and custom fields, the [WordPress REST API guide](https://www.kloudbean.com/blog/wp-rest-api-guide/) is the reference; this piece is the architecture and hosting decision that sits above it.
 
-<!-- ADD IMAGE: the WPGraphQL explorer running a query against your content, or the REST response in a browser at /wp-json/. -->
+![From Explorer to REST Response](images/gen-1-flow.png)
 
 ## Where headless quietly goes wrong
 
@@ -112,7 +112,7 @@ The other classic snag is the split-provider setup. Backend on one host, front e
 
 Running headless well is mostly about treating it as one system with two deployables. The front end deploys from Git like any modern app: push, build, go live, with the WordPress API URL stored as an [environment variable](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) rather than hard-coded. If you're on Next.js, the [Next.js deployment guide](https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/) covers the shape; on Astro, see [deploying Astro](https://www.kloudbean.com/blog/deploy-astro-app/).
 
-![The Kloudbean console: the decoupled front end deploying from a connected Git repository on every push](../assets/console/git-deployment.png)
+![The Kloudbean console: the decoupled front end deploying from a connected Git repository on every push](../assets/console-real/shots/git_connect_step_4.png)
 
 A few other pieces slot in naturally. Media can go to [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/) so uploads aren't stuck on one server's disk. When the backend gets busy, it scales like any other WordPress site, covered in [scalable WordPress hosting](https://www.kloudbean.com/blog/scalable-wordpress-hosting/). And the backend still benefits from the usual [WordPress speed work](https://www.kloudbean.com/blog/speed-up-wordpress/), because a slow API makes for a slow front end no matter how quick your framework is.
 
@@ -120,11 +120,20 @@ A few other pieces slot in naturally. Media can go to [object storage](https://w
 
 Under the hood it's all Linux, headless or not. The platform manages the server, the WordPress stack, SSL, and backups, and you own both your WordPress content and your front-end code. Going headless doesn't change who owns what. It changes how many pieces you're running and how carefully they need to fit together. Be honest about whether your project actually needs that, and the decision more or less makes itself.
 
----
+<!-- cta:start -->
+**Let someone else patch the server.**
 
-**One backend. Any front end. One place to run both.** Host the WordPress backend and your decoupled front end together at [kloudbean.com](https://www.kloudbean.com/). Plans on [pricing](https://www.kloudbean.com/pricing/).
+Run WordPress and WooCommerce on a managed server with a staging site, automatic backups, free auto-renewing SSL, and a managed MySQL or MariaDB beside it. Pick the cloud and the region yourself.
 
-Managed WordPress + Node/static · One account · Git deploy · Staging · Free migration · Free trial
+- Managed WordPress stack
+- One-click staging
+- Managed MySQL and MariaDB
+- Automatic backups
+- Free SSL
+- Built-in load balancer
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

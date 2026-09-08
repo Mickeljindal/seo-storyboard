@@ -55,7 +55,7 @@ CSRF_TRUSTED_ORIGINS = ["https://" + h for h in ALLOWED_HOSTS if h]
 
 One opinion, stated flatly: `DEBUG = True` in production isn't a tidiness problem, it's a security hole. That pretty yellow error page hands a stranger your stack trace, your settings, and enough of your internals to plan a real attack. Treat a live site running with debug on as an incident, not a to-do. You set these values on the server, never in the repo:
 
-![The Kloudbean console Environment Variables screen: Django's SECRET_KEY, database URL and ALLOWED_HOSTS set on the server via Paste .env](../assets/console/env-vars.png)
+![The Kloudbean console Environment Variables screen: Django's SECRET_KEY, database URL and ALLOWED_HOSTS set on the server via Paste .env](../assets/console-real/shots/django_env_step_1.png)
 
 That keeps secrets out of version control and lets you rotate a key without a code change. The reasoning, and the mistakes people make with it, is in [environment variables, done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
@@ -79,7 +79,7 @@ gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 3
 
 Hit **Pull & Deploy** and the build log streams live while it installs, collects static, migrates, and boots Gunicorn. The whole point of Checklist B is that one swap: **Gunicorn, not runserver**. Everything else is plumbing.
 
-![The Kloudbean Deploy Code / Git Deployment tab: repo connected, Install, Build and Start commands set for a Django app](../assets/console/git-deployment.png)
+![The Kloudbean Deploy Code / Git Deployment tab: repo connected, Install, Build and Start commands set for a Django app](../assets/console-real/shots/git_connect_step_4.png)
 
 ## The collectstatic trap: why your CSS 404s
 
@@ -87,7 +87,7 @@ Here's the anti-pattern that catches nearly every first Django deploy. The most 
 
 The fix is two parts. Run `collectstatic` in your Build step (above), and give Django something to actually serve those files with. The simplest option by a mile is **WhiteNoise**: `pip install whitenoise`, add its middleware, and your app serves its own static files with proper caching and no separate config. For a single app, that's the least-effort win.
 
-<!-- ADD IMAGE: Before/after browser shot: the same page unstyled (collectstatic skipped, CSS 404s) next to it styled correctly. -->
+![CSS impact on frontend](images/gen-1-comparison.png)
 
 ## Static vs media: two different problems
 
@@ -104,7 +104,7 @@ Gunicorn runs your app in a pool of worker processes, and the default of one lea
 
 Run `migrate` on every deploy (it's in your Build step) so the schema never drifts behind the code. Skip it after a model change and the first request that touches the new column throws. For the database itself, launch a managed Postgres from **DBS → Launch Database** and reach it over the local network on the same box. It's backed up, and your app finds it through the `DATABASES` env var from Checklist A.
 
-![The Kloudbean Launch Database screen: creating a managed PostgreSQL instance for a Django app on the same server](../assets/console/launch-database.png)
+![The Kloudbean Launch Database screen: creating a managed PostgreSQL instance for a Django app on the same server](../assets/console-real/shots/psql_launch_step_1.png)
 
 Then point your domain at the server and install a free **Let's Encrypt** certificate. Django's CSRF and secure-cookie behaviour expects HTTPS, so this isn't optional dressing. Turn on automated deployment and every push re-runs collectstatic and migrate and restarts Gunicorn. Your update loop becomes one step: push, and production catches up. More on the shared-box setup in [host your app, API, and database on one server](https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/), and on managed Postgres specifically in [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/).
 
@@ -126,7 +126,21 @@ Plenty of Django apps push slow work (emails, image processing, report generatio
 
 Django is a Python app, and Python on Linux is exactly what a managed server runs, so nothing here is a workaround. Kloudbean keeps the box healthy: the Python runtime, the web server in front of Gunicorn, SSL, firewall, and server-level backups, on whichever of its seven clouds you pick. You own the Django project: its settings, its migrations, its static and media strategy, any Celery processes. It's a Linux server running standard Python, so you can move hosts whenever you like. Building in other frameworks too? The async sibling is [deploy a FastAPI app](https://www.kloudbean.com/blog/deploy-fastapi-app/), and the minimal one is [deploy a Flask app](https://www.kloudbean.com/blog/deploy-flask-app/).
 
-**Gunicorn, not runserver. Then relax.** Put your Django app on a server you own at [kloudbean.com](https://www.kloudbean.com/). Managed Postgres · Automatic backups · Free Let's Encrypt SSL · Git deploy · Free migration · Free trial. Server sizes are on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**You built the app. Give it a real home.**
+
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

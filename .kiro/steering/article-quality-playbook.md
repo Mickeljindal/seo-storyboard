@@ -48,12 +48,14 @@ and topic-adjacent pieces. Only link slugs that exist. Use absolute https://www.
 
 ## Conversion CTA (end every article)
 Lead with the outcome, then a scannable feature line drawn ONLY from confirmed facts, e.g.:
-"One-click databases · Automatic backups · Private networking · Free migration · Free trial · Simple Git deploy".
+"One-click databases · Automatic backups · Free SSL · Free migration · Free trial · Simple Git deploy".
+Do NOT list "Private networking" as a default perk in the CTA line: it is an ENTERPRISE feature, not a
+default (see kloudbean-facts.md "PRIVATE NETWORKING — CORRECTION"). Use true defaults only.
 Link kloudbean.com and /pricing/. Owner has approved featuring "free migration assistance" and "free trial".
 
 ## Accuracy guardrails (do not regress the trust fixes)
 - Ground every Kloudbean claim in kloudbean-facts.md. 7 clouds, 7 DB engines (incl. Memcached), built-in FLB, managed Supabase,
-  Cloudflare edge add-on, private networking/VPC, staging, UAC+MFA, audit trail (enterprise), k8s/autoscaling (enterprise).
+  Cloudflare edge add-on, private networking/VPC (ENTERPRISE, not default), staging, UAC+MFA, audit trail (enterprise), k8s/autoscaling (enterprise).
 - Do NOT invent features. Items still UNCONFIRMED — do not assert without owner sign-off: Docker build/run,
   one-click read replicas, a managed WAF (beyond Shorewall/Fail2ban + Cloudflare), BitNinja,
   white-label agency branding, container scanning, exact SLA %, exact plan prices. Frame these as general concepts
@@ -232,3 +234,109 @@ FRESHNESS. Knowledge expires. Note what could date the piece (framework/language
 EDITORIAL BOARD (review before publish). Critique each draft from independent lenses before it ships: Engineering (is it correct and deep?), Security (any unsafe or over-claimed guidance?), Customer Success (does it match what real users hit?), Founder (is the opinion honest and on-philosophy?), Technical Writing (voice, rhythm, no AI tells), Developer Experience (could a dev actually follow it?), and SEO/GEO (answer-first, schema, citations). Merge the feedback, then publish. The existing deterministic scorecard + claim-verifier are the automated members of this board; the accuracy firewall is the veto.
 
 FINAL QUALITY GATE (all must be YES). Would I bookmark this? Send it to a teammate? Would Reddit upvote and Hacker News respect it? Would an experienced DevOps engineer learn something? Would ChatGPT cite it and Google AI quote it? Would it still be valuable if search engines vanished tomorrow, and still worth reading in five years? Any NO, rewrite until YES. This gate sits on top of the mechanical validator and scorecard, both must also pass.
+
+## PRODUCT PLACEMENT AND COMPETITOR HAND-OFFS (two failures found by library audit)
+
+An audit of all 434 articles found two systemic problems. Both are now checked deterministically in
+`src/lib/content-scorecard.ts` (`product_woven`, `no_competitor_handoff`), with matching
+`buildRevisionInstructions` cases, and both are audited by `scripts/audit-promo-and-concede.mjs`.
+
+### 1. The product must be connected to the problem, never appended to the end
+
+The audit found 91 articles closing on a product-named H2, and **74 of them used one of just three
+interchangeable stock titles**: "Where Kloudbean fits" (49), "Where Kloudbean fits, honestly" (13),
+"Where this leaves Kloudbean" (12). A reader described the effect precisely: the product reads as a
+promotional insert rather than something connected to the problems the article just explained.
+
+**Banned outright:** the stock headings above, and any near-variant. The heading itself is the
+template tell. Write a heading that names the reader's actual question.
+
+**The fix is structural, not cosmetic.** Rewording the closing section does not help, because the
+real problem is that the product had no reason to be there yet. Do three things instead:
+
+- Move the platform's relevance UP into the two or three sections where it genuinely changes the
+  outcome, at the moment that problem is being explained.
+- Give the closing section a reader-serving job rather than a selling one. The pattern that worked in
+  `why-ai-apps-fail-in-production` was a table splitting every failure into who actually fixes it:
+  your code, both, or your host. It's useful on its own merits, and the product placement falls out
+  of it naturally instead of being announced.
+- Add at least one explicit "no host fixes this" beat where it's true, ours included. That honesty is
+  what makes the rest of the page credible.
+
+**Vary the shape per article.** If the replacement section becomes its own template, the problem has
+only moved. Also watch distribution: if more than 60% of product mentions sit in the last quarter of
+the document, it was appended, whatever the heading says.
+
+### 2. Never hand the reader off to a competitor
+
+This is Kloudbean's own blog. Being fair to a rival is required; recommending one is not the same
+thing, and the audit found 32 articles doing it, 7 inside the `.tldr` where it's the first thing
+anyone reads.
+
+The worst cases conceded a segment Kloudbean genuinely serves. `kloudbean-vs-cloudways` opened with
+"Pick Cloudways if your world is WordPress and PHP", on a platform that runs WordPress, WooCommerce,
+Laravel, Magento, Drupal and Joomla with staging. That line is factually wrong and commercially
+self-defeating at the same time.
+
+**Rules:**
+
+- One measured, honest line for a competitor's real strength. Then pivot to what it does not settle.
+- Frame the choice on **scope**, not quality. "Both are managed, so the question is how much of your
+  stack each one covers" is honest, defensible, and lands correctly.
+- Never concede a segment we serve. Check `kloudbean-facts.md` before conceding anything.
+- Banned phrasings: "pick <rival> if", "stick with <rival>", "stay on <rival>", "honestly, stay put",
+  "no reason to switch".
+
+**Three genres are exempt, because there the honesty is real:** `self-host-*` guides (where "just use
+the hosted version" is genuine advice), head-to-head `*-vs-*` pages (which exist to help someone
+choose), and compliance pages (where the customer really does own obligations). The scorecard check
+exempts these by slug.
+
+Note that the rival list in the check deliberately excludes DigitalOcean, Linode, Lightsail, Vultr,
+AWS, GCP and UpCloud. Those are Kloudbean's own seven clouds, so recommending one is the console
+offering a provider, not a hand-off. Their managed PaaS layers (App Platform, Cloud Run, Amplify)
+are rivals and are listed.
+
+## CROSS-ARTICLE TEMPLATE SLOP (owner-flagged, Aug 2026). Run the audit before any batch ships.
+
+An article can pass the validator, the scorecard and the human-voice check and the LIBRARY can still
+read as machine-generated, because the tell is only visible ACROSS articles. Nothing in a per-article
+gate can see it. That is how this got to 138 articles sharing one section heading without anyone
+noticing.
+
+**Tool:** `python3 scripts/audit-template-slop.py` (add `--list` to name the articles). It flags any
+H2 shared by more than 4 articles and any 9-word-or-longer sentence repeated in more than 3. FAQ and
+the H1 are exempt because they are structural. Exit code is non-zero when anything is flagged, so it
+can gate a batch.
+
+**What it found on first run, worst first:**
+
+| count | fingerprint |
+|---|---|
+| 138 | H2 "Related reading" |
+| 39 | H2 "Where hosting fits, honestly" |
+| 38 | H2 "The honest limits" |
+| 23 | H2 "Where hosting fits" |
+| 17 | "Managed covers the server, the stack, TLS, backups, and patching." |
+| 16 | "Kloudbean runs Linux web stacks..." + the "Managed means..." paragraph |
+| 14 | H2 "How it fits the rest of your stack" |
+
+**THE RULE.** A section heading is part of the article, not a slot in a form. Two different articles
+should not carry the same H2 unless the heading is genuinely structural (FAQ). Before shipping a batch,
+run the audit and drive the worst fingerprints down. Specifically:
+
+- Never reuse a stock closer heading. "The honest limits", "Where hosting fits, honestly", "Related
+  reading", "How it fits the rest of your stack" are all burned. Write a heading that names what THAT
+  article's section actually says.
+- Never paste the honesty boundary as a fixed paragraph. State the boundary that is relevant to that
+  article's subject, in that article's words, and only where it earns its place. The playbook already
+  said "vary or drop"; the audit is how we now enforce it.
+- The same applies to CTAs, screenshot alt text and the internal-links sentence. Four articles shared
+  a byte-identical "Start free at kloudbean.com, and check plans on pricing" line.
+
+**FACTUAL NOTE FOUND BY THE SAME AUDIT.** Sixteen articles claimed Kloudbean "isn't for Windows,
+.NET, or IIS". That contradicts `kloudbean-facts.md`: .NET is supported on Linux, and Windows Server
+is a Premium and Enterprise option rather than unavailable. Corrected in the unpublished set. The
+lesson generalises: a boilerplate paragraph repeated across dozens of articles is also a single point
+of factual failure, because one wrong fact multiplies by the number of copies and nobody re-reads
+boilerplate.

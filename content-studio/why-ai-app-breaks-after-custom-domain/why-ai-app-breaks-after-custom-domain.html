@@ -107,6 +107,13 @@
   </table>
 
   <!-- To add an image here, replace this whole figure with a real one: <figure><img src -> images/network-old-url.png alt="network tab still hitting the old preview URL"></figure> -->
+  <!-- IMAGE CAPTURE [console] #1
+SCREENSHOT NEEDED (do not generate this one).
+This slot shows a real browser window (address bar, devtools, or tabs), so an AI image would be inaccurate and a reader could tell.
+Capture: The browser Network tab after the domain switch, showing requests still going to the old preview URL instead of the new domain.
+Note: A real screenshot of the failing calls makes the diagnosis obvious.
+Crop to 16:9, keep text legible at 1200px wide, and blur or fake any real credentials, tokens, IPs or customer data.
+-->
   <figure class="img-slot"><span><b>Add image</b><em>The browser Network tab after the domain switch, showing requests still going to the old preview URL instead of the new domain.</em><small>A real screenshot of the failing calls makes the diagnosis obvious.</small></span></figure>
 
   <h2>CORS: your API still only trusts the old origin</h2>
@@ -121,7 +128,21 @@ app.use(cors({ origin: ['https://app.yourdomain.com'], credentials: true }))</co
   <p>Cleaner still: put the API on the same domain as the frontend (say under <code>/api</code>) so the call is same-origin and CORS never enters the picture. For the full set of causes, including preflight requests and the credentials rule, the <a href="https://www.kloudbean.com/blog/fix-cors-error-node-production/">production CORS error fix</a> walks through every branch.</p>
 
   <!-- To add an image here, replace this whole figure with a real one: <figure><img src -> images/cors-console.png alt="blocked CORS error in the browser console"></figure> -->
-  <figure class="img-slot"><span><b>Add image</b><em>The browser console showing a blocked CORS error that names the old origin and the new domain side by side.</em><small>Highlight the origin line so readers can spot their own version.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #2
+Create a side-by-side comparison table for a technical blog post titled "Why Your AI App Breaks After You Add a Custom Domain".
+
+What it must show: The browser console showing a blocked CORS error that names the old origin and the new domain side by side.
+Also: Highlight the origin line so readers can spot their own version.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-comparison.png" alt="The browser console showing a blocked CORS error that names the old origin and the new domain side by side.">
+    <figcaption>Comparison of error messages</figcaption>
+  </figure>
 
   <h2>Hardcoded preview URLs: the app is still calling its old address</h2>
   <p>Open your browser's network tab. If the app loads but the calls go to the old preview URL, the address was baked into the frontend. AI builders love doing this. They drop the preview URL straight into the code or a build variable so the demo works instantly, and now that string is fossilized in your bundle.</p>
@@ -135,7 +156,10 @@ fetch('/api/users')</code></pre>
   <p>And now the honest anti-pattern, because it's the reason this drags on. The builder rarely hardcodes the URL once. It hardcodes it in a dozen places: the API base, the redirect after login, share links, the sitemap, Open Graph tags, the reset-password email. So the app half-works on the new domain, and every spot you miss is a silent failure that only shows up when a specific user hits that specific path. Don't fix them one bug report at a time. Grep the whole codebase for the old hostname and replace every hit in one pass. If you're unsure how build-time versus runtime variables behave, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> sorts it out.</p>
 
   <!-- To add an image here, replace this whole figure with a real one: <figure><img src -> images/env-var-new-domain.png alt="app URL set to the new domain in the dashboard"></figure> -->
-  <figure class="img-slot"><span><b>Add image</b><em>The dashboard environment variables screen with the app URL variable set to the new custom domain, ready for a rebuild.</em><small>Mask any real secret values in the shot.</small></span></figure>
+  <figure>
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The dashboard environment variables screen with the app URL variable set to the new custom domain, ready for a rebuild.">
+    <figcaption>Open the Environment Variables editor in the console</figcaption>
+  </figure>
 
   <h2>HTTPS: mixed content and redirect loops</h2>
   <p>Two different HTTPS problems show up right after a domain change, and people mix them up.</p>
@@ -157,7 +181,21 @@ Set-Cookie: session=...; Domain=yourdomain.com; Secure; SameSite=Lax</code></pre
   <p>OAuth providers only redirect to redirect URIs you registered ahead of time, exactly. Webhook senders only POST to the endpoint you gave them. Neither one knows you moved. So you have to go update each provider by hand: add <code>https://app.yourdomain.com/auth/callback</code> to the allowed redirect URIs in the Google Cloud console, in your GitHub OAuth app, in every provider you use, and point webhook endpoints (Stripe and friends) at the new domain. Keep the old URL in the list until you're fully cut over, then remove it. And don't forget the callback URL your own app config passes to the provider, that's easy to leave stale.</p>
 
   <!-- To add an image here, replace this whole figure with a real one: <figure><img src -> images/oauth-redirect-uris.png alt="OAuth provider allowed redirect URIs with the new domain added"></figure> -->
-  <figure class="img-slot"><span><b>Add image</b><em>A provider OAuth settings screen with both the old preview URL and the new domain listed in the allowed redirect URIs.</em><small>Show the exact field where the callback URL is registered.</small></span></figure>
+  <!-- IMAGE GENERATE [panel] #3
+Create a clean settings / configuration panel UI mockup for a technical blog post titled "Why Your AI App Breaks After You Add a Custom Domain".
+
+What it must show: A provider OAuth settings screen with both the old preview URL and the new domain listed in the allowed redirect URIs.
+Also: Show the exact field where the callback URL is registered.
+
+A white card with a small uppercase section label, then labelled rows. Highlight the row that carries the point with a violet border. Optional green check line at the bottom confirming the result.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-panel.png" alt="A provider OAuth settings screen with both the old preview URL and the new domain listed in the allowed redirect URIs.">
+    <figcaption>Ensure your app can authenticate with Kloudbean</figcaption>
+  </figure>
 
   <h2>First, rule out a certificate that is still provisioning</h2>
   <p>Before you go hunting for a config bug, check the clock. The moment you point DNS at your app and ask for HTTPS, the certificate has to be issued, and that takes a little time. So an https error in the first few minutes can mean nothing more than "not ready yet". The trick is telling a transient state apart from a real misconfiguration.</p>
@@ -178,12 +216,55 @@ Set-Cookie: session=...; Domain=yourdomain.com; Secure; SameSite=Lax</code></pre
   <p>That split is also the honest line between what a platform does and what you do. The first category is the part Kloudbean takes: add the domain, free SSL is issued and auto-renews, environment variables live in the app's settings, and a Git push rebuilds with live build logs so you can see the new value compiled in. Deploys are from $8/mo and it's one dashboard, not three.</p>
   <p>The second category is not something any host fixes, and I'd rather be straight about that than imply otherwise. Nothing on our side knows your API's allow-list, your cookie's <code>Domain</code> attribute, or which of your six providers still has the preview URL registered, because those strings live in your code and in other companies' dashboards. A platform claiming to handle that would be guessing at your security config, which you would not want. So: grep the codebase for the old hostname, work through the providers one at a time, and keep the old URL registered until the cutover is done. Ten unglamorous minutes, and it's finished properly.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give your app a real address without the day of whack-a-mole.</p>
-    <p style="margin:0 0 .6em">Add a custom domain with free SSL provisioned automatically, set the app's URLs as environment variables in the dashboard, and rebuild in one Git push when something needs to change. One dashboard, one account.</p>
-    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Custom domain + free SSL · Environment variables in the dashboard · Git deploy (rebuild in one push) · Free migration · Free trial</p>
+<div class="kbcta-fix-wrap">
+  <div class="kbcta-fix-overlay"></div>
+  <div class="kbcta-fix-content">
+    <div class="kbcta-fix-eyebrow">DEPLOY &middot; LOGS THAT TELL YOU WHY</div>
+    <p class="kbcta-fix-heading">Read the log, fix it, ship again.</p>
+    <p class="kbcta-fix-description">Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.</p>
+    <ul class="kbcta-fix-features">
+      <li>&#10003; Live build logs</li>
+      <li>&#10003; Deployment history</li>
+      <li>&#10003; Logs viewer</li>
+      <li>&#10003; Managed process restarts</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Git deploy</li>
+    </ul>
+    <div class="kbcta-fix-buttons">
+      <a class="kbcta-fix-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-fix-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-fix: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-fix-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-fix-wrap *{box-sizing:border-box}
+.kbcta-fix-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-fix-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-fix-content{position:relative;z-index:3;max-width:700px}
+.kbcta-fix-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-fix-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-fix-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-fix-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-fix-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-fix-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-fix-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-fix-btn:hover,.kbcta-fix-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-fix-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-fix-link:hover,.kbcta-fix-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-fix-wrap{padding:36px 24px}
+  .kbcta-fix-heading{font-size:31px}
+  .kbcta-fix-description{font-size:16px}
+  .kbcta-fix-features li{white-space:normal}
+  .kbcta-fix-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-fix-btn{width:100%}
+  .kbcta-fix-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

@@ -49,7 +49,7 @@ Here's the whole thing in one view. Each group has a deep guide that teaches the
 | **Reliability and ops** | Always-on, health check, backups, staging, Git deploy | Off serverless, 503 recovery |
 | **Data residency** (if regulated) | Data in-region; deletion reaches every store | Saudi hosting, PDPL for AI |
 
-<!-- ADD IMAGE: a printable one-page version of this at-a-glance table, the eight groups as ticked checkboxes on a single sheet -->
+![Verify before launch](images/gen-1-comparison.png)
 
 ## Data and persistence: does it survive a redeploy?
 
@@ -59,7 +59,7 @@ If one thing on this page loses you a week of users, it's this one. Start here.
 - ☐ **Your vector store is persisted, not rebuilt in memory on boot.** If you do retrieval, those embeddings need a durable home. The `pgvector` extension keeps them in Postgres next to your normal data, so it's one database instead of two systems to run. See [pgvector for AI apps](https://www.kloudbean.com/blog/pgvector-for-ai-apps/), and for schema choices, [production database design for AI apps](https://www.kloudbean.com/blog/production-database-design-for-ai-apps/).
 - ☐ **Connection pooling sits in front of the database.** Every request opens a connection, and an AI app under load hits the connection ceiling sooner than people expect. [Database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) explains why that limit bites early.
 
-<!-- ADD IMAGE: launching a managed Postgres from the dashboard (DBS then Launch Database), choosing Postgres with pgvector -->
+![Configure your app's spending and traffic](images/gen-3-panel.png)
 
 ## The model call: the key, the stream, the failure path
 
@@ -77,7 +77,7 @@ Your model endpoint spends real money on every call. Treat it like a payment rou
 - ☐ **Per-user and global rate limits.** A Redis-backed counter caps how fast one user, and everyone together, can hit the model.
 - ☐ **A hard spend cap at the provider, and a kill switch.** Set the monthly limit so the worst case is a stopped feature, not a four-figure surprise. Keep a switch you can flip fast. The full pattern is in [rate limiting and cost control for AI APIs](https://www.kloudbean.com/blog/rate-limit-and-cost-control-for-ai-apis/).
 
-<!-- ADD IMAGE: a provider usage-limits screen with a monthly hard spend cap set, next to a rate-limit config -->
+![Secrets masked for security](images/gen-4-panel.png)
 
 ## Memory and history: it remembers after a restart
 
@@ -94,7 +94,7 @@ Both of those are one-click engines on Kloudbean (two of seven, alongside MySQL,
 - ☐ **Nothing sensitive is committed. Check git history too, since a deleted file still lives in old commits.** A key that was ever committed is compromised, even after you delete it. Bots scan public repos for exactly this within minutes.
 - ☐ **You have a rotation plan.** You can swap a key without a code change and a redeploy. If rotating a secret means editing code, that's backwards. [Secrets management](https://www.kloudbean.com/blog/secrets-management/) covers the how.
 
-<!-- ADD IMAGE: secrets set as environment variables in the dashboard (Runtime Configuration then Environment Variables), values masked -->
+![Streamlined CI/CD process](images/gen-5-flow.png)
 
 ## Observability and privacy: you can see what it's doing
 
@@ -163,9 +163,21 @@ Read the third column and a split appears. Some of these bills arrive because of
 
 Now the part no host fixes, and ours is squarely included. Rows two through seven are code and configuration in your repo. Nobody provisions a retry with backoff on your behalf, decides your rate limit, sets your provider's spend cap, or chooses not to log the prompt. If your key is in a bundled JavaScript file, it's public on every platform in existence, and the most managed server on earth will serve it cheerfully. Backups we take; testing the restore is still a thing you have to actually do. Two scope notes while we're being exact: private networking and a VPC are part of the Enterprise package, so on a standard plan IP allow-listing on the database is your access model, and an account-wide immutable audit trail is Enterprise as well. And one thing people assume wrongly: if you'd rather self-host an open model than call a provider API, GPU servers are available and you can run your own model on one. DeepSeek installs one-click and support will install another model on request. You still choose and own the model; we run the box it sits on.
 
-**Tick the whole list in one dashboard.** Run your AI app on an always-on server with managed Postgres and Redis, built-in object storage, automatic backups, free SSL, and secrets set right in the dashboard, deployed from Git. No cold starts, so the first request is quick. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-Always-on (no cold starts) · Managed Postgres + Redis · pgvector · Object storage · Automatic backups · Free SSL · Env vars in the dashboard · Git deploy · IP allow-listing
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

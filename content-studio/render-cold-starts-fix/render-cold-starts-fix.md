@@ -61,11 +61,21 @@ The fair boundary: if your project genuinely idles almost all the time and you t
 
 Cold starts are one reason teams outgrow a free tier. For the fuller picture, [Render vs Railway vs Kloudbean](https://www.kloudbean.com/blog/render-vs-railway-vs-kloudbean/) compares the models, and [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/) covers every option. If a free database is also on your mind, note that Render's free Postgres is time-limited; the hands-on move is in [deploy a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/), and uptime checks live in [uptime monitoring](https://www.kloudbean.com/blog/uptime-monitoring/).
 
-## Give your app a server that never sleeps
+<!-- cta:start -->
+**Ship the app, not the infrastructure.**
 
-Run your Node app always-on under PM2, deployed from GitHub, with a managed database in the same dashboard and a flat bill from $8/mo. No spin-down, no keep-warm hacks. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Pick from seven clouds, run your app on a managed server you control, and keep databases, storage, and deploys in the same dashboard instead of four separate vendors.
 
-Always-on, no cold starts · Deploy from GitHub · Managed database included · Flat pricing from $8/mo · Free migration
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

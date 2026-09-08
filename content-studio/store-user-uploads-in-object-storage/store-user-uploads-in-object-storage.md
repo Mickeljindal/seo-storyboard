@@ -35,7 +35,7 @@ Second, more than one server. The moment you put two app instances behind a load
 
 The uploads folder feels permanent because on your machine it is. Production is where that assumption dies. Hit this with other post-deploy surprises? It's usually an environment gap, and we cover the rest in [why your app works locally but not in production](https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/).
 
-<!-- ADD IMAGE: a before and after showing a file in a local uploads folder that is gone after redeploy, versus the same file safe in a bucket -->
+![Ephemeral Disk Trap vs Safe Storage](images/gen-1-comparison.png)
 
 ## The pattern that works: bytes in a bucket, key in the database
 
@@ -185,7 +185,7 @@ await fetch(presignedUrl, {
 
 Store the endpoint, bucket, and keys as environment variables on the server, not in the repo. On Kloudbean they're fields in the console, no SSH involved, and the Node or Python runtime config sits on the same screen. Practical consequence: when you rotate a storage key, you paste the new one and restart the app, without a commit or a rebuild.
 
-![The Kloudbean Environment Variables editor, where the S3 endpoint, bucket name, and keys are stored on the server](../assets/console/env-vars.png)
+![The Kloudbean Environment Variables editor, where the S3 endpoint, bucket name, and keys are stored on the server](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ## Point your existing uploader at a bucket
 
@@ -201,7 +201,7 @@ You rarely need to write raw SDK calls. Most frameworks ship a storage layer tha
 
 The endpoint is the only piece that changes to point at a Kloudbean bucket instead of AWS, because underneath it's the same S3 API. Kloudbean's buckets carry full AWS S3 SDK and CLI compatibility (since March 2025), so every snippet above runs unchanged with one `S3_ENDPOINT` swap, and `aws s3 cp` works against them for the migration. That cuts both ways, which is the point: the same portability that gets you in gets you out. There's more on it in [S3-compatible object storage explained](https://www.kloudbean.com/blog/s3-compatible-object-storage/).
 
-<!-- ADD IMAGE: a framework storage config (Laravel filesystems.php s3 disk or django-storages settings) with the endpoint, bucket, and keys filled in -->
+![Securely store user uploads](images/gen-2-panel.png)
 
 ## Public or private bucket? Decide per file, not per app
 
@@ -250,17 +250,33 @@ Upload bugs all look the same from the browser, a broken image or a failed reque
 
 That last row is the one no host fixes, ours included. Object storage is durable and replicated, which protects you from hardware dying, not from your own `DELETE`. If your worker loops over the wrong prefix, replication faithfully replicates the deletion. Versioning and a separate copy of anything irreplaceable are your call, and they sit alongside the [server backups](https://www.kloudbean.com/blog/server-backups-guide/) that cover the database rows pointing at those objects. Two other things nobody can do for you: validating what a user uploaded, and deciding which files were meant to be private in the first place.
 
-![The Kloudbean console creating an S3-compatible bucket alongside servers, apps, and managed databases](../assets/console/s3-buckets.png)
+![Open S3 Object Storage](../assets/console-real/shots/storage_bucket_step_1.png)
 
-<!-- ADD IMAGE: a bucket's object list after some uploads, showing keys, sizes, and content types -->
+![Create a new bucket](../assets/console-real/shots/storage_bucket_step_2.png)
+
+![Name the bucket and set its access](../assets/console-real/shots/storage_bucket_step_3.png)
+
+![The bucket is ready for objects](../assets/console-real/shots/storage_bucket_step_4.png)
+
+![One hop per box](images/gen-3-flow.png)
 
 Uploads are one piece of keeping an app server stateless, so you can scale or rebuild it at will. Wiring this up for the first time? The full path is in [how to deploy an AI-built app to production](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/).
 
----
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-**Put the files in a bucket, keep the server disposable.** Kloudbean gives you built-in S3-compatible object storage in the same dashboard as your servers, managed databases, and apps. Full AWS S3 SDK and CLI compatibility, public and private buckets, and objects you can export anytime. Start free at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-S3-compatible buckets · Managed databases · Automatic backups · One dashboard · Free migration · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -139,11 +139,20 @@ Being straight about what that does and does not mean. It does not mean requests
 
 The same false-positive pattern with a different status code, [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/). Its mirror image is [415 Unsupported Media Type](https://www.kloudbean.com/blog/http-error-415-unsupported-media-type/): a 406 is about the Accept header and what you asked to receive, while a 415 is about Content-Type and what you sent. Neighbouring codes: [400 Bad Request](https://www.kloudbean.com/blog/400-bad-request/), [401 Unauthorized](https://www.kloudbean.com/blog/http-error-401-unauthorized/), [409 Conflict](https://www.kloudbean.com/blog/409-conflict-error/), and [429 Too Many Requests](https://www.kloudbean.com/blog/429-too-many-requests/). For content negotiation's caching cousin, [304 Not Modified](https://www.kloudbean.com/blog/304-not-modified/). On WordPress security specifically, [secure WordPress hosting](https://www.kloudbean.com/blog/secure-wordpress-hosting/). And for headers generally, [the security headers guide](https://www.kloudbean.com/blog/security-headers-guide/).
 
-## Your own server, your own logs
+<!-- cta:start -->
+**Fewer mysteries on the next deploy.**
 
-Managed nginx servers with Shorewall and Fail2ban configured, SSH access so you can read the logs yourself, free SSL, and everything in one dashboard from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.
 
-Managed nginx · Firewall and Fail2ban configured · SSH access · Free SSL · Flat from $8/mo
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

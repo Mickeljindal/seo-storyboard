@@ -120,7 +120,21 @@ define( 'DB_HOST', 'localhost' );</code></pre>
   <p>Open <code>wp-config.php</code> in the root of your WordPress install and confirm all four match your actual database exactly. A single wrong character does it. This cause shoots to the top of the list if the error appeared right after you migrated the site, switched hosts, reset the database password, or edited that file. A credential quietly drifting out of sync is the number-one trigger there is. If you recently moved the site, the <a href="https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/">zero-downtime migration guide</a> covers keeping these in step.</p>
 
   <!-- Add image here. To use your own screenshot, replace this block with a real figure and set src -> images/wp-config-credentials.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The wp-config.php file open in an editor with the four DB_ lines highlighted.</em><small>The exact block to check first.</small></span></figure>
+  <!-- IMAGE GENERATE [panel] #1
+Create a clean settings / configuration panel UI mockup for a technical blog post titled "Error Establishing a Database Connection in WordPress: A Fix-It Decision Tree".
+
+What it must show: The wp-config.php file open in an editor with the four DB_ lines highlighted.
+Also: The exact block to check first.
+
+A white card with a small uppercase section label, then labelled rows. Highlight the row that carries the point with a violet border. Optional green check line at the bottom confirming the result.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-panel.png" alt="The wp-config.php file open in an editor with the four DB_ lines highlighted.">
+    <figcaption>Check these first for a connection error</figcaption>
+  </figure>
 
   <h2>Cause 2: The wrong DB_HOST, or a database it can't reach</h2>
   <p>Often the one wrong value is <code>DB_HOST</code> specifically. Plenty of setups use <code>localhost</code>, where the database sits on the same box as the web server. But managed and cloud setups frequently put the database on its own host, so <code>DB_HOST</code> needs to be a private address or hostname like <code>10.0.0.5:3306</code>, not <code>localhost</code>. Point it at the wrong place and WordPress knocks on a door where nothing answers.</p>
@@ -133,7 +147,21 @@ mysql -h 10.0.0.5 -u wp_user -p wordpress_db -e "SELECT 1;"</code></pre>
   <p>If that connects, your host and credentials are fine and the problem is elsewhere. If it hangs or refuses, the database is either down, or it's up but not reachable at the address you gave it (wrong host, blocked port, or an app-server IP that isn't allow-listed on the database). WP-CLI is the fastest tool for this kind of poke; the <a href="https://www.kloudbean.com/blog/wordpress-cli-guide/">WP-CLI guide</a> has more of these.</p>
 
   <!-- Add image here. To use your own screenshot, replace this block with a real figure and set src -> images/db-connection-test.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A terminal running wp db check and a mysql SELECT 1 test, both returning success.</em><small>Proves the host and credentials before you look further.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #2
+Create a realistic terminal / command-line screenshot for a technical blog post titled "Error Establishing a Database Connection in WordPress: A Fix-It Decision Tree".
+
+What it must show: A terminal running wp db check and a mysql SELECT 1 test, both returning success.
+Also: Proves the host and credentials before you look further.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-terminal.png" alt="A terminal running wp db check and a mysql SELECT 1 test, both returning success.">
+    <figcaption>Proving host and credentials</figcaption>
+  </figure>
 
   <h2>Cause 3: The database is down or out of connections</h2>
   <p>Credentials are right, host is right, but the site still throws the error, especially under traffic? Now you're looking at capacity. A database allows only so many simultaneous connections. When a rush of visitors each needs one, you can exhaust the limit, and new page loads get turned away with this exact error. The tell is that it comes and goes: the site works, flashes the error under load, then works again. In the logs you'll often see the MySQL side of it:</p>
@@ -144,7 +172,7 @@ SHOW STATUS LIKE 'Threads_connected';</code></pre>
   <p>The other version of this is a database that has simply stopped, crashed, run out of memory, or filled its disk, so it isn't accepting connections at all. Either way the answer isn't to keep refreshing and hoping. It's more capacity: a bigger database, or one that runs as its own managed service instead of scrapping for RAM on the same box as your web server.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed database kept running and sized so WordPress can always connect">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean console launching a managed database kept running and sized so WordPress can always connect">
     <figcaption>A managed database has its own capacity and stays up under load. It removes most of the "down or overwhelmed" versions of this error.</figcaption>
   </figure>
 
@@ -156,6 +184,20 @@ SHOW STATUS LIKE 'Threads_connected';</code></pre>
   <p>Then visit <code>https://yoursite.com/wp-admin/maint/repair.php</code> and run the repair. This part matters: <strong>delete that line as soon as you're done</strong>, because the repair page has no password and leaving it enabled is a real security hole. If repair fixes it, you're back. If it doesn't, stop fiddling and restore from a recent backup. Corruption is precisely the moment a good backup earns its keep, which is why the <a href="https://www.kloudbean.com/blog/server-backups-guide/">backups guide</a> is worth reading before you need it, not after.</p>
 
   <!-- Add image here. To use your own screenshot, replace this block with a real figure and set src -> images/wp-repair-page.png -->
+  <!-- IMAGE CAPTURE [third-party-ui] #3
+SCREENSHOT NEEDED (do not generate this one).
+This slot shows another product's own interface, so an AI image would be inaccurate and a reader could tell.
+Capture: The WordPress database repair page at /wp-admin/maint/repair.php with the repair buttons.
+Note: Enable it, run it, then remove the line.
+Crop to 16:9, keep text legible at 1200px wide, and blur or fake any real credentials, tokens, IPs or customer data.
+-->
+  <!-- IMAGE CAPTURE [third-party-ui] #1
+SCREENSHOT NEEDED (do not generate this one).
+This slot shows another product's own interface, so an AI image would be inaccurate and a reader could tell.
+Capture: The WordPress database repair page at /wp-admin/maint/repair.php with the repair buttons.
+Note: Enable it, run it, then remove the line.
+Crop to 16:9, keep text legible at 1200px wide, and blur or fake any real credentials, tokens, IPs or customer data.
+-->
   <figure class="img-slot"><span><b>Add image</b><em>The WordPress database repair page at /wp-admin/maint/repair.php with the repair buttons.</em><small>Enable it, run it, then remove the line.</small></span></figure>
 
   <h2>Read the symptom, skip the guessing</h2>
@@ -172,11 +214,55 @@ SHOW STATUS LIKE 'Threads_connected';</code></pre>
   <p>Once you've fixed it, the goal is to not see it again. A few of these causes basically evaporate on managed hosting, and it's worth being clear about which. When your database runs as a <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">managed service locked to your app server's IP</a>, the credentials are set once and don't drift, the database sits at a known host reachable only by your site, it's sized and monitored so it doesn't fall over under a spike, and it's backed up so corruption is a quick restore instead of a bad day. That takes Causes 2, 3, and much of 4 largely off the table.</p>
   <p>Under the hood this is ordinary managed Linux hosting. The platform keeps the database service, the stack, SSL, and backups healthy, and you still own your content and your schema to export whenever you want. Managed hosting can't stop you mistyping a password during a migration. But it removes the infrastructure triggers, which are most of them, and it makes the restore fast when you do need one.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A database that stays up under load.</p>
-    <p style="margin:0 0 .7em">Run WordPress on a managed database that's sized, monitored, and backed up, so most of these errors never start, and a restore is quick when one does. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; color:#c9b8ff">Managed MySQL &amp; MariaDB · IP allow-listing · Automatic backups · Free migration · Free SSL</p>
+<div class="kbcta-wp-wrap">
+  <div class="kbcta-wp-overlay"></div>
+  <div class="kbcta-wp-content">
+    <div class="kbcta-wp-eyebrow">MANAGED WORDPRESS &middot; ONE DASHBOARD</div>
+    <p class="kbcta-wp-heading">Managed stack, staging, and backups.</p>
+    <p class="kbcta-wp-description">The stack, the patching, SSL, and backups are handled, so your work stays on the site rather than the box. Staging is one click, and the managed database sits right next to the app.</p>
+    <ul class="kbcta-wp-features">
+      <li>&#10003; Managed WordPress stack</li>
+      <li>&#10003; One-click staging</li>
+      <li>&#10003; Managed MySQL and MariaDB</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Built-in load balancer</li>
+    </ul>
+    <div class="kbcta-wp-buttons">
+      <a class="kbcta-wp-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-wp-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-wp: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-wp-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-wp-wrap *{box-sizing:border-box}
+.kbcta-wp-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-wp-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-wp-content{position:relative;z-index:3;max-width:700px}
+.kbcta-wp-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-wp-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-wp-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-wp-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-wp-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-wp-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-wp-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-wp-btn:hover,.kbcta-wp-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-wp-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-wp-link:hover,.kbcta-wp-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-wp-wrap{padding:36px 24px}
+  .kbcta-wp-heading{font-size:31px}
+  .kbcta-wp-description{font-size:16px}
+  .kbcta-wp-features li{white-space:normal}
+  .kbcta-wp-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-wp-btn{width:100%}
+  .kbcta-wp-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

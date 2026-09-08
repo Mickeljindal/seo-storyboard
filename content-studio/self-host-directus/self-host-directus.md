@@ -86,11 +86,21 @@ The honest boundary: the platform runs the server, the database, SSL, and backup
 
 For the content-first alternative and the full comparison, [self-hosting Strapi](https://www.kloudbean.com/blog/self-host-strapi/). For what else is worth running yourself, [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/). The database underneath is the important part: [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) or [managed MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/), kept safe with [server backups](https://www.kloudbean.com/blog/server-backups-guide/), with file assets in [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). Keeping connection details out of code is covered in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
-## Run Directus over a database that stays yours.
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-Host Directus as an app on a managed server across seven clouds, pointed at managed PostgreSQL, MySQL, or MariaDB, with free auto-renewing SSL and automatic backups. Your data stays a normal, portable SQL database. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Managed server · Managed PostgreSQL / MySQL / MariaDB · Free auto-renewing SSL · Automatic backups
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

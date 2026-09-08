@@ -70,7 +70,7 @@ That's it. It builds during your normal install step and the `<Image>` component
 
 Next.js middleware (auth checks, redirects, rewrites in `middleware.ts`) runs as part of the app. When you self-host with `next start`, it executes on the Node runtime on your server. It works. The only nuance worth knowing is that some edge-specific APIs assume an edge runtime, but standard middleware logic runs fine.
 
-<!-- ADD IMAGE: A terminal running next build then next start, showing the "ready on port 3000" line so readers see the process boot. -->
+![Verify the app is running](images/gen-1-terminal.png)
 
 ## Deploy your Next.js app to a server you own
 
@@ -78,11 +78,11 @@ The mechanics are short, because self-hosting Next.js is just deploying a Node a
 
 Click **Add Server**, pick a **Cloud Provider** (AWS, Lightsail, GCP, Linode, Vultr, DigitalOcean, or UpCloud), choose **Node.js**, pick the datacenter nearest your users, and give the build room to breathe. Next.js builds like memory, so 2-4 GB is a comfortable start. **Launch Now** provisions it in a few minutes with Node, a web server, a process manager, firewall, and SSL already set up.
 
-![Kloudbean Add Server screen: choosing a cloud provider, Node.js, datacenter, and server size](../assets/console/add-server.png)
+![Kloudbean Add Server screen: choosing a cloud provider, Node.js, datacenter, and server size](../assets/console-real/shots/nextjs_launch_step_1.png)
 
 Open the app, go to **Application Administration → Deploy Code**, and you're on the Git Deployment screen where the whole deploy happens.
 
-![The Kloudbean console Deploy Code / Git Deployment tab: connect the repo, set Build to next build and Start to next start](../assets/console/git-deployment.png)
+![The Kloudbean console Deploy Code / Git Deployment tab: paste the Git repository URL, fetch branches, and clone the repo](../assets/console-real/shots/git_connect_step_4.png)
 
 Connect GitHub over OAuth, paste your repository URL, pick the branch, and **Clone Repository**. Then the fields that matter:
 
@@ -97,7 +97,7 @@ Hit **Pull & Deploy** and the build log streams live in the console. Got a datab
 
 Under **Runtime Configuration → Environment Variables** there's a **Paste .env Content** tab. Drop your `.env` in, convert to key/value, and swap dev values for real ones. Here's the Next.js-specific catch: anything prefixed `NEXT_PUBLIC_` is baked into the client bundle when `next build` runs, and frozen there. It's public, so never put a secret behind that prefix. And if you add or change a `NEXT_PUBLIC_` value *after* a build, nothing changes until you rebuild. Set it first, then build. Unprefixed variables like `DATABASE_URL` are read live on the server, which is why they belong in the console and never in the repo. The full mental model is in [environment variables, done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
-![Kloudbean environment variables editor with a Paste .env Content tab and a key value list](../assets/console/env-vars.png)
+![Kloudbean environment variables editor with a Paste .env Content tab and a key value list](../assets/console-real/shots/nextjs_env_step_1.png)
 
 Last, add your domain under **Domain Aliases**, point DNS at the server, install a free **Let's Encrypt** certificate, and turn on **automated deployment**. From then on, every push to your branch runs `next build` and ships, with the build log streaming as it goes. That's the same git-to-live loop the per-app platforms rent you, except it's [running on a server you own](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
@@ -128,7 +128,7 @@ Nine times out of ten it's the `next dev` mixup above, a missing environment var
 
 The File Manager opens those, and so does a terminal. There's also `sudo adm`, our deploy utility, which runs the whole build-and-ship over SSH in one command. The full walkthrough is in [fixing a 503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
 
-<!-- ADD IMAGE: The Logs Viewer open on the App Errors tab, with the line that reveals a Start command stuck on next dev. -->
+![Next.js Start command stuck](images/gen-2-terminal.png)
 
 ## The one honest limit: you're in a region, not on the edge
 
@@ -136,7 +136,21 @@ Everything the framework does works self-hosted. The single real difference from
 
 Beyond that, the boundaries are the usual ones. Kloudbean runs Next.js as a Node app on Linux, not Windows or .NET. "Managed" means the server, stack, SSL, and backups are handled; your code and data stay yours, and you can move hosts whenever you like because underneath it's a normal Linux box. Building with v0 or another AI tool? The Next.js-flavored version of this is the [deploy a v0 app](https://www.kloudbean.com/blog/deploy-v0-app/) guide, and running more than one project on the same box is [hosting multiple apps on one server](https://www.kloudbean.com/blog/host-multiple-apps-one-server/).
 
-Deploy your Next.js app at [kloudbean.com](https://www.kloudbean.com/) with a free trial and your first migration done for you. Weighing the move off Vercel? Read the [Vercel alternative guide](https://www.kloudbean.com/blog/vercel-alternative-for-full-stack-apps/). Server sizes are on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
+
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

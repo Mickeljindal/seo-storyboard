@@ -181,11 +181,21 @@ The rest is ordinary and useful: servers across seven clouds so you can put the 
 
 If you are not sure which code you have, [this site can't be reached](https://www.kloudbean.com/blog/this-site-cant-be-reached/) maps every one Chrome shows under that headline to the layer that broke. For the errors that mean your server WAS reached, [ERR_CONNECTION_RESET and its relatives](https://www.kloudbean.com/blog/err-connection-reset/). For resolution that works but drags, [fixing slow DNS lookups](https://www.kloudbean.com/blog/fix-slow-dns-lookup/). When the certificate is the problem rather than the name, [SSL certificate errors](https://www.kloudbean.com/blog/fix-ssl-certificate-errors/) and [what SNI is](https://www.kloudbean.com/blog/what-is-sni/). If a CDN is in front, [Cloudflare 5xx codes](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/). And for moving a site without breaking its names, [migrating WordPress](https://www.kloudbean.com/blog/migrate-wordpress-to-kloudbean/).
 
-## Point the name, the rest is handled.
+<!-- cta:start -->
+**Ship the app, not the infrastructure.**
 
-Managed servers across seven clouds with free SSL issued and renewed automatically once your domain resolves, managed databases, automatic backups, and a firewall configured by default. From $8/mo, with free migration assistance. Start at [kloudbean.com](https://www.kloudbean.com/).
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
 
-7 clouds and regions · Free auto-renewing SSL · Managed databases · Automatic backups · Flat from $8/mo
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

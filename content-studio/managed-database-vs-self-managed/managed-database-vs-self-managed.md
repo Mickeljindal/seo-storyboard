@@ -45,7 +45,7 @@ Same disk-full trigger. The difference is who was watching, and whether a restor
 
 The cruel detail is the backup. Almost everyone who loses data *had* backups configured. What they didn't have was a backup they'd ever restored. A dump that silently stopped running weeks ago, or one that restores into a different schema, is worse than none, because it feels like safety. That's the single most expensive lesson in self-managing a database, and it usually gets learned once.
 
-<!-- ADD IMAGE: a monitoring graph of disk usage climbing toward 100 percent, or a low-disk alert firing overnight -->
+![Low-disk alert triggers overnight](images/gen-1-graph.png)
 
 ## What "self-managed" actually signs you up for
 
@@ -61,15 +61,19 @@ The word "install" hides a job that never really ends. Run your own Postgres or 
 
 None of it is beyond a competent engineer. That's not the point. The point is that it's a recurring, high-consequence job that sits next to your actual work, and it only truly tests you on the worst night. When you self-manage, you also own the server underneath the database, with all of that.
 
-![The Kloudbean console showing a server, which a self-run database would sit on and depend on](../assets/console/add-server.png)
+![The Kloudbean console showing a server, which a self-run database would sit on and depend on](../assets/console-real/shots/launch_server_step_1.png)
 
-<!-- ADD IMAGE: a restore in progress, or a backups screen showing recent restore points with timestamps -->
+![Recent restore points with timestamps](images/gen-2-flow.png)
 
 ## What "managed" hands you instead
 
 Managed collapses that list to almost nothing. On Kloudbean you open the databases section, pick an engine, and launch. A minute or two later it's provisioned, secured, locked down with IP allow-listing, and already being backed up. You get a connection string and you move on with building.
 
-![The Kloudbean console launching a managed database with a choice of six engines](../assets/console/launch-database.png)
+![Open Managed Databases and add a new database](../assets/console-real/shots/database_step_1.png)
+
+![Choose the engine, size, and region](../assets/console-real/shots/psql_launch_step_1.png)
+
+![The managed database is created with its own host and SSL](../assets/console-real/shots/psql_launch_step_2.png)
 
 Six engines are on offer (PostgreSQL, MySQL, MariaDB, Redis, Elasticsearch, and MongoDB), each as a standalone one-click service with automatic backups and controlled access, locked to your app server's IP so it never sits open on the public internet. That's the trade: you keep the parts that need your judgment, and hand off the parts that just need doing on time, every time, without fail. If you want the hands-on version of wiring one into an app, that's [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), with engine-specific guides for [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) and [managed MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/).
 
@@ -119,11 +123,20 @@ Run your own when you're **learning**, and getting your hands dirty is the entir
 
 The boundary, stated once: these are standard open-source engines on a Linux stack. Managed means the service runs, patches, and backs up the database and locks it down with IP allow-listing, while your schema, your queries, and your data stay entirely yours and exportable any day. Managed databases take the toil, not the ownership. For the data your business depends on, that's the trade worth making.
 
----
+<!-- cta:start -->
+**Move it once. Own it after.**
 
-**Launch it. Get a connection string. Stop worrying about the backup.** Run a managed database that stays yours, locked to your app server's IP and backed up automatically, on the cloud you choose. Start free at [kloudbean.com](https://www.kloudbean.com/), or see plans on [pricing](https://www.kloudbean.com/pricing/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-6 managed engines · Automatic backups · Controlled access · Free migration help · Free trial
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -133,6 +133,13 @@
   <p>Fair credit to the SaaS side: hands-off really is hands-off, and for a tiny site that convenience can beat ownership. But once your content becomes a core asset, or editors and API traffic drive the bill, self-hosted Strapi is usually the better long game.</p>
 
   <!-- Author: replace this slot with a real screenshot. src -> images/strapi-media-library.png -->
+  <!-- IMAGE CAPTURE [third-party-ui] #1
+SCREENSHOT NEEDED (do not generate this one).
+This slot shows another product's own interface, so an AI image would be inaccurate and a reader could tell.
+Capture: Strapi Media Library showing uploaded files served from your S3-compatible bucket URL, not the local server.
+Note: Confirms uploads are landing in object storage.
+Crop to 16:9, keep text legible at 1200px wide, and blur or fake any real credentials, tokens, IPs or customer data.
+-->
   <figure class="img-slot"><span><b>Add image</b><em>Strapi Media Library showing uploaded files served from your S3-compatible bucket URL, not the local server.</em><small>Confirms uploads are landing in object storage.</small></span></figure>
 
   <h2>The config that makes Strapi production-ready</h2>
@@ -190,7 +197,21 @@ S3_BUCKET=strapi-uploads</code></pre>
   <p><code>APP_KEYS</code> takes a comma-separated list; a handful of keys is normal. Keep every value identical across deploys so sessions and tokens survive a redeploy. More on the habit in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</p>
 
   <!-- Author: replace this slot with a real screenshot. src -> images/generate-app-keys.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Terminal running openssl rand to generate APP_KEYS and the JWT secrets.</em><small>Shows how the random secret values are produced.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #2
+Create a realistic terminal / command-line screenshot for a technical blog post titled "How to Self-Host Strapi in Production (Without Losing Your Data)".
+
+What it must show: Terminal running openssl rand to generate APP_KEYS and the JWT secrets.
+Also: Shows how the random secret values are produced.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-terminal.png" alt="Terminal running openssl rand to generate APP_KEYS and the JWT secrets.">
+    <figcaption>Using openssl to create random secret values</figcaption>
+  </figure>
 
   <h3>Build and start commands</h3>
   <p>Compile the admin panel, then start Strapi in production mode. In development you'd use <code>npm run develop</code>; production is a build followed by start:</p>
@@ -236,32 +257,46 @@ module.exports = ({ env }) =&gt; ({
   <h3>1. Launch managed PostgreSQL</h3>
   <p>Open the database section and launch a PostgreSQL instance. It's provisioned, secured, locked to your app server's IP, and backed up for you. Note the connection details for the env vars next.</p>
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen, creating the managed PostgreSQL that backs self-hosted Strapi">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean console Launch Database screen, creating the managed PostgreSQL that backs self-hosted Strapi">
     <figcaption>Launch a managed PostgreSQL for Strapi. More on sizing and backups in the <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> guide.</figcaption>
   </figure>
 
   <h3>2. Add your Strapi app as a Node application</h3>
   <p>Create a new application on the Node runtime and point it at your Strapi project. Standard Node deployment, running under PM2 so the process stays up and restarts on failure.</p>
   <figure>
-    <img src="../assets/console/add-application.png" alt="The Kloudbean console Add Application screen, deploying the Strapi Node app onto the managed Node runtime">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="The Kloudbean console Add Application screen, deploying the Strapi Node app onto the managed Node runtime">
     <figcaption>Add the Strapi app on the managed Node runtime. Strapi runs as your own Node application, not a one-click install.</figcaption>
   </figure>
 
   <h3>3. Set APP_KEYS and the rest of your secrets</h3>
   <p>Open Runtime Configuration, then Environment Variables, and paste in the block from earlier: the Strapi secrets, <code>DATABASE_URL</code>, <code>NODE_ENV=production</code>, and the S3 credentials. Save, and the app picks them up on its next start.</p>
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables screen holding Strapi APP_KEYS, JWT secrets, DATABASE_URL and S3 credentials">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean console Environment Variables screen holding Strapi APP_KEYS, JWT secrets, DATABASE_URL and S3 credentials">
     <figcaption>Environment Variables: APP_KEYS, the JWT secrets, DATABASE_URL, and the S3 keys live here, never in the repo.</figcaption>
   </figure>
 
   <h3>4. Connect Git and deploy on every push</h3>
   <p>Link your GitHub repository and set it to build and start on push. Put <code>npm run build</code> in the build step so the admin compiles every time, then let the process manager run <code>npm run start</code>. Live build logs stream in the console, so a failed build tells you why.</p>
   <figure>
-    <img src="../assets/console/git-deployment.png" alt="The Kloudbean console Git deployment screen, building and starting self-hosted Strapi on every push from GitHub">
+    <img src="../assets/console-real/shots/git_connect_step_4.png" alt="The Kloudbean console Git deployment screen, building and starting self-hosted Strapi on every push from GitHub">
     <figcaption>Git deploys: push to your branch, Strapi rebuilds the admin and restarts. Full walk-through in <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a>.</figcaption>
   </figure>
 
   <!-- Author: replace this slot with a real screenshot. src -> images/strapi-admin-login.png -->
+  <!-- IMAGE CAPTURE [third-party-ui] #3
+SCREENSHOT NEEDED (do not generate this one).
+This slot shows another product's own interface, so an AI image would be inaccurate and a reader could tell.
+Capture: The Strapi admin login screen running on your own domain over HTTPS after the first deploy.
+Note: Proof the self-hosted instance is live.
+Crop to 16:9, keep text legible at 1200px wide, and blur or fake any real credentials, tokens, IPs or customer data.
+-->
+  <!-- IMAGE CAPTURE [third-party-ui] #2
+SCREENSHOT NEEDED (do not generate this one).
+This slot shows another product's own interface, so an AI image would be inaccurate and a reader could tell.
+Capture: The Strapi admin login screen running on your own domain over HTTPS after the first deploy.
+Note: Proof the self-hosted instance is live.
+Crop to 16:9, keep text legible at 1200px wide, and blur or fake any real credentials, tokens, IPs or customer data.
+-->
   <figure class="img-slot"><span><b>Add image</b><em>The Strapi admin login screen running on your own domain over HTTPS after the first deploy.</em><small>Proof the self-hosted instance is live.</small></span></figure>
 
   <h2>Lock down your self-hosted Strapi</h2>
@@ -276,21 +311,80 @@ module.exports = ({ env }) =&gt; ({
   </ul>
 
   <!-- Author: replace this slot with a real screenshot. src -> images/strapi-admin-roles.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Strapi Settings showing Administrator roles and the Users and Permissions plugin locked down.</em><small>Least-privilege access for editors and API tokens.</small></span></figure>
+  <!-- IMAGE GENERATE [panel] #4
+Create a clean settings / configuration panel UI mockup for a technical blog post titled "How to Self-Host Strapi in Production (Without Losing Your Data)".
+
+What it must show: Strapi Settings showing Administrator roles and the Users and Permissions plugin locked down.
+Also: Least-privilege access for editors and API tokens.
+
+A white card with a small uppercase section label, then labelled rows. Highlight the row that carries the point with a violet border. Optional green check line at the bottom confirming the result.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-4-panel.png" alt="Strapi Settings showing Administrator roles and the Users and Permissions plugin locked down.">
+    <figcaption>Ensure least-privilege access</figcaption>
+  </figure>
 
   <h2>Scaling Strapi past a single instance</h2>
   <p>One Strapi process handles a surprising amount of traffic, so don't reach for more before you need it. When you do scale out, the earlier architecture is what makes it possible. Multiple instances only work if they share the same state: one PostgreSQL, one S3-compatible bucket. That's the real reason local SQLite and local uploads fail, they're private to a single process. Put a load balancer in front (Kloudbean's FLB is built in for this), point every instance at the same database and bucket, and requests spread cleanly.</p>
   <figure>
-    <img src="../assets/console/flb-load-balancer.png" alt="The Kloudbean console Flexible Load Balancer screen, spreading traffic across multiple Strapi instances that share one database and bucket">
+    <img src="../assets/console-real/shots/flb_launch_step_2.png" alt="The Kloudbean console Flexible Load Balancer screen, spreading traffic across multiple Strapi instances that share one database and bucket">
     <figcaption>Scaling out: FLB in front of multiple Strapi instances, all sharing the same managed PostgreSQL and S3 bucket.</figcaption>
   </figure>
   <p>Keep media in object storage no matter how many instances you run. And a slow content API is nearly always a database question: add the right indexes, watch your queries, resize the server before you add machines.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Own your content layer, end to end.</p>
-    <p style="margin:0 0 .6em">Run self-hosted Strapi on a managed Node server, backed by managed PostgreSQL and S3-compatible uploads, with secrets in env, Git deploys, and automatic backups handled for you. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Managed Node runtime · Managed PostgreSQL · S3-compatible storage · Automatic backups · Free migration · Free trial</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">Take it off localhost for good.</p>
+    <p class="kbcta-ai-description">Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

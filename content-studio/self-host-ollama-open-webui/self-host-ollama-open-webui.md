@@ -60,11 +60,11 @@ Here's the honest, jargon-free version. Treat these as rough guides, not promise
 
 The rule of thumb: CPU-only is fine for trying it out and for light, patient use. A GPU is what makes it feel instant, and Kloudbean offers GPU servers when you want that speed. Pick your model to match your server, not the other way around, and size the memory and GPU up front:
 
-![The Kloudbean console Add Server screen where you pick memory and resources sized to the AI model you plan to run](../assets/console/add-server.png)
+![The Kloudbean console Add Server screen where you pick memory and resources sized to the AI model you plan to run](../assets/console-real/shots/launch_server_step_1.png)
 
 Start modest, run a small model, see how it feels, and scale up if you want it faster or smarter. Learning on a small box beats over-buying on day one, and moving to a bigger box later is a resize, not a rebuild.
 
-<!-- ADD IMAGE: Terminal running ollama pull for a model, then the model responding to a first prompt. -->
+![Model download initiated](images/gen-1-terminal.png)
 
 ## What a local model is good at, and where it isn't
 
@@ -76,7 +76,7 @@ Where it lags is the frontier. The hardest reasoning and the broadest world know
 
 You don't have to assemble this by hand. Add an application, choose Open WebUI with DeepSeek, and the platform stands up the chat interface with an open model behind it on your server, free SSL included.
 
-![The Kloudbean console Add Application screen where Open WebUI with DeepSeek deploys in one click onto your own server](../assets/console/add-application.png)
+![The Kloudbean console Add Application screen where Open WebUI with DeepSeek deploys in one click onto your own server](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 From there you reach it at `chat.yourcompany.com` with a login, and you can pull additional open models through the runtime whenever you like.
 
@@ -107,11 +107,21 @@ The point of all this is privacy, so let's be precise. Prompts, responses, and c
 
 What you own is the setup: the server, the models you pull, and the updates. The platform keeps the box itself healthy, meaning the OS, networking, free SSL, and server-level backups, and lets you pick the memory and GPU the models need. You bring the models. You keep the conversations. If you're assembling a wider set of tools you run yourself, the [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup and the [self-host Supabase](https://www.kloudbean.com/blog/self-host-supabase/) guide pair well with this one.
 
----
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-**A ChatGPT-style assistant that keeps its mouth shut.** Deploy Open WebUI with DeepSeek in one click on a memory-ready server, with the model runtime on a box you size and control. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-One-click Open WebUI · Your models, your server · No per-token bill · Free SSL · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

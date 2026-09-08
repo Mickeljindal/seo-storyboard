@@ -177,11 +177,11 @@ Tools are easy to install and easy to misapply. A simple mental model keeps you 
 
 Steps one and two are exactly what a good managed platform sets up for you. Here's that from a console instead of a config file, firewall rules on top and the ban list below:
 
-![Kloudbean server security panel showing Shorewall firewall inbound rules for ports 22, 80, 443 and 3306, plus a Fail2ban brute-force list of blocked IPs with unblock buttons](../assets/console/firewall.png)
+![Kloudbean server security panel showing Shorewall firewall inbound rules for ports 22, 80, 443 and 3306, plus a Fail2ban brute-force list of blocked IPs with unblock buttons](../assets/console-real/shots/app_ip_whitelisting.png)
 
 *The same two layers in a dashboard: Shorewall inbound rules up top (22, 80, 443 open, database port whitelist-only) and Fail2ban's blocked IPs below, each with an unblock button.*
 
-<!-- ADD IMAGE: a terminal running sudo fail2ban-client status sshd on your own server, showing the currently banned IP list -->
+![Real replies, not pseudo-code](images/gen-1-terminal.png)
 
 ## Beyond the baseline: what a firewall and Fail2ban don't cover
 
@@ -193,7 +193,7 @@ Here's the honest part. Shorewall and Fail2ban are the baseline, the floor you b
 
 **Give out the least access that works.** If one login is stolen, least privilege decides how bad the day gets. Don't hand everyone root. Subusers and User Access Control let you grant per-resource, per-action permissions, so a contractor can deploy one app and touch nothing else. The details are in [user access control explained](https://www.kloudbean.com/blog/user-access-control-explained/).
 
-![Kloudbean User Access Control matrix granting a subuser selective view, create, and manage permissions per resource across servers, applications, databases, and buckets](../assets/console/subusers-uac.png)
+![Kloudbean User Access Control matrix granting a subuser selective view, create, and manage permissions per resource across servers, applications, databases, and buckets](../assets/console-real/shots/uac_resources_access.png)
 
 *Least privilege in practice: a subuser gets view and deploy on one app and nothing destructive, instead of full account access.*
 
@@ -219,7 +219,7 @@ Unbanning an address is a single command. Swap `sshd` for whichever jail caught 
 sudo fail2ban-client set sshd unbanip 1.2.3.4
 ```
 
-<!-- ADD IMAGE: your jail.local open in an editor with ignoreip highlighted, so the reader sees exactly where their own IP goes -->
+![Configure fail2ban to ignore your IP](images/gen-2-flow.png)
 
 ## How Kloudbean applies Fail2ban and Shorewall automatically
 
@@ -227,7 +227,7 @@ You can do all of this by hand, and on your own raw VPS you should. It's just fi
 
 Every managed server, on any of the seven supported clouds (AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud), launches with Shorewall and Fail2ban already configured and running. Free SSL is issued for your domains. You don't install or wire anything up.
 
-![Kloudbean Add Server screen selecting a cloud provider and server size, with baseline hardening applied automatically on launch](../assets/console/add-server.png)
+![Kloudbean Add Server screen selecting a cloud provider and server size, with baseline hardening applied automatically on launch](../assets/console-real/shots/launch_server_step_1.png)
 
 *Launch a server on any of the seven clouds and it comes up hardened: Shorewall and Fail2ban on by default, SSL ready for your domain.*
 
@@ -235,11 +235,20 @@ From the dashboard you can see which ports are open, watch the IPs Fail2ban has 
 
 What's still yours: your SSH keys and your application's own security. Managed means the server, firewall, ban rules, SSL, and patching are handled for you. It does not mean your code is automatically safe. Nobody's is, and any host that tells you otherwise is selling something.
 
----
+<!-- cta:start -->
+**Patched, firewalled, and backed up.**
 
-**Every server should start hardened, not eventually.** Launch on [kloudbean.com](https://www.kloudbean.com/) and the baseline is already on, with free migration help and a free trial to start. Server sizes and plans are on [pricing](https://www.kloudbean.com/pricing/).
+Every server ships with a Shorewall firewall and Fail2ban, free auto-renewing SSL, automatic backups, and OS patching handled. Add IP access control or a Basic Auth gate when a site should not be public.
 
-Firewall + Fail2ban on every server · Free SSL · IP access control · Automatic backups · Free migration · Free trial
+- Shorewall firewall
+- Fail2ban
+- OS patching handled
+- Free SSL
+- IP access control
+- Automatic backups
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

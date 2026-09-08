@@ -104,6 +104,13 @@
   <p>The catch-all: requests carrying deliberately malformed data, oversized inputs, or files disguised to slip past your app and execute something they shouldn't. The WAF inspects payloads for these signatures and rejects them, adding a checkpoint between the raw request and your logic. It flags a range of "this request is clearly up to no good" cases you'd otherwise defend against one by one.</p>
 
   <!-- swap this slot for a real screenshot: src -> images/your-file.png -->
+  <!-- IMAGE CAPTURE [third-party-ui] #1
+SCREENSHOT NEEDED (do not generate this one).
+This slot shows another product's own interface, so an AI image would be inaccurate and a reader could tell.
+Capture: An access log or WAF event feed with blocked probes: requests for /.env, /wp-admin, and a SQL-injection string, each marked 403.
+Note: Real log lines make the "background noise" concrete.
+Crop to 16:9, keep text legible at 1200px wide, and blur or fake any real credentials, tokens, IPs or customer data.
+-->
   <figure class="img-slot"><span><b>Add image</b><em>An access log or WAF event feed with blocked probes: requests for /.env, /wp-admin, and a SQL-injection string, each marked 403.</em><small>Real log lines make the "background noise" concrete.</small></span></figure>
 
   <h2>Managed rules versus custom rules</h2>
@@ -111,14 +118,42 @@
   <p>Custom rules are for the things only you know: block a country you never sell to, rate-limit a specific expensive endpoint, allow-list your office IP for the admin panel. Start with the managed ruleset, add custom rules only where your app has a specific need. Over-customizing early is a great way to create false positives you'll spend weeks chasing.</p>
 
   <!-- swap this slot for a real screenshot: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A WAF events dashboard: blocked requests by rule (SQLi, XSS, bad bots) over the last 24 hours.</em><small>Seeing the volume of junk it absorbs is the moment a WAF sells itself.</small></span></figure>
+  <!-- IMAGE GENERATE [panel] #2
+Create a clean settings / configuration panel UI mockup for a technical blog post titled "What a WAF Does: 7 Attacks a Web Application Firewall Blocks".
+
+What it must show: A WAF events dashboard: blocked requests by rule (SQLi, XSS, bad bots) over the last 24 hours.
+Also: Seeing the volume of junk it absorbs is the moment a WAF sells itself.
+
+A white card with a small uppercase section label, then labelled rows. Highlight the row that carries the point with a violet border. Optional green check line at the bottom confirming the result.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-panel.png" alt="A WAF events dashboard: blocked requests by rule (SQLi, XSS, bad bots) over the last 24 hours.">
+    <figcaption>Last 24 hours</figcaption>
+  </figure>
 
   <h2>The honest downside: false positives</h2>
   <p>A WAF's weakness is the flip side of its strength. It matches patterns, and sometimes a legitimate request looks like an attack. A user pastes a code snippet with <code>&lt;script&gt;</code> in it into your support form. Your own API sends a payload that trips a rule. Suddenly real people are getting blocked, and the reports land on you.</p>
   <p>So here's the rule I'd stand behind: never flip a WAF straight to blocking on day one. Run it in <strong>monitor or log mode</strong> first, watch what it <em>would</em> have blocked for a week or two, tune out the false positives, and only then switch to enforce. The anti-pattern we see over and over is someone enabling an aggressive WAF, walking away, and then wondering why their own dashboard or checkout is throwing 403s. Monitor first. Enforce second. Your users will never know it happened.</p>
 
   <!-- swap this slot for a real screenshot: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A WAF rule in monitor or log-only mode, showing what it would have blocked before you switch it to enforce.</em><small>The safe rollout step, in one picture.</small></span></figure>
+  <!-- IMAGE GENERATE [graph] #3
+Create a clean line chart / time-series graph for a technical blog post titled "What a WAF Does: 7 Attacks a Web Application Firewall Blocks".
+
+What it must show: A WAF rule in monitor or log-only mode, showing what it would have blocked before you switch it to enforce.
+Also: The safe rollout step, in one picture.
+
+Label both axes. Draw the trend the description implies. Add a dashed red threshold line only if a limit is being hit. Legible axis labels, no 3D, no gradient clutter.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-graph.png" alt="A WAF rule in monitor or log-only mode, showing what it would have blocked before you switch it to enforce.">
+    <figcaption>Log-only mode vs. Enforce mode</figcaption>
+  </figure>
 
   <h2>A WAF is a layer, not a fix</h2>
   <p>Now the caveat that matters most, because a WAF is not a force field. It blocks <em>known patterns</em>, so a clever novel attack can slip past it, and it absolutely does not excuse sloppy code. If your app builds SQL by string-concatenating user input, a WAF is a band-aid over a wound that needs stitches. Use parameterized queries. Validate input. Keep your software patched. The WAF's real job is soaking up the enormous volume of common, automated junk at the door, which is genuinely valuable and takes real load off you, while your secure code handles the requests that look legitimate but aren't.</p>
@@ -127,10 +162,55 @@
   <h2>Where a WAF fits on Kloudbean</h2>
   <p>Straight answer, because the accuracy matters here: Kloudbean doesn't run a WAF baked into the box. The WAF layer is delivered by the <strong>Cloudflare Enterprise add-on</strong>, which is paid on standard plans and included free for Enterprise accounts. It sits at the edge, in front of your origin, and screens layer-7 requests against a maintained ruleset before they reach you. Underneath that, on the server itself, the baseline is a <strong>Shorewall firewall plus Fail2ban</strong>, which closes unused ports and bans addresses that keep misbehaving. So the picture is layered: Cloudflare's WAF at the edge, Shorewall and Fail2ban on the origin, and your secure code behind both. That mirrors how the edge handles floods too, which we cover in <a href="https://www.kloudbean.com/blog/ddos-protection-explained/">DDoS protection explained</a>, and it's the same defense-in-depth story as <a href="https://www.kloudbean.com/blog/secure-wordpress-hosting/">secure WordPress hosting</a>.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A bouncer at the door, a sound building behind it.</p>
-    <p style="margin:0">Run your app on a managed stack with an edge WAF add-on and a hardened origin at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Cloudflare Enterprise edge add-on · Shorewall + Fail2ban baseline · Free SSL · Managed patching · Automatic backups · Free trial. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+<div class="kbcta-sec-wrap">
+  <div class="kbcta-sec-overlay"></div>
+  <div class="kbcta-sec-content">
+    <div class="kbcta-sec-eyebrow">SECURITY &middot; HARDENED BY DEFAULT</div>
+    <p class="kbcta-sec-heading">The server layer, hardened for you.</p>
+    <p class="kbcta-sec-description">The platform keeps the server, stack, SSL, and patching current, with automatic backups running. Application-level security stays yours, and that split is deliberate rather than hidden.</p>
+    <ul class="kbcta-sec-features">
+      <li>&#10003; Shorewall firewall</li>
+      <li>&#10003; Fail2ban</li>
+      <li>&#10003; OS patching handled</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; IP access control</li>
+      <li>&#10003; Automatic backups</li>
+    </ul>
+    <div class="kbcta-sec-buttons">
+      <a class="kbcta-sec-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-sec-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-sec: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-sec-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-sec-wrap *{box-sizing:border-box}
+.kbcta-sec-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-sec-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-sec-content{position:relative;z-index:3;max-width:700px}
+.kbcta-sec-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-sec-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-sec-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-sec-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-sec-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-sec-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-sec-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-sec-btn:hover,.kbcta-sec-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-sec-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-sec-link:hover,.kbcta-sec-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-sec-wrap{padding:36px 24px}
+  .kbcta-sec-heading{font-size:31px}
+  .kbcta-sec-description{font-size:16px}
+  .kbcta-sec-features li{white-space:normal}
+  .kbcta-sec-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-sec-btn{width:100%}
+  .kbcta-sec-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

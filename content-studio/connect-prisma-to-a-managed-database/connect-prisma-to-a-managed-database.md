@@ -30,7 +30,7 @@ That's it. The `provider` tells Prisma which SQL dialect to speak. The `url` rea
 
 Your app reads its connection from the environment. Not from a value typed into a file, and definitely not from something committed to the repo. On Kloudbean you open **Runtime Configuration -> Environment Variables** and set it there.
 
-<!-- ADD IMAGE: Kloudbean env-vars screen setting the Prisma DATABASE_URL -->
+![Direct connection setup](images/gen-1-flow.png)
 
 Here's the shape for each engine. Note the query params after the database name:
 
@@ -46,7 +46,7 @@ Read left to right: the user, the password, the host (an internal address on Klo
 
 **On SSL:** if the database is ever reachable over a public network, add `sslmode=require` so Postgres encrypts the connection (MySQL has its own SSL params like `sslaccept`). With IP allow-listing, where only your app server's IP can connect, the database isn't exposed to the internet at all, which is the safer default and one less thing to configure. Keep `.env` out of Git either way. More on that in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
-<!-- ADD IMAGE: schema.prisma next to the .env file, showing url = env("DATABASE_URL") and the matching variable -->
+![Migrations apply automatically on deploy](images/gen-2-flow.png)
 
 ## How Prisma actually connects: one pool per instance
 
@@ -115,7 +115,7 @@ npm run start
 
 On Kloudbean's managed CI/CD you connect the Git repo and drop `prisma generate` and `prisma migrate deploy` into the build or deploy step. A schema change then ships with the code that needs it, and the live build logs show each command running. The full setup is in [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-<!-- ADD IMAGE: deploy build logs with prisma generate and prisma migrate deploy running in sequence -->
+![Connection_limit matters](images/gen-3-graph.png)
 
 ## Prisma connection pooling: the number one production issue
 
@@ -157,7 +157,7 @@ DIRECT_URL="postgresql://appuser:s3cret@10.0.0.5:5432/appdb"
 
 One honest note on what's yours versus what's the platform's. A managed database on Kloudbean gives you a real Postgres or MySQL with a connection ceiling, backups, and access locked to your app server's IP. The pooling strategy is yours to set: you choose `connection_limit`, or you run PgBouncer on your own server when you need it. There's no separate pooler product to buy, and no magic that hides the connection math from you. Understanding it is the job. The deeper mechanics live in [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/), and the engine-side view is in [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/).
 
-<!-- ADD IMAGE: a metrics graph of active database connections climbing under load -->
+![Active connections increase with more requests](images/gen-1-graph.png)
 
 ## Does Prisma care whether it's PostgreSQL or MySQL?
 
@@ -192,11 +192,20 @@ Prisma wants a specific thing from production: a real, always-on Postgres or MyS
 
 The flow is short. Launch the database, copy the connection details into `DATABASE_URL`, and deploy your Node app on the same server so the app and the database sit side by side in one account. You whitelist the app server's IP so only it can reach the database: no public exposure, low latency, one dashboard for both. The broader walkthrough, including framework examples beyond Prisma, is the pillar guide: [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
 
----
+<!-- cta:start -->
+**Managed, backed up, and still yours.**
 
-**Give Prisma a production database it can trust.** Launch managed PostgreSQL or MySQL, set one `DATABASE_URL`, and deploy your Node app beside it, with IP allow-listing and automatic backups. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Seven managed engines, provisioned and patched for you, with access controlled and backups running automatically. Your schema, your queries, and your data stay exportable with the standard tools.
 
-One-click databases · Automatic backups · Free migration · Free trial · Simple Git deploy
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

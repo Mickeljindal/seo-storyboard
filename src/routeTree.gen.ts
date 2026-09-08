@@ -13,6 +13,7 @@ import { Route as TopicalMapRouteImport } from './routes/topical-map'
 import { Route as ToolsRouteImport } from './routes/tools'
 import { Route as StudioRouteImport } from './routes/studio'
 import { Route as StrategyRouteImport } from './routes/strategy'
+import { Route as SocialRouteImport } from './routes/social'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ScopeRouteImport } from './routes/scope'
 import { Route as ReelsRouteImport } from './routes/reels'
@@ -26,12 +27,17 @@ import { Route as KeywordsRouteImport } from './routes/keywords'
 import { Route as InternalLinksRouteImport } from './routes/internal-links'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as GrowthRouteImport } from './routes/growth'
 import { Route as ExperienceRouteImport } from './routes/experience'
 import { Route as EntityRouteImport } from './routes/entity'
 import { Route as EngineRouteImport } from './routes/engine'
+import { Route as EmailRouteImport } from './routes/email'
+import { Route as CrmRouteImport } from './routes/crm'
 import { Route as ConversionsRouteImport } from './routes/conversions'
 import { Route as ContentTrackerRouteImport } from './routes/content-tracker'
+import { Route as CommandRouteImport } from './routes/command'
 import { Route as CitationsRouteImport } from './routes/citations'
+import { Route as ChangelogRouteImport } from './routes/changelog'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as BriefsRouteImport } from './routes/briefs'
 import { Route as ActivityRouteImport } from './routes/activity'
@@ -55,6 +61,11 @@ const StudioRoute = StudioRouteImport.update({
 const StrategyRoute = StrategyRouteImport.update({
   id: '/strategy',
   path: '/strategy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SocialRoute = SocialRouteImport.update({
+  id: '/social',
+  path: '/social',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -122,6 +133,11 @@ const HelpRoute = HelpRouteImport.update({
   path: '/help',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GrowthRoute = GrowthRouteImport.update({
+  id: '/growth',
+  path: '/growth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ExperienceRoute = ExperienceRouteImport.update({
   id: '/experience',
   path: '/experience',
@@ -137,6 +153,16 @@ const EngineRoute = EngineRouteImport.update({
   path: '/engine',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EmailRoute = EmailRouteImport.update({
+  id: '/email',
+  path: '/email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CrmRoute = CrmRouteImport.update({
+  id: '/crm',
+  path: '/crm',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ConversionsRoute = ConversionsRouteImport.update({
   id: '/conversions',
   path: '/conversions',
@@ -147,9 +173,19 @@ const ContentTrackerRoute = ContentTrackerRouteImport.update({
   path: '/content-tracker',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CommandRoute = CommandRouteImport.update({
+  id: '/command',
+  path: '/command',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CitationsRoute = CitationsRouteImport.update({
   id: '/citations',
   path: '/citations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChangelogRoute = ChangelogRouteImport.update({
+  id: '/changelog',
+  path: '/changelog',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CalendarRoute = CalendarRouteImport.update({
@@ -178,12 +214,17 @@ export interface FileRoutesByFullPath {
   '/activity': typeof ActivityRoute
   '/briefs': typeof BriefsRoute
   '/calendar': typeof CalendarRoute
+  '/changelog': typeof ChangelogRoute
   '/citations': typeof CitationsRoute
+  '/command': typeof CommandRoute
   '/content-tracker': typeof ContentTrackerRoute
   '/conversions': typeof ConversionsRoute
+  '/crm': typeof CrmRoute
+  '/email': typeof EmailRoute
   '/engine': typeof EngineRoute
   '/entity': typeof EntityRoute
   '/experience': typeof ExperienceRoute
+  '/growth': typeof GrowthRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/internal-links': typeof InternalLinksRoute
@@ -197,6 +238,7 @@ export interface FileRoutesByFullPath {
   '/reels': typeof ReelsRoute
   '/scope': typeof ScopeRoute
   '/settings': typeof SettingsRoute
+  '/social': typeof SocialRoute
   '/strategy': typeof StrategyRoute
   '/studio': typeof StudioRoute
   '/tools': typeof ToolsRoute
@@ -207,12 +249,17 @@ export interface FileRoutesByTo {
   '/activity': typeof ActivityRoute
   '/briefs': typeof BriefsRoute
   '/calendar': typeof CalendarRoute
+  '/changelog': typeof ChangelogRoute
   '/citations': typeof CitationsRoute
+  '/command': typeof CommandRoute
   '/content-tracker': typeof ContentTrackerRoute
   '/conversions': typeof ConversionsRoute
+  '/crm': typeof CrmRoute
+  '/email': typeof EmailRoute
   '/engine': typeof EngineRoute
   '/entity': typeof EntityRoute
   '/experience': typeof ExperienceRoute
+  '/growth': typeof GrowthRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/internal-links': typeof InternalLinksRoute
@@ -226,6 +273,7 @@ export interface FileRoutesByTo {
   '/reels': typeof ReelsRoute
   '/scope': typeof ScopeRoute
   '/settings': typeof SettingsRoute
+  '/social': typeof SocialRoute
   '/strategy': typeof StrategyRoute
   '/studio': typeof StudioRoute
   '/tools': typeof ToolsRoute
@@ -237,12 +285,17 @@ export interface FileRoutesById {
   '/activity': typeof ActivityRoute
   '/briefs': typeof BriefsRoute
   '/calendar': typeof CalendarRoute
+  '/changelog': typeof ChangelogRoute
   '/citations': typeof CitationsRoute
+  '/command': typeof CommandRoute
   '/content-tracker': typeof ContentTrackerRoute
   '/conversions': typeof ConversionsRoute
+  '/crm': typeof CrmRoute
+  '/email': typeof EmailRoute
   '/engine': typeof EngineRoute
   '/entity': typeof EntityRoute
   '/experience': typeof ExperienceRoute
+  '/growth': typeof GrowthRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/internal-links': typeof InternalLinksRoute
@@ -256,6 +309,7 @@ export interface FileRoutesById {
   '/reels': typeof ReelsRoute
   '/scope': typeof ScopeRoute
   '/settings': typeof SettingsRoute
+  '/social': typeof SocialRoute
   '/strategy': typeof StrategyRoute
   '/studio': typeof StudioRoute
   '/tools': typeof ToolsRoute
@@ -268,12 +322,17 @@ export interface FileRouteTypes {
     | '/activity'
     | '/briefs'
     | '/calendar'
+    | '/changelog'
     | '/citations'
+    | '/command'
     | '/content-tracker'
     | '/conversions'
+    | '/crm'
+    | '/email'
     | '/engine'
     | '/entity'
     | '/experience'
+    | '/growth'
     | '/help'
     | '/how-it-works'
     | '/internal-links'
@@ -287,6 +346,7 @@ export interface FileRouteTypes {
     | '/reels'
     | '/scope'
     | '/settings'
+    | '/social'
     | '/strategy'
     | '/studio'
     | '/tools'
@@ -297,12 +357,17 @@ export interface FileRouteTypes {
     | '/activity'
     | '/briefs'
     | '/calendar'
+    | '/changelog'
     | '/citations'
+    | '/command'
     | '/content-tracker'
     | '/conversions'
+    | '/crm'
+    | '/email'
     | '/engine'
     | '/entity'
     | '/experience'
+    | '/growth'
     | '/help'
     | '/how-it-works'
     | '/internal-links'
@@ -316,6 +381,7 @@ export interface FileRouteTypes {
     | '/reels'
     | '/scope'
     | '/settings'
+    | '/social'
     | '/strategy'
     | '/studio'
     | '/tools'
@@ -326,12 +392,17 @@ export interface FileRouteTypes {
     | '/activity'
     | '/briefs'
     | '/calendar'
+    | '/changelog'
     | '/citations'
+    | '/command'
     | '/content-tracker'
     | '/conversions'
+    | '/crm'
+    | '/email'
     | '/engine'
     | '/entity'
     | '/experience'
+    | '/growth'
     | '/help'
     | '/how-it-works'
     | '/internal-links'
@@ -345,6 +416,7 @@ export interface FileRouteTypes {
     | '/reels'
     | '/scope'
     | '/settings'
+    | '/social'
     | '/strategy'
     | '/studio'
     | '/tools'
@@ -356,12 +428,17 @@ export interface RootRouteChildren {
   ActivityRoute: typeof ActivityRoute
   BriefsRoute: typeof BriefsRoute
   CalendarRoute: typeof CalendarRoute
+  ChangelogRoute: typeof ChangelogRoute
   CitationsRoute: typeof CitationsRoute
+  CommandRoute: typeof CommandRoute
   ContentTrackerRoute: typeof ContentTrackerRoute
   ConversionsRoute: typeof ConversionsRoute
+  CrmRoute: typeof CrmRoute
+  EmailRoute: typeof EmailRoute
   EngineRoute: typeof EngineRoute
   EntityRoute: typeof EntityRoute
   ExperienceRoute: typeof ExperienceRoute
+  GrowthRoute: typeof GrowthRoute
   HelpRoute: typeof HelpRoute
   HowItWorksRoute: typeof HowItWorksRoute
   InternalLinksRoute: typeof InternalLinksRoute
@@ -375,6 +452,7 @@ export interface RootRouteChildren {
   ReelsRoute: typeof ReelsRoute
   ScopeRoute: typeof ScopeRoute
   SettingsRoute: typeof SettingsRoute
+  SocialRoute: typeof SocialRoute
   StrategyRoute: typeof StrategyRoute
   StudioRoute: typeof StudioRoute
   ToolsRoute: typeof ToolsRoute
@@ -409,6 +487,13 @@ declare module '@tanstack/react-router' {
       path: '/strategy'
       fullPath: '/strategy'
       preLoaderRoute: typeof StrategyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/social': {
+      id: '/social'
+      path: '/social'
+      fullPath: '/social'
+      preLoaderRoute: typeof SocialRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -502,6 +587,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HelpRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/growth': {
+      id: '/growth'
+      path: '/growth'
+      fullPath: '/growth'
+      preLoaderRoute: typeof GrowthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/experience': {
       id: '/experience'
       path: '/experience'
@@ -523,6 +615,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/email': {
+      id: '/email'
+      path: '/email'
+      fullPath: '/email'
+      preLoaderRoute: typeof EmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crm': {
+      id: '/crm'
+      path: '/crm'
+      fullPath: '/crm'
+      preLoaderRoute: typeof CrmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/conversions': {
       id: '/conversions'
       path: '/conversions'
@@ -537,11 +643,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContentTrackerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/command': {
+      id: '/command'
+      path: '/command'
+      fullPath: '/command'
+      preLoaderRoute: typeof CommandRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/citations': {
       id: '/citations'
       path: '/citations'
       fullPath: '/citations'
       preLoaderRoute: typeof CitationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/changelog': {
+      id: '/changelog'
+      path: '/changelog'
+      fullPath: '/changelog'
+      preLoaderRoute: typeof ChangelogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/calendar': {
@@ -580,12 +700,17 @@ const rootRouteChildren: RootRouteChildren = {
   ActivityRoute: ActivityRoute,
   BriefsRoute: BriefsRoute,
   CalendarRoute: CalendarRoute,
+  ChangelogRoute: ChangelogRoute,
   CitationsRoute: CitationsRoute,
+  CommandRoute: CommandRoute,
   ContentTrackerRoute: ContentTrackerRoute,
   ConversionsRoute: ConversionsRoute,
+  CrmRoute: CrmRoute,
+  EmailRoute: EmailRoute,
   EngineRoute: EngineRoute,
   EntityRoute: EntityRoute,
   ExperienceRoute: ExperienceRoute,
+  GrowthRoute: GrowthRoute,
   HelpRoute: HelpRoute,
   HowItWorksRoute: HowItWorksRoute,
   InternalLinksRoute: InternalLinksRoute,
@@ -599,6 +724,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReelsRoute: ReelsRoute,
   ScopeRoute: ScopeRoute,
   SettingsRoute: SettingsRoute,
+  SocialRoute: SocialRoute,
   StrategyRoute: StrategyRoute,
   StudioRoute: StudioRoute,
   ToolsRoute: ToolsRoute,

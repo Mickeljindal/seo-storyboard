@@ -112,21 +112,30 @@ A lot of "heap out of memory" crashes are really "the box is too small" in disgu
 
 That second one is where a managed setup helps. On Kloudbean your Node app runs on a real server you can resize when it genuinely needs more headroom, no rebuild-from-scratch. And a managed Redis sits in the same dashboard, so the caches and session data that were bloating your heap can live in Redis instead of in-process. PM2 multi-process keeps the app running and restarts a worker if it does spike. Fewer surprise 3am crashes, and a clear place to add memory when the app has earned it.
 
-![The Kloudbean console launching a managed Redis instance to move caching and session data off the Node.js heap](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed Redis instance to move caching and session data off the Node.js heap](../assets/console-real/shots/psql_launch_step_1.png)
 
 *Move heap-heavy caching off the Node process: a managed Redis launches in the same dashboard as the app, backed up automatically.*
 
-<!-- ADD IMAGE: a real memory-usage graph before and after the fix, a climbing line that flattens out -->
+![Memory usage before and after fix](images/gen-1-graph.png)
 
 ## What else this decision affects
 
 Memory is one of a few things that quietly decide whether a Node app stays up. For the pieces around it, see [the PM2 process manager guide](https://www.kloudbean.com/blog/pm2-process-manager-guide/), [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/) for offloading caches, and [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/). Choosing where to run it all in the first place? [Where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/) walks the options, and [deploy a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) is the hands-on version.
 
----
+<!-- cta:start -->
+**Deploys that tell you what broke.**
 
-**Run your Node app where memory isn't a guessing game.** Deploy from GitHub, keep it alive with PM2, resize the server when the app needs it, and move caching to a managed Redis in the same dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-Deploy from GitHub · PM2 process management · Managed Redis · Resize on demand · Automatic backups · Free migration
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

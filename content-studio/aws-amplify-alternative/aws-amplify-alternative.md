@@ -43,7 +43,7 @@ Nobody leaves on day one. People start searching around the time three or four o
 
 **Opaque build failures.** The Amplify build runs in a container you don't fully control. When it goes red, you're scrolling logs trying to reproduce an environment you can't see, tweaking a build spec, and pushing again just to test a theory. The loop is slow, and slow loops are where afternoons go to die.
 
-<!-- ADD IMAGE: a real CloudFormation stack events view showing a failed or rolling-back Amplify deploy. -->
+![Identify failed or rolling back Amplify deploy](images/gen-1-flow.png)
 
 ## Amplify vs a managed server: the shape of the difference
 
@@ -146,27 +146,27 @@ The move is less dramatic than it sounds. It's four or five clear steps, and you
 
 Add a server on the cloud you want, then add an application on it and pick the runtime (Node, Python, PHP, and so on). This is the single box your frontend and backend will live on, instead of a dozen services with their own consoles.
 
-![Kloudbean console Add Application screen for deploying a Node or Python app on a managed server](../assets/console/add-application.png)
+![Kloudbean console Add Application screen for deploying a Node or Python app on a managed server](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 ### Step 2: Connect Git and deploy on every push
 
 Open Deploy Code, connect your GitHub repo (OAuth works), set the build and start commands, and turn on auto-deploy. Every push builds and ships, with live build logs streaming in the console and a deployment history you can roll back through. If you want the full pipeline write-up, see [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-![Kloudbean console Git Deployment tab: connect a GitHub repo, set build and start commands, and deploy on push](../assets/console/git-deployment.png)
+![Kloudbean console Git Deployment tab: connect a GitHub repo, set build and start commands, and deploy on push](../assets/console-real/shots/git_connect_step_4.png)
 
 ### Step 3: Launch a managed database beside the app
 
 From the databases section, launch a managed MySQL or PostgreSQL. Seven engines are available, including Redis and MongoDB, and each comes provisioned, backed up, and locked to your app server's IP. Point `DATABASE_URL` at it and you're done. The deep dives live in [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) and [managed MySQL hosting](https://www.kloudbean.com/blog/managed-mysql-hosting/).
 
-![Kloudbean console Launch Database screen with managed PostgreSQL, MySQL, and other engines](../assets/console/launch-database.png)
+![Kloudbean console Launch Database screen with managed PostgreSQL, MySQL, and other engines](../assets/console-real/shots/psql_launch_step_1.png)
 
 ### Step 4: Move your files to S3-compatible object storage
 
 Create an S3-compatible bucket for user uploads and assets. It speaks the AWS S3 API, so the same SDK and CLI you used with Amplify's storage category keep working. Set public or private access per bucket, and manage objects right from the dashboard.
 
-![Kloudbean console S3-compatible object storage buckets with public and private access controls](../assets/console/s3-buckets.png)
+![Kloudbean console S3-compatible object storage buckets with public and private access controls](../assets/console-real/shots/storage_bucket_step_3.png)
 
-<!-- ADD IMAGE: the finished Kloudbean dashboard showing the server, the app, its managed database, and a bucket together. -->
+![One hop per box](images/gen-2-flow.png)
 
 ### Step 5: Bring your own auth, then set the env vars
 
@@ -188,7 +188,7 @@ aws s3 sync s3://old-amplify-bucket ./files
 aws s3 sync ./files s3://app-uploads --endpoint-url https://s3.your-region.example.com
 ```
 
-<!-- ADD IMAGE: a simple before-and-after sketch, Amplify services on one side and the Kloudbean one-server stack on the other. -->
+![Before and after: the spread of Amplify services beside the single Kloudbean server](images/gen-3-comparison.png)
 
 ## When Amplify is still the right call
 
@@ -200,11 +200,20 @@ My honest opinion, for what it's worth: Amplify is a strong way to start inside 
 
 Two things worth saying plainly, because a guide that only flatters one side isn't a guide. First, Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and the frameworks on top like React, Next.js, Vue, Django, and Laravel. .NET runs on Linux here; Windows Server is a Premium and Enterprise option. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and backups, while your application and its data stay yours to export anytime. Second, about the one thing Amplify bundles that this model doesn't: there's no drop-in Cognito or AppSync here. You bring your own auth and your own API framework. What you get back is one dashboard, a flat price, and real portability, including the option to run on AWS or Lightsail through Kloudbean if you want AWS infrastructure without the AWS console. If private networking is part of your Enterprise plan, [what is a VPC](https://www.kloudbean.com/blog/what-is-a-vpc/) covers how that fits.
 
-## Full-stack, minus the maze
+<!-- cta:start -->
+**Move it once. Own it after.**
 
-Run your frontend, your backend, a managed database, and object storage on one server you control, priced flat from $8/mo. Start at [kloudbean.com](https://www.kloudbean.com/); check current plans on [pricing](https://www.kloudbean.com/pricing/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-Frontend + backend on one server · One-click managed databases · S3-compatible object storage · Automatic backups · Free SSL · Free migration · Free trial · Git deploy
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

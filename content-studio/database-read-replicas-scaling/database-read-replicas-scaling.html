@@ -104,7 +104,21 @@ primary.query("SELECT name FROM users WHERE id = 42")</code></pre>
   </table>
 
   <!-- ADD IMAGE: replace this slot with a diagram or screenshot of your app's read/write routing, or an ORM read-replica config. src -> images/read-write-split.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Your read/write routing in one glance: writes to primary, reads to replica, and the read-your-own-writes exception.</em><small>Optional: swap for your own diagram or config screenshot.</small></span></figure>
+  <!-- IMAGE GENERATE [panel] #1
+Create a clean settings / configuration panel UI mockup for a technical blog post titled "Database Read Replicas: When You Actually Need One (and What to Try First)".
+
+What it must show: Your read/write routing in one glance: writes to primary, reads to replica, and the read-your-own-writes exception.
+Also: Optional: swap for your own diagram or config screenshot.
+
+A white card with a small uppercase section label, then labelled rows. Highlight the row that carries the point with a violet border. Optional green check line at the bottom confirming the result.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-panel.png" alt="Your read/write routing in one glance: writes to primary, reads to replica, and the read-your-own-writes exception.">
+    <figcaption>Primary writes, replicas reads, with exceptions</figcaption>
+  </figure>
 
   <h2>Try the cheaper levers first</h2>
   <p>Now the opinion I'll stand behind: most "the database is slow" incidents are not a read-replica problem, and reaching for a replica first is a common way to add cost and complexity without fixing the real cause. Walk the ladder in order, cheapest first.</p>
@@ -116,7 +130,21 @@ primary.query("SELECT name FROM users WHERE id = 42")</code></pre>
   <p>So the sensible order is: index, then cache, then resize, and only then reach for a read replica when the reads that <em>remain</em> still overwhelm the primary. Replicas are powerful. They're also a bigger, more permanent hammer than a cache, so swing the small tools first.</p>
 
   <!-- ADD IMAGE: replace this slot with a metrics graph of database CPU dropping after caching the hot reads. src -> images/db-cpu-after-cache.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A database CPU graph before and after caching the hot reads, showing the drop.</em><small>Optional: swap for your own monitoring screenshot.</small></span></figure>
+  <!-- IMAGE GENERATE [graph] #2
+Create a clean line chart / time-series graph for a technical blog post titled "Database Read Replicas: When You Actually Need One (and What to Try First)".
+
+What it must show: A database CPU graph before and after caching the hot reads, showing the drop.
+Also: Optional: swap for your own monitoring screenshot.
+
+Label both axes. Draw the trend the description implies. Add a dashed red threshold line only if a limit is being hit. Legible axis labels, no 3D, no gradient clutter.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-graph.png" alt="A database CPU graph before and after caching the hot reads, showing the drop.">
+    <figcaption>Caching improves read performance</figcaption>
+  </figure>
 
   <h2>When a replica is genuinely the right call</h2>
   <p>You've indexed, you're caching, you've sized the instance up, and the database is <em>still</em> pegged on reads. That's the moment. The clean signal is: high CPU, the load is overwhelmingly SELECTs, the hot ones are already cached, and a single instance can't keep up. When that's your diagnosis, a replica (or a few) is the textbook fix, and it scales further than caching alone because it adds real read capacity rather than just avoiding repeat work. Read-heavy products (content sites, analytics dashboards, anything with far more viewing than editing) are the natural fit.</p>
@@ -134,7 +162,7 @@ primary.query("SELECT name FROM users WHERE id = 42")</code></pre>
   <p>These two get conflated constantly, so pin the distinction. A read replica exists to <em>share read load</em>, a performance goal. High-availability (HA) failover exists to <em>survive a failure</em>, an uptime goal, using a standby that takes over if the primary dies. They can overlap (a replica is sometimes promoted to primary in a failure, and many managed setups offer both), but they solve different problems. When you're planning, name which one you actually need: more read capacity, more uptime, or both. A healthy pattern for a serious app is a standby for safety plus one or more replicas for load. They complement each other rather than compete.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed database engine">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean console launching a managed database engine">
     <figcaption>Managed PostgreSQL, MySQL, MariaDB, Redis, Elasticsearch, or MongoDB, provisioned and backed up, locked to your app server's IP.</figcaption>
   </figure>
 
@@ -142,11 +170,55 @@ primary.query("SELECT name FROM users WHERE id = 42")</code></pre>
   <p>In practice, Kloudbean covers the early, cheaper part of that ladder: managed <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">PostgreSQL</a>, <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">MySQL</a>, MariaDB, Redis, Elasticsearch, and MongoDB, all with automatic backups and IP allow-listing so only your app server can connect (a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network (VPC)</a> is available on Enterprise plans). A bigger instance is a resize, not a migration. Managed Redis is right there for the caching layer that defers replicas in the first place. Read replicas are the standard next step for read scaling once you've spent those levers, and they're a concept that sits on top of exactly this kind of managed foundation, so scale in the sane order and check the current options for your engine when you reach that stage.</p>
   <p>Worth separating one thing: scaling the <em>database</em> is a different axis from scaling the <em>app tier</em>. If your app servers are the bottleneck rather than the database, a built-in <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">Flexible Load Balancer</a> spreads traffic across multiple app nodes. If you're still deciding how much to manage yourself, the <a href="https://www.kloudbean.com/blog/managed-database-vs-self-managed/">managed vs self-managed</a> comparison is a good companion, and the broader picture of wiring a database into your app lives in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Scale your database the sane way, in order.</p>
-    <p style="margin:0 0 .6em">Start with a managed database that's easy to index, cache, and resize as you grow. Kloudbean runs six managed engines with automatic backups and IP allow-listing, plus managed Redis for the caching that comes first. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">Managed databases · Automatic backups · Managed Redis · Resize on demand · Free trial</p>
+<div class="kbcta-db-wrap">
+  <div class="kbcta-db-overlay"></div>
+  <div class="kbcta-db-content">
+    <div class="kbcta-db-eyebrow">MANAGED DATABASES &middot; SEVEN ENGINES</div>
+    <p class="kbcta-db-heading">One click to a real database.</p>
+    <p class="kbcta-db-description">Launch MySQL, MariaDB, PostgreSQL, Redis, Memcached, MongoDB, or Elasticsearch in a click, reachable from your app server with automatic backups from minute one. Standard connection strings, standard dumps, no proprietary format.</p>
+    <ul class="kbcta-db-features">
+      <li>&#10003; Seven managed engines</li>
+      <li>&#10003; One-click launch</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Controlled access</li>
+      <li>&#10003; Standard connection strings</li>
+      <li>&#10003; Free migration assistance</li>
+    </ul>
+    <div class="kbcta-db-buttons">
+      <a class="kbcta-db-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-db-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-db: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-db-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#04202B;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-db-wrap *{box-sizing:border-box}
+.kbcta-db-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #04202B 0%, #073947 55%, rgba(14,116,144,.62) 100%);pointer-events:none}
+.kbcta-db-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-db-content{position:relative;z-index:3;max-width:700px}
+.kbcta-db-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-db-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-db-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-db-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-db-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-db-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-db-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#064454;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-db-btn:hover,.kbcta-db-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-db-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-db-link:hover,.kbcta-db-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-db-wrap{padding:36px 24px}
+  .kbcta-db-heading{font-size:31px}
+  .kbcta-db-description{font-size:16px}
+  .kbcta-db-features li{white-space:normal}
+  .kbcta-db-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-db-btn{width:100%}
+  .kbcta-db-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

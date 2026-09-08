@@ -49,7 +49,7 @@ Here's the honest split. If your app is a prototype, or traffic is low and spiky
 
 But if it's an always-on production app, it has a database, and you need a monthly number you can put in a budget, a flat-price managed host is a cleaner fit. On Kloudbean your Node app runs always-on under PM2, deploys from GitHub, and sits next to a one-click managed database in the same dashboard, on a flat plan from $8/mo with no egress meter. The bill is the same whether you get ten visitors or ten thousand. When you switch, free migration assistance runs the first cutover with you, database included. A widely shared sentiment from developers who moved off a metered platform: the new bill was sometimes higher, but they could finally stop watching the meter.
 
-![The Kloudbean console showing a managed database launched next to the app on a flat monthly plan](../assets/console/launch-database.png)
+![The Kloudbean console showing a managed database launched next to the app on a flat monthly plan](../assets/console-real/shots/psql_launch_step_1.png)
 
 *A flat plan with the database in the same dashboard: the number doesn't move with traffic, and internal app-to-database traffic isn't metered.*
 
@@ -57,11 +57,20 @@ But if it's an always-on production app, it has a database, and you need a month
 
 Weighing your options? [Render vs Railway vs Kloudbean](https://www.kloudbean.com/blog/render-vs-railway-vs-kloudbean/) compares all three, and the interactive [Node.js host decision tool](https://www.kloudbean.com/blog/nodejs-hosting-decision-tool/) picks one for your situation. For the wider field, [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/). If a leak is inflating your bill, [fix "JavaScript heap out of memory"](https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/).
 
----
+<!-- cta:start -->
+**Fewer mysteries on the next deploy.**
 
-**Want the number before the invoice?** Run your Node app always-on on a flat plan from $8/mo, with a managed database in the same dashboard and no egress meter. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-Flat pricing from $8/mo · No egress meter · Managed database included · Always-on · Free migration · Free trial
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

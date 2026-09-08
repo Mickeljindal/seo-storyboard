@@ -140,7 +140,21 @@ public class Application {
   <p>Use the committed wrapper (<code>./mvnw</code> or <code>./gradlew</code>), not a globally installed Maven or Gradle. It pins the build-tool version, so CI matches your laptop and you dodge a whole genre of "works locally, breaks on the build server" tickets. Build in CI from Git, not by hand. More on that below.</p>
 
   <!-- ADD IMAGE: terminal showing ./mvnw clean package finishing with BUILD SUCCESS and the target jar path. Swap for a real screenshot: src -> images/mvn-build-success.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A terminal running the build to BUILD SUCCESS, with the target JAR path visible.</em><small>Optional.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #1
+Create a realistic terminal / command-line screenshot for a technical blog post titled "How to Deploy a Spring Boot App to Production".
+
+What it must show: A terminal running the build to BUILD SUCCESS, with the target JAR path visible.
+Also: Optional.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-terminal.png" alt="A terminal running the build to BUILD SUCCESS, with the target JAR path visible.">
+    <figcaption>Target JAR path visible</figcaption>
+  </figure>
 
   <h2>Run it: java -jar and an embedded server</h2>
   <p>With the JAR built, running it is one line. People expect this part to be hard. It isn't:</p>
@@ -154,7 +168,21 @@ java -Xmx512m -Dspring.profiles.active=prod -jar target/myapp-1.0.0.jar</code></
   <p>The JVM boots, Spring wires up your beans, the embedded Tomcat starts, and you'll see the familiar "Tomcat started on port 8080" line. No <code>CATALINA_HOME</code>, no <code>server.xml</code>, no WAR to drop anywhere. One rule: match the Java version you built against. A JAR compiled for Java 17 needs a Java 17 (or newer) runtime, or it throws <code>UnsupportedClassVersionError</code> on startup.</p>
 
   <!-- ADD IMAGE: the Spring Boot startup banner in logs with the line about Tomcat started on port 8080. Swap for a real screenshot: src -> images/spring-boot-startup-log.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The startup logs showing the Spring banner and the embedded Tomcat binding its port.</em><small>Proof it serves without a separate server.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "How to Deploy a Spring Boot App to Production".
+
+What it must show: The startup logs showing the Spring banner and the embedded Tomcat binding its port.
+Also: Proof it serves without a separate server.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="The startup logs showing the Spring banner and the embedded Tomcat binding its port.">
+    <figcaption>Spring banner to Tomcat binding</figcaption>
+  </figure>
 
   <h2>Externalize config: application.properties vs environment variables</h2>
   <p>This is the Spring-specific bit that trips people. Your <code>application.properties</code> or <code>application.yml</code> is fine for defaults: the values that are the same everywhere and aren't secret. Commit those.</p>
@@ -192,7 +220,20 @@ SPRING_DATASOURCE_PASSWORD=change-me</code></pre>
   <p>Profiles are the other half. Put production overrides in <code>application-prod.yml</code>, set <code>SPRING_PROFILES_ACTIVE=prod</code>, and Spring layers that file on top of the defaults. Forget to activate it and your app runs with dev settings in production, which is how a service ends up pointing at a laptop database on launch day. More on keeping secrets out of Git in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</p>
 
   <!-- ADD IMAGE: the dashboard environment variables panel filled with the SPRING_DATASOURCE_ values and SPRING_PROFILES_ACTIVE. Swap for a real screenshot: src -> images/spring-env-vars.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The environment variables panel with the SPRING_ values entered, so secrets live outside the JAR.</em></span></figure>
+  <!-- IMAGE GENERATE [flow] #3
+Create a left-to-right architecture / flow diagram for a technical blog post titled "How to Deploy a Spring Boot App to Production".
+
+What it must show: The environment variables panel with the SPRING_ values entered, so secrets live outside the JAR.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-flow.png" alt="The environment variables panel with the SPRING_ values entered, so secrets live outside the JAR.">
+    <figcaption>Spring Boot config process</figcaption>
+  </figure>
 
   <h2>The port and the reverse proxy</h2>
   <p>Spring Boot listens on <code>server.port</code>, default 8080. In production your app doesn't face the internet directly. A reverse proxy sits in front, terminates TLS on 443, and forwards plain HTTP to your app's internal port. The proxy handles certificates and the public connection; your JVM just handles requests.</p>
@@ -217,7 +258,7 @@ java -Xmx512m -jar app.jar</code></pre>
   <p>Watching real memory beats guessing. A managed server shows the JVM's actual usage, so you size the heap and the box against real numbers, not vibes.</p>
 
   <figure>
-    <img src="../assets/console/server-health.png" alt="The Kloudbean server health view showing CPU, RAM, and disk usage for a server running a Java app">
+    <img src="../assets/console-real/shots/server_health_step_2.png" alt="The Kloudbean server health view showing CPU, RAM, and disk usage for a server running a Java app">
     <figcaption>Server health: watch real RAM and CPU, then set a heap that fits the box instead of guessing.</figcaption>
   </figure>
 
@@ -261,7 +302,7 @@ spring.datasource.hikari.maximum-pool-size=10</code></pre>
   <p>Two rules that aren't optional. Lock the database to your app server's IP, not a public port, so only your app reaches it. And never hardcode credentials in <code>application.properties</code>; they belong in the environment, where you rotate a password without a code change.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen with managed PostgreSQL, MySQL, MariaDB, Redis, and more">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean console Launch Database screen with managed PostgreSQL, MySQL, MariaDB, Redis, and more">
     <figcaption>Launch Database: a managed Postgres or MySQL, provisioned and backed up, locked to your app server's IP. Feed its details into your SPRING_DATASOURCE_ variables.</figcaption>
   </figure>
 
@@ -272,7 +313,7 @@ spring.datasource.hikari.maximum-pool-size=10</code></pre>
   <p>Create a server, choose a cloud (Kloudbean runs seven: AWS, Amazon Lightsail, Google Cloud, DigitalOcean, Vultr, Akamai Linode, and UpCloud), pick a size, then add your application. A single JVM service is comfortable on a small box to start; resize later if the numbers say so.</p>
 
   <figure>
-    <img src="../assets/console/add-application.png" alt="The Kloudbean Add Application screen for adding a Java Spring Boot app to a server">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="The Kloudbean Add Application screen for adding a Java Spring Boot app to a server">
     <figcaption>Add Application: your Spring Boot service gets its own space on the server, with its runtime and config kept separate.</figcaption>
   </figure>
 
@@ -288,14 +329,28 @@ java -Xmx512m -jar target/myapp-1.0.0.jar</code></pre>
   <p>Trigger a deploy and the build log streams live, so you watch the dependencies download, the compile, and the JAR get built instead of guessing why it failed. Turn on automated deployment and every push to that branch builds and ships itself, with a recorded history of what went out. Same continuous-deploy loop the big platforms sell, on a server you own. Full setup in <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a>.</p>
 
   <figure>
-    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Git Deployment tab with the repository, branch, and the Maven build and java -jar start commands for a Spring Boot app">
+    <img src="../assets/console-real/shots/git_connect_step_4.png" alt="The Kloudbean Git Deployment tab with the repository, branch, and the Maven build and java -jar start commands for a Spring Boot app">
     <figcaption>Git Deployment: connect the repo, set the build and start commands and the port, then deploy and watch the build log stream.</figcaption>
   </figure>
 
   <p>Set your environment variables in the console (the <code>SPRING_DATASOURCE_*</code> values, <code>SPRING_PROFILES_ACTIVE=prod</code>, and any keys), point a domain, and turn on the free auto-renewing certificate. The proxy is already terminating TLS, so your JVM never thinks about certificates.</p>
 
   <!-- ADD IMAGE: the deployment history list with a successful Spring Boot build and its timestamp. Swap for a real screenshot: src -> images/deploy-history.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The deployment history showing a successful build and the commit that shipped.</em><small>Optional.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #4
+Create a left-to-right architecture / flow diagram for a technical blog post titled "How to Deploy a Spring Boot App to Production".
+
+What it must show: The deployment history showing a successful build and the commit that shipped.
+Also: Optional.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-4-flow.png" alt="The deployment history showing a successful build and the commit that shipped.">
+    <figcaption>Successful build and commit</figcaption>
+  </figure>
 
   <h2>Where Spring Boot deploys usually go wrong</h2>
   <p>Most failed Java deploys aren't Java problems. They're config and memory problems. The list of suspects is short, so check these before you reread your service classes:</p>
@@ -310,11 +365,56 @@ java -Xmx512m -jar target/myapp-1.0.0.jar</code></pre>
   </ul>
   <p>Notice what's not on that list: your business logic. It's almost never the endpoints. So when a deploy breaks, resist the urge to reread controllers. Read the startup logs, find the one line that names the real cause, fix that, and ship again. Faster, and usually right.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Your Spring Boot app, live on a server you own.</p>
-    <p style="margin:0 0 .6em">Deploy the JAR from Git with live build logs, wire in a managed Postgres or MySQL, and get a reverse proxy with free auto-renewing SSL, no hand-rolled config. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; sizes and plans (from $8/mo, Enterprise custom) are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Managed Java runtime · Git deploy with live build logs · Managed PostgreSQL and MySQL · Reverse proxy and free SSL · Free migration · Free trial</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">Take it off localhost for good.</p>
+    <p class="kbcta-ai-description">Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

@@ -2,7 +2,7 @@
 
 *By Kloudbean Engineering · The 407 is the middleman talking, not your server.*
 
-<!-- ADD IMAGE: hero. A terminal showing a 407 Proxy Authentication Required response with a Proxy-Authenticate header, next to a 401 from the origin. -->
+![Proxy requires credentials](images/gen-1-terminal.png)
 
 An HTTP error 407, or 407 Proxy Authentication Required, is the one status code where the thing refusing you is not your server at all. It's a proxy sitting between your client and the origin, and it wants credentials before it will pass your request along. That single fact clears up most of the confusion around a 407 error. The 401 you might expect comes from the origin server. The 407 comes from a middleman. So before you touch your app, work out which box in the chain is doing the asking, because the fix for error 407 lives somewhere completely different from the fix for a 401.
 
@@ -23,7 +23,7 @@ This is the whole game, so start here. A 407 is the proxy's version of a 401. Sa
 
 If you've read our note on [HTTP 401 Unauthorized](https://www.kloudbean.com/blog/http-error-401-unauthorized/), this will feel familiar, because the two codes are the same idea aimed at different boxes. The trap is treating a 407 like a 401 and going to fix your application's login. Your application never saw the request. The proxy stopped it at the door.
 
-<!-- ADD IMAGE: diagram. Client -> forward proxy -> origin. The client-to-proxy hop carries the 407 and Proxy-Authenticate / Proxy-Authorization; the proxy-to-origin hop carries the 401 and WWW-Authenticate / Authorization. Brand colors navy, purple, green. -->
+![Enter your proxy credentials](images/gen-2-panel.png)
 
 ## Who actually gets a 407 error
 
@@ -177,17 +177,26 @@ When you actually want to restrict who reaches an app, the honest tools are the 
 
 The boundary, once: managed covers the server, the stack, TLS, backups, and patching. Your application code, your client machines, and any corporate proxy in front of your users stay yours. A 407 is usually that client-network proxy, which no host controls. What managed hosting gives you is a correctly configured reverse proxy, plus baseline hardening with Shorewall and Fail2ban and free SSL, so the 407 is not coming from your side.
 
-<!-- ADD IMAGE: Kloudbean console showing server and application logs in one place, confirming the reverse proxy answered rather than a 407. src -> ../assets/console/server-health.png -->
+<!-- ADD IMAGE: Kloudbean console showing server and application logs in one place, confirming the reverse proxy answered rather than a 407. src -> ../assets/console-real/shots/server_health_step_2.png -->
 
 ## What to look at next
 
 Its origin-side twin, [HTTP 401 Unauthorized](https://www.kloudbean.com/blog/http-error-401-unauthorized/), and the permission version, [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/). When the verb is the problem rather than your identity, [405 Method Not Allowed](https://www.kloudbean.com/blog/405-method-not-allowed/), and when you're rate limited, [429 Too Many Requests](https://www.kloudbean.com/blog/429-too-many-requests/). For the gateway that couldn't reach upstream, [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/). On the proxy layer itself, [the nginx reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/) and [nginx versus Apache](https://www.kloudbean.com/blog/nginx-vs-apache/).
 
-## A reverse proxy that answers, not one that interrogates your users
+<!-- cta:start -->
+**Patched, firewalled, and backed up.**
 
-Managed nginx or Apache kept patched, application and server logs in one dashboard so you can see exactly where a response came from, plus IP access control and a Basic Auth gate when you want to gate access on purpose. Free SSL and free migration assistance included. Standard plans from $8/mo, and you can check current pricing on the [pricing page](https://www.kloudbean.com/pricing/). Start at [kloudbean.com](https://www.kloudbean.com/).
+The platform keeps the server, stack, SSL, and patching current, with automatic backups running. Application-level security stays yours, and that split is deliberate rather than hidden.
 
-Managed reverse proxy · App + server logs · IP access control · Basic auth gate · Free SSL · From $8/mo
+- Shorewall firewall
+- Fail2ban
+- OS patching handled
+- Free SSL
+- IP access control
+- Automatic backups
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

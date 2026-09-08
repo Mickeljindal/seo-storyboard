@@ -43,7 +43,21 @@
   <p>None of that makes Cloud Run bad. It makes it a poor fit for one specific case: the app that's always in use.</p>
 
   <!-- swap this slot for a real screenshot. src -> images/cloud-run-cold-start.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A latency chart of a Cloud Run service after idle: the first request spikes on the cold start, then flattens once an instance is warm.</em><small>Makes the cold-start point concrete.</small></span></figure>
+  <!-- IMAGE GENERATE [graph] #1
+Create a clean line chart / time-series graph for a technical blog post titled "A Google Cloud Run Alternative for Always-On Apps (No Cold Starts)".
+
+What it must show: A latency chart of a Cloud Run service after idle: the first request spikes on the cold start, then flattens once an instance is warm.
+Also: Makes the cold-start point concrete.
+
+Label both axes. Draw the trend the description implies. Add a dashed red threshold line only if a limit is being hit. Legible axis labels, no 3D, no gradient clutter.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-graph.png" alt="A latency chart of a Cloud Run service after idle: the first request spikes on the cold start, then flattens once an instance is warm.">
+    <figcaption>First request after idle</figcaption>
+  </figure>
 
   <h2>What Cloud Run genuinely does better</h2>
   <p>Credit where it's due, because this is the part most "alternative" posts skip. There are real workloads where Cloud Run is the right answer and an always-on server is the wrong one.</p>
@@ -128,7 +142,21 @@
   </table>
 
   <!-- swap this slot for a real screenshot. src -> images/pricing-shape.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A simple cost sketch: a flat always-on server line versus a per-request line that spikes and dips with traffic.</em><small>Shows the predictable-vs-variable pricing tradeoff.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #2
+Create a side-by-side comparison table for a technical blog post titled "A Google Cloud Run Alternative for Always-On Apps (No Cold Starts)".
+
+What it must show: A simple cost sketch: a flat always-on server line versus a per-request line that spikes and dips with traffic.
+Also: Shows the predictable-vs-variable pricing tradeoff.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-comparison.png" alt="A simple cost sketch: a flat always-on server line versus a per-request line that spikes and dips with traffic.">
+    <figcaption>Predictable vs Variable Pricing</figcaption>
+  </figure>
 
   <h2>The always-on Google Cloud Run alternative: app and database in one dashboard</h2>
   <p>Kloudbean is the always-on side of that table. You run your app on a managed server you control, and the managed database sits right beside it in the same account. App, database, object storage, SSL, backups, and firewall all live in one dashboard instead of six GCP services. And because Kloudbean supports seven clouds, Google Cloud among them, you can even run on Google's infrastructure through Kloudbean without touching the GCP console.</p>
@@ -169,7 +197,21 @@ gcloud run deploy myapp --image gcr.io/my-project/myapp:latest
   <p>The honest tradeoff: if shipping a specific container image is a hard requirement for you, Cloud Run's container-native model is genuinely better, and you should weigh that. Kloudbean's model is bring your code and we run the runtime, not bring your container.</p>
 
   <!-- swap this slot for a real screenshot. src -> images/live-build-logs.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Live build logs streaming during a Git push deploy: install, then build, then the app starting.</em><small>Shows the push-to-deploy loop in action.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #3
+Create a left-to-right architecture / flow diagram for a technical blog post titled "A Google Cloud Run Alternative for Always-On Apps (No Cold Starts)".
+
+What it must show: Live build logs streaming during a Git push deploy: install, then build, then the app starting.
+Also: Shows the push-to-deploy loop in action.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-flow.png" alt="Live build logs streaming during a Git push deploy: install, then build, then the app starting.">
+    <figcaption>Push-to-deploy loop in action</figcaption>
+  </figure>
 
   <h2>How to move off Cloud Run to an always-on server</h2>
   <p>Moving a standard app over is a normal deploy, not a rewrite. Here's the path.</p>
@@ -177,21 +219,21 @@ gcloud run deploy myapp --image gcr.io/my-project/myapp:latest
   <h3>1. Create the application on a server</h3>
   <p>In the console, add an application and pick your runtime (Node, Python, PHP, Ruby, Java, or a static site). This is your always-on process, the thing that stays warm and answers requests without a cold start.</p>
   <figure>
-    <img src="../assets/console/add-application.png" alt="The Kloudbean console Add Application screen: name the app and choose the runtime">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="The Kloudbean console Add Application screen: name the app and choose the runtime">
     <figcaption>Add an application and choose its runtime. This is the long-lived process that replaces your Cloud Run service.</figcaption>
   </figure>
 
   <h3>2. Connect your Git repo and deploy</h3>
   <p>Point Kloudbean at your GitHub repository and set the install, build, and start commands (the same ones your Dockerfile or Procfile already implies). Deploy, and watch the build logs live rather than pushing an image to a registry first.</p>
   <figure>
-    <img src="../assets/console/git-deployment.png" alt="The Kloudbean console Git Deployment tab: connect a repo, set the runtime, then Pull and Deploy">
+    <img src="../assets/console-real/shots/git_connect_step_4.png" alt="The Kloudbean console Git Deployment tab: connect a repo, set the runtime, then Pull and Deploy">
     <figcaption>Connect the repo, set the commands, Pull and Deploy. Every push after this builds and ships automatically.</figcaption>
   </figure>
 
   <h3>3. Move your config into environment variables</h3>
   <p>Your Cloud Run environment variables and anything you kept in Secret Manager become environment variables here, including <code>DATABASE_URL</code>. Nothing hard-coded, nothing committed to the repo.</p>
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean console environment variables screen: add keys and values the app reads at runtime">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean console environment variables screen: add keys and values the app reads at runtime">
     <figcaption>Set environment variables in the console. Your connection string and secrets live here, not in the code.</figcaption>
   </figure>
 
@@ -203,11 +245,55 @@ gcloud run deploy myapp --image gcr.io/my-project/myapp:latest
 
   <div class="note"><b>Where this comparison stops applying:</b> if your traffic is genuinely spiky or infrequent, if scale-to-zero is saving you real money, or if you're all-in on containers and want that exact image in production, Cloud Run is the better fit. Don't switch away from a strength you're actually using. Move only if you're running a steady, always-on app and paying for idle time, cold starts, and connection plumbing you never wanted.</div>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Always-on, no cold starts, one dashboard.</p>
-    <p style="margin:0 0 .6em">Run your app on a managed server with the database right beside it at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Free trial, and we'll handle your first migration. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.85">Always-on managed server &#183; App and managed database in one dashboard &#183; 7 clouds incl. Google Cloud &#183; Git push-to-deploy &#183; Automatic backups &#183; Free SSL &#183; Free migration &#183; Free trial</p>
+<div class="kbcta-move-wrap">
+  <div class="kbcta-move-overlay"></div>
+  <div class="kbcta-move-content">
+    <div class="kbcta-move-eyebrow">MIGRATE &middot; FLAT, PREDICTABLE PRICING</div>
+    <p class="kbcta-move-heading">Move it once. Own it after.</p>
+    <p class="kbcta-move-description">Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.</p>
+    <ul class="kbcta-move-features">
+      <li>&#10003; Free migration assistance</li>
+      <li>&#10003; Free trial</li>
+      <li>&#10003; Seven cloud providers</li>
+      <li>&#10003; Flat monthly price</li>
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Git deploy</li>
+    </ul>
+    <div class="kbcta-move-buttons">
+      <a class="kbcta-move-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-move-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-move: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-move-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#0A0730;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-move-wrap *{box-sizing:border-box}
+.kbcta-move-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #0A0730 0%, #1B0F5A 58%, rgba(79,26,243,.55) 100%);pointer-events:none}
+.kbcta-move-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.28) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-move-content{position:relative;z-index:3;max-width:700px}
+.kbcta-move-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-move-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-move-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-move-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-move-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-move-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-move-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#2A0E7A;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-move-btn:hover,.kbcta-move-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-move-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-move-link:hover,.kbcta-move-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-move-wrap{padding:36px 24px}
+  .kbcta-move-heading{font-size:31px}
+  .kbcta-move-description{font-size:16px}
+  .kbcta-move-features li{white-space:normal}
+  .kbcta-move-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-move-btn{width:100%}
+  .kbcta-move-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

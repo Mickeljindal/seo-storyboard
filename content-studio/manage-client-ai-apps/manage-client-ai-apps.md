@@ -104,9 +104,20 @@ Most of this operating model is discipline and habit, and you can run it on almo
 
 Kloudbean lines up with this model on the hosting side. Each client app can run on its own managed server, so the blast radius stays small and each bill is clean. One dashboard covers the whole fleet, staging is built in for WordPress and Laravel, backups are automatic, and subusers with User Access Control give your team least-privilege access instead of a shared login. Baseline hardening (Shorewall and Fail2ban) and free SSL come standard. Useful scaffolding for a fleet, but the operating model above is what actually keeps the apps healthy, wherever they run.
 
----
+<!-- cta:start -->
+**Stop paying a platform per client.**
 
-**Run the fleet, don't let it run you.** If you want one dashboard for every client app, isolated servers, staging, automatic backups, and per-person access built in, that's the shape of Kloudbean. Details at [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+Consolidate the dashboards: isolated apps on managed servers, per-client databases, per-app backups you can restore individually, and permissions scoped per resource and action.
+
+- One dashboard
+- Per-client isolation
+- Subusers and access control
+- Per-app backups
+- Git deploys
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

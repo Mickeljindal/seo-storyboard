@@ -212,11 +212,20 @@ One honest gap, since this article is largely about a rewrite change breaking an
 
 For the same case-sensitivity trap in Node, [Cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/). When the status is not a 404, [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/) and [405 Method Not Allowed](https://www.kloudbean.com/blog/405-method-not-allowed/), which is what a verb mismatch should ideally return. For the server layer, [nginx configuration](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/) and [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/). On configuration and secrets, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). And on shipping changes safely, [zero downtime deployments](https://www.kloudbean.com/blog/zero-downtime-deployments/).
 
-## PHP hosting where the server config is handled.
+<!-- cta:start -->
+**Fewer mysteries on the next deploy.**
 
-Managed PHP servers across seven clouds, managed databases and Redis, free SSL, automatic backups, cron from the UI, and a firewall with intrusion prevention by default. From $8/mo, with free migration assistance. Start at [kloudbean.com](https://www.kloudbean.com/).
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-7 clouds · 7 managed databases · Free SSL · Automatic backups · Flat from $8/mo
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

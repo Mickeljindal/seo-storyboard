@@ -41,7 +41,7 @@ AI app observability is the practice of instrumenting an app that calls a langua
 
 This is not the same job as uptime monitoring. Uptime answers "is it up." Observability answers "what is it doing, and why." You want both, and they're separate. For the availability side (health checks, the 99.9% math, load-balancer probes) see [uptime monitoring](https://www.kloudbean.com/blog/uptime-monitoring/). This page is about behaviour and cost: how you monitor an AI application once it's already serving traffic.
 
-<!-- ADD IMAGE: a metrics panel for one AI feature, p95 time to first token and total latency over the last 24 hours, with a cost line on the same timeline. -->
+![p95 time to first token & total latency over 24 hours](images/gen-1-graph.png)
 
 ## The signals that actually matter for an AI app
 
@@ -183,7 +183,7 @@ There's no `prompt` field and no `completion` field. You can still answer almost
 
 If you want the shorter version of this discipline aimed at one app type, [hosting an AI chatbot in production](https://www.kloudbean.com/blog/host-ai-chatbot-in-production/) has a section on it. This is the long version. And when you log who called the model, log the caller and the route, never the key itself; [deploying an AI agent without exposing API keys](https://www.kloudbean.com/blog/deploy-ai-agent-without-exposing-api-keys/) covers keeping the credential out of both your client and your logs.
 
-<!-- ADD IMAGE: a single structured log line expanded in a console, showing reqId, route, model, tokens_in, tokens_out, ttft_ms, and status, with no prompt field present. -->
+![Real log line expanded](images/gen-2-terminal.png)
 
 ## One request id, from your app to the model and back
 
@@ -206,7 +206,7 @@ A dashboard nobody watches is not monitoring. The point of all this instrumentat
 
 The most useful distinction here is slow versus broken. Slow usually means model latency, which is often not your fault and not something a page at 3am will fix; alert on it only when it regresses against its own baseline, not on an absolute number. Broken means your code or config: a timeout you set too low, a bad deploy, retrieval pointing at the wrong index, a spend cap you never wired up. For triaging the broken side, [why AI apps fail in production](https://www.kloudbean.com/blog/why-ai-apps-fail-in-production/) walks the common failure paths. This page is about seeing them coming; that one is about fixing them. And route the pure availability alerts (is the process even answering) through your [uptime monitoring](https://www.kloudbean.com/blog/uptime-monitoring/) instead of your model dashboard, so a provider being slow doesn't look like your app being down.
 
-<!-- ADD IMAGE: an alert firing on a climbing provider 429 rate next to a flat internal error rate, showing slow versus broken at a glance. -->
+![Comparing visibility and impact](images/gen-3-comparison.png)
 
 ## Where this usually breaks
 
@@ -232,11 +232,21 @@ Steps 1 and 2 are where the hosting choice stops being incidental, which is why 
 
 Now the honest part, and it applies to us as firmly as to anyone. No host writes your instrumentation. Nothing about the infrastructure wraps your model call to record TTFT, picks your p95 threshold, or decides not to log the prompt. Kloudbean is not a built-in APM and won't pretend to be one: you get a process that stays alive, a log stream, and a place to write data. Steps 1 through 5 are commits in your repo, and if you never wrap the model call, the best-run server in the world hands you CPU graphs and a shrug. Two scope notes so nothing here reads bigger than it is. An immutable, searchable account-wide audit trail with CSV export, plus managed alert policies and longer retention, are part of the Enterprise package rather than a standard-plan toggle. And if you want long-horizon charts, external APM tools connect the ordinary way, which stays your call, not ours. What you measure and what you refuse to store is the part that was always going to be yours. If you're still mapping everything an AI builder leaves unfinished, [the last mile of vibe coding](https://www.kloudbean.com/blog/last-mile-of-vibe-coding/) is the wider checklist this page sits inside.
 
-## See what your AI app is doing, without hoarding prompts
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-**Run your AI app on an always-on server that streams your logs to the console, with a managed Postgres for the metrics you choose to keep.** Instrument once, watch cost and latency without collecting a single raw prompt you'd rather not be holding. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Always-on Node and Python · Streamed logs in the console · Live build logs · Managed Postgres for your own metrics · Automatic backups · Free SSL · Git deploy · IP allow-listing
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

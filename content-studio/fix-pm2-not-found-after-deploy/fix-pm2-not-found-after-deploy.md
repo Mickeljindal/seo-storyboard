@@ -45,7 +45,7 @@ Cron is the strictest version of this. It gives you a minimal PATH and does not 
 | Works as you, fails as root or deploy user | PM2 was installed into one user's home directory only | Install for the user that actually runs it, or use a shared global prefix |
 | pm2 exists but the app won't start | Different bug. PM2 was found and your app is crashing | Read the logs, that's a crash loop not a PATH issue |
 
-<!-- ADD IMAGE: terminal split view. Left: interactive SSH session where `which pm2` prints a path. Right: the same command inside a non-interactive script printing nothing. src -> images/interactive-vs-script.png -->
+![Interactive SSH session vs. non-interactive script](images/gen-1-terminal.png)
 
 ## Prove whose environment is broken
 
@@ -124,7 +124,7 @@ npx pm2 reload ecosystem.config.js
 ./node_modules/.bin/pm2 reload ecosystem.config.js
 ```
 
-<!-- ADD IMAGE: annotated screenshot of a failing deploy log with the pm2: command not found line highlighted, and the surrounding script lines visible. src -> images/deploy-log-failure.png -->
+![Review the script and PATH](images/gen-2-terminal.png)
 
 ## Fixes for pm2 command not found, most robust first
 
@@ -236,7 +236,7 @@ pm2 save
 
 And remember that `pm2 save` is the piece that actually persists your process list to `~/.pm2/dump.pm2`. The startup unit only tells systemd to run `pm2 resurrect` at boot. If you never ran `pm2 save` after your last change, resurrection restores an old list, or an empty one. Add `pm2 save` to the end of every deploy script. It's one line and it removes a whole category of "why is the old version running" confusion. If you're weighing whether to keep PM2 under systemd at all, [PM2 versus systemd](https://www.kloudbean.com/blog/pm2-vs-systemd/) works through that trade-off properly.
 
-<!-- ADD IMAGE: the output of `systemctl cat pm2-deploy.service` with the version-specific Node path in ExecStart underlined. src -> images/pm2-systemd-unit.png -->
+![ExecStart path needs updating](images/gen-3-terminal.png)
 
 ## When it isn't PATH at all
 
@@ -260,13 +260,20 @@ Two things no host fixes, ours included. If your app crashes on boot, PM2 will b
 
 For the wider picture, [CI/CD auto deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) covers the deploy side, [running a cron job without SSH](https://www.kloudbean.com/blog/run-a-cron-job-without-ssh/) covers the scheduling side, and [deploying a Node app to managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) puts the whole flow together.
 
----
+<!-- cta:start -->
+**Fewer mysteries on the next deploy.**
 
-**Stop debugging your deploy script's environment.**
+Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.
 
-Push to your repo and Kloudbean builds it, runs your Node app under PM2, and streams the build log so you can see exactly what happened. Start at [kloudbean.com](https://www.kloudbean.com/) or check [pricing](https://www.kloudbean.com/pricing/).
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
 
-Git deploys · Live build logs · Node runtime config in the UI · Cron jobs without SSH · Free trial
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

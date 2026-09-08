@@ -52,7 +52,7 @@ So the fix is simple to say and easy to get wrong: put the metadata database on 
 
 _NocoDB stores its own config in the metadata database (set with NC_DB) and renders your existing databases as editable grids by adding them as data sources. Back up the metadata DB and you've backed up your NocoDB setup._
 
-<!-- ADD IMAGE: A NocoDB grid view rendering a real Postgres table, with columns, filters, and a form view in the sidebar. -->
+![Real Postgres Table Integration](images/gen-1-comparison.png)
 
 ## Set NC_DB: the config that keeps your setup
 
@@ -60,7 +60,7 @@ Everything above comes down to one environment variable. `NC_DB` tells NocoDB wh
 
 NocoDB uses its own compact connection-string format for `NC_DB`. Postgres uses the `pg://` scheme, MySQL and MariaDB use `mysql2://`, and the credentials ride as query params (`u` user, `p` password, `d` database). Point the host at the internal address of your managed database, not a public one.
 
-![The Kloudbean console Environment Variables screen where NocoDB's NC_DB connection string and NC_AUTH_JWT_SECRET are stored instead of in code](../assets/console/env-vars.png)
+![The Kloudbean console Environment Variables screen where NocoDB's NC_DB connection string and NC_AUTH_JWT_SECRET are stored instead of in code](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ```bash
 # NocoDB metadata store on managed Postgres (recommended)
@@ -120,19 +120,19 @@ Four steps. Metadata database first, then the app, then the config, then ship it
 
 1. **Launch the metadata database.** Open the DBS section and hit Launch Database. Create a managed PostgreSQL or MySQL, give it a name like `nocodb`, and note the internal host, port, database name, user, and password. It's provisioned right next to your app in the same account, backed up from the start, and you whitelist your app server's IP so only it can connect. This is where NocoDB's config will live, not SQLite.
 
-![The Kloudbean console Launch Database screen creating a managed PostgreSQL or MySQL for NocoDB's metadata store](../assets/console/launch-database.png)
+![The Kloudbean console Launch Database screen creating a managed PostgreSQL or MySQL for NocoDB's metadata store](../assets/console-real/shots/psql_launch_step_1.png)
 
 2. **Create the NocoDB Node application.** Add an application on your server and pick the Node runtime. This is the important framing: you're running the NocoDB Node app on a managed Node runtime, not clicking a canned NocoDB button. Connect the repo that holds your NocoDB start script (the few lines above) and the platform handles the build.
 
-![The Kloudbean console Add Application screen creating a Node app to run NocoDB](../assets/console/add-application.png)
+![The Kloudbean console Add Application screen creating a Node app to run NocoDB](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
-<!-- ADD IMAGE: Your NocoDB sign-in screen loading on your own domain over HTTPS. -->
+![Proof it's live on your server](images/gen-2-flow.png)
 
 3. **Set NC_DB and the secrets.** In Runtime Configuration, add `NC_DB` pointing at the managed database from step 1, plus `NC_AUTH_JWT_SECRET`, `PORT`, and `NC_PUBLIC_URL`. Save and restart so NocoDB reads them on boot. Confirm it's on the real database by creating a base, redeploying, and checking the base is still there.
 
 4. **Deploy from Git and put SSL in front.** Wire up deploys so a push to your branch builds and restarts NocoDB. Add your domain, issue free SSL, and you have an encrypted, self-hosted NocoDB on a URL you own. The auto-deploy flow is covered in [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-![The Kloudbean console Git deployment screen wiring NocoDB to auto-deploy on every push](../assets/console/git-deployment.png)
+![The Kloudbean console Git deployment screen wiring NocoDB to auto-deploy on every push](../assets/console-real/shots/git_connect_step_4.png)
 
 ## Lock it down
 
@@ -144,7 +144,7 @@ A NocoDB instance is a window onto real data, so treat it like one. None of this
 - **Strong admin, least-privilege DB users.** Lock the first NocoDB super-admin account with a real password. Give each data source a scoped database user with only the rights it needs, not a superuser.
 - **Back up the metadata DB.** Your bases and views live there. Managed backups cover it, and it's worth keeping your own periodic dump too. More in the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/).
 
-<!-- ADD IMAGE: The SSL screen showing an issued certificate on your NocoDB domain. -->
+![Cert issued to NocoDB domain](images/gen-3-flow.png)
 
 ## Point NocoDB at databases you already run
 
@@ -152,15 +152,25 @@ This is where NocoDB earns its keep. Once it's live, open the base settings and 
 
 If you don't have a database to point at yet, spin one up first: [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) or [managed MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/), both locked to your app server's IP and backed up. NocoDB then becomes the front door.
 
-<!-- ADD IMAGE: The NocoDB add-data-source dialog with host, port, user, and database filled in for a managed Postgres. -->
+![Fill in connection details](images/gen-4-flow.png)
 
 Weighing other tools to run yourself? The [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup is good company, and if you want a full backend rather than a grid, the [self-host Supabase](https://www.kloudbean.com/blog/self-host-supabase/) guide is the sibling piece. And if you want a standalone no-code database that owns its data with real-time collaboration, rather than a layer over an existing one, [self-hosting Baserow](https://www.kloudbean.com/blog/self-host-baserow/) is the alternative.
 
-## A spreadsheet UI on a database you own
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-Run the NocoDB Node app on a managed server, back it with a managed MySQL or PostgreSQL, and point it at the databases you already have. The OS, SSL, and backups are handled while your data stays yours. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Managed Node runtime · Managed MySQL & PostgreSQL · Automatic backups · Free SSL · Free migration · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

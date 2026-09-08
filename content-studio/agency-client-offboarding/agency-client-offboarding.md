@@ -116,15 +116,20 @@ The honest boundary: the platform makes export, transfer, and revocation straigh
 
 The other bookend is the [agency client onboarding checklist](https://www.kloudbean.com/blog/agency-onboarding-checklist/), and the strategy around both is the [hosting for agencies playbook](https://www.kloudbean.com/blog/hosting-for-agencies-playbook/). Revocation is the [subusers and UAC guide](https://www.kloudbean.com/blog/subuser-and-uac-guide/). The transfer mechanics are [migrating hosting without downtime](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/), and the export detail is in [creating and extracting archives](https://www.kloudbean.com/blog/extract-zip-and-tar-gz-on-linux/) and [the backups guide](https://www.kloudbean.com/blog/server-backups-guide/). On the money side, [client billing and markup](https://www.kloudbean.com/blog/client-billing-and-markup-for-hosting/).
 
----
+<!-- cta:start -->
+**Stop paying a platform per client.**
 
-### Own the data, so leaving is as easy as joining.
+Consolidate the dashboards: isolated apps on managed servers, per-client databases, per-app backups you can restore individually, and permissions scoped per resource and action.
 
-Portable exports, scoped access you can revoke in one action, automatic backups for the retention window, and free migration assistance in either direction, from one account across seven clouds. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+- One dashboard
+- Per-client isolation
+- Subusers and access control
+- Per-app backups
+- Git deploys
+- Free migration assistance
 
-Portable data · One-action revocation · Automatic backups · Free migration · One account
-
----
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

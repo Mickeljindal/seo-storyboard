@@ -55,7 +55,21 @@ const res = await fetch("https://api.openai.com/v1/chat/completions", {
   <p>To close it: drop the <code>NEXT_PUBLIC_</code> / <code>VITE_</code> prefix so the key stops shipping to the client, move the provider call to a server route, and have the browser call that route instead. The frontend now sends a plain request to <code>/api/chat</code> and never sees a key at all. That's the fix, and it's the next section.</p>
 
   <!-- ADD IMAGE: swap this slot for a real screenshot. src -> images/devtools-network-key.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Browser DevTools Network tab showing an Authorization: Bearer header exposed on a client-side request.</em><small>Makes the leak concrete: this is what an attacker sees.</small></span></figure>
+  <!-- IMAGE GENERATE [panel] #1
+Create a clean settings / configuration panel UI mockup for a technical blog post titled "How to Deploy an AI Agent Without Exposing Your API Keys".
+
+What it must show: Browser DevTools Network tab showing an Authorization: Bearer header exposed on a client-side request.
+Also: Makes the leak concrete: this is what an attacker sees.
+
+A white card with a small uppercase section label, then labelled rows. Highlight the row that carries the point with a violet border. Optional green check line at the bottom confirming the result.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-panel.png" alt="Browser DevTools Network tab showing an Authorization: Bearer header exposed on a client-side request.">
+    <figcaption>Inspecting the leaked header</figcaption>
+  </figure>
 
   <h2>The fix: put the model behind your own backend</h2>
   <p>The pattern is a thin proxy. Your backend exposes one endpoint, holds the key, forwards the request to the provider, and returns the answer. The browser only ever talks to your server. This is why you want a real server-side runtime for your agent, Node or Python running as an always-on process, not a static frontend calling a third party.</p>
@@ -142,7 +156,7 @@ async def chat(body: dict, user = Depends(require_auth)):
   <p>Once the call is server-side, the key belongs in an environment variable, loaded at runtime. Not typed into a source file. Not sitting in a config that gets committed. The reason is simple: code goes into Git, and Git remembers. A key pasted into a file and pushed once is in the history even after you delete it, and bots scan public commits for exactly that. Providers now watch for it too, and can auto-revoke a key they spot in a public repo, which is a mercy but not a plan.</p>
   <p>So <code>.env</code> goes in <code>.gitignore</code>, and the real values live wherever you run the app. Locally that's a <code>.env</code> file you never commit. In production you set them on the server, outside the codebase entirely. On Kloudbean that's a dashboard screen: you set <code>OPENAI_API_KEY</code> there and it's injected into the app's environment at runtime, so the value never enters the repo the Git deploy pulls from. The practical benefit isn't the screen, it's that the key and the code now live in two different places, which is what makes the next section painless. If you want the full treatment, our guides on <a href="https://www.kloudbean.com/blog/secrets-management/">secrets management</a> and <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> go deeper than I can here.</p>
   <figure>
-    <img src="../assets/console/env-vars.png" alt="Setting an API key as an environment variable in the Kloudbean dashboard so it stays on the server and out of the codebase">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="Setting an API key as an environment variable in the Kloudbean dashboard so it stays on the server and out of the codebase">
     <figcaption>Set the key as an environment variable where the app runs, so it never touches your repo. This is the Kloudbean dashboard doing it, but any server-side runtime works the same way.</figcaption>
   </figure>
 
@@ -201,12 +215,56 @@ async def chat(body: dict, user = Depends(require_auth)):
   <p>The host rows are the ones a deployment choice actually settles, which is why they came up earlier rather than being saved for here. Kloudbean runs Node and Python as always-on apps, holds your keys as environment variables set in the dashboard and injected at runtime, issues free SSL on the endpoint your frontend calls, and starts every server with Shorewall and Fail2ban already running. For the last row, managed databases have IP Access Control, so you whitelist your app server's address and everything else is refused.</p>
   <p>Where that stops: managed covers the server, the stack, SSL, backups, and patching. Your agent's code, your auth, your quotas, and your data stay yours. And you don't need a private network for any of this. A VPC is part of the Enterprise package, it isn't the default on a standard plan, and an API key kept server-side behind an authenticated endpoint is safe without one. Anyone selling you network isolation as the answer to a leaked key is solving a different problem. If your agent also needs somewhere durable for chat history or user data, see <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give your agent's key a server to live on.</p>
-    <p style="margin:0 0 .6em">Run your Node or Python backend always-on, set your provider keys as environment variables in the dashboard so they never reach the browser or your repo, and get free SSL, a Shorewall firewall, and IP Access Control from the start. One dashboard for the app, the keys, and the database behind it.</p>
-    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> &middot; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Server-side env vars &middot; Server-side Node &amp; Python &middot; Free SSL &middot; Shorewall + Fail2ban &middot; IP allow-listing &middot; Automatic backups &middot; Free migration</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">Prototype to production, without the babysitting.</p>
+    <p class="kbcta-ai-description">Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

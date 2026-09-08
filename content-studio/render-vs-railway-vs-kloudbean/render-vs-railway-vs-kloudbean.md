@@ -79,11 +79,11 @@ No host fixes a missing database index. Ours included. Flat pricing doesn't make
 
 Our own scope boundary, stated plainly: a project that genuinely idles for weeks still pays for the server, because a real always-on machine has no drop-to-zero. That's the trade for having no cold start. And free migration assistance covers servers above 4GB, with a 3-day free trial on one service if you want to prove the app runs before moving traffic.
 
-![The Kloudbean console deploying a Node.js app from GitHub with a managed database in the same dashboard](../assets/console/add-application.png)
+![The Kloudbean console deploying a Node.js app from GitHub with a managed database in the same dashboard](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 *Deploy the Node app from GitHub, with its managed database one click away in the same dashboard, on a flat monthly plan.*
 
-<!-- ADD IMAGE: a flat monthly plan next to a metered usage invoice, to make the predictability point concrete -->
+![Predictability in billing](images/gen-1-flow.png)
 
 ## Moving off Railway or Render
 
@@ -95,11 +95,20 @@ Migrating a Node app is a repo, a set of environment variables, and a database. 
 
 Weighing the wider field first? [Where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/) covers every option. The one-on-ones go deeper: [Render alternative](https://www.kloudbean.com/blog/render-alternative-for-vibe-coded-apps/) and [Railway alternative](https://www.kloudbean.com/blog/railway-alternative-for-vibe-coded-apps/). For the hands-on side, [deploy a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/).
 
----
+<!-- cta:start -->
+**Move it once. Own it after.**
 
-**Trade metered surprises for a flat, always-on Node home.** Deploy from GitHub, run always-on under PM2, and keep a managed PostgreSQL, MySQL, MongoDB, or Redis in the same dashboard, at a price you know before you deploy. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-Flat pricing from $8/mo · Always-on, no cold starts · Managed database beside the app · No egress meter · Free migration · Free trial
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

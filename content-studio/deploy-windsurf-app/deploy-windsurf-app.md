@@ -29,7 +29,7 @@ Cascade is powerful because it doesn't just suggest code, it acts. It installs p
 
 When you run the app locally, all of that invisible state is present, so it works. A server has none of it. It clones your repository into an empty directory and builds from exactly what's committed, nothing more. That's the whole gap in one sentence: local success proves the app runs in your accumulated environment, not that a clean machine can rebuild it. Reproduce it on your own terms first, or the server will do it for you at the worst moment.
 
-<!-- ADD IMAGE: the bridge-from-preview-to-production diagram. A navy Windsurf/local tower on the left and a green-outlined Production tower on the right, joined by a bridge deck carrying five checked planks: secrets in env vars, a managed database, a real build step, a domain with SSL, and an always-on process. -->
+![Real terminal output for a clean-room test](images/gen-1-terminal.png)
 *Diagram: a bridge from the Windsurf preview on your laptop to production. The deck carries the five checked planks that close the gap: secrets in env vars, a managed database, a real build step, a domain with SSL, and an always-on process.*
 
 ## The clean-room test
@@ -90,15 +90,15 @@ One nice trick that plays to Windsurf's strength: before you deploy, ask Cascade
 
 Clean clone builds green? Push it to GitHub and take it to production. In the [Kloudbean](https://www.kloudbean.com/) console, click **Add Server**, pick a **Cloud Provider**, choose the stack Cascade built in (Node.js for a Node, Next, or Vue app; a Python stack works too), pick the nearest datacenter, and give it 2–4 GB for build headroom. **Launch Now** gives you a configured server in a few minutes, runtime and process manager and firewall and SSL included.
 
-![Kloudbean Add Server screen: choosing a cloud provider, application stack, datacenter, and server size](../assets/console/add-server.png)
+![Kloudbean Add Server screen: choosing a cloud provider, application stack, datacenter, and server size](../assets/console-real/shots/launch_server_step_1.png)
 
 Open the app, go to **Application Administration → Deploy Code**, connect GitHub, paste your repository URL, choose the branch, and **Clone Repository**. Fill the runtime fields with the exact commands that just worked in your clean-room test: **App Directory**, **Port**, **runtime version**, and your **Install / Build / Start** commands. Because you validated them against a fresh clone, they'll behave the same here. Click **Pull & Deploy** and the build log streams live.
 
-![Kloudbean Deploy Code / Git Deployment screen: connect a repo, set the runtime fields, and Pull and Deploy](../assets/console/git-deployment.png)
+![Kloudbean Deploy Code / Git Deployment screen: connect a repo, set the runtime fields, and Pull and Deploy](../assets/console-real/shots/git_connect_step_4.png)
 
 If your app stores data, launch a managed **Postgres** or **MySQL** from **DBS → Launch Database** and import your local schema. Then, in **Runtime Configuration → Environment Variables**, paste your `.env` via **Paste .env Content**, convert to key/value, and set the real values, pointing the database URL at the instance you just launched.
 
-![Kloudbean environment variables editor with a paste .env content tab and key value list](../assets/console/env-vars.png)
+![Kloudbean environment variables editor with a paste .env content tab and key value list](../assets/console-real/shots/nodespm_env_step_1.png)
 
 Add your custom domain under **Domain Aliases**, point DNS at the server, install a free **Let's Encrypt** certificate, and turn on **automated deployment** so every push rebuilds and ships. Your loop becomes: build with Cascade, commit, push, and production updates itself, on [a server you own](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/). Whatever framework Cascade built in, the flow is identical; only the Install/Build/Start commands and runtime change.
 
@@ -112,7 +112,21 @@ If you ran the clean-room test, a **503** is now unlikely, and when it happens i
 
 Kloudbean runs Linux stacks: Node, Python, PHP, Ruby, and Java, with frameworks like React, Next.js, Vue, Django, and Laravel on top. That spans what Windsurf typically builds. Premium and Enterprise carry Windows Server, and .NET runs on Linux regardless. "Managed" means the server, stack, SSL, backups, and patching are handled; you own and maintain the application. Since Cascade already hands you real, owned code, this is just the matching home for running it, and a full-stack build lands its front end, API, and database on [the one server](https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/).
 
-**If it builds clean, it ships clean.** Take your Windsurf app to production at [kloudbean.com](https://www.kloudbean.com/), with a free trial and your first migration done for you. Plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**You built the app. Give it a real home.**
+
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -10,7 +10,7 @@ secondary_keywords:
   - waf attacks blocked
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 9 — Security, Scaling & Load Balancing
+cluster: 9 - Security, Scaling & Load Balancing
 ---
 
 ![What a web application firewall actually blocks: seven real threats](images/hero.png)
@@ -65,7 +65,7 @@ A huge share of internet background noise is automated scanners poking for known
 
 The catch-all: requests carrying deliberately malformed data, oversized inputs, or files disguised to slip past your app and execute something they shouldn't. The WAF inspects payloads for these signatures and rejects them, adding a checkpoint between the raw request and your logic. It flags a range of "this request is clearly up to no good" cases you'd otherwise defend against one by one.
 
-<!-- ADD IMAGE: an access log or WAF event feed with blocked probes, requests for /.env, /wp-admin, and a SQL-injection string, each marked 403 -->
+![Last 24 hours](images/gen-2-panel.png)
 
 
 ## Managed rules versus custom rules
@@ -74,7 +74,7 @@ You mostly don't write WAF rules from scratch, and that's the point. Most WAFs s
 
 Custom rules are for the things only you know: block a country you never sell to, rate-limit a specific expensive endpoint, allow-list your office IP for the admin panel. Start with the managed ruleset, add custom rules only where your app has a specific need. Over-customizing early is a great way to create false positives you'll spend weeks chasing.
 
-<!-- ADD IMAGE: a WAF events dashboard, blocked requests by rule (SQLi, XSS, bad bots) over the last 24 hours -->
+![Monitor mode shows blocked attacks](images/gen-3-graph.png)
 
 ## The honest downside: false positives
 
@@ -82,7 +82,7 @@ A WAF's weakness is the flip side of its strength. It matches patterns, and some
 
 So here's the rule I'd stand behind: never flip a WAF straight to blocking on day one. Run it in **monitor or log mode** first, watch what it *would* have blocked for a week or two, tune out the false positives, and only then switch to enforce. The anti-pattern we see over and over is someone enabling an aggressive WAF, walking away, and then wondering why their own dashboard or checkout is throwing 403s. Monitor first. Enforce second. Your users will never know it happened.
 
-<!-- ADD IMAGE: a WAF rule in monitor or log-only mode, showing what it would have blocked before you switch it to enforce -->
+![Log-only mode vs. Enforce mode](images/gen-2-graph.png)
 
 
 ## A WAF is a layer, not a fix
@@ -95,7 +95,20 @@ Think defense in depth. A WAF sits alongside [DDoS protection](https://www.kloud
 
 Straight answer, because the accuracy matters here: Kloudbean doesn't run a WAF baked into the box. The WAF layer is delivered by the **Cloudflare Enterprise add-on**, which is paid on standard plans and included free for Enterprise accounts. It sits at the edge, in front of your origin, and screens layer-7 requests against a maintained ruleset before they reach you. Underneath that, on the server itself, the baseline is a **Shorewall firewall plus Fail2ban**, which closes unused ports and bans addresses that keep misbehaving. So the picture is layered: Cloudflare's WAF at the edge, Shorewall and Fail2ban on the origin, and your secure code behind both. That mirrors how the edge handles floods too, which we cover in [DDoS protection explained](https://www.kloudbean.com/blog/ddos-protection-explained/), and it's the same defense-in-depth story as [secure WordPress hosting](https://www.kloudbean.com/blog/secure-wordpress-hosting/).
 
-**A bouncer at the door, a sound building behind it.** Run your app on a managed stack with an edge WAF add-on and a hardened origin at [kloudbean.com](https://www.kloudbean.com/). Cloudflare Enterprise edge add-on · Shorewall + Fail2ban baseline · Free SSL · Managed patching · Automatic backups · Free trial. Plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**The server layer, hardened for you.**
+
+The platform keeps the server, stack, SSL, and patching current, with automatic backups running. Application-level security stays yours, and that split is deliberate rather than hidden.
+
+- Shorewall firewall
+- Fail2ban
+- OS patching handled
+- Free SSL
+- IP access control
+- Automatic backups
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

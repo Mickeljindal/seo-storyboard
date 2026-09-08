@@ -135,7 +135,7 @@ Headers live at the **web server** level (Nginx, Apache) or in your **applicatio
 
 <!-- ADD IMAGE: browser DevTools Network tab Response Headers, the security headers now present on a request -->
 
-## Where Kloudbean fits
+## The platform layer below your headers
 
 Security headers are your policy to write, and that stays true anywhere. What a managed stack removes is the friction around them. **Free SSL** gets you the HTTPS that HSTS depends on, and it renews itself. Sessions run on **HttpOnly cookies**, so the cookie side of this is already hardened. The Linux web-server stack underneath is kept patched, so you're setting headers on a current server rather than babysitting the OS too. You still own your CSP, because only you know which scripts your site legitimately loads. Fair split. Headers are a layer, not the whole fortress, so keep them next to the rest of your hygiene: patched software, strong logins, and the filtering in front covered in [what a WAF does](https://www.kloudbean.com/blog/what-a-waf-does/) and [container security scanning](https://www.kloudbean.com/blog/container-security-scanning/).
 

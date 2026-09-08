@@ -37,7 +37,7 @@ Four problems, and none of them is small.
 
 Full-text search fixes all four. It matches words, not characters. It stems, so run, running, and ran collapse into a single lexeme. It drops stop words. And it sits behind an index built for exactly this.
 
-<!-- ADD IMAGE: Show EXPLAIN ANALYZE on the ILIKE query, with Seq Scan and the row-count cost visible. -->
+![Seq Scan and row-count cost](images/gen-1-flow.png)
 
 ## How does Postgres full text search actually work?
 
@@ -99,7 +99,7 @@ CREATE INDEX articles_search_idx ON articles USING gin (search);
 
 A `GIN` (Generalized Inverted Index) is the right structure here. It maps each lexeme to the rows that contain it, which is an inverted index, the same core idea Elasticsearch uses under the hood. Skip this step and every search recomputes the vector and walks the table. Add it and Postgres jumps straight to the matching rows. The usual mistake is shipping full-text search with no GIN index, then blaming Postgres when it crawls at scale. The index is not optional once your table gets real.
 
-<!-- ADD IMAGE: Show EXPLAIN ANALYZE after adding the GIN index, with a Bitmap Index Scan replacing the Seq Scan. -->
+![Bitmap Index Scan vs Seq Scan](images/gen-2-comparison.png)
 
 ## Typo tolerance with trigrams (`pg_trgm`)
 
@@ -122,7 +122,7 @@ LIMIT 5;
 
 The `%` operator returns true when two strings are similar enough, and `similarity()` gives you the score to sort by. Run full-text search for the main query, and fall back to a trigram search when it returns nothing. That combination covers typos with zero extra infrastructure. It won't match the fuzzy sophistication of a dedicated search engine, but for a search box it's honestly good.
 
-<!-- ADD IMAGE: Show a search box with a did you mean suggestion driven by trigram similarity. -->
+![Did you mean? suggestion driven by trigram similarity](images/gen-3-flow.png)
 
 ## `LIKE` vs full text search vs Elasticsearch, side by side
 
@@ -162,23 +162,30 @@ Think about it the way you'd think about adding [Redis to a Postgres app](https:
 
 This is where "start simple, grow when needed" stays painless on Kloudbean. Both managed PostgreSQL and managed Elasticsearch are one-click managed engines here, among the same set of managed databases (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB). So you can begin with Postgres full text search, and the day you truly need a dedicated engine, you launch managed Elasticsearch from the same dashboard. Same login, same IP allow-listing, same backups. No new vendor to evaluate.
 
-![The Kloudbean console, Launch Database, showing managed PostgreSQL and Elasticsearch among the managed engines](../assets/console/launch-database.png)
+![The Kloudbean console, Launch Database, showing managed PostgreSQL and Elasticsearch among the managed engines](../assets/console-real/shots/psql_launch_step_1.png)
 *DBS, Launch Database: managed PostgreSQL now, managed Elasticsearch later, from one place.*
 
 Both engines arrive provisioned and patched, locked down with IP allow-listing rather than left on the open internet, with [automatic backups](https://www.kloudbean.com/blog/server-backups-guide/) and controlled access. For full [network isolation on a VPC](https://www.kloudbean.com/blog/what-is-a-vpc/), that's the Enterprise step up. Your app reads the connection details from environment variables, the same discipline as [adding any managed database](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). Nothing exotic, just fewer things you have to babysit.
 
-![The Kloudbean console server health view showing CPU, RAM, and disk usage](../assets/console/server-health.png)
+![The Kloudbean console server health view showing CPU, RAM, and disk usage](../assets/console-real/shots/server_health_step_2.png)
 *Watch CPU, RAM, and disk. When search load starts crowding your transactional queries, that's your cue to consider a dedicated engine.*
 
 When you're deciding, the split stays simple. Keep the source of truth in [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), lean on its full-text search for as long as it serves you, and add [managed Elasticsearch](https://www.kloudbean.com/blog/managed-elasticsearch-hosting/) only when search truly becomes the product. Most apps never need the second box. The ones that do will know.
 
----
+<!-- cta:start -->
+**A database you can dump and take with you.**
 
-**Give your app real search without running a second database.**
+Launch MySQL, MariaDB, PostgreSQL, Redis, Memcached, MongoDB, or Elasticsearch in a click, reachable from your app server with automatic backups from minute one. Standard connection strings, standard dumps, no proprietary format.
 
-Launch managed PostgreSQL, use full-text search that stems and ranks, and add managed Elasticsearch later from the same dashboard when search becomes the product. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
 
-One-click databases · Automatic backups · Free migration · Free trial
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

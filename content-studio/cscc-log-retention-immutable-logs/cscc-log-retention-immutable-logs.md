@@ -103,11 +103,21 @@ Everything in the left column, Kloudbean builds and maintains on managed enterpr
 
 For the full framework, see [NCA CSCC explained](https://www.kloudbean.com/blog/nca-cscc-compliance-guide/), and for the baseline beneath it [NCA ECC compliant hosting](https://www.kloudbean.com/blog/nca-ecc-compliant-hosting/). Retention interacts with privacy obligations, covered in [PDPL compliance hosting](https://www.kloudbean.com/blog/pdpl-compliance-hosting/). On the technical side, [structured logging](https://www.kloudbean.com/blog/structured-logging-nodejs/) and [server backups](https://www.kloudbean.com/blog/server-backups-guide/) are the closest neighbours, and residency is covered in [data residency in Saudi Arabia](https://www.kloudbean.com/blog/data-residency-saudi-arabia/).
 
-## Build the logging layer once, properly
+<!-- cta:start -->
+**Controls you can actually evidence.**
 
-Kloudbean runs managed enterprise engagements with centralised logging across every component, file integrity monitoring, immutable write-once log storage, and 18-month retention with archive export, on in-Kingdom infrastructure where required. Start a conversation at [kloudbean.com](https://www.kloudbean.com/).
+On managed enterprise engagements Kloudbean builds and maintains the infrastructure controls, with evidence delivered as managed reports and in-Kingdom hosting available. The policy, staffing, and application-layer work remains yours, which is the honest boundary.
 
-Immutable log storage · 18-month retention · File integrity monitoring · Alert policies · In-Kingdom hosting available
+- In-Kingdom (Dammam) available
+- Centralised logging
+- Immutable log storage
+- Private database access
+- MFA and least privilege
+- Automatic backups
+- Evidence as managed reports
+
+[Start free](https://console.kloudbean.com/register) · [Talk to a cloud expert](https://calendly.com/kloudbean)
+<!-- cta:end -->
 
 ## FAQ
 

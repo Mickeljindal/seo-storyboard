@@ -42,7 +42,7 @@ v0 output lands in one of a few shapes, and I've seen people burn an hour trying
 
 The rest of this assumes you've got (or assembled) one Next.js app. If it's just loose components, paste them in, get the app running locally, then follow along.
 
-<!-- ADD IMAGE: The v0 canvas with a generated component, showing the code panel and the option to push the project to GitHub. -->
+![Code Panel to GitHub Push](images/gen-1-flow.png)
 
 ## shadcn/ui components are yours (that's the point)
 
@@ -84,7 +84,7 @@ STRIPE_SECRET_KEY=sk_live_...
 
 If this split feels fuzzy, the full mental model is in [environment variables, done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
-<!-- ADD IMAGE: The v0 project pushed to a GitHub repo, showing the Next.js structure and the components/ui folder. -->
+![Stage 1: Code in v0](images/gen-2-flow.png)
 
 ## Where the backend and data go (v0 leaves this to you)
 
@@ -98,7 +98,7 @@ With one Next.js app in a GitHub repo, the deploy is short. No adapter, no speci
 
 In the [Kloudbean](https://www.kloudbean.com/) console, click **Add Server**, pick a **Cloud Provider**, choose **Node.js**, pick the nearest datacenter, and give a Next.js build 2 to 4 GB of headroom. **Launch Now** has it ready in a few minutes.
 
-![Kloudbean Add Server screen: choosing a cloud provider, Node.js application, datacenter, and server size](../assets/console/add-server.png)
+![Kloudbean Add Server screen: choosing a cloud provider, Node.js application, datacenter, and server size](../assets/console-real/shots/launch_server_step_1.png)
 
 Open the app, go to **Application Administration, Deploy Code**, connect GitHub, paste your repository URL, and pick the branch. Then the runtime fields:
 
@@ -107,15 +107,15 @@ Open the app, go to **Application Administration, Deploy Code**, connect GitHub,
 - **Node Version:** Node 20+ for a modern Next.js app.
 - **Install / Build / Start:** `npm install`, `npm run build` (runs `next build`), and `npm start` (runs `next start`).
 
-![Kloudbean Deploy Code / Git Deployment screen: connect the repo, set the runtime, and Pull and Deploy](../assets/console/git-deployment.png)
+![Kloudbean Deploy Code / Git Deployment screen: connect the repo, set the runtime, and Pull and Deploy](../assets/console-real/shots/git_connect_step_4.png)
 
 Launch a managed **Postgres** or **MySQL** from the console for the data layer v0 left to you. It runs alongside the app, backed up, reachable through a connection string you keep in environment variables.
 
-![Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance next to the app](../assets/console/launch-database.png)
+![Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance next to the app](../assets/console-real/shots/psql_launch_step_1.png)
 
 Add your variables under **Runtime Configuration, Environment Variables**, using the **Paste .env Content** tab. Remember the split: `NEXT_PUBLIC_` values are baked in at build, everything else is read at runtime. Then add your domain under **Domain Aliases**, install a free Let's Encrypt certificate, and turn on [automated deployment](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) so every push rebuilds and ships. It's the same git-driven flow the Vercel default gave you, now on a server you own.
 
-![Kloudbean environment variables editor with a paste .env content tab and a key value list](../assets/console/env-vars.png)
+![Kloudbean environment variables editor with a paste .env content tab and a key value list](../assets/console-real/shots/nodespm_env_step_1.png)
 
 <!-- ADD IMAGE: Your v0 app live on its own domain with the SSL padlock, real data behind the shadcn/ui interface. -->
 
@@ -149,9 +149,21 @@ All three name themselves in the logs, and you read those in the dashboard: **Ap
 
 Kloudbean runs Linux stacks: Node and the modern JavaScript toolkit including Next.js and React, which is what v0 produces. Linux covers .NET. Windows Server is the part that moves you to Premium or Enterprise. "Managed" means the server, stack, SSL, backups, and patching are handled, while you own and maintain the app. The upside of owning it: the UI, the API, and the database sit in one dashboard, and your next v0 project can share the same server instead of starting a new bill. For the tool-agnostic version that also covers Cursor, Lovable, and Bolt, see [deploy an AI-built app to production](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/).
 
-## Generated UI, infrastructure you own
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-Deploy your v0 app on a server you own at [kloudbean.com](https://www.kloudbean.com/). One-click databases · Automatic backups · Free migration · Free trial · Git deploy. Plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

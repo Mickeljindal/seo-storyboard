@@ -78,7 +78,7 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi...   # bypasses Row Level Security
 
 If you want the wider mental model for what goes public and what stays secret, we wrote it up in [environment variables, done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
-<!-- ADD IMAGE: The Supabase project API settings page, with the anon key and service_role key side by side and labelled. -->
+![Steps to production](images/gen-1-flow.png)
 
 ## Your VITE_ variables freeze at build time
 
@@ -130,9 +130,9 @@ Your Lovable frontend builds to a folder of static files. Two clean ways to serv
 
 Either way, remember the rule from two sections up: set your `VITE_` variables before the build runs.
 
-![Kloudbean Deploy Code / Git Deployment screen: connect the GitHub repo, choose the branch, set the runtime, and pull and deploy](../assets/console/git-deployment.png)
+![Kloudbean Deploy Code / Git Deployment screen: connect the GitHub repo, choose the branch, set the runtime, and pull and deploy](../assets/console-real/shots/git_connect_step_4.png)
 
-<!-- ADD IMAGE: Kloudbean free static site hosting screen with the Lovable frontend on a custom domain and free SSL on. -->
+![anon key vs service_role key](images/gen-2-comparison.png)
 
 ### Half two: give the frontend a Supabase to talk to
 
@@ -141,19 +141,19 @@ Pick the backend you chose above.
 - **Keeping Supabase?** Launch a managed Supabase (one click) or point at your existing project. Put the project URL and anon key into the frontend build. Keep the `service_role` key server-side.
 - **Moving to Postgres?** Launch a managed Postgres or MySQL from the console, import your data (next section), and point your server code at the connection string.
 
-![Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance next to the app](../assets/console/launch-database.png)
+![Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance next to the app](../assets/console-real/shots/psql_launch_step_1.png)
 
 ### Set the environment variables
 
 In **Runtime Configuration, Environment Variables**, there's a **Paste .env Content** tab. Drop your `.env` in, click **Convert to Key/Value**, and swap the dev values for the real ones. Frontend keys (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) matter at build time. Server secrets (`service_role`, any `DATABASE_URL`) are read at runtime and stay out of the repo.
 
-![Kloudbean environment variables editor showing a paste .env content tab and a key value list](../assets/console/env-vars.png)
+![Kloudbean environment variables editor showing a paste .env content tab and a key value list](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ### Domain, SSL, and auto-deploy
 
 Add your custom domain under **Domain Aliases**, point its DNS at the server, and install a free Let's Encrypt certificate so it's HTTPS and renews itself. Turn on automated deployment and every push to your branch rebuilds and ships. From then on, updating production is just `git push`, the same loop you'd get from a per-app platform, except it's [running on a server you own](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-<!-- ADD IMAGE: Your Lovable app live on its custom domain, logged in, real data loading, SSL padlock in the address bar. -->
+![Configure your Lovable frontend for production](images/gen-3-panel.png)
 
 ## Bringing your Supabase data across (only if you're moving it)
 
@@ -187,9 +187,21 @@ The same files also sit on disk at `/home/admin/hosted-sites/<app_system_user>/a
 
 Kloudbean runs Linux stacks: the JavaScript toolkit Lovable uses (React, Vite, Node) plus PHP, Python, Ruby, and Java when you need them. That covers what Lovable builds for the web. Run .NET on Linux; reach for Premium or Enterprise if you need Windows Server itself. "Managed" means the server, the stack, SSL, backups, and patching are handled. Your code stays in your repo and your data stays in a database you control. And because the frontend, the database or Supabase, and object storage all sit in one dashboard, your next Lovable project can share the same server instead of starting a new bill. If you'd rather see the tool-agnostic version that also covers Cursor, Bolt, and v0, that's the [deploy an AI-built app](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) guide. Hosting several apps on one box is covered in [app, API, and database on one server](https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/).
 
-## You built the app. Now own where it runs.
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-Give your Lovable app a real home at [kloudbean.com](https://www.kloudbean.com/). Free static hosting with SSL · One-click managed Supabase · Managed Postgres and MySQL · Free migration · Free trial · Git deploy. Sizes and plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

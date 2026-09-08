@@ -90,11 +90,20 @@ For where to run Node in production, see [the managed Node.js hosting guide](htt
 
 The lookalike error is [EADDRINUSE, port already in use](https://www.kloudbean.com/blog/fix-eaddrinuse-port-already-in-use-node/), which is occupancy rather than permission. The clean fix here is [an Nginx reverse proxy for Node](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). If the app won't start for another reason, [why my Node app crashes on deploy](https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/) and [ECONNREFUSED](https://www.kloudbean.com/blog/fix-econnrefused-node/) cover the neighbours, and [the managed Node.js hosting guide](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/) covers where to run it.
 
-## Let the proxy own port 80, not your app.
+<!-- cta:start -->
+**Fewer mysteries on the next deploy.**
 
-On Kloudbean your Node app runs as a non-root user under PM2 while the web server handles ports 80 and 443 and SSL, so the privileged-port problem is solved before you meet it. Managed servers, Git deploys, free auto-renewing SSL. Start at [kloudbean.com](https://www.kloudbean.com/), or see the setup in [the managed Node.js hosting guide](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/).
+Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.
 
-App on a high port · Proxy owns 80 and 443 · Free SSL · Runs as non-root under PM2
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

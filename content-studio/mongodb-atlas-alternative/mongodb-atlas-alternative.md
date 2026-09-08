@@ -34,7 +34,7 @@ The difference that matters for most teams isn't a feature count. It's where the
 
 *Diagram: on the left, an app host connects up through the public internet (IP allowlist, egress fees) to an Atlas cluster. On the right, the app and managed MongoDB sit inside one dashboard, in the same account with no separate vendor in the path.*
 
-<!-- ADD IMAGE: A side by side of a usage-based Atlas invoice next to a flat monthly server price. Optional: annotate the egress and transfer lines. -->
+![Real-time build log](images/gen-2-flow.png)
 
 ## MongoDB Atlas vs Kloudbean managed MongoDB
 
@@ -63,7 +63,7 @@ Here's the practical part. Getting managed MongoDB running beside your app takes
 
 Open the **DBS** section and choose **Launch Database**. MongoDB is one of seven managed engines here, alongside MySQL, MariaDB, PostgreSQL, Redis, Memcached, and Elasticsearch. Pick MongoDB, name it, create it. A minute or two later it's provisioned on a tier-1 cloud, secured, and already being backed up.
 
-![The Kloudbean console launching a managed MongoDB database alongside MySQL, PostgreSQL, Redis and Elasticsearch](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed MongoDB database alongside MySQL, PostgreSQL, Redis and Elasticsearch](../assets/console-real/shots/mongodb_launch_step_1.png)
 
 You'll get the connection details: host, port, database name, username, password. The host is an internal address in your account, reachable by your app on the same server. More on managed MongoDB specifics in [managed MongoDB hosting](https://www.kloudbean.com/blog/managed-mongodb-hosting/).
 
@@ -71,17 +71,17 @@ You'll get the connection details: host, port, database name, username, password
 
 Add your Node or Python app from the **Applications** section and connect your GitHub repo. Managed CI/CD builds and deploys on every push, so the app that reads Mongo and the Mongo it reads end up on the same server, in the same account.
 
-![The Kloudbean console adding a Node or Python application from a GitHub repository next to the managed database](../assets/console/add-application.png)
+![The Kloudbean console adding a Node or Python application from a GitHub repository next to the managed database](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 The full walkthrough lives in [deploy a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) if you want the deployment side in detail.
 
-<!-- ADD IMAGE: A live build log streaming as the app deploys from GitHub. Show the successful connect-to-Mongo line if you have it. -->
+![Real replies, not pseudo-code](images/gen-3-terminal.png)
 
 ### Step 3: Wire the connection through an environment variable
 
 Your connection string belongs in the environment, never in source. Open **Runtime Configuration** then **Environment Variables** and add a single `MONGODB_URI` pointed at the internal host:
 
-![The Kloudbean console environment variables screen where the MONGODB_URI connection string is stored safely](../assets/console/env-vars.png)
+![The Kloudbean console environment variables screen where the MONGODB_URI connection string is stored safely](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ```bash
 # Managed MongoDB on an internal host in your account (not a public SRV string)
@@ -124,7 +124,7 @@ Then update `MONGODB_URI` to the new value, redeploy, and confirm your app reads
 
 > **Coming from Atlas?** You don't have to run the export yourself. Kloudbean's free migration assistance will move the data and hand you a working connection string, and there's a free trial so you can verify the app on the new database before you switch anything in production.
 
-<!-- ADD IMAGE: A terminal showing mongodump finishing on Atlas and mongorestore loading the internal host. Redact any real credentials in the URI. -->
+![Compare MongoDB Atlas vs Managed MongoDB](images/gen-1-comparison.png)
 
 ## What "managed" means here, and what it doesn't
 
@@ -136,11 +136,20 @@ What it is not: this isn't Atlas. There are no global multi-region clusters, no 
 
 The database is one piece of owning your whole stack in one place. Your app sits next to it, wired in through an env var, deployed from GitHub. Need caching in front of hot reads? Add a managed Redis in the same account. Running a full app that expects Mongo, like a chat server? [Self-hosting Rocket.Chat](https://www.kloudbean.com/blog/self-host-rocketchat/) follows the same shape. If you landed here from a platform where the database was a separate metered add-on, the broader pattern is in [the best Vercel alternative for databases](https://www.kloudbean.com/blog/best-vercel-alternative-for-databases/). One dashboard, one server, one bill, and a database that lives in your account, not a separate vendor.
 
----
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-**Managed MongoDB, beside your app, at a price you can predict.** Spin up MongoDB in the same account as your app, deploy your app from GitHub, and skip the usage-based surprises. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-One-click MongoDB · Colocated with your app · Automatic backups · Flat server pricing · Free migration · Free trial
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -13,7 +13,7 @@ The single idea that makes all of this click: Metabase touches *two* kinds of da
 
 So Metabase is a Java process in the middle, writing its own state to an application database and reading your data sources. Both sit in the same account as Metabase and talk to it internally, and the application database is the one you must not leave on H2.
 
-<!-- ADD IMAGE: bespoke SVG diagram. Metabase (Java app) writes state to a managed PostgreSQL application database (dashboards, questions, users) internally, and separately reads your data sources (Postgres, MySQL) to build charts. Brand navy #000f27, purple #4F1AF3, green #40b75f. -->
+![Java command with memory limit](images/gen-2-terminal.png)
 
 *Figure: Metabase writes its own dashboards, questions, and users to an application database (managed PostgreSQL, not H2), and separately reads your data sources to draw charts. Back up that application database and you've backed up Metabase.*
 
@@ -39,7 +39,7 @@ The honest tradeoff: you run it and you update it. Managed hosting takes most of
 
 Fair's fair: hosted Metabase is lower effort, and for a small team that never wants to see a server it's a reasonable trade. Once ownership, residency, or the per-seat bill matter, self-hosting wins.
 
-<!-- ADD IMAGE: a Metabase dashboard your team actually uses, running on your own domain. Optional author shot. -->
+![Metabase booting against Postgres](images/gen-3-terminal.png)
 
 ## The mistake almost everyone makes: leaving Metabase on H2
 
@@ -103,7 +103,7 @@ Honesty note first: Metabase isn't a one-click app on Kloudbean, and it doesn't 
 
 Open the **DBS** section and hit **Launch Database**. Pick PostgreSQL, name it `metabase`, create it. A minute or two later it's provisioned, running right next to your app, and already being backed up. This is the database that holds every dashboard and user.
 
-![The Kloudbean console Launch Database screen used to provision a managed PostgreSQL as the Metabase application database](../assets/console/launch-database.png)
+![The Kloudbean console Launch Database screen used to provision a managed PostgreSQL as the Metabase application database](../assets/console-real/shots/psql_launch_step_1.png)
 
 PostgreSQL is Metabase's recommended application database, and it's what I'd pick. All-in on MySQL? That's supported too; see [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) and [managed MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/).
 
@@ -111,7 +111,7 @@ PostgreSQL is Metabase's recommended application database, and it's what I'd pic
 
 Add an application to host the Metabase Java process, with `java -Xmx2g -jar metabase.jar` as its start step. Running a long-lived JVM or Node process on a managed server follows the same shape as [deploying an app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/).
 
-![The Kloudbean console Add Application screen where the Metabase Java app is added to the server](../assets/console/add-application.png)
+![The Kloudbean console Add Application screen where the Metabase Java app is added to the server](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 <!-- ADD IMAGE: your start command showing java -Xmx2g -jar metabase.jar as the app's run step. Optional. -->
 
@@ -119,13 +119,13 @@ Add an application to host the Metabase Java process, with `java -Xmx2g -jar met
 
 Open **Runtime Configuration** then **Environment Variables** and paste in the `MB_DB_` block from earlier, pointing at the managed PostgreSQL from step 1. This is the step that takes Metabase off H2. Save, then restart the app so it reads the new config at boot.
 
-![The Kloudbean console Environment Variables screen where the Metabase MB_DB variables are set to use managed PostgreSQL](../assets/console/env-vars.png)
+![The Kloudbean console Environment Variables screen where the Metabase MB_DB variables are set to use managed PostgreSQL](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ### Step 4: Put SSL in front of the Metabase UI
 
 Never leave a BI login page on plain HTTP. Add a domain for Metabase and turn on free SSL, so HTTPS terminates in front and port 3000 stays internal. Your team logs in over an encrypted connection, and the raw port isn't sitting open on the internet.
 
-![The Kloudbean console SSL certificate screen used to serve the Metabase UI over HTTPS](../assets/console/ssl-certificate.png)
+![The Kloudbean console SSL certificate screen used to serve the Metabase UI over HTTPS](../assets/console-real/shots/le_ssl_step_1.png)
 
 ## Migrating Metabase from H2 to Postgres
 
@@ -171,11 +171,21 @@ Lose the server and you can rebuild it. Lose the application database and there'
 
 Metabase is one piece of a stack you own end to end: a Java app on your managed server, state in managed PostgreSQL, reading your other managed databases internally, behind free SSL and backups. One dashboard, one server, one bill. Weighing other tools to run yourself? The [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup is good company, and if your app leans on Supabase, [self-hosting Supabase](https://www.kloudbean.com/blog/self-host-supabase/) follows the same own-your-data logic.
 
----
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-**Own your analytics, keep the keys.** Run Metabase on a managed server with managed PostgreSQL as its application database, free SSL in front, an internal connection to your data, and automatic backups, so your dashboards are genuinely yours. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Managed PostgreSQL · Automatic backups · Free SSL · Free migration · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

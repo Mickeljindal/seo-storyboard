@@ -77,11 +77,20 @@ And the scope line: this whole page is about application object storage, the S3 
 
 The cost mechanics behind all of this are in [the egress fees breakdown](https://www.kloudbean.com/blog/zero-egress-object-storage/). For what object storage even is and why files don't belong on the app server, [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/), and for the practical pattern, [store user uploads in object storage](https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/). If you're weighing managed platforms more broadly, [best managed cloud hosting](https://www.kloudbean.com/blog/best-managed-cloud-hosting/).
 
-## Put your files where your app already lives.
+<!-- cta:start -->
+**Move it once. Own it after.**
 
-Kloudbean gives you S3-compatible object storage with no egress metering on it, in the same dashboard as your servers and managed databases, so storage stops being a separate bill and a separate console. Start at [kloudbean.com](https://www.kloudbean.com/), or read how it works in [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-S3-compatible API · No egress on built-in storage · Same dashboard as your stack · Public and private buckets
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -116,7 +116,7 @@ Session.remove()   # CRITICAL: hands the connection back to the pool
 
 The frameworks do this for you: Flask-SQLAlchemy removes its scoped session after every request, and FastAPI does it with a dependency.
 
-<!-- ADD IMAGE: Your editor open on db.py, the create_engine and sessionmaker calls visible. -->
+![Execution flow for creating an engine and session](images/gen-1-flow.png)
 
 ## Declarative models, SQLAlchemy 2.0 style
 
@@ -226,7 +226,7 @@ target_metadata = Base.metadata
 
 Run `alembic upgrade head` on deploy, after the build and before the new version serves traffic. On Kloudbean's managed CI/CD it's a deploy step you watch in the live build logs. See [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-<!-- ADD IMAGE: Terminal output of alembic upgrade head applying a pending revision. -->
+![Migrations running, not create_all](images/gen-2-terminal.png)
 
 ## Postgres or MySQL: same SQLAlchemy, different driver
 
@@ -267,7 +267,7 @@ Everything above assumes a real database behind it: always on, backed up, patche
 
 **Step 4. Run migrations on deploy.** Add `alembic upgrade head` to the deploy step so the schema updates before the new code serves a request.
 
-<!-- ADD IMAGE: The managed database connection details panel after launch: host, port, database, user. -->
+![Connection details after launch](images/gen-3-flow.png)
 
 **Step 5. Verify.** Hit an endpoint that reads from the database, or run `select(1)` through the engine at startup. A clean read means the URL, the network, and the pool all agree.
 
@@ -315,13 +315,20 @@ users = session.scalars(
 
 If a list endpoint got slow right after you added a relationship, this is almost always why. Use `selectinload` for collections and `joinedload` for single related rows.
 
----
+<!-- cta:start -->
+**A database you can dump and take with you.**
 
-**Give your SQLAlchemy app a database that's ready for production.**
+Launch MySQL, MariaDB, PostgreSQL, Redis, Memcached, MongoDB, or Elasticsearch in a click, reachable from your app server with automatic backups from minute one. Standard connection strings, standard dumps, no proprietary format.
 
-Launch managed PostgreSQL or MySQL, drop the connection string into one environment variable, size the pool, and run `alembic upgrade head` with IP allow-listing and automatic backups. Start free at [kloudbean.com](https://www.kloudbean.com/), and see plans from $8/mo on [pricing](https://www.kloudbean.com/pricing/).
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
 
-One-click databases · Automatic backups · Env vars in the UI · Free migration · Free trial
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

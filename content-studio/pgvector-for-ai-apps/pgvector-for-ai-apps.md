@@ -29,7 +29,7 @@ Before the SQL, the concept, because it's simpler than the jargon makes it sound
 
 Vector search is just finding the nearest points to a query point. You embed the user's question into the same space, then ask the database for the rows whose vectors sit closest, measured with a distance function, most often cosine distance. That's the whole idea.
 
-<!-- ADD IMAGE: a simple 2D scatter showing similar sentences clustering together in embedding space -->
+![Similar sentences cluster closely](images/gen-1-flow.png)
 
 ## Do you actually need a dedicated vector database?
 
@@ -94,7 +94,7 @@ ORDER BY embedding <=> '[0.011, -0.043, 0.080, ...]'
 LIMIT 5;
 ```
 
-![The Kloudbean console launching a managed PostgreSQL database, the engine that runs pgvector](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed PostgreSQL database, the engine that runs pgvector](../assets/console-real/shots/psql_launch_step_1.png)
 _pgvector runs on standard PostgreSQL. Launch a managed Postgres, then enable the extension on it._
 
 Now the query a separate vector database makes awkward and Postgres makes trivial: similarity _and_ a normal filter, in one round trip. Search only this user's documents, ranked by closeness.
@@ -110,7 +110,7 @@ LIMIT 5;
 
 Try doing that cleanly across two systems. You can't, not without fetching IDs from one and re-querying the other. That's a big part of why vectors in Postgres feel calmer. The app wiring is the same as any database, a `DATABASE_URL` in an env var; the full walkthrough is in [how to add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
 
-<!-- ADD IMAGE: a psql session running the ORDER BY distance query and showing ranked results -->
+![Proof the query works end to end](images/gen-2-terminal.png)
 
 ## Indexing pgvector for speed: HNSW or IVFFlat?
 
@@ -139,7 +139,7 @@ USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 
 My default is HNSW. It gives excellent recall out of the box and stays fast as the table grows, and the extra memory is usually a fair trade. IVFFlat is lighter and builds faster, but it wants to be built after you've loaded data (it trains on the existing rows), and you have to pick a sensible `lists` value. One rule that saves headaches: build the index once real data is in, not on an empty table.
 
-<!-- ADD IMAGE: EXPLAIN ANALYZE for the same query before and after the HNSW index -->
+![Sequential scan vs. Index scan](images/gen-3-comparison.png)
 
 ## Can I use pgvector for RAG?
 
@@ -170,7 +170,7 @@ So where does this land in practice? pgvector is a standard PostgreSQL extension
 
 One honest note, because I won't oversell it: enabling the pgvector extension depends on your specific Postgres setup and version, so check availability for your instance rather than assuming it's turned on. Kloudbean doesn't sell a separate "vector database" product, and it doesn't need to. Run one managed Postgres, keep your app data and your embeddings together, and back the whole thing up as a unit.
 
-![The Kloudbean console storing the Postgres DATABASE_URL as an environment variable for a pgvector-backed app](../assets/console/env-vars.png)
+![The Kloudbean console storing the Postgres DATABASE_URL as an environment variable for a pgvector-backed app](../assets/console-real/shots/nodespm_env_step_1.png)
 _One database, one connection string. Store `DATABASE_URL` as an env var, never in code._
 
 ```bash
@@ -180,15 +180,22 @@ DATABASE_URL=postgresql://appuser:s3cret@10.0.0.5:5432/appdb
 
 From there it's ordinary Postgres work. Your ORM connects the usual way (here's [connecting Prisma to a managed database](https://www.kloudbean.com/blog/connect-prisma-to-a-managed-database/)), you handle load with [connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/), and you cache the hot reads. Redis and Postgres do different jobs, so if you're weighing them, see [when to use Redis vs Postgres](https://www.kloudbean.com/blog/when-to-use-redis-vs-postgres/). Still choosing an engine? [MySQL vs PostgreSQL](https://www.kloudbean.com/blog/mysql-vs-postgresql/) covers it (short version for AI work: Postgres, because pgvector).
 
-<!-- ADD IMAGE: an app answering a question using chunks retrieved from pgvector, with sources listed -->
+![Flow of data retrieval for AI app](images/gen-4-flow.png)
 
----
+<!-- cta:start -->
+**A database you can dump and take with you.**
 
-**Keep your vectors where your data already lives.**
+Launch MySQL, MariaDB, PostgreSQL, Redis, Memcached, MongoDB, or Elasticsearch in a click, reachable from your app server with automatic backups from minute one. Standard connection strings, standard dumps, no proprietary format.
 
-Run a managed PostgreSQL for your app data and your embeddings together, with automatic backups, IP allow-listing, and free migration help. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
 
-Managed PostgreSQL · Automatic backups · Free migration · Free trial · Simple Git deploy
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

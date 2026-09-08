@@ -43,7 +43,7 @@ It's worth separating two things people blur together: expensive and unpredictab
 
 Compare that to renting a room versus paying by the minute for everything you touch. Both can be fair. Only one lets you know the number before the month starts. For a hobby project that variability is fine, honestly. For a side project you don't want surprising you, a small business app, or a client's app you have to quote, a bill that moves with the weather is a low-grade, month-round stress. The [cost of running a side project](https://www.kloudbean.com/blog/cost-of-running-a-side-project/) gets into the specifics.
 
-<!-- ADD IMAGE: A Railway usage or metrics view showing resource consumption and the running monthly estimate. -->
+![Running monthly estimate](images/gen-1-graph.png)
 
 ## A decision framework: should you look for a Railway alternative?
 
@@ -75,17 +75,17 @@ And there's a quieter benefit that only shows up over time. When you rent an abs
 
 A pattern we run into a lot: someone spins up a second service to try something, forgets it's there, and it quietly meters in the background until the invoice reminds them. On a flat-price box you own, a forgotten process is just a process. It isn't a line on a bill that grows while you sleep.
 
-<!-- ADD IMAGE: A terminal SSH'd into the server, showing the running app process and its real logs. -->
+![Inspecting the app's running process and logs](images/gen-2-terminal.png)
 
 ## How a flat-rate managed server compares
 
 This is the space [Kloudbean](https://www.kloudbean.com/) sits in. Instead of metering resource-time, it gives you a real server, provisioned and managed for you on the cloud you choose (seven providers: AWS, Google Cloud, DigitalOcean, Linode, Vultr, UpCloud, Lightsail), for a flat monthly price. You still connect a Git repo and deploy from a console, so the part of Railway you actually liked carries over.
 
-![Kloudbean console Deploy Code / Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy](../assets/console/git-deployment.png)
+![Kloudbean console Deploy Code / Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy](../assets/console-real/shots/git_connect_step_4.png)
 
 Because the price is flat, a second (or fifth) vibe-coded project doesn't start a second meter. Add it as another application on the same server, with its own domain and its own managed database.
 
-![Kloudbean Add Application screen for running another app on the same server](../assets/console/add-application.png)
+![Kloudbean Add Application screen for running another app on the same server](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 |  | Railway | A server you own |
 | --- | --- | --- |
@@ -106,9 +106,20 @@ A comparison that pretends every reader should switch today isn't worth much, so
 
 Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and frameworks like React, Next.js, Vue, Laravel, and Django, which covers what vibe-coded apps are built on. .NET workloads run on the Linux stack, and Windows Server is a higher-tier option. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you own and maintain the app and its data. And to be straight: at genuinely tiny usage, Railway's metered bill can come in under a flat server, because a server costs the same whether it's busy or idle. The flat model wins on predictability and as usage grows, not necessarily on the smallest possible number at the smallest scale. Predictable beats cheapest for most people past the prototype, but you should pick based on where you actually sit on that curve.
 
-## Keep the ease. Lose the meter.
+<!-- cta:start -->
+**Bring the app. Keep the deploy flow.**
 
-Run your vibe-coded apps on one flat-rate server you own at [kloudbean.com](https://www.kloudbean.com/). One-click databases, automatic backups, IP allow-listing, free migration, free trial, and git deploy. Plans on [pricing](https://www.kloudbean.com/pricing/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
+
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

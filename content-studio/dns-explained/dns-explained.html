@@ -106,7 +106,20 @@ example.com.    283    IN    A    203.0.113.10
 dig example.com +trace</code></pre>
 
   <!-- ADD IMAGE: a terminal running dig or nslookup, showing the A record and the TTL value. Swap for a real screenshot: src -> images/dig-lookup.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A terminal running dig or nslookup, with the A record and its TTL visible.</em></span></figure>
+  <!-- IMAGE GENERATE [terminal] #1
+Create a realistic terminal / command-line screenshot for a technical blog post titled "DNS Explained: How the Internet Finds Your Server".
+
+What it must show: A terminal running dig or nslookup, with the A record and its TTL visible.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-terminal.png" alt="A terminal running dig or nslookup, with the A record and its TTL visible.">
+    <figcaption>Find your server's IP</figcaption>
+  </figure>
 
   <h2>The DNS records you'll actually touch</h2>
   <p>A domain's records live together in a zone. You'll hear about a dozen types and touch maybe six. Here's a small but real zone, trimmed to the ones that matter:</p>
@@ -135,7 +148,20 @@ example.com.       86400  IN   NS      ns1.registrar.net.</code></pre>
   <p>Now the classic trap: you can't put a CNAME on the apex (the bare <code>example.com</code>) in standard DNS, because the apex needs records like NS and often MX, and a CNAME can't sit beside them. So the apex gets an A record and only <code>www</code> gets a CNAME. Some providers offer an ALIAS or ANAME record (or CNAME flattening) to fake an apex CNAME, which is handy when you have it. The plain rule holds: apex is an A record, <code>www</code> is a CNAME.</p>
 
   <!-- ADD IMAGE: your registrar's DNS panel with an A record for the apex and a CNAME for www. Swap for a real screenshot: src -> images/dns-records-panel.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A registrar DNS panel with an A record on the apex and a CNAME on www.</em></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "DNS Explained: How the Internet Finds Your Server".
+
+What it must show: A registrar DNS panel with an A record on the apex and a CNAME on www.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="A registrar DNS panel with an A record on the apex and a CNAME on www.">
+    <figcaption>From registrar to CNAME</figcaption>
+  </figure>
 
   <h2>TTL and why DNS propagation takes time</h2>
   <p>Every record carries a <strong>TTL</strong>, its time to live, in seconds. That <code>3600</code> above means one hour. TTL is a promise to resolvers: cache this answer for this long, then check again. A low TTL means changes take effect fast but resolvers ask more often. A high TTL means fewer lookups but slower changes. That trade-off is the whole story behind DNS propagation.</p>
@@ -143,7 +169,20 @@ example.com.       86400  IN   NS      ns1.registrar.net.</code></pre>
   <p>There's a practical move here. Migrating servers? Lower the TTL a day ahead, to 300 seconds or even 60. Once the old high TTL has aged out everywhere, every resolver holds the record for only a minute, so flipping to the new IP is nearly quick. Raise it back after. Skip this and a TTL of <code>86400</code> means some visitors keep hitting your old server for a full day after you moved.</p>
 
   <!-- ADD IMAGE: a DNS propagation checker showing the new IP live in some cities and the old one still cached in others. Swap for a real screenshot: src -> images/propagation-checker.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A propagation checker map: the new IP live in some locations, the old one still cached in others.</em></span></figure>
+  <!-- IMAGE GENERATE [flow] #3
+Create a left-to-right architecture / flow diagram for a technical blog post titled "DNS Explained: How the Internet Finds Your Server".
+
+What it must show: A propagation checker map: the new IP live in some locations, the old one still cached in others.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-flow.png" alt="A propagation checker map: the new IP live in some locations, the old one still cached in others.">
+    <figcaption>New IP in some, old cached in others</figcaption>
+  </figure>
 
   <h2>Where DNS goes wrong (the classic gotchas)</h2>
   <p>Most DNS problems aren't exotic. They're the same handful of mistakes, over and over.</p>
@@ -161,7 +200,7 @@ example.com.       86400  IN   NS      ns1.registrar.net.</code></pre>
   <p>All this theory lands on one act: pointing a domain at a server you control. The shape never changes. Your server has a public IP. You create an A record at your registrar pointing the domain at that IP (plus a <code>www</code> CNAME onto the apex). DNS resolves. Done.</p>
 
   <figure>
-    <img src="../assets/console/add-server.png" alt="Provisioning a server in the Kloudbean console, which assigns the public IP your DNS A record points at">
+    <img src="../assets/console-real/shots/launch_server_step_1.png" alt="Provisioning a server in the Kloudbean console, which assigns the public IP your DNS A record points at">
     <figcaption>A new server gets a public IP on provisioning. That is the address your A record points at.</figcaption>
   </figure>
 
@@ -169,7 +208,7 @@ example.com.       86400  IN   NS      ns1.registrar.net.</code></pre>
   <p>Once the name resolves to your server, SSL falls into place. Kloudbean issues free, auto-renewing certificates on your Linux server, and the order matters for a pure-DNS reason: a certificate authority proves you control the domain by checking that it points where it should. No resolution, no certificate. So when an SSL request fails moments after you set up DNS, the honest first answer is usually that DNS hasn't finished resolving yet, not that the certificate is broken.</p>
 
   <figure>
-    <img src="../assets/console/ssl-certificate.png" alt="A free auto-renewing SSL certificate active in the Kloudbean console once DNS resolves to the server">
+    <img src="../assets/console-real/shots/le_ssl_step_1.png" alt="A free auto-renewing SSL certificate active in the Kloudbean console once DNS resolves to the server">
     <figcaption>Once the domain resolves, a free certificate issues and auto-renews. The padlock is downstream of DNS being right.</figcaption>
   </figure>
 
@@ -179,15 +218,60 @@ example.com.       86400  IN   NS      ns1.registrar.net.</code></pre>
   <p>A zone file is small, with outsized power, and still just the first hop. Behind that IP sit the server, the app, the database, SSL, and backups. On Kloudbean they share one login, so the domain, the server it resolves to, and its certificate all sit on one screen.</p>
 
   <figure>
-    <img src="../assets/console/dashboard.png" alt="The Kloudbean dashboard showing servers, applications, databases, and SSL in one place">
+    <img src="../assets/console-real/shots/dashboard.png" alt="The Kloudbean dashboard showing servers, applications, databases, and SSL in one place">
     <figcaption>The domain resolves to a server that runs your app and database, with SSL, all on one dashboard.</figcaption>
   </figure>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Point your domain. Get the padlock. Move on.</p>
-    <p style="margin:0 0 .6em">Spin up a Linux server, point your A record at its IP, and let free auto-renewing SSL kick in the moment DNS resolves. Plans start from $8/mo and Enterprise is custom, so check current pricing on <a href="https://www.kloudbean.com/pricing/">pricing</a>. See the whole stack on one dashboard at <a href="https://www.kloudbean.com/">kloudbean.com</a>, or weigh the numbers in <a href="https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/">DigitalOcean vs Kloudbean</a>.</p>
-    <p style="margin:0">Point your domain · Free auto-renewing SSL · 7 clouds · Automatic backups · Free migration · Free trial</p>
+<div class="kbcta-run-wrap">
+  <div class="kbcta-run-overlay"></div>
+  <div class="kbcta-run-content">
+    <div class="kbcta-run-eyebrow">MANAGED CLOUD &middot; ONE DASHBOARD</div>
+    <p class="kbcta-run-heading">One dashboard for the whole stack.</p>
+    <p class="kbcta-run-description">Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.</p>
+    <ul class="kbcta-run-features">
+      <li>&#10003; Seven cloud providers</li>
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration assistance</li>
+    </ul>
+    <div class="kbcta-run-buttons">
+      <a class="kbcta-run-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-run-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-run: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-run-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-run-wrap *{box-sizing:border-box}
+.kbcta-run-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-run-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-run-content{position:relative;z-index:3;max-width:700px}
+.kbcta-run-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-run-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-run-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-run-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-run-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-run-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-run-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-run-btn:hover,.kbcta-run-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-run-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-run-link:hover,.kbcta-run-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-run-wrap{padding:36px 24px}
+  .kbcta-run-heading{font-size:31px}
+  .kbcta-run-description{font-size:16px}
+  .kbcta-run-features li{white-space:normal}
+  .kbcta-run-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-run-btn{width:100%}
+  .kbcta-run-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

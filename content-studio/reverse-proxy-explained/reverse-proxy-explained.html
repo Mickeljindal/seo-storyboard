@@ -114,7 +114,21 @@
   <p>Notice something: none of these need more than one backend. A reverse proxy in front of a <em>single</em> app is already useful. That matters for the next comparison, because people assume a proxy only earns its place once you run a fleet of servers. Not true.</p>
 
   <!-- ADD IMAGE: browser devtools Network tab showing a response with a Server: nginx header, proving a proxy answered. Swap for a real screenshot: src -> images/response-headers.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Browser devtools showing a response header like Server: nginx, the proxy quietly answering in front of your app.</em><small>Proof the middleman is there even when you never configured it.</small></span></figure>
+  <!-- IMAGE GENERATE [panel] #1
+Create a clean settings / configuration panel UI mockup for a technical blog post titled "Reverse Proxy Explained: The Server That Sits in Front of Your App".
+
+What it must show: Browser devtools showing a response header like Server: nginx, the proxy quietly answering in front of your app.
+Also: Proof the middleman is there even when you never configured it.
+
+A white card with a small uppercase section label, then labelled rows. Highlight the row that carries the point with a violet border. Optional green check line at the bottom confirming the result.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-panel.png" alt="Browser devtools showing a response header like Server: nginx, the proxy quietly answering in front of your app.">
+    <figcaption>Proof the middleman is there even when you never configured it</figcaption>
+  </figure>
 
   <h2>Reverse proxy vs forward proxy: which direction is it facing?</h2>
   <p>Here's the distinction that trips everyone up. Both are middlemen. The difference is <em>who they work for</em> and which side they hide.</p>
@@ -151,7 +165,7 @@
   </table>
 
   <figure>
-    <img src="../assets/console/flb-load-balancer.png" alt="The Kloudbean Flexible Load Balancer, a specialized reverse proxy, spreading traffic across healthy backend nodes">
+    <img src="../assets/console-real/shots/flb_launch_step_2.png" alt="The Kloudbean Flexible Load Balancer, a specialized reverse proxy, spreading traffic across healthy backend nodes">
     <figcaption>A load balancer is a reverse proxy specialized for one thing: fanning each request across a pool of healthy backends.</figcaption>
   </figure>
 
@@ -191,7 +205,21 @@ curl -I https://example.com
   <p>That last line is the tell. If <code>curl</code> comes back with <code>502 Bad Gateway</code>, the proxy is alive and well. It's your app behind it that isn't answering.</p>
 
   <!-- ADD IMAGE: an SSL certificate panel showing an active, auto-renewing cert terminating at the proxy layer. Swap for a real screenshot: src -> images/ssl-at-proxy.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>An SSL certificate view: an active, auto-renewing cert that terminates at the proxy so your app speaks plain HTTP inside.</em><small>Where HTTPS ends and the private hop to your backend begins.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "Reverse Proxy Explained: The Server That Sits in Front of Your App".
+
+What it must show: An SSL certificate view: an active, auto-renewing cert that terminates at the proxy so your app speaks plain HTTP inside.
+Also: Where HTTPS ends and the private hop to your backend begins.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="An SSL certificate view: an active, auto-renewing cert that terminates at the proxy so your app speaks plain HTTP inside.">
+    <figcaption>HTTPS to Plain HTTP</figcaption>
+  </figure>
 
   <h2>Why a 502 is the reverse proxy talking to you</h2>
   <p>This is the part that actually helps at 2am, so here's where a reverse proxy stops being trivia and starts being useful.</p>
@@ -209,7 +237,7 @@ app.listen(3000, '127.0.0.1')   # results in 502 / 503</code></pre>
   </div>
 
   <figure>
-    <img src="../assets/console/add-application.png" alt="Adding an application in the Kloudbean console, where the platform wires a reverse proxy to your app's port">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="Adding an application in the Kloudbean console, where the platform wires a reverse proxy to your app's port">
     <figcaption>Add an app and the platform puts a web server in front of it, wires it to your app's port, and issues SSL. No nginx.conf to hand-roll.</figcaption>
   </figure>
 
@@ -219,22 +247,81 @@ app.listen(3000, '127.0.0.1')   # results in 502 / 503</code></pre>
   <p>The division of labour stays honest. The platform runs the proxy and the SSL. You own the app that listens behind it, on Linux stacks like Node, PHP, Python, Ruby, and Java. Your backend listens on an internal port, so the only public door is the proxy out front, which is exactly where you want it. On Enterprise you can put that backend on a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network (VPC)</a> as well.</p>
 
   <figure>
-    <img src="../assets/console/dashboard.png" alt="The Kloudbean dashboard showing servers, applications, databases, and the load balancer in one place">
+    <img src="../assets/console-real/shots/dashboard.png" alt="The Kloudbean dashboard showing servers, applications, databases, and the load balancer in one place">
     <figcaption>Servers, apps, managed databases, and the load balancer under one login, so the proxy layer isn't a separate product to wire up.</figcaption>
   </figure>
 
   <!-- ADD IMAGE: an app runtime settings panel showing the HTTP port / bind address the proxy forwards to. Swap for a real screenshot: src -> images/app-port-setting.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>An app runtime panel showing the HTTP port and bind address the platform's proxy forwards to.</em><small>The one setting that decides whether you get your homepage or a 502.</small></span></figure>
+  <!-- IMAGE GENERATE [panel] #3
+Create a clean settings / configuration panel UI mockup for a technical blog post titled "Reverse Proxy Explained: The Server That Sits in Front of Your App".
+
+What it must show: An app runtime panel showing the HTTP port and bind address the platform's proxy forwards to.
+Also: The one setting that decides whether you get your homepage or a 502.
+
+A white card with a small uppercase section label, then labelled rows. Highlight the row that carries the point with a violet border. Optional green check line at the bottom confirming the result.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-panel.png" alt="An app runtime panel showing the HTTP port and bind address the platform's proxy forwards to.">
+    <figcaption>The setting that decides your homepage or 502</figcaption>
+  </figure>
 
   <h2>Reverse proxy explained: what to actually remember</h2>
   <p>Strip it to the studs. A reverse proxy is the server in front of your server. It takes the client's request, handles the tedious edge work (TLS, routing, static files, buffering), hides your app, and forwards the real work to the backend.</p>
   <p>A forward proxy points the other way, standing in front of clients. A load balancer is a reverse proxy that specializes in spreading traffic across many backends. And the practical payoff, the bit worth carrying around: when you see a 502, the proxy is fine and your app isn't answering, so check the bind address and the port first. You'll be right most of the time. If you're choosing where that whole managed stack should live, our take on the <a href="https://www.kloudbean.com/blog/best-managed-cloud-hosting/">best managed cloud hosting</a> lays out what to look for.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Let the platform run the proxy. You run the app.</p>
-    <p style="margin:0 0 .6em">Deploy on Kloudbean and a web server sits in front of your app with free auto-renewing SSL, wired to the right port for you. Flip on the built-in load balancer the day one backend isn't enough. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; compare plans from $8/mo on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">One dashboard · Managed web server and SSL · Built-in load balancer · 7 clouds · Free migration · Free trial</p>
+<div class="kbcta-run-wrap">
+  <div class="kbcta-run-overlay"></div>
+  <div class="kbcta-run-content">
+    <div class="kbcta-run-eyebrow">MANAGED CLOUD &middot; ONE DASHBOARD</div>
+    <p class="kbcta-run-heading">Own the server. Skip the server admin.</p>
+    <p class="kbcta-run-description">Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.</p>
+    <ul class="kbcta-run-features">
+      <li>&#10003; Seven cloud providers</li>
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration assistance</li>
+    </ul>
+    <div class="kbcta-run-buttons">
+      <a class="kbcta-run-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-run-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-run: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-run-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-run-wrap *{box-sizing:border-box}
+.kbcta-run-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-run-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-run-content{position:relative;z-index:3;max-width:700px}
+.kbcta-run-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-run-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-run-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-run-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-run-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-run-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-run-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-run-btn:hover,.kbcta-run-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-run-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-run-link:hover,.kbcta-run-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-run-wrap{padding:36px 24px}
+  .kbcta-run-heading{font-size:31px}
+  .kbcta-run-description{font-size:16px}
+  .kbcta-run-features li{white-space:normal}
+  .kbcta-run-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-run-btn{width:100%}
+  .kbcta-run-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

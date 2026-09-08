@@ -89,18 +89,62 @@ pm2 list</code></pre>
   <p>A good share of 502s are really "the Nginx and Node wiring drifted apart," wrong port, missing reload, app listening on the wrong interface. That whole class disappears when the proxy is managed for you. On Kloudbean the reverse proxy in front of your always-on Node app is configured and maintained by the platform, along with SSL, so you're not hand-editing <code>proxy_pass</code> or reloading Nginx at all. A genuine app crash can still cause a 502, that's your code, but the misconfiguration causes are off the table.</p>
 
   <figure>
-    <img src="../assets/console/add-application.png" alt="A Node.js app deployed on Kloudbean with the reverse proxy and SSL handled by the platform">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="A Node.js app deployed on Kloudbean with the reverse proxy and SSL handled by the platform">
     <figcaption>The reverse proxy and SSL in front of your Node app are managed, so the port and proxy wiring behind most 502s is handled for you.</figcaption>
   </figure>
 
   <h2>Keep going</h2>
   <p>The proxy layer and the crash causes are the two halves of a 502. For the proxy, see <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">Nginx reverse proxy for Node</a> and <a href="https://www.kloudbean.com/blog/reverse-proxy-explained/">reverse proxy explained</a>. For the crashes, see <a href="https://www.kloudbean.com/blog/pm2-app-keeps-restarting/">PM2 app keeps restarting</a>, <a href="https://www.kloudbean.com/blog/fix-econnrefused-node/">ECONNREFUSED</a>, and <a href="https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/">heap out of memory</a>. If the code in your log is actually 500 rather than 502, the diagnosis inverts, because a 500 proves the process is alive and responding: see <a href="https://www.kloudbean.com/blog/http-error-500-internal-server-error/">500 Internal Server Error</a>. To catch 502s early, set up <a href="https://www.kloudbean.com/blog/uptime-monitoring/">uptime monitoring</a>.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Skip the Nginx wiring entirely.</p>
-    <p style="margin:0 0 .6em">Run your always-on Node app behind a managed reverse proxy with SSL handled for you, so the port, proxy, and reload steps behind most 502s are done. Deploy from GitHub on flat pricing from $8/mo. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">Managed reverse proxy · Free SSL · Always-on Node under PM2 · GitHub deploys · Flat from $8/mo</p>
+<div class="kbcta-fix-wrap">
+  <div class="kbcta-fix-overlay"></div>
+  <div class="kbcta-fix-content">
+    <div class="kbcta-fix-eyebrow">DEPLOY &middot; LOGS THAT TELL YOU WHY</div>
+    <p class="kbcta-fix-heading">Deploys that tell you what broke.</p>
+    <p class="kbcta-fix-description">Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.</p>
+    <ul class="kbcta-fix-features">
+      <li>&#10003; Live build logs</li>
+      <li>&#10003; Deployment history</li>
+      <li>&#10003; Logs viewer</li>
+      <li>&#10003; Managed process restarts</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Git deploy</li>
+    </ul>
+    <div class="kbcta-fix-buttons">
+      <a class="kbcta-fix-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-fix-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-fix: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-fix-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-fix-wrap *{box-sizing:border-box}
+.kbcta-fix-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-fix-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-fix-content{position:relative;z-index:3;max-width:700px}
+.kbcta-fix-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-fix-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-fix-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-fix-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-fix-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-fix-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-fix-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-fix-btn:hover,.kbcta-fix-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-fix-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-fix-link:hover,.kbcta-fix-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-fix-wrap{padding:36px 24px}
+  .kbcta-fix-heading{font-size:31px}
+  .kbcta-fix-description{font-size:16px}
+  .kbcta-fix-features li{white-space:normal}
+  .kbcta-fix-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-fix-btn{width:100%}
+  .kbcta-fix-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">
@@ -113,7 +157,7 @@ pm2 list</code></pre>
     <h3>Is 502 an Nginx problem or a Node problem?</h3>
     <p>Almost always a Node problem or a proxy-configuration problem, not Nginx itself, since Nginx is clearly running if it can serve the 502 page. Either the app isn't answering where Nginx expects, or it's too slow. Fix the app or the <code>proxy_pass</code> target rather than reinstalling Nginx.</p>
 
-    <h3>How do I fix "upstream timed out" 502s?</h3>
+    <h3>How do I fix 'upstream timed out' 502s?</h3>
     <p>You can raise <code>proxy_read_timeout</code> to give slow responses more room, but a request taking over a minute usually signals a slow query or a synchronous external call. The durable fix is to speed up the endpoint or move long work to a background job so the request returns quickly. Raising the timeout just hides the latency.</p>
 
     <h3>Why do I get a 502 only under load?</h3>
@@ -133,7 +177,7 @@ pm2 list</code></pre>
 {"@type":"Question","name":"What causes a 502 Bad Gateway with Node.js and Nginx?","acceptedAnswer":{"@type":"Answer","text":"Nginx returns 502 when it cannot get a valid response from your Node app upstream. The usual causes are the app being down or on a different port than proxy_pass expects, the app responding too slowly for Nginx's timeout, or the app crash-looping so there is no upstream during restarts. The Nginx error log tells you which."}},
 {"@type":"Question","name":"How do I find out why Nginx returns 502?","acceptedAnswer":{"@type":"Answer","text":"Read the Nginx error log at /var/log/nginx/error.log. Connection refused means the app is down or on the wrong port; upstream timed out means the app is too slow. Then test the app directly with curl to confirm whether it is responding at all, which separates an app problem from a proxy problem."}},
 {"@type":"Question","name":"Is 502 an Nginx problem or a Node problem?","acceptedAnswer":{"@type":"Answer","text":"Almost always a Node problem or a proxy-configuration problem, not Nginx itself, since Nginx is clearly running if it can serve the 502 page. Either the app is not answering where Nginx expects, or it is too slow. Fix the app or the proxy_pass target rather than reinstalling Nginx."}},
-{"@type":"Question","name":"How do I fix upstream timed out 502s?","acceptedAnswer":{"@type":"Answer","text":"You can raise proxy_read_timeout to give slow responses more room, but a request taking over a minute usually signals a slow query or a synchronous external call. The durable fix is to speed up the endpoint or move long work to a background job so the request returns quickly. Raising the timeout just hides the latency."}},
+{"@type":"Question","name":"How do I fix 'upstream timed out' 502s?","acceptedAnswer":{"@type":"Answer","text":"You can raise proxy_read_timeout to give slow responses more room, but a request taking over a minute usually signals a slow query or a synchronous external call. The durable fix is to speed up the endpoint or move long work to a background job so the request returns quickly. Raising the timeout just hides the latency."}},
 {"@type":"Question","name":"Why do I get a 502 only under load?","acceptedAnswer":{"@type":"Answer","text":"That pattern points at the app crashing or being killed under pressure, often out of memory, then restarting. During each restart there is no upstream, so Nginx returns 502. Do not tune Nginx for this; find the crash in your app logs, fix the memory or overload issue, and the load-related 502s stop."}},
 {"@type":"Question","name":"Does managed hosting prevent 502 errors?","acceptedAnswer":{"@type":"Answer","text":"It removes the configuration causes. When the reverse proxy, port wiring, and SSL are managed, the wrong port and forgot to reload Nginx class of 502 goes away. A real crash in your own code can still cause one, because that is your application, but you are no longer debugging proxy config on top of it."}}
 ]}

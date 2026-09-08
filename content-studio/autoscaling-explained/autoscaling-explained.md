@@ -68,7 +68,7 @@ Two numbers matter more than people expect. The **minimum** keeps a floor of ser
 
 There's an asymmetry too. Scale-out happens fast, because falling over is expensive. Scale-in is deliberately lazy, making sure the quiet is real before handing capacity back. You'd rather pay for one extra node for ten minutes than drop it right before the next wave.
 
-<!-- ADD IMAGE: A scaling policy form, minimum and maximum instance counts with a target CPU threshold that drives the add and remove actions. -->
+![Configure your scaling limits and triggers](images/gen-1-panel.png)
 
 ## When autoscaling is genuinely worth it
 
@@ -94,7 +94,7 @@ I'll say it plainly: reaching for autoscaling on a small or steady app is one of
 
 This is the part people skip, and it's the actual gate. Autoscaling only works if your app is built to run across servers that appear and disappear without warning:
 
-![The Kloudbean console showing nodes running behind the Flexible Load Balancer, the setup autoscaling relies on](../assets/console/flb-load-balancer.png)
+![The Kloudbean console showing nodes running behind the Flexible Load Balancer, the setup autoscaling relies on](../assets/console-real/shots/flb_launch_step_2.png)
 
 - **A stateless app.** Any server can handle any request, because servers get created and destroyed on the fly. Nothing important lives only on one machine's local disk or memory.
 - **Shared session and storage.** Sessions in a shared store like [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/), uploads in object storage. A new node then has everything it needs the moment it boots.
@@ -102,13 +102,13 @@ This is the part people skip, and it's the actual gate. Autoscaling only works i
 
 If your app isn't stateless, autoscaling causes bugs rather than fixing them: users randomly logged out, uploads that vanish, carts that empty themselves. Getting the app stateless is the real work. Do it once and [running across several servers](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) stops being scary. The automation on top is the easy 10%.
 
-<!-- ADD IMAGE: A live CPU or request-rate graph with the scale-out threshold drawn across it, so you can see how close you run to a trigger. -->
+![Scale out when you hit this point](images/gen-2-graph.png)
 
 ## Autoscaling vs simply scaling up
 
 The alternative to autoscaling isn't "fall over." It's usually "use a bigger server." Vertical scaling is far simpler, and enough for a huge range of apps.
 
-![The Kloudbean console showing how to launch or resize a server to more CPU and RAM, which is vertical scaling](../assets/console/add-server.png)
+![The Kloudbean console showing how to launch or resize a server to more CPU and RAM, which is vertical scaling](../assets/console-real/shots/launch_server_step_1.png)
 
 The sensible progression is a ladder, and most projects never climb past the second rung:
 
@@ -131,7 +131,7 @@ Even when you genuinely need it, know the sharp edges. This is where I see it bi
 
 The most common mistake we see isn't a bad policy. It's reaching for autoscaling before right-sizing, on an app that isn't even stateless yet. That's effort spent automating instability. Get the app clean and the server sized first, then automate scaling only once the traffic proves it needs it.
 
-<!-- ADD IMAGE: A usage or billing view showing instance-hours climbing during a spike and settling afterwards. -->
+![Resource usage during a spike](images/gen-3-graph.png)
 
 ## So: do you need autoscaling?
 
@@ -139,11 +139,20 @@ Turn it on if your traffic is genuinely spiky or unpredictable *and* your app is
 
 Here's how this maps to Kloudbean, honestly. For everyday scaling, every account can **resize a server** (vertical) and run a **fixed set of nodes behind the built-in Flexible Load Balancer** (manual horizontal). That covers the first three rungs of the ladder, which is all most apps ever need. Fully automatic autoscaling, the kind that adds and removes nodes on its own, along with Kubernetes and custom architectures, is an **enterprise and custom-setup capability** on Kloudbean, not a switch a standard account flips. So match the tool to the traffic: right-size, add a balanced node when you grow, and reach for true autoscaling only when spiky traffic and a stateless app both call for it. Scaling a specific stack? [Scaling WordPress](https://www.kloudbean.com/blog/scalable-wordpress-hosting/) and keeping nodes private inside [a VPC](https://www.kloudbean.com/blog/what-is-a-vpc/) are the usual next reads.
 
----
+<!-- cta:start -->
+**When the standard shape is not enough.**
 
-**Scale when the traffic is real, not before.** Right-size your server, then add nodes behind a built-in load balancer the day one box isn't enough. Everyday scaling on servers you own, with true autoscaling and Kubernetes available for enterprise and custom setups. Start free at [kloudbean.com](https://www.kloudbean.com/) · compare plans on [pricing](https://www.kloudbean.com/pricing/).
+For workloads that need orchestration, private networking, or a custom architecture, Kloudbean operates it as an Enterprise engagement, acting like your in-house infrastructure team.
 
-Resizable servers · Built-in Flexible Load Balancer · Health checks · 7 clouds · Enterprise autoscaling & Kubernetes · Free trial
+- Kubernetes (Enterprise)
+- Autoscaling (Enterprise)
+- Private networking (Enterprise)
+- Audit trail (Enterprise)
+- Custom architecture
+- In-Kingdom available
+
+[Start free](https://console.kloudbean.com/register) · [Talk to a cloud expert](https://calendly.com/kloudbean)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -130,6 +130,13 @@ app.get("/api/todos", async (_req, res) =&gt; {
   <p>Same trap wears a second hat with Supabase. You hit a <code>401</code> while testing, you're tired, and you "fix" it by pasting the <em>service_role</em> key (the one that bypasses Row Level Security) into a <code>VITE_</code> variable so the request goes through. It goes through, all right, straight into the public bundle. A <code>401</code> means a policy is missing, not that you need the master key in the browser. If any of this feels fuzzy, the full mental model is in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
 
   <!-- ADD IMAGE: a browser DevTools Sources panel showing a bundle with a highlighted connection string, captioned as what a leaked credential looks like. Swap for a real screenshot: src -> images/your-file.png -->
+  <!-- IMAGE CAPTURE [browser-shot] #1
+SCREENSHOT NEEDED (do not generate this one).
+This slot shows a real browser window (address bar, devtools, or tabs), so an AI image would be inaccurate and a reader could tell.
+Capture: DevTools open on a live site, a database string visible in the bundle. Shows why front-end code holds no secrets.
+Note: Optional: annotate the leaked line in red.
+Crop to 16:9, keep text legible at 1200px wide, and blur or fake any real credentials, tokens, IPs or customer data.
+-->
   <figure class="img-slot"><span><b>Add image</b><em>DevTools open on a live site, a database string visible in the bundle. Shows why front-end code holds no secrets.</em><small>Optional: annotate the leaked line in red.</small></span></figure>
 
   <h2>Two honest ways to connect a database to your Lovable app</h2>
@@ -160,7 +167,7 @@ app.get("/api/todos", async (_req, res) =&gt; {
   <h3>1. Launch a managed database</h3>
   <p>Open the <strong>DBS</strong> section and hit <strong>Launch Database</strong>. Kloudbean runs seven managed engines, so pick PostgreSQL (the safe default for a Lovable app, since that's what it already used) or MySQL if your stack expects it. Name it, create it, and a minute or two later it's provisioned, locked to your app server's IP, and already backed up. On Path A instead? Launch <strong>Supabase</strong> as a one-click app here rather than a bare database.</p>
   <figure>
-    <img src="../assets/console/launch-database.png" alt="Kloudbean Launch Database screen with managed PostgreSQL, MySQL, and other engines for a Lovable app">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="Kloudbean Launch Database screen with managed PostgreSQL, MySQL, and other engines for a Lovable app">
     <figcaption>DBS then Launch Database: pick managed PostgreSQL for a Lovable app, or launch managed Supabase for Path A.</figcaption>
   </figure>
   <p>You'll get the connection details: host, port, database name, username, password. You need them in the next step. Don't paste them into your app's code.</p>
@@ -174,18 +181,31 @@ DATABASE_URL=postgresql://kb_appuser:generated-pass@10.0.0.5:5432/kb_appdb
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOi...</code></pre>
   <figure>
-    <img src="../assets/console/env-vars.png" alt="Kloudbean Environment Variables editor storing DATABASE_URL for a Lovable app safely, not in code">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="Kloudbean Environment Variables editor storing DATABASE_URL for a Lovable app safely, not in code">
     <figcaption>Runtime Configuration then Environment Variables: DATABASE_URL lives here, on the server, never in the repo.</figcaption>
   </figure>
   <p>Because the connection is an environment variable, it stays out of your Git history and you can rotate the password without touching a line of code.</p>
 
   <!-- ADD IMAGE: the Paste .env Content tab mid-convert, with DATABASE_URL and VITE_ values pasted in. Swap for a real screenshot: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The Paste .env tab converting a pasted block into key/value pairs, DATABASE_URL among them.</em></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "How to Connect a Database to Your Lovable App the Right Way".
+
+What it must show: The Paste .env tab converting a pasted block into key/value pairs, DATABASE_URL among them.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="The Paste .env tab converting a pasted block into key/value pairs, DATABASE_URL among them.">
+    <figcaption>Converting a block into key/value pairs</figcaption>
+  </figure>
 
   <h3>3. Run your Lovable app (and its API) on a real server</h3>
   <p>This is the step people skip, and it's the one that makes the safe shape possible. The static frontend can live on free static hosting, but the small server that holds <code>DATABASE_URL</code> and answers your API calls has to run somewhere always-on. From <strong>Applications then Add Application</strong>, pick your stack (Node, for most Lovable projects that ship a server). Kloudbean keeps a Node app alive under PM2, so it restarts itself instead of dying when a process hiccups.</p>
   <figure>
-    <img src="../assets/console/add-application.png" alt="Kloudbean Add Application screen for running the server side of a Lovable app that holds the database connection">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="Kloudbean Add Application screen for running the server side of a Lovable app that holds the database connection">
     <figcaption>Applications then Add Application: run the server that owns the connection, so DATABASE_URL never has to touch the browser.</figcaption>
   </figure>
   <p>If keeping Supabase, your "server" work is lighter, since supabase-js handles the data calls from the frontend. The full deploy of both halves (frontend and backend) is walked end to end in <a href="https://www.kloudbean.com/blog/deploy-lovable-app-to-your-own-server/">deploy a Lovable app to your own server</a>.</p>
@@ -194,6 +214,18 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOi...</code></pre>
   <p>Redeploy so the app picks up the new variables, then do something real. Sign up a test user, create a record, reload, and confirm it stuck. If it won't connect, it's almost always one of three things: a typo in the connection string, the wrong variable name (your code wants <code>DATABASE_URL</code>, you set <code>DB_URL</code>), or a frontend built before the value existed. That last one shows up as a blank white page or a <code>supabaseUrl is required</code> error on load, because <code>VITE_</code> values freeze at build time. Set them first, then build. If none of those three is it, work through <a href="https://www.kloudbean.com/blog/why-ai-app-cant-connect-to-database/">why a deployed app can't reach its database</a>, which sorts the error messages by cause so you know whether you're looking at a network block, a credential problem, or an app that never read the variable.</p>
 
   <!-- ADD IMAGE: the deployed Lovable app on its own domain, logged in with real data loading and the SSL padlock. Swap for a real screenshot: src -> images/your-file.png -->
+  <!-- IMAGE CAPTURE [browser-shot] #3
+SCREENSHOT NEEDED (do not generate this one).
+This slot shows a real browser window (address bar, devtools, or tabs), so an AI image would be inaccurate and a reader could tell.
+Capture: The live app, logged in, real rows loading from the managed database, padlock in the address bar.
+Crop to 16:9, keep text legible at 1200px wide, and blur or fake any real credentials, tokens, IPs or customer data.
+-->
+  <!-- IMAGE CAPTURE [browser-shot] #2
+SCREENSHOT NEEDED (do not generate this one).
+This slot shows a real browser window (address bar, devtools, or tabs), so an AI image would be inaccurate and a reader could tell.
+Capture: The live app, logged in, real rows loading from the managed database, padlock in the address bar.
+Crop to 16:9, keep text legible at 1200px wide, and blur or fake any real credentials, tokens, IPs or customer data.
+-->
   <figure class="img-slot"><span><b>Add image</b><em>The live app, logged in, real rows loading from the managed database, padlock in the address bar.</em></span></figure>
 
   <h2>Founder note: a database in the browser or a local file is a demo, not production</h2>
@@ -205,11 +237,55 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOi...</code></pre>
 
   <div class="note"><b>Coming from Supabase?</b> You don't have to choose between "stay locked in" and "rewrite everything." Run managed Supabase on infrastructure you own, or move to a plain managed Postgres. Both keep your data on hardware you control. The tradeoffs are in <a href="https://www.kloudbean.com/blog/supabase-alternative/">the Supabase alternative breakdown</a>.</div>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give your Lovable app a database it actually owns.</p>
-    <p style="margin:0 0 .6em">Managed PostgreSQL and MySQL, one-click managed Supabase, automatic backups, and IP allow-listing, all beside your app on a server you control. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">One-click databases · Automatic backups · Free migration · Free trial · Simple Git deploy</p>
+<div class="kbcta-db-wrap">
+  <div class="kbcta-db-overlay"></div>
+  <div class="kbcta-db-content">
+    <div class="kbcta-db-eyebrow">MANAGED DATABASES &middot; SEVEN ENGINES</div>
+    <p class="kbcta-db-heading">Managed, backed up, and still yours.</p>
+    <p class="kbcta-db-description">Launch MySQL, MariaDB, PostgreSQL, Redis, Memcached, MongoDB, or Elasticsearch in a click, reachable from your app server with automatic backups from minute one. Standard connection strings, standard dumps, no proprietary format.</p>
+    <ul class="kbcta-db-features">
+      <li>&#10003; Seven managed engines</li>
+      <li>&#10003; One-click launch</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Controlled access</li>
+      <li>&#10003; Standard connection strings</li>
+      <li>&#10003; Free migration assistance</li>
+    </ul>
+    <div class="kbcta-db-buttons">
+      <a class="kbcta-db-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-db-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-db: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-db-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#04202B;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-db-wrap *{box-sizing:border-box}
+.kbcta-db-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #04202B 0%, #073947 55%, rgba(14,116,144,.62) 100%);pointer-events:none}
+.kbcta-db-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-db-content{position:relative;z-index:3;max-width:700px}
+.kbcta-db-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-db-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-db-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-db-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-db-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-db-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-db-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#064454;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-db-btn:hover,.kbcta-db-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-db-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-db-link:hover,.kbcta-db-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-db-wrap{padding:36px 24px}
+  .kbcta-db-heading{font-size:31px}
+  .kbcta-db-description{font-size:16px}
+  .kbcta-db-features li{white-space:normal}
+  .kbcta-db-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-db-btn{width:100%}
+  .kbcta-db-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

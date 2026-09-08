@@ -24,7 +24,7 @@ You built an AI app. Maybe in Lovable or Cursor, maybe by hand against the OpenA
 
 The confusing bit is that "storage" isn't one thing. An AI app holds a few different kinds of data, and each kind wants a different home. Put them in the wrong place and it looks fine in the demo, then breaks the first time you ship an update. So let's sort it out. Four kinds of state, three durable stores, and one place you should never trust with anything that matters.
 
-<!-- ADD IMAGE: hint -> a simple split showing the same app on localhost (data on disk, fine) versus in production (disk wiped on redeploy). -->
+![Disk persistence comparison](images/gen-1-flow.png)
 
 > **The short version:** An AI app has four kinds of state. Structured records (users, conversations, app state, and embeddings) go in a managed database, Postgres by default, with pgvector holding the embeddings. Files (uploads, RAG source documents, generated images) go in S3-compatible object storage. Sessions, counters, and cached answers go in Redis with TTLs. The app's local disk gets wiped on redeploy, so nothing important should ever live there.
 
@@ -113,7 +113,7 @@ That "keep the original" advice runs into a real cost problem on some providers,
 
 I'm deliberately not rebuilding the how-to here. [Store user uploads in object storage](https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/) has the presigned-URL flow, the bucket setup, and the framework config. The point for this page is just the routing decision: to store uploads an AI app receives, reach for a bucket, not `./uploads`.
 
-<!-- ADD IMAGE: hint -> a bucket object list after a few uploads, showing keys like uploads/ with sizes and content types. -->
+![One hop per box](images/gen-2-flow.png)
 
 ## Ephemeral and fast state goes in Redis
 
@@ -174,11 +174,23 @@ On Kloudbean those first four are the same console: launch a server, launch the 
 
 Now the part no host solves, ours very much included. Nothing about a managed platform stops your code from writing a user's upload to `./uploads`. Automatic backups protect the database you actually use, not the SQLite file you left on the app disk. If your app puts important data inside the app boundary, that data dies on the next deploy on every host on earth, and the only fix is a line of your code pointing somewhere else. Managed means the server, the stack, SSL, backups and patching are handled. Which store each piece of data belongs in stays a design decision, and you've just made it.
 
-<!-- ADD IMAGE: hint -> the launch-database screen in the Kloudbean console, picking PostgreSQL, so the managed-database step is concrete. -->
+![hint -> the launch-database screen in the Kloudbean console, picking PostgreSQL, so the managed-database step is concrete.](../assets/console-real/shots/psql_launch_step_1.png)
 
-**Give every kind of your app's data a home that survives the next deploy.** Run your app on an always-on server with managed PostgreSQL and pgvector, managed Redis, and built-in S3-compatible object storage, all in one dashboard and deployed from Git. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-Managed PostgreSQL + pgvector · Managed Redis · S3-compatible object storage (no egress fees) · Automatic backups · Free SSL · Git deploy · IP allow-listing
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

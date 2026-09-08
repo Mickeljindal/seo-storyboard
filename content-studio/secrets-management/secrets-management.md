@@ -57,7 +57,7 @@ Your `.env` file is where local secrets live, so it must never enter Git. Here's
 *.pem
 ```
 
-<!-- ADD IMAGE: A secret scanning or push-protection alert stopping a commit that contains an API key. -->
+![Guardrail in action](images/gen-1-flow.png)
 
 ### Inject secrets at deploy time
 
@@ -85,7 +85,7 @@ A secret should be able to do exactly one job and nothing more. If your app only
 
 Keys don't improve with age. One you made two years ago and never rotated has had two years to leak through a laptop backup, an old CI log, or a former teammate's shell history. Rotating on a schedule (quarterly is a sane default) shrinks that window. Rotating the instant you suspect exposure slams it shut. Panic-rotating after you spot a key on GitHub isn't a strategy, it's damage control, and the next section covers doing it well.
 
-<!-- ADD IMAGE: A simple quarterly rotation reminder or checklist for the app's keys. -->
+![Routine vs. Post-Leak Scramble](images/gen-2-comparison.png)
 
 ### Use different secrets per environment
 
@@ -104,7 +104,7 @@ It happens to good engineers. A key ends up in a commit, a repo you thought was 
 
 Why isn't a force-push enough? Because removing it from the branch is not the same as removing it from the internet. The commit may be gone from your main branch, but the host can still serve it from cache, a teammate's fork carries it, and any bot that grabbed it kept a copy. The key is burned. Rotation is the only reliable eraser.
 
-<!-- ADD IMAGE: An access or audit log with a few unfamiliar API calls flagged after a suspected key leak. -->
+![Audit suspected key leak](images/gen-3-flow.png)
 
 ## Where secrets live in production
 
@@ -119,7 +119,7 @@ You've kept secrets out of code. So where do they go instead? There are a few ho
 
 An opinion, since you're here for one: most apps don't need a dedicated secrets manager. A single app, or a handful, with secrets kept out of Git and set as environment variables on a server you control is genuinely fine. Vault and the big cloud secret stores earn their keep when you juggle many services, need credentials that expire on their own, or have auditors asking who read which secret and when. Reach for that when you feel the pain, not before. Build-time secrets, meanwhile, belong in your pipeline's secret store, which pairs naturally with [auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-<!-- ADD IMAGE: A CI/CD secrets settings screen with the values masked as dots. -->
+![Values masked for security](images/gen-4-panel.png)
 
 ## Least privilege in practice: scoped tokens
 
@@ -127,7 +127,7 @@ The single highest-leverage habit in this whole guide is scoping. A narrow token
 
 So prefer tokens that name exactly what they can do. Read-only where you only read. One resource where you only touch one. Short-lived where the platform supports expiry. A clean example of the pattern in the wild: [Kloudbean's](https://www.kloudbean.com/) Platform API uses scoped personal API tokens, so a token you generate for a script carries only the access you grant it, not the keys to your whole account. That's least privilege shipped as a default, and it's the shape you want every token to have. The same idea extends to people, not just machines.
 
-![Kloudbean subusers and User Access Control screen showing granular per-resource, per-action permissions for team members](../assets/console/subusers-uac.png)
+![Kloudbean subusers and User Access Control screen showing granular per-resource, per-action permissions for team members](../assets/console-real/shots/uac_resources_access.png)
 
 *Least privilege for humans too: subusers with User Access Control get granular per-resource, per-action permissions, so a teammate sees exactly what their job needs.*
 
@@ -137,7 +137,9 @@ Worth being precise here, because it's easy to over-claim. Kloudbean does not se
 
 In the console you open your app, head to Runtime Configuration, and set your environment variables there (Node and Python runtime config is editable right in the UI). You can paste a whole `.env` and convert it into key/value pairs in one step. Because the values live on the server and not in Git, rotating a secret is a config edit plus a redeploy, with zero code changes.
 
-![Kloudbean environment variables editor: secrets set as key/value pairs in Runtime Configuration and injected into the app at runtime](../assets/console/env-vars.png)
+![Open the Environment Variables editor in the console](../assets/console-real/shots/nodespm_env_step_1.png)
+
+![Paste your .env content, then convert to key/value](../assets/console-real/shots/nodespm_env_step_2.png)
 
 *Runtime Configuration, Environment Variables: your secrets live on the server as key/value pairs and get injected at runtime, so they never enter the repo.*
 
@@ -155,11 +157,20 @@ Pair that with the platform's default baseline (a Shorewall firewall and Fail2ba
 
 None of this is exotic. Keep secrets out of code and out of Git, hand them to the app at runtime, scope them tight, and rotate them like you mean it. Then the worst case, a leak, drops from a crisis to a chore.
 
----
+<!-- cta:start -->
+**The server layer, hardened for you.**
 
-**Keep your secrets out of your code, and out of the incident channel.**
+The platform keeps the server, stack, SSL, and patching current, with automatic backups running. Application-level security stays yours, and that split is deliberate rather than hidden.
 
-Set environment variables and runtime config in the console at [kloudbean.com](https://www.kloudbean.com/), with scoped API tokens, automatic backups, IP allow-listing, and free migration on a free trial. Check server sizes on [pricing](https://www.kloudbean.com/pricing/).
+- Shorewall firewall
+- Fail2ban
+- OS patching handled
+- Free SSL
+- IP access control
+- Automatic backups
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

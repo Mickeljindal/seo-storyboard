@@ -131,7 +131,21 @@ pm2 list                        # status, uptime, restarts, memory per worker</c
   <p>Two features earn PM2 its reputation. <strong>Cluster mode</strong> forks your app across cores and load-balances connections between the workers, so a 4-core box actually uses four cores. And <strong>zero-downtime reload</strong> (<code>pm2 reload</code>, not <code>restart</code>) rolls workers one at a time, so a deploy doesn't drop live requests. That zero downtime reload for Node is the feature people miss most when they leave PM2.</p>
   <p>The catch, and it's the one that burns people: PM2 does <em>not</em> survive a reboot on its own. You have to run <code>pm2 startup</code> once (it prints a <code>sudo</code> line you paste back) and then <code>pm2 save</code> after your apps are running. Skip either and your carefully configured processes vanish the next time the server restarts.</p>
   <!-- ADD IMAGE: terminal output of pm2 list showing the app online with uptime and restart count across workers. Swap for a real screenshot: src -> images/pm2-list.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A terminal running pm2 list: the app online across several workers, with uptime and restart counts.</em><small>Makes cluster mode and the process-manager view concrete.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #1
+Create a realistic terminal / command-line screenshot for a technical blog post titled "PM2 vs systemd: Keeping a Node.js App Running in Production".
+
+What it must show: A terminal running pm2 list: the app online across several workers, with uptime and restart counts.
+Also: Makes cluster mode and the process-manager view concrete.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-terminal.png" alt="A terminal running pm2 list: the app online across several workers, with uptime and restart counts.">
+    <figcaption>Node.js app running across workers</figcaption>
+  </figure>
 
   <h2>What is systemd, and how do you run Node under it?</h2>
   <p>systemd is the init system on most modern Linux distributions. It's PID 1, the first thing the kernel starts, and it already supervises sshd, cron, your firewall, and the rest of the box. It doesn't know or care that your app is Node. To systemd, your app is just a service, described by a small unit file.</p>
@@ -161,7 +175,21 @@ sudo systemctl status node-api  # is it running? recent log lines
 journalctl -u node-api -f       # follow the live logs</code></pre>
   <p>Logs go to journald, so <code>journalctl -u node-api</code> gives you searchable, rotated history with no extra tooling. There's no cluster mode, though. systemd will happily run one process reliably; if you want four workers you either run four units or reach for socket activation, which is more moving parts than most people want. That gap is exactly where PM2 shines.</p>
   <!-- ADD IMAGE: systemctl status output showing active (running) in green plus a few journalctl lines. Swap for a real screenshot: src -> images/systemctl-status.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>systemctl status for the Node service showing active (running), with a few journalctl log lines underneath.</em><small>Shows the systemd view of a healthy Node service.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #2
+Create a realistic terminal / command-line screenshot for a technical blog post titled "PM2 vs systemd: Keeping a Node.js App Running in Production".
+
+What it must show: systemctl status for the Node service showing active (running), with a few journalctl log lines underneath.
+Also: Shows the systemd view of a healthy Node service.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-terminal.png" alt="systemctl status for the Node service showing active (running), with a few journalctl log lines underneath.">
+    <figcaption>Systemd view of a healthy Node service</figcaption>
+  </figure>
 
   <h2>PM2 vs systemd for Node: the honest comparison</h2>
   <p>Both keep your app alive. The differences are about clustering, reloads, dependencies, and how much of the box you want one tool to own. Here's the PM2 vs systemd comparison for Node laid out side by side.</p>
@@ -187,7 +215,21 @@ journalctl -u node-api -f       # follow the live logs</code></pre>
   <p>Now the part the internet argues about and mostly gets wrong: it isn't strictly either/or. Plenty of teams run <strong>PM2 under systemd</strong>, and it's a sensible combo. systemd keeps the PM2 daemon itself alive and brings it back on boot. PM2 manages the Node workers, the clustering, and the reloads on top. That's actually what <code>pm2 startup</code> does behind the scenes: it writes a systemd unit that resurrects PM2. So if you like PM2's cluster mode but you want systemd's rock-solid boot behavior underneath, you can have both. Just run <code>pm2 startup</code>, then <code>pm2 save</code>, and let systemd own the bottom layer.</p>
   <p>One honest caveat: two supervisors means two places to look when something breaks. So test it. Reboot the box on purpose and confirm the app comes back before you trust it.</p>
   <!-- ADD IMAGE: a simple two-layer diagram or terminal showing PM2 running as an enabled systemd service. Swap for a real screenshot: src -> images/pm2-under-systemd.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>PM2 running as an enabled systemd service: systemd keeps PM2 alive, PM2 manages the Node workers.</em><small>Illustrates the two-layer combo.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #3
+Create a left-to-right architecture / flow diagram for a technical blog post titled "PM2 vs systemd: Keeping a Node.js App Running in Production".
+
+What it must show: PM2 running as an enabled systemd service: systemd keeps PM2 alive, PM2 manages the Node workers.
+Also: Illustrates the two-layer combo.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-flow.png" alt="PM2 running as an enabled systemd service: systemd keeps PM2 alive, PM2 manages the Node workers.">
+    <figcaption>Two-layer process management</figcaption>
+  </figure>
 
   <h2>The gotchas that actually bite people</h2>
   <p>Whichever you pick, the same handful of mistakes account for most of the "it was up yesterday" tickets. None of these are exotic. They're just easy to skip.</p>
@@ -204,24 +246,82 @@ journalctl -u node-api -f       # follow the live logs</code></pre>
   <p>Short answer: no, and that's kind of the point. Everything above is what you do on a raw VPS where you own the supervisor. On a managed server the platform has already made this decision and wired it up for you. If you're new to that model, <a href="https://www.kloudbean.com/blog/what-is-a-managed-server/">what a managed server is</a> covers the boundary of who handles what.</p>
   <p>On Kloudbean, your Node app runs under PM2 as part of the managed stack, so a crash doesn't become downtime and the app comes back after a reboot without you writing a unit file or memorizing <code>systemctl</code>. PM2 multi-process is supported, so when one core stops being enough you can run a copy per core behind the same port. You set the Node runtime, the start command, and the process settings in the dashboard, not by hand-editing files over SSH.</p>
   <figure>
-    <img src="../assets/console/add-application.png" alt="The Kloudbean Add Application screen: adding a Node.js app and setting its runtime and start command">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="The Kloudbean Add Application screen: adding a Node.js app and setting its runtime and start command">
     <figcaption>Add Application: pick the Node stack and set the runtime and start command in the UI. The platform runs it under a process manager for you.</figcaption>
   </figure>
   <p>Then you watch it instead of babysitting it. The server health view shows CPU, memory, and disk, so you can see a worker misbehaving or a memory leak climbing before it becomes a page. That's the supervisor's job made visible.</p>
   <figure>
-    <img src="../assets/console/server-health.png" alt="The Kloudbean server health view: CPU, memory, and disk for a running app kept alive by the managed process manager">
+    <img src="../assets/console-real/shots/server_health_step_2.png" alt="The Kloudbean server health view: CPU, memory, and disk for a running app kept alive by the managed process manager">
     <figcaption>Server health: watch the process stay up and keep an eye on resource use, without tailing logs over SSH.</figcaption>
   </figure>
   <!-- ADD IMAGE: the Kloudbean runtime configuration panel for a Node app, showing the start command and process options. Swap for a real screenshot: src -> images/node-runtime-config.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The Node runtime configuration panel: start command and process options set in the dashboard, not over SSH.</em><small>Where the managed process manager is configured.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #4
+Create a realistic terminal / command-line screenshot for a technical blog post titled "PM2 vs systemd: Keeping a Node.js App Running in Production".
+
+What it must show: The Node runtime configuration panel: start command and process options set in the dashboard, not over SSH.
+Also: Where the managed process manager is configured.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-terminal.png" alt="The Node runtime configuration panel: start command and process options set in the dashboard, not over SSH.">
+    <figcaption>Configure start command and process options</figcaption>
+  </figure>
   <p>To be clear about a boundary people ask about: cluster mode uses the cores on the server you already have. It is not autoscaling. Automatically adding or removing servers under load is an enterprise and custom-architecture thing, not something that happens on a standard app, so don't expect a normal managed app to grow servers by itself. For most apps, right-sizing one box and using all its cores is exactly enough.</p>
   <p>The same managed flow deploys the frameworks that sit on top. If you're shipping a specific stack, see <a href="https://www.kloudbean.com/blog/deploy-express-app/">deploy an Express app</a> or <a href="https://www.kloudbean.com/blog/deploy-nestjs-app/">deploy a NestJS app</a>, and wire pushes to auto-deploy with <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD from GitHub</a>. However you keep the process alive, a <a href="https://www.kloudbean.com/blog/reverse-proxy-explained/">reverse proxy</a> still sits in front to terminate TLS and forward traffic to it.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Keep your Node app alive without hand-writing a single unit file.</p>
-    <p style="margin:0 0 .6em">Deploy from Git, let the managed stack supervise the process with PM2 (multi-process supported), watch health in one dashboard, and add a managed database and free SSL when you need them. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; sizes and plans (from $8/mo, Enterprise custom) are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">PM2 process management · Git deploy with live logs · Managed databases · Free auto-renewing SSL · Free migration · Free trial</p>
+<div class="kbcta-move-wrap">
+  <div class="kbcta-move-overlay"></div>
+  <div class="kbcta-move-content">
+    <div class="kbcta-move-eyebrow">MIGRATE &middot; FLAT, PREDICTABLE PRICING</div>
+    <p class="kbcta-move-heading">Move it once. Own it after.</p>
+    <p class="kbcta-move-description">Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.</p>
+    <ul class="kbcta-move-features">
+      <li>&#10003; Free migration assistance</li>
+      <li>&#10003; Free trial</li>
+      <li>&#10003; Seven cloud providers</li>
+      <li>&#10003; Flat monthly price</li>
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Git deploy</li>
+    </ul>
+    <div class="kbcta-move-buttons">
+      <a class="kbcta-move-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-move-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-move: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-move-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#0A0730;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-move-wrap *{box-sizing:border-box}
+.kbcta-move-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #0A0730 0%, #1B0F5A 58%, rgba(79,26,243,.55) 100%);pointer-events:none}
+.kbcta-move-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.28) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-move-content{position:relative;z-index:3;max-width:700px}
+.kbcta-move-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-move-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-move-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-move-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-move-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-move-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-move-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#2A0E7A;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-move-btn:hover,.kbcta-move-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-move-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-move-link:hover,.kbcta-move-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-move-wrap{padding:36px 24px}
+  .kbcta-move-heading{font-size:31px}
+  .kbcta-move-description{font-size:16px}
+  .kbcta-move-features li{white-space:normal}
+  .kbcta-move-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-move-btn{width:100%}
+  .kbcta-move-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

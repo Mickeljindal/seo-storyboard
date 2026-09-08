@@ -105,13 +105,27 @@
   <div class="note"><b>The mistake we see most:</b> reaching for global <em>compute</em> when the real need was a CDN in front of a mostly-cacheable app. Teams add regions, inherit distributed-state headaches, and their landing page is still slow because the fix was never compute placement. It was caching. Solve the content layer first. You often discover you're done.</div>
 
   <!-- ADD IMAGE: swap this slot for a real screenshot. src -> images/edge-cache-hit-ratio.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A CDN analytics view showing cache hit ratio climbing after edge caching is switched on, with origin requests dropping.</em><small>Makes the "content layer, not compute" point concrete.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #1
+Create a left-to-right architecture / flow diagram for a technical blog post titled "A Fly.io Alternative That's Simpler, and Still Fast Everywhere".
+
+What it must show: A CDN analytics view showing cache hit ratio climbing after edge caching is switched on, with origin requests dropping.
+Also: Makes the "content layer, not compute" point concrete.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-flow.png" alt="A CDN analytics view showing cache hit ratio climbing after edge caching is switched on, with origin requests dropping.">
+    <figcaption>Cache hit ratio climbs with edge caching</figcaption>
+  </figure>
 
   <h2>The Kloudbean model: a Fly.io alternative with a managed origin and a real edge</h2>
   <p>Kloudbean gives you one real, managed server in the region you choose. Flat, predictable price. A managed database right on the box. Git-push deploys with live build logs. Then it puts <strong>Cloudflare Enterprise edge caching</strong> in front, so your content is served from Cloudflare's worldwide network close to every visitor. (Cloudflare is a paid add-on for any site, and included free for Enterprise customers.) You get the global speed people actually want, plus ownership and simplicity, and you never configure a fleet of Machines.</p>
 
   <figure>
-    <img src="../assets/console/git-deployment.png" alt="The Kloudbean console Git Deployment tab: connect a repo, set the runtime, and Pull and Deploy">
+    <img src="../assets/console-real/shots/git_connect_step_4.png" alt="The Kloudbean console Git Deployment tab: connect a repo, set the runtime, and Pull and Deploy">
     <figcaption>Deploy Code, Git Deployment: connect the repo, set the runtime, Pull &amp; Deploy. Cloudflare edge caching then serves it fast worldwide.</figcaption>
   </figure>
 
@@ -133,14 +147,42 @@
   </table>
 
   <!-- ADD IMAGE: swap this slot for a real screenshot. src -> images/origin-region-picker.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Choosing the cloud and region for the origin server, so it sits near your audience or where data must live.</em><small>Backs up the "you pick where the origin lives" point.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "A Fly.io Alternative That's Simpler, and Still Fast Everywhere".
+
+What it must show: Choosing the cloud and region for the origin server, so it sits near your audience or where data must live.
+Also: Backs up the "you pick where the origin lives" point.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="Choosing the cloud and region for the origin server, so it sits near your audience or where data must live.">
+    <figcaption>Optimizing for proximity to audience</figcaption>
+  </figure>
 
   <h2>Moving off Fly.io is a normal deploy</h2>
   <p>If you decide the fleet isn't for you, moving off is undramatic, because your app is standard code. Your <code>fly.toml</code> already tells you how the app is built and started, and those become your Install, Build, and Start commands on the server. Fly <strong>secrets</strong> become environment variables in the console. If you ran Fly Postgres, you export the data and import it into a <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">managed database</a> on the new server, then repoint the connection string. If you used a managed partner, you can often keep pointing at it.</p>
   <p>You're collapsing a distributed configuration down to a single-server one. Then you switch on Cloudflare for the global reach you had before, and move large files or user uploads into <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a> so they don't live on the app disk. Test on the temporary URL, point your domain with SSL, enable auto-deploy, done. Outgrow one box later? Add a node behind the built-in <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">load balancer</a> rather than sharding across regions.</p>
 
   <!-- ADD IMAGE: swap this slot for a real screenshot. src -> images/fly-toml-to-commands.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A fly.toml on the left, mapped to the Install / Build / Start command fields and env vars on the right.</em><small>The "your config already tells you what to do" migration shot.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #3
+Create a realistic terminal / command-line screenshot for a technical blog post titled "A Fly.io Alternative That's Simpler, and Still Fast Everywhere".
+
+What it must show: A fly.toml on the left, mapped to the Install / Build / Start command fields and env vars on the right.
+Also: The "your config already tells you what to do" migration shot.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-terminal.png" alt="A fly.toml on the left, mapped to the Install / Build / Start command fields and env vars on the right.">
+    <figcaption>Map to Install / Build / Start</figcaption>
+  </figure>
 
   <h2>What about cost?</h2>
   <p>Cost tracks complexity here more than sticker price. Fly bills for the Machines and resources you run, and a multi-region setup naturally costs more because you're running instances in several places. A single flat-rate server is one predictable number. Cloudflare edge caching then adds global speed without more origin servers to pay for.</p>
@@ -149,11 +191,55 @@
   <h2>The edges of this approach</h2>
   <p>Kloudbean runs <strong>Linux</strong> stacks: Node.js (React, Vue, Angular, Express), Python (Django, Flask, FastAPI), PHP (WordPress, Laravel), Ruby, Java, and static sites. Windows Server sits on the Premium and Enterprise tiers, while .NET itself runs on Linux. "Managed" means Kloudbean runs the server, stack, SSL, and backups, while you own and maintain the application and your data. The technical point, plainly: a single origin server is <em>not</em> distributed compute. With Cloudflare edge caching in front, your content is genuinely fast worldwide, which is what most "edge" needs are. For real multi-region compute, that's Fly's niche, and this piece won't pretend otherwise. The <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">full deploy walkthrough</a> covers shipping any app end to end, and <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">what a VPC is</a> explains network isolation, which Kloudbean offers as an Enterprise feature.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Global speed, minus the fleet.</p>
-    <p style="margin:0 0 .6em">Run one owned server with Cloudflare edge caching in front at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Free trial, first migration done for you. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.85">One managed server you own &#183; 7 clouds &#183; Managed database on the box &#183; Cloudflare Enterprise edge caching &#183; Git push-to-deploy &#183; Free migration &#183; Free trial</p>
+<div class="kbcta-move-wrap">
+  <div class="kbcta-move-overlay"></div>
+  <div class="kbcta-move-content">
+    <div class="kbcta-move-eyebrow">MIGRATE &middot; FLAT, PREDICTABLE PRICING</div>
+    <p class="kbcta-move-heading">Move it once. Own it after.</p>
+    <p class="kbcta-move-description">Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.</p>
+    <ul class="kbcta-move-features">
+      <li>&#10003; Free migration assistance</li>
+      <li>&#10003; Free trial</li>
+      <li>&#10003; Seven cloud providers</li>
+      <li>&#10003; Flat monthly price</li>
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Git deploy</li>
+    </ul>
+    <div class="kbcta-move-buttons">
+      <a class="kbcta-move-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-move-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-move: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-move-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#0A0730;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-move-wrap *{box-sizing:border-box}
+.kbcta-move-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #0A0730 0%, #1B0F5A 58%, rgba(79,26,243,.55) 100%);pointer-events:none}
+.kbcta-move-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.28) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-move-content{position:relative;z-index:3;max-width:700px}
+.kbcta-move-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-move-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-move-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-move-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-move-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-move-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-move-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#2A0E7A;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-move-btn:hover,.kbcta-move-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-move-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-move-link:hover,.kbcta-move-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-move-wrap{padding:36px 24px}
+  .kbcta-move-heading{font-size:31px}
+  .kbcta-move-description{font-size:16px}
+  .kbcta-move-features li{white-space:normal}
+  .kbcta-move-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-move-btn{width:100%}
+  .kbcta-move-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

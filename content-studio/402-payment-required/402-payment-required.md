@@ -122,11 +122,20 @@ Those are covered properly in [504 Gateway Timeout](https://www.kloudbean.com/bl
 
 The code most often confused with this one, [429 Too Many Requests](https://www.kloudbean.com/blog/429-too-many-requests/), where retrying is the correct response. On permissions rather than payment, [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/) and [401 Unauthorized](https://www.kloudbean.com/blog/http-error-401-unauthorized/). For the other deterministic failures you should not retry, [409 Conflict](https://www.kloudbean.com/blog/409-conflict-error/) and [422 Unprocessable Entity](https://www.kloudbean.com/blog/http-422-unprocessable-entity/). On outbound calls that need timeouts, [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/). And for keeping provider credentials separated, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
-## Staging that cannot spend production quota
+<!-- cta:start -->
+**Deploys that tell you what broke.**
 
-Per-application environment variables, managed Redis for queued outbound work, visible server metrics, and staging separated from production, from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.
 
-Per-app env vars · Managed Redis · Staging sites · Server metrics · Flat from $8/mo
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

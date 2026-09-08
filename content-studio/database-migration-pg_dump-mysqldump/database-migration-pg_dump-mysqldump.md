@@ -41,7 +41,7 @@ Do this first, not third. Half the flags below depend on facts about the destina
 
 On Kloudbean the destination comes from the same dashboard as the app: managed PostgreSQL, MySQL, and MariaDB are three of seven engines, with Redis, Memcached, Elasticsearch, and MongoDB rounding out the set. Name it, pick the version, create it. A minute or two later it's provisioned and patched, and you have a connection string to point `pg_restore` or the `mysql` client at.
 
-![The Kloudbean console launching a managed PostgreSQL, MySQL, or MariaDB database as the migration target](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed PostgreSQL, MySQL, or MariaDB database as the migration target](../assets/console-real/shots/mysql_launch_step_1.png)
 
 _Launch the target first. The version you pick here decides which client version you should dump with._
 
@@ -101,7 +101,7 @@ pg_dump -s "$OLD_DATABASE_URL" > schema.sql   # structure only
 pg_dump -a "$OLD_DATABASE_URL" > data.sql     # rows only
 ```
 
-<!-- ADD IMAGE: a terminal showing pg_dump on the old database, then pg_restore into the new one. -->
+![Real Postgres dump and restore](images/gen-1-terminal.png)
 
 ## Migrate a MySQL database with mysqldump
 
@@ -143,7 +143,7 @@ One note on GTIDs, kept light because most migrations don't need them. If your d
 
 Choosing between the two engines for a fresh start rather than moving an existing one? The [MySQL vs PostgreSQL](https://www.kloudbean.com/blog/mysql-vs-postgresql/) breakdown is the honest side-by-side.
 
-<!-- ADD IMAGE: a terminal running mysqldump with single-transaction, routines, and utf8mb4 flags. -->
+![Exporting database with specific flags](images/gen-1-terminal.png)
 
 ## The gotchas nobody documents
 
@@ -248,7 +248,7 @@ When staging looks right, the real cutover goes like this:
 
 Step six is the one people skip, and it's the cheapest insurance in the list. Worth knowing that the new side gets a second safety net without you doing anything: automatic backups begin on a Kloudbean managed database as soon as it exists, so the freshly loaded data has a restore point from minute one. You can also take an on-demand backup right after the final restore, which is the exact moment you want a marked snapshot rather than whatever the schedule happens to give you.
 
-![The Kloudbean console showing automatic backups on a managed database, giving an immediate restore point after migration](../assets/console/manage-backups.png)
+![The Kloudbean console showing automatic backups on a managed database, giving an immediate restore point after migration](../assets/console-real/shots/app_backup_step_2.png)
 
 _The new database has a restore point from minute one, so the rollback plan has two directions instead of one._
 
@@ -309,13 +309,20 @@ The infrastructure half is the part that's genuinely someone else's job: provisi
 
 <!-- ADD IMAGE: the new connection details you paste into your app's environment variables. -->
 
----
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-**Land your database on hosting you control.**
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-Launch managed PostgreSQL, MySQL, or MariaDB in a click, locked to your app server's IP with automatic backups from minute one. Not sure about the cutover? Free migration assistance can run it with you. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
 
-One-click databases · Automatic backups · Free migration · Free trial · Simple Git deploy
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

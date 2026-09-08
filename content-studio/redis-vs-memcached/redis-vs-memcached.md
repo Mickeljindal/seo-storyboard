@@ -47,7 +47,7 @@ Every row here is a real, checkable difference. Read it top to bottom and the re
 
 Memcached and Redis tie on the two rows people obsess over, speed and basic caching. Redis quietly wins nearly every other row by doing more.
 
-<!-- ADD IMAGE: a simple decision flow, "need only a plain string cache on a big box?" yes points to Memcached, no points to Redis -->
+![Memcached or Redis?](images/gen-1-flow.png)
 
 ## The real difference between Redis and Memcached
 
@@ -134,7 +134,7 @@ REDIS_URL=redis://:s3cret@10.0.0.5:6379/0
 MEMCACHED_URL=10.0.0.6:11211
 ```
 
-<!-- ADD IMAGE: a terminal showing redis-cli running INCR and ZADD, with the returned values -->
+![Real replies, not pseudo-code](images/gen-2-terminal.png)
 
 ## Run either one on Kloudbean
 
@@ -145,15 +145,15 @@ Here's what makes the choice low-stakes. On Kloudbean, Redis and Memcached are b
 3. **Set it as an environment variable.** Add `REDIS_URL` or `MEMCACHED_URL` in Runtime Configuration, so your app reads the connection from the environment instead of your source code.
 4. **Install the client and deploy.** Add the client library (`ioredis`, `redis`, or `memcached` for Node, `redis` or `pymemcache` for Python), deploy, then confirm with a quick set and get.
 
-![The Kloudbean console Launch Database screen, with Redis and Memcached among the managed engines](../assets/console/launch-database.png)
+![The Kloudbean console Launch Database screen, with Redis and Memcached among the managed engines](../assets/console-real/shots/redis_launch_step_1.png)
 
 Then store the connection string where it belongs, in environment variables, not in code:
 
-![The Kloudbean console Environment Variables screen, where the Redis or Memcached connection string is stored](../assets/console/env-vars.png)
+![The Kloudbean console Environment Variables screen, where the Redis or Memcached connection string is stored](../assets/console-real/shots/nodespm_env_step_1.png)
 
 One honest note on backups. Redis can persist to disk, so a managed Redis has something durable to snapshot. Memcached is memory-only by design, so there's nothing to back up. That's not a Kloudbean limit, just what Memcached is. Wiring up a Node app around either one? The [guide to deploying a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) walks the full path.
 
-<!-- ADD IMAGE: the DBS list showing a running Redis instance and a Memcached instance side by side on one server -->
+![Running side by side on one server](images/gen-3-comparison.png)
 
 > **You can even use both.** They're not mutually exclusive. A common setup: Memcached for a big page-fragment cache, Redis for sessions, rate limiting, and queues. Both are managed engines that run right next to your app here, so running the two together is just two launches and two env vars.
 
@@ -161,11 +161,20 @@ One honest note on backups. Redis can persist to disk, so a managed Redis has so
 
 The call: Redis by default; Memcached only when you've got a specific reason, like a narrow, high-volume string cache on big hardware. Both are one-click here, so it's low-stakes. And either way, if your app opens a lot of connections, mind your client pool, since the [connection pooling guide](https://www.kloudbean.com/blog/database-connection-pooling/) applies to Redis clients too.
 
----
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-**Spin up the right cache in one click.** Managed Redis and managed Memcached, both provisioned in minutes right next to your app, with the whole stack in one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-One-click Redis & Memcached · Redis persistence & backups · Free migration · Free trial
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

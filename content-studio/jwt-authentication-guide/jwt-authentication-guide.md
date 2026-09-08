@@ -27,7 +27,7 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyXzhmMjEiLCJyb2xlIjoibWVtYmV
 
 Two things trip people up here, so let me be blunt about both. The payload is **readable, not secret**. It is base64, not encryption. Anyone holding the token can decode the claims, so never put a password, an API key, or anything sensitive in there. And the signature is the **only** thing that makes the token trustworthy. If someone edits the payload to say `"role": "admin"`, the signature no longer matches, and a server that checks the signature rejects it. A server that skips the check gets owned. That is the whole security model in one line.
 
-<!-- ADD IMAGE: A decoder view splitting one token into its three colored parts: header, payload, signature. A jwt.io style breakdown works well here. -->
+![Inspecting the token structure](images/gen-1-panel.png)
 
 ## How JWT authentication works, end to end
 
@@ -136,7 +136,7 @@ def current_user(request: Request):
 
 Django and Flask follow the same pattern with their own request objects. To put it live, see [deploy a FastAPI app](https://www.kloudbean.com/blog/deploy-fastapi-app/).
 
-<!-- ADD IMAGE: Browser devtools, Application tab, showing the auth cookie with HttpOnly and Secure both checked. Proves the token is not reachable from JavaScript. -->
+![Token lifecycle](images/gen-3-flow.png)
 
 ## Access token vs refresh token
 
@@ -196,7 +196,7 @@ Everything above is the easy 80 percent. The remaining 20 percent is where JWT p
 - **Keep a denylist for the "right now" cases.** Logout, a password change, a banned account. Because you cannot un-sign an access token, keep a small server-side denylist (a Redis set works well) of revoked token IDs and check it on verify. Short access tokens keep this list tiny.
 - **Never "just make it last a week."** A week-long access token with no refresh and no denylist means a leaked token is a week-long breach you cannot stop. That is trading a little convenience for a large, silent risk. Don't.
 
-<!-- ADD IMAGE: A small sequence sketch of refresh rotation: old refresh token retired, new access and refresh tokens issued together. Show the reuse-detection branch too. -->
+![Headers set in the network tab](images/gen-4-panel.png)
 
 ## Common JWT mistakes
 
@@ -224,11 +224,11 @@ Kloudbean does not issue or manage tokens for you. It is not an auth-as-a-servic
 
 1. **Create the app on a managed runtime.** Add your Express, FastAPI, Django, or Flask app. The runtime, stack, and patching are handled, so you focus on the auth logic.
 
-![The Kloudbean console adding an application on a managed Node or Python runtime](../assets/console/add-application.png)
+![The Kloudbean console adding an application on a managed Node or Python runtime](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 2. **Put the signing secret in environment variables.** Open Runtime Configuration, then Environment Variables, and add your keys. They never touch the repo.
 
-![The Kloudbean console Environment Variables screen holding the JWT signing secret, kept out of code](../assets/console/env-vars.png)
+![The Kloudbean console Environment Variables screen holding the JWT signing secret, kept out of code](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ```bash
 # Runtime Configuration -> Environment Variables (never in code)
@@ -242,17 +242,26 @@ JWT_REFRESH_SECRET=a-different-long-random-string
 
 3. **Turn on free SSL.** JWT auth over plain HTTP is broken by design, because anyone on the path reads the token. Enable HTTPS so `secure: true` cookies work and tokens stay encrypted in transit.
 
-![The Kloudbean console issuing a free SSL certificate so JWT authentication runs over HTTPS](../assets/console/ssl-certificate.png)
+![The Kloudbean console issuing a free SSL certificate so JWT authentication runs over HTTPS](../assets/console-real/shots/le_ssl_step_1.png)
 
 <!-- ADD IMAGE: Your app's login response setting the auth cookie, viewed in the network tab. Optional: shows the Set-Cookie header with HttpOnly and Secure. -->
 
 Managed here means the server, stack, SSL, backups, and patching are handled, while your code and your data stay yours. It is Linux, and it deploys straight from GitHub, so shipping an auth fix is a push. Keeping secrets out of code is covered in more depth in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
----
+<!-- cta:start -->
+**Patched, firewalled, and backed up.**
 
-**Ship your auth on a runtime that gets out of the way.** Run your Node or Python app with env-var secrets, free SSL, and Git deploys, so your JWT code is the only auth you have to think about. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+The platform keeps the server, stack, SSL, and patching current, with automatic backups running. Application-level security stays yours, and that split is deliberate rather than hidden.
 
-Managed Node & Python · Env-var secrets · Free SSL · Automatic backups · Free migration · Free trial
+- Shorewall firewall
+- Fail2ban
+- OS patching handled
+- Free SSL
+- IP access control
+- Automatic backups
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

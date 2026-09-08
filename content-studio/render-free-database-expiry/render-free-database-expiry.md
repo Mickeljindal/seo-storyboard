@@ -73,11 +73,20 @@ Fair question, and sometimes the answer is yes. Upgrading to a paid Render insta
 
 Moving off a trial database is a good moment to get the fundamentals right. See [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) for what "managed" should include, keep secrets clean with [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/), and if you're moving the app too, [deploy a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) walks the full path. Weighing platforms overall? [Render vs Railway vs Kloudbean](https://www.kloudbean.com/blog/render-vs-railway-vs-kloudbean/) and [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/) lay out the tradeoffs.
 
-## Give your data a home that doesn't expire
+<!-- cta:start -->
+**Managed, backed up, and still yours.**
 
-Launch a managed PostgreSQL database with automatic backups, in the same dashboard as your always-on Node app, on flat pricing from $8/mo. We'll help you move your data over free. Start at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Seven managed engines, provisioned and patched for you, with access controlled and backups running automatically. Your schema, your queries, and your data stay exportable with the standard tools.
 
-Managed PostgreSQL · Automatic backups · No expiry · Same dashboard as your app · Free migration · Flat from $8/mo
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

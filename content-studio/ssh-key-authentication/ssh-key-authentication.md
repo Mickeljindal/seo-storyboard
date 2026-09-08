@@ -43,7 +43,7 @@ Seven steps, in order. Do not touch step six until step five works, because that
 
 You need a box and a user on it. On Kloudbean, click **Add Server**, pick a cloud (AWS, Lightsail, GCP, Linode, Vultr, DigitalOcean, or UpCloud), size it, and launch. It comes up in minutes with Shorewall, Fail2ban, and free SSL configured, and you get SSH access as the admin user.
 
-![Kloudbean Add Server screen showing the choice of cloud provider, region, and server size](../assets/console/add-server.png)
+![Kloudbean Add Server screen showing the choice of cloud provider, region, and server size](../assets/console-real/shots/launch_server_step_1.png)
 
 No server yet, really here to ship an app? Same mechanics; the [deploy a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) walkthrough shows the full flow.
 
@@ -57,7 +57,7 @@ ssh-keygen -t ed25519 -C "you@example.com"
 
 ed25519 is the modern default: short keys, fast signing, excellent security. Accept the default path `~/.ssh/id_ed25519` and set a passphrase, which encrypts the private key on disk so a stolen laptop does not hand over your servers. You get two files: `id_ed25519` (private, guard it) and `id_ed25519.pub` (public, paste anywhere). No ed25519 on some ancient system? Fall back to `ssh-keygen -t rsa -b 4096`.
 
-<!-- ADD IMAGE: Terminal after ssh-keygen showing the key path, the fingerprint, and the randomart image it prints. -->
+![Fresh login vs. Reusing session](images/gen-2-comparison.png)
 
 ### 3. Put the public key on the server
 
@@ -136,13 +136,13 @@ sudo systemctl reload ssh
 
 The rule that saves careers: keep your current session open and test `ssh prod` in a new terminal before closing anything. If the new session logs in by key and refuses passwords, you are done. If it fails, you still have the original session to fix it. Logging off too early is the classic own-goal.
 
-<!-- ADD IMAGE: Two terminals side by side, the original session still open and a fresh session logging in key-only after reloading sshd. -->
+![One key per person for clear ownership](images/gen-3-terminal.png)
 
 ### 7. Lock the door at the network edge too
 
 Keys decide who may authenticate. The firewall decides who can reach port 22 at all. On Kloudbean, Shorewall and Fail2ban run by default, and **IP Access Control** lets you allow or deny by IP or CIDR. Scope SSH to your office or VPN range and background scanning cannot even connect. Quieter logs, and Fail2ban mops up the rest.
 
-![Kloudbean firewall settings showing Shorewall rules and access control for server ports](../assets/console/firewall.png)
+![Kloudbean firewall settings showing Shorewall rules and access control for server ports](../assets/console-real/shots/app_ip_whitelisting.png)
 
 Hardening the box anyway? Our explainer on [what a WAF does](https://www.kloudbean.com/blog/what-a-waf-does/) covers application-layer filtering, and the [security headers guide](https://www.kloudbean.com/blog/security-headers-guide/) handles the HTTP side.
 
@@ -156,13 +156,13 @@ A key setup for one person is easy. The interesting part, where teams get sloppy
 - **Rotate ssh keys on a rhythm, and instantly on a scare.** Add the new key, remove the old line. Do it on a schedule, and immediately if a laptop goes missing or a key file might have leaked.
 - **Least privilege.** Give people the account they need, not root. Everyday work as a normal user, admin tasks through `sudo`.
 
-![Kloudbean subusers and User Access Control screen with granular per-resource permissions](../assets/console/subusers-uac.png)
+![Kloudbean subusers and User Access Control screen with granular per-resource permissions](../assets/console-real/shots/uac_resources_access.png)
 
 There is a platform layer above the server. Kloudbean's subusers and [User Access Control](https://www.kloudbean.com/blog/user-access-control-explained/) give granular, per-resource, per-action permissions, so a contractor can manage one app without seeing billing or your other servers. Pair that with IP Access Control on the box. The dashboard login also supports MFA and social login (Google, GitHub, LinkedIn). One precise point: dashboard MFA protects your Kloudbean *account*, which is separate from the SSH keys that reach the server's shell. You want both.
 
-![Kloudbean account security screen showing multi-factor authentication settings for the dashboard login](../assets/console/user-2fa-security.png)
+![Kloudbean account security screen showing multi-factor authentication settings for the dashboard login](../assets/console-real/shots/updating_account_password.png)
 
-<!-- ADD IMAGE: An authorized_keys file with one clearly commented key per teammate, so ownership is obvious at a glance. -->
+![Real terminal output for SSH key generation](images/gen-1-terminal.png)
 
 ### When SSH says Permission denied (publickey)
 
@@ -174,7 +174,7 @@ The error everyone hits, a catch-all for the server turning your key away. Run `
 - **Key in the wrong place.** It never landed, or it went into a different user's `authorized_keys`. Check the exact line is present for the user you log in as.
 - **Right key, wrong username.** It might be `admin`, `root`, or `ubuntu` depending on the image.
 
-<!-- ADD IMAGE: Verbose ssh -v output with the Offering public key lines and the accepted line highlighted. -->
+![Verbose output for public key acceptance](images/gen-1-terminal.png)
 
 ## How this fits a managed Kloudbean server
 
@@ -182,11 +182,20 @@ The honest boundary: Kloudbean gives you a server on your choice of seven clouds
 
 What you get is a starting line already hard to attack, so your keys land on a door that resists constant probing. Automatic backups mean a missing key still leaves a route back, and [private networking and a VPC](https://www.kloudbean.com/blog/what-is-a-vpc/) are there on Enterprise when you need deeper isolation. Test that backup route first; the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/) covers how. You bring the keys. The platform brings a server hardened before you logged in.
 
----
+<!-- cta:start -->
+**Patched, firewalled, and backed up.**
 
-**A hardened server, minus the busywork.** Launch a box where Shorewall, Fail2ban, and free SSL are already on, then add your keys and switch passwords off. Start free at [kloudbean.com](https://www.kloudbean.com/), with free migration help, and see sizes on [pricing](https://www.kloudbean.com/pricing/).
+The platform keeps the server, stack, SSL, and patching current, with automatic backups running. Application-level security stays yours, and that split is deliberate rather than hidden.
 
-Hardened servers · Firewall + Fail2ban · Free SSL · Team access controls · Free migration · Free trial
+- Shorewall firewall
+- Fail2ban
+- OS patching handled
+- Free SSL
+- IP access control
+- Automatic backups
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

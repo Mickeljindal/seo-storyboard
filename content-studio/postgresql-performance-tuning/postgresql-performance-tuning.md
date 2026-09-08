@@ -22,7 +22,7 @@ LIMIT 10;
 
 That's your ranked to-do list; the top query is where a fix buys the most. Sort by total time too (roughly `calls` times `mean_exec_time`) to catch the query that's quick on its own but runs ten thousand times a minute. Those add up to more pain than the slow report nobody runs.
 
-<!-- ADD IMAGE: a pg_stat_statements result sorted by mean_exec_time, with the worst query highlighted -->
+![Highlighting performance bottlenecks](images/gen-1-comparison.png)
 
 ## Read the query plan with EXPLAIN and EXPLAIN ANALYZE
 
@@ -80,7 +80,7 @@ Execution Time: 0.068 ms
 
 Same eleven rows, but Postgres went straight to them. This is the highest-leverage move in **Postgres query optimization**, and it's why the method starts with measurement. You can't index what you haven't found.
 
-<!-- ADD IMAGE: an annotated EXPLAIN ANALYZE plan pointing at Seq Scan, actual time, and Rows Removed by Filter -->
+![Identify inefficiencies with EXPLAIN ANALYZE](images/gen-2-panel.png)
 
 ## The PostgreSQL performance tuning order of operations
 
@@ -150,7 +150,7 @@ VACUUM ANALYZE orders;
 
 `VACUUM ANALYZE` reclaims space and refreshes stats in one go. Its heavy cousin `VACUUM FULL` rewrites the whole table and takes an exclusive lock, so save that for a real emergency, not a routine tune-up.
 
-<!-- ADD IMAGE: pg_stat_user_tables showing n_dead_tup climbing on a busy table, then dropping after a vacuum -->
+![Impact of dead tuples on performance](images/gen-3-comparison.png)
 
 ## Connections and pooling
 
@@ -166,7 +166,7 @@ Your framework probably already pools: Prisma, the `pg` Pool in Node, SQLAlchemy
 
 Both of those settings, the connection string and the pool size, belong in environment variables rather than in your code, because the right pool size differs between your laptop and production. On Kloudbean they live in the console's runtime config, so you change the pool ceiling and restart without touching the repo or opening an SSH session.
 
-![The Kloudbean console environment variables screen holding the PostgreSQL connection string safely out of code](../assets/console/env-vars.png)
+![The Kloudbean console environment variables screen holding the PostgreSQL connection string safely out of code](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ## Memory settings, carefully
 
@@ -193,7 +193,7 @@ Sometimes the answer really is more hardware. If CPU sits pinned near 100 percen
 
 You need two views side by side to make that call honestly: your `pg_stat_statements` output and the actual CPU and RAM on the box. Slow queries while CPU sits idle is a query or index problem, and a bigger server will not help. Pinned CPU after the queries are already tuned is the real signal to resize. Kloudbean's server health view is what I'd keep open next to the query stats, and vertical resize up is self-serve when the numbers say so. One caveat before you jump: scaling disk down again isn't supported, so grow deliberately rather than in a panic.
 
-![The Kloudbean console server health view showing CPU and RAM usage to decide between tuning and resizing](../assets/console/server-health.png)
+![The Kloudbean console server health view showing CPU and RAM usage to decide between tuning and resizing](../assets/console-real/shots/server_health_step_2.png)
 
 But tune queries and indexes first. Bad SQL scales badly no matter the hardware. A missing index that scans five million rows scans them faster on a bigger box, then falls over again at ten million. Doubling your server to hide an N+1 loop is the most expensive way to not fix a bug. For read-heavy workloads, a [managed Redis cache](https://www.kloudbean.com/blog/redis-caching-guide/) in front of your hottest reads often buys more headroom than a bigger database.
 
@@ -215,17 +215,26 @@ Half the wasted time in a performance investigation comes from working the wrong
 | Provisioning and access control | Your host | Launch Postgres in the DBS section, one of seven managed engines, and whitelist your app server's IP so nothing else can connect |
 | Deciding you need a bigger box | Shared | You read the numbers, the resize is a self-serve click, and the disk can't shrink afterwards |
 
-![The Kloudbean console launching a managed PostgreSQL database with automatic backups and IP allow-listing](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed PostgreSQL database with automatic backups and IP allow-listing](../assets/console-real/shots/psql_launch_step_1.png)
 
 Look at where the biggest wins landed. The two levers that fix most slow Postgres, the missing index and the N+1 loop, sit firmly in your column, and no host on earth fixes them for you. Kloudbean can't, and any platform that implies it can is selling you something. What managed hosting genuinely buys you is that the bottom half of that table stops consuming your attention, so the time you'd have spent on patching windows and backup scripts goes into `EXPLAIN` output instead.
 
 One row deserves a nudge. Backups run automatically, but a backup you've never restored is a hope, not a plan. Take an on-demand backup before your next risky migration and restore it somewhere harmless once, so you know the mechanism works before you need it at 3am. Here's how [server backups](https://www.kloudbean.com/blog/server-backups-guide/) work. And if you're still wiring the app up, [deploying a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) walks that path.
 
----
+<!-- cta:start -->
+**Managed, backed up, and still yours.**
 
-**Make Postgres earn its keep.** Managed PostgreSQL on Kloudbean gives you a real box locked to your app server's IP, automatic backups, and one-click provisioning, so the only thing left to tune is your own queries. Start free at [kloudbean.com](https://www.kloudbean.com/) and see plans on [pricing](https://www.kloudbean.com/pricing/).
+Seven managed engines, provisioned and patched for you, with access controlled and backups running automatically. Your schema, your queries, and your data stay exportable with the standard tools.
 
-Managed PostgreSQL · Automatic backups · Resize as you grow · Free migration · Free trial
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -211,7 +211,7 @@ An AI builder almost certainly handed you one of these. The [full guide to deplo
 
 A database is one piece of owning your whole stack. It sits next to your app, wired in through environment variables, and everything else falls into place around it. Background jobs and scheduled tasks work against it. Big files go to [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/) instead of bloating the database. Hot reads get cached in Redis. And it's all covered by [automatic backups](https://www.kloudbean.com/blog/server-backups-guide/) behind free SSL. One dashboard, one server, one bill.
 
-## The honest limits
+## The database choices this does not make for you
 
 Kloudbean runs six managed engines, PostgreSQL, MySQL, MariaDB, Redis, Elasticsearch, and MongoDB, all on **Linux**. It won't manage every exotic datastore, and it isn't built for Windows-only database stacks. "Managed" means the platform provisions the database, locks it down with IP allow-listing, and backs it up, while the schema and the data stay yours to export whenever you like. For plain Postgres or MySQL, which is what nearly every AI-built app actually uses, running one next to your app is about as simple as it gets.
 

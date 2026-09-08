@@ -67,11 +67,20 @@ And the answer a lot of teams land on isn't either-or. Keep the Next.js frontend
 
 More depth: [Vercel for Node.js backends](https://www.kloudbean.com/blog/vercel-for-node-backends-limits/) for the full constraint list, [a Vercel alternative for full-stack apps](https://www.kloudbean.com/blog/vercel-alternative-for-full-stack-apps/), and [best managed Node.js hosting](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/) for the wider field. On the specifics: [connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/), [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/), [scaling WebSockets](https://www.kloudbean.com/blog/scale-websockets-nodejs/), and [CORS when you split origins](https://www.kloudbean.com/blog/fix-cors-error-node-production/).
 
-## Run the API where APIs like to live
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-Always-on Node under PM2 with no duration ceiling on your handlers, real background workers, WebSockets, managed PostgreSQL and Redis in one dashboard, and no egress metering, from $8/mo flat. Keep your frontend wherever it's happy. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-No cold starts · No handler duration ceiling · Workers and WebSockets · Managed databases · No egress metering · Flat from $8/mo
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

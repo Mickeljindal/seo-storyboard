@@ -68,7 +68,7 @@ Then production arrives with 5,000 rows. Now it's 1 + 5,000 = 5,001 queries. And
 
 That dev-to-prod cliff is the whole story. The bug's cost is a function of row count and network distance, and both are tiny in dev. You can't feel N+1 on 5 rows. You feel it hard on 5,000. So it ships, quietly, over and over.
 
-<!-- ADD IMAGE: the same list page on 5 dev rows versus thousands of prod rows, with the query count beside each. -->
+![Query count and performance impact](images/gen-1-comparison.png)
 
 ## Why do ORMs cause N+1 queries?
 
@@ -203,7 +203,7 @@ LOGGING = {
 
 Rails already logs every query in the dev console, and Sequelize logs by default (`logging: console.log`). Beyond raw logs, purpose-built tools make it obvious: `django-debug-toolbar` and `nplusone` for Django, the `bullet` gem for Rails, and any APM (the trace shows a waterfall of stacked identical queries). Whatever you use, the signal is the same. A wall of repeated single-row lookups.
 
-<!-- ADD IMAGE: an ORM query log or APM waterfall with the same single-row SELECT repeated once per row. -->
+![Repeated SELECTs in ORM logs](images/gen-2-flow.png)
 
 ## Is eager loading always the answer?
 
@@ -229,13 +229,13 @@ Let's be clear about ownership, because it matters. N+1 is an application-code b
 
 On Kloudbean you run a managed PostgreSQL or MySQL, and an N+1 storm shows up the way you'd expect: a spike in query volume and CPU on the database, right when a particular page gets traffic. The server health view is where you'd catch it.
 
-<!-- ADD IMAGE: the Kloudbean server health view showing a CPU spike and query volume from an N+1 query storm (../assets/console/server-health.png). -->
+![Before and after adding eager loading](images/gen-3-comparison.png)
 
 *Server health: an N+1 page shows up as a query storm and CPU spike here. The metric points you at the symptom, then you fix the queries in your code.*
 
 The companion fixes live on the platform side and pair with the real fix in your code. An index on the foreign key so each lookup is cheap. Connection pooling so a burst of queries doesn't exhaust the ceiling. Managed Redis to cache repeated reads. A bigger database is a resize, not a migration, if you genuinely need more headroom.
 
-<!-- ADD IMAGE: launching a managed PostgreSQL or MySQL database in the Kloudbean console (../assets/console/launch-database.png). -->
+<!-- ADD IMAGE: launching a managed PostgreSQL or MySQL database in the Kloudbean console (../assets/console-real/shots/psql_launch_step_1.png). -->
 
 *DBS -> Launch Database. Managed Postgres or MySQL with automatic backups, colocated with your app so they talk over a fast internal link.*
 
@@ -243,13 +243,21 @@ The companion fixes live on the platform side and pair with the real fix in your
 
 Colocation matters more than it sounds here. When your app and database sit in the same account, right next to each other, even a chatty query pattern pays a tiny round trip instead of a public-internet one, so a mild N+1 hurts less while you fix it. The full walkthrough of wiring a database into an app is the pillar guide, [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), and the engine-specific view is [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/).
 
----
+<!-- cta:start -->
+**Own the server. Skip the server admin.**
 
-**Fix the queries in code. Run the database on infrastructure that shows you the storm.**
+Pick from seven clouds, run your app on a managed server you control, and keep databases, storage, and deploys in the same dashboard instead of four separate vendors.
 
-Launch managed PostgreSQL or MySQL, watch query volume and CPU in one dashboard, and pair eager loading with indexing, pooling, and managed Redis when you need them. Start free at [kloudbean.com](https://www.kloudbean.com/), or see [pricing](https://www.kloudbean.com/pricing/).
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
 
-Managed PostgreSQL & MySQL · Automatic backups · Resize on demand · Free migration · Free trial
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -65,7 +65,7 @@ worker: node worker.js
 
 The `web` line becomes your Start command. The `worker` line becomes a second process on the same server, kept alive by a process manager. You connect the repo in the console and set the same install, build, and start commands a buildpack used to run for you.
 
-![Kloudbean console Deploy Code and Git Deployment tab: connect the repo, set install/build/start commands, and Pull and Deploy](../assets/console/git-deployment.png)
+![Kloudbean console Deploy Code and Git Deployment tab: connect the repo, set install/build/start commands, and Pull and Deploy](../assets/console-real/shots/git_connect_step_4.png)
 
 ```
 # the worker is just another always-on process
@@ -76,7 +76,7 @@ pm2 save
 
 Config vars move next. Copy them straight across into the server's environment variables, same keys, same values.
 
-![Kloudbean console Environment Variables screen where Heroku config vars are recreated as key-value pairs](../assets/console/env-vars.png)
+![Kloudbean console Environment Variables screen where Heroku config vars are recreated as key-value pairs](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ```
 # config vars become environment variables on the server
@@ -86,7 +86,7 @@ NODE_ENV=production
 
 Then the database, which is where the "[Heroku alternative with database](https://www.kloudbean.com/blog/add-managed-database-to-your-app/)" question really lives. Launch a managed Postgres from the console (there are six engines: Postgres, MySQL, MariaDB, Redis, MongoDB, Elasticsearch) and bring your data across with a standard dump and restore.
 
-![Kloudbean Launch Database screen for creating a managed Postgres instance next to the application](../assets/console/launch-database.png)
+![Kloudbean Launch Database screen for creating a managed Postgres instance next to the application](../assets/console-real/shots/psql_launch_step_1.png)
 
 ```
 # move Heroku Postgres onto the managed database, over one pipe
@@ -95,7 +95,7 @@ pg_dump "$HEROKU_DATABASE_URL" | psql "postgres://kb_user:secret@postgres-123456
 
 Point the domain, turn on SSL, flip on auto-deploy. Nothing here is exotic, because Heroku ran standard code with a few conventions on top. Peel off the conventions and it's an ordinary app on an ordinary server. The [deploy-a-Node-app guide](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) walks a fresh one end to end.
 
-<!-- ADD IMAGE: A Heroku app's dyno formation or add-ons list, so the metered pieces (Postgres, Redis, Scheduler, log drain) are visible before the move. -->
+![Metered services before moving to Kloudbean](images/gen-1-flow.png)
 
 ## Where people trip when they translate a Heroku app
 
@@ -111,9 +111,20 @@ If Heroku still fits, keep it. Familiarity has real value, and there's no prize 
 
 Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and frameworks like React, Next.js, Vue, Laravel, and Django, which covers what modern and vibe-coded apps are built on. You can run .NET on Linux. Windows Server is a Premium and Enterprise option. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups, while you own and maintain the app. And to be fair, for a single small dyno with no add-ons, Heroku's simplicity is genuinely hard to beat. The flat, owned server pulls ahead as your app grows processes and add-ons, and as a "cheaper Heroku alternative" starts to mean "stop paying five subscriptions for one app."
 
-## Keep the git push. Lose the meter.
+<!-- cta:start -->
+**Move it once. Own it after.**
 
-See how your whole app on one owned server compares at [kloudbean.com](https://www.kloudbean.com/). Always-on processes, one-click managed databases, automatic backups, cron on the box, free migration, free trial, and git deploy. Plans on [pricing](https://www.kloudbean.com/pricing/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
+
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -38,6 +38,13 @@
   <p>This shows up anywhere the work is genuinely slow. A long model generation that runs 30 to 120 seconds. An agent run that fires several tool calls in sequence, each adding latency, until the whole thing blows past the ceiling (an agent run timeout). A batch embedding job pushing thousands of chunks through an embeddings API (a batch embedding timeout). None of these are broken. They're just too long to live inside one HTTP request. Timeouts on long model calls are one of the classic ways <a href="https://www.kloudbean.com/blog/why-ai-apps-fail-in-production/">AI apps fail in production</a>, and this is the fix for that particular failure.</p>
 
   <!-- ADD IMAGE: src -> images/504-network-tab.png -->
+  <!-- IMAGE CAPTURE [browser-shot] #1
+SCREENSHOT NEEDED (do not generate this one).
+This slot shows a real browser window (address bar, devtools, or tabs), so an AI image would be inaccurate and a reader could tell.
+Capture: A 504 Gateway Timeout in the browser network tab, next to a request that hung for about 30 seconds before failing.
+Note: Shows the exact failure a reader recognizes.
+Crop to 16:9, keep text legible at 1200px wide, and blur or fake any real credentials, tokens, IPs or customer data.
+-->
   <figure class="img-slot"><span><b>Add image</b><em>A 504 Gateway Timeout in the browser network tab, next to a request that hung for about 30 seconds before failing.</em><small>Shows the exact failure a reader recognizes.</small></span></figure>
 
   <h2>Why raising the proxy timeout doesn't really fix it</h2>
@@ -179,7 +186,21 @@ app.get('/jobs/:id', async (req, res) =&gt; {
   <p>That's the core of it. The POST returns in milliseconds. The worker takes as long as it takes. The client checks in every two seconds and shows a spinner or a progress note until the result is there. No layer in the middle ever waits long enough to time out, because nothing in the middle is waiting at all.</p>
 
   <!-- ADD IMAGE: src -> images/polling-ui.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A simple UI showing a progress spinner while the client polls, then the finished result appearing once the job status flips to done.</em><small>Optional: use your own app screenshot.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "How to Run a Long AI Task Without Hitting a Timeout".
+
+What it must show: A simple UI showing a progress spinner while the client polls, then the finished result appearing once the job status flips to done.
+Also: Optional: use your own app screenshot.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="A simple UI showing a progress spinner while the client polls, then the finished result appearing once the job status flips to done.">
+    <figcaption>Progress to result</figcaption>
+  </figure>
 
   <h2>When streaming is the right answer instead</h2>
   <p>Polling isn't always the best experience. If the whole point is to show output as it's produced, a chat reply appearing token by token, then making the user wait for a job to finish and only then poll feels worse, not better. That's the streaming case, and it's genuinely different.</p>
@@ -192,7 +213,21 @@ app.get('/jobs/:id', async (req, res) =&gt; {
   <p>A queue buys you more than just moving work off the request path. You get retries when a job fails, control over how many jobs run at once (so ten users don't launch ten simultaneous GPU-heavy calls), and a record of what ran. In Node, the common tool is BullMQ on top of Redis; <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">background jobs in Node.js with BullMQ</a> covers the worker, retries, and concurrency in detail. Python has RQ and Celery in the same role. The job's state, queued, running, done, or failed, plus the result, lives in your database, which is what the status endpoint reads back. This whole setup, API plus worker plus queue plus store, is laid out in the <a href="https://www.kloudbean.com/blog/ai-app-reference-architecture/">AI app reference architecture</a>, and it's the natural next step after <a href="https://www.kloudbean.com/blog/last-mile-of-vibe-coding/">the last mile of vibe coding</a> leaves you with a working prototype and a production gap.</p>
 
   <!-- ADD IMAGE: src -> images/queue-states.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A queue dashboard showing jobs moving through queued, running, done, and failed states with counts.</em><small>Shows the worker draining real work.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #3
+Create a left-to-right architecture / flow diagram for a technical blog post titled "How to Run a Long AI Task Without Hitting a Timeout".
+
+What it must show: A queue dashboard showing jobs moving through queued, running, done, and failed states with counts.
+Also: Shows the worker draining real work.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-flow.png" alt="A queue dashboard showing jobs moving through queued, running, done, and failed states with counts.">
+    <figcaption>From queue to completion</figcaption>
+  </figure>
 
   <p>One opinion, from watching this play out more than once: if a task can plausibly run past about 30 seconds, build it as a background job from day one. Retrofitting the 202 pattern after you've already hit the timeout in production, with users watching, is more work and more stress than designing it that way up front. It's far easier to start with a job you don't strictly need than to bolt one on during an incident.</p>
 
@@ -206,14 +241,71 @@ app.get('/jobs/:id', async (req, res) =&gt; {
   <p>Now the part no host fixes, ours included. Removing the platform timeout doesn't make the work faster. A model call that takes ninety seconds still takes ninety seconds, and the pattern just stops that being the user's problem. Your retry logic, your job reaping, your idempotency when a worker dies halfway are all yours to write. And on a standard plan you size the server and set worker concurrency yourself, since autoscaling is an Enterprise or custom capability, not something that happens quietly on your behalf. Honestly, sizing it yourself is fine at first. Watch the queue depth for a week and you'll know more about your concurrency than any autoscaler would have guessed.</p>
 
   <!-- ADD IMAGE: src -> images/dashboard-worker-cron.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The Kloudbean dashboard showing an app, a background worker process, and a scheduled cron job side by side.</em><small>Optional: real console screenshot.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #4
+Create a side-by-side comparison table for a technical blog post titled "How to Run a Long AI Task Without Hitting a Timeout".
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run long jobs on a server that won't quit on them.</p>
-    <p style="margin:0 0 .6em">Run the slow work on an always-on server with a real background worker, a managed queue, and somewhere durable to keep job state. Launch the server (no function timeout), add a background worker and cron jobs from the dashboard, back the queue with managed Redis, keep job state in managed Postgres, and deploy from Git with free SSL. One dashboard for the whole thing.</p>
-    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Always-on server (no function timeout) · Background workers + cron · Managed Redis queue · Managed Postgres · Git deploy · Free SSL</p>
+What it must show: The Kloudbean dashboard showing an app, a background worker process, and a scheduled cron job side by side.
+Also: Optional: real console screenshot.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-4-comparison.png" alt="The Kloudbean dashboard showing an app, a background worker process, and a scheduled cron job side by side.">
+    <figcaption>Impact on app performance and downtime</figcaption>
+  </figure>
+
+<div class="kbcta-fix-wrap">
+  <div class="kbcta-fix-overlay"></div>
+  <div class="kbcta-fix-content">
+    <div class="kbcta-fix-eyebrow">DEPLOY &middot; LOGS THAT TELL YOU WHY</div>
+    <p class="kbcta-fix-heading">Deploys that tell you what broke.</p>
+    <p class="kbcta-fix-description">Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.</p>
+    <ul class="kbcta-fix-features">
+      <li>&#10003; Live build logs</li>
+      <li>&#10003; Deployment history</li>
+      <li>&#10003; Logs viewer</li>
+      <li>&#10003; Managed process restarts</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Git deploy</li>
+    </ul>
+    <div class="kbcta-fix-buttons">
+      <a class="kbcta-fix-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-fix-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-fix: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-fix-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-fix-wrap *{box-sizing:border-box}
+.kbcta-fix-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-fix-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-fix-content{position:relative;z-index:3;max-width:700px}
+.kbcta-fix-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-fix-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-fix-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-fix-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-fix-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-fix-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-fix-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-fix-btn:hover,.kbcta-fix-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-fix-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-fix-link:hover,.kbcta-fix-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-fix-wrap{padding:36px 24px}
+  .kbcta-fix-heading{font-size:31px}
+  .kbcta-fix-description{font-size:16px}
+  .kbcta-fix-features li{white-space:normal}
+  .kbcta-fix-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-fix-btn{width:100%}
+  .kbcta-fix-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

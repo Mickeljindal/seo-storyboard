@@ -112,7 +112,21 @@ const one = await fetch(
   <p>One thing that trips people up: there are more posts than the array shows. Total counts come back in response <em>headers</em>, not the body. Read <code>X-WP-Total</code> and <code>X-WP-TotalPages</code>, then page through with <code>?page=2</code>. If you request <code>per_page=500</code> hoping to grab everything at once, WordPress caps you at 100 and you'll quietly miss the rest.</p>
 
   <!-- Author: replace this slot with a real screenshot. src -> images/wp-json-in-browser.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The raw JSON response for /wp-json/wp/v2/posts open in a browser tab, so readers see what the API actually returns.</em><small>Author-supplied screenshot.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #1
+Create a left-to-right architecture / flow diagram for a technical blog post titled "The WordPress REST API: How to Read, Write, and Extend /wp-json/".
+
+What it must show: The raw JSON response for /wp-json/wp/v2/posts open in a browser tab, so readers see what the API actually returns.
+Also: Author-supplied screenshot.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-flow.png" alt="The raw JSON response for /wp-json/wp/v2/posts open in a browser tab, so readers see what the API actually returns.">
+    <figcaption>API request flow</figcaption>
+  </figure>
 
   <h2>Authenticating writes with Application Passwords</h2>
   <p>Reading public content is open. <strong>Changing</strong> anything is not, and that's exactly right. The modern, built-in way to authenticate a script or a server is <strong>Application Passwords</strong>, added in WordPress 5.6. A user generates a dedicated password for one app under <em>Users, Profile, Application Passwords</em>, separate from their login and revocable on its own. Requests made with it act as that user, with their role and capabilities, so an editor's application password can create posts but can't manage users.</p>
@@ -136,7 +150,21 @@ await fetch('https://example.com/wp-json/wp/v2/posts', {
   <p>Two other methods exist, for two other jobs. For JavaScript running <em>inside</em> wp-admin (same origin), WordPress uses your login cookie plus a <strong>nonce</strong> sent as an <code>X-WP-Nonce</code> header (WordPress hands it to your script via <code>wpApiSettings.nonce</code>). For third-party apps acting for other users, <strong>OAuth</strong> or <strong>JWT</strong> via a plugin is the usual route. For server-to-server work, Application Passwords are the simplest thing that's actually secure, and my default.</p>
 
   <!-- Author: replace this slot with a real screenshot. src -> images/application-passwords.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The Application Passwords section on a user profile, generating a new password for an integration.</em><small>Author-supplied screenshot from your own WordPress admin.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "The WordPress REST API: How to Read, Write, and Extend /wp-json/".
+
+What it must show: The Application Passwords section on a user profile, generating a new password for an integration.
+Also: Author-supplied screenshot from your own WordPress admin.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="The Application Passwords section on a user profile, generating a new password for an integration.">
+    <figcaption>Flow through WordPress admin</figcaption>
+  </figure>
 
   <h2>Creating, updating, and deleting content</h2>
   <p>Once you're authenticated, writing is a matter of the HTTP verb. Create with a <code>POST</code> to the collection, update with a <code>POST</code> to a single item (WordPress accepts partial updates, so send only what changed), and remove with a <code>DELETE</code>:</p>
@@ -196,27 +224,85 @@ function myplugin_status() {
   <p>When the API powers a front end or an app, treat WordPress as the backend it now is. The consumer (a <a href="https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/">Next.js app</a> or a <a href="https://www.kloudbean.com/blog/deploy-fullstack-react-app-to-production/">full-stack React app</a>) should read the WordPress base URL from an environment variable, never hard-coded, so you can point staging and production at different sites without editing code.</p>
 
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean console: storing the WordPress REST API base URL as an environment variable in the consumer app">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean console: storing the WordPress REST API base URL as an environment variable in the consumer app">
     <figcaption>The front end reads the WordPress API base URL from an environment variable, so staging and production just point at different sites.</figcaption>
   </figure>
 
   <p>The WordPress side is ordinary managed hosting, with two things that matter more once the API is busy: HTTPS, because authenticated traffic must be encrypted, and capacity, because an API feeding a front end handles real request volume. It runs on managed PHP with a <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL database</a> behind it, and you resize the server as traffic grows.</p>
 
   <figure>
-    <img src="../assets/console/add-server.png" alt="The Kloudbean console: the WordPress server that answers REST API requests, sized for real request volume">
+    <img src="../assets/console-real/shots/launch_server_step_1.png" alt="The Kloudbean console: the WordPress server that answers REST API requests, sized for real request volume">
     <figcaption>The server that answers every /wp-json/ request. Give it room and keep it on HTTPS when it's doing real work.</figcaption>
   </figure>
 
   <p>Prefer the terminal for debugging content? WP-CLI reads and writes the same data, covered in the <a href="https://www.kloudbean.com/blog/wordpress-cli-guide/">WordPress CLI guide</a>. The boundary is the usual one: a Linux stack where the platform manages the server, PHP, SSL, and backups, while your content and its API stay yours. The REST API just makes that content reachable by more than a browser.</p>
 
   <!-- Author: replace this slot with a real screenshot. src -> images/rest-api-consumer.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A front-end app rendering content it pulled from the WordPress REST API, next to the JSON it fetched.</em><small>Author-supplied screenshot.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #3
+Create a left-to-right architecture / flow diagram for a technical blog post titled "The WordPress REST API: How to Read, Write, and Extend /wp-json/".
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Content any app can read, on a backend you control.</p>
-    <p style="margin:0 0 .6em">Host WordPress and its REST API on a managed, HTTPS-ready server, with a Node or static front end right beside it, at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Managed WordPress · Free SSL · Managed MySQL · Node/static front ends · Automatic backups · Free migration · Free trial</p>
+What it must show: A front-end app rendering content it pulled from the WordPress REST API, next to the JSON it fetched.
+Also: Author-supplied screenshot.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-flow.png" alt="A front-end app rendering content it pulled from the WordPress REST API, next to the JSON it fetched.">
+    <figcaption>One hop per box</figcaption>
+  </figure>
+
+<div class="kbcta-wp-wrap">
+  <div class="kbcta-wp-overlay"></div>
+  <div class="kbcta-wp-content">
+    <div class="kbcta-wp-eyebrow">MANAGED WORDPRESS &middot; ONE DASHBOARD</div>
+    <p class="kbcta-wp-heading">Managed stack, staging, and backups.</p>
+    <p class="kbcta-wp-description">Run WordPress and WooCommerce on a managed server with a staging site, automatic backups, free auto-renewing SSL, and a managed MySQL or MariaDB beside it. Pick the cloud and the region yourself.</p>
+    <ul class="kbcta-wp-features">
+      <li>&#10003; Managed WordPress stack</li>
+      <li>&#10003; One-click staging</li>
+      <li>&#10003; Managed MySQL and MariaDB</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Built-in load balancer</li>
+    </ul>
+    <div class="kbcta-wp-buttons">
+      <a class="kbcta-wp-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-wp-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-wp: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-wp-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-wp-wrap *{box-sizing:border-box}
+.kbcta-wp-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-wp-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-wp-content{position:relative;z-index:3;max-width:700px}
+.kbcta-wp-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-wp-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-wp-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-wp-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-wp-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-wp-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-wp-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-wp-btn:hover,.kbcta-wp-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-wp-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-wp-link:hover,.kbcta-wp-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-wp-wrap{padding:36px 24px}
+  .kbcta-wp-heading{font-size:31px}
+  .kbcta-wp-description{font-size:16px}
+  .kbcta-wp-features li{white-space:normal}
+  .kbcta-wp-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-wp-btn{width:100%}
+  .kbcta-wp-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

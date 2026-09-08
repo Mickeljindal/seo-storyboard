@@ -11,7 +11,7 @@ secondary_keywords:
   - vite env variables
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 3 — App Deployment Tutorials
+cluster: 3 - App Deployment Tutorials
 ---
 
 ![Deploy a Vue app: find your shape (SPA, Nuxt SSR, or static) and ship it](images/hero.png)
@@ -64,11 +64,11 @@ Your build produces a `dist/` folder of static files. There's no server to run. 
 
 Because the output is just files, their natural home is object storage behind a CDN, which is cheap, fast, and effortless to scale. The files sit in a bucket, the CDN serves them from close to each visitor, and there's no app process to keep alive or patch.
 
-![The Kloudbean console showing static Vue build files in object storage, served over a CDN](../assets/console/s3-buckets.png)
+![The Kloudbean console showing static Vue build files in object storage, served over a CDN](../assets/console-real/shots/storage_bucket_step_3.png)
 
 One small win worth setting up while you're here: Vite adds a content hash to your built filenames (like `app.4f2a1c.js`). That means you can cache those hashed assets for a long time and only your `index.html` needs a short cache. New deploys change the hashed names, so browsers fetch the fresh files automatically without any stale-cache headaches. If you want the files in a bucket you fully control, here's the rundown on [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/), and on pointing a [custom domain with free SSL](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/) at it.
 
-<!-- ADD IMAGE: your dist/ folder after npm run build, with the hashed asset filenames visible -->
+![dist/ folder after npm run build](images/gen-1-terminal.png)
 
 ## The bug that hits every SPA once: refresh a route, get a 404
 
@@ -96,7 +96,7 @@ location / {
 
 On a static host it's usually a single "redirect all unmatched routes to /index.html with a 200" rule. Set it once and refreshes stop breaking. Skip it and everything looks fine right up until the first hard refresh, which is exactly when a real user finds it. So do it on day one, not after the bug report.
 
-<!-- ADD IMAGE: the 404 a Vue Router route shows on refresh before you add a SPA fallback -->
+![Before and after a Vue Router refresh](images/gen-1-comparison.png)
 
 ## Shape 2: Nuxt SSR (a live Node server)
 
@@ -109,7 +109,7 @@ node .output/server/index.mjs    # boots the SSR server (reads PORT/HOST)
 
 Connect the repo, set the build command, set the start command that boots the server, and make sure it listens on the assigned `$PORT`. It runs as an always-on process the platform keeps alive and restarts if it crashes. You get SSR's real benefits, faster first paint and better SEO for content pages, at the cost of running an actual server. That's a fair trade when you need it.
 
-![The Kloudbean console adding a Nuxt SSR app as an application on a server](../assets/console/add-application.png)
+![The Kloudbean console adding a Nuxt SSR app as an application on a server](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 This is the same flow as the [deploy a Node app guide](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/), and it applies to Nuxt unchanged. The classic SSR pitfall is the port: if the process starts but you hard-coded a port instead of reading `$PORT`, requests never reach it and you get a 503. If that happens, here's the [503-after-deploy fix](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/). If you don't actually need server rendering, though, the SPA path above is simpler and cheaper. Don't run a server you don't need.
 
@@ -143,11 +143,11 @@ const apiUrl = import.meta.env.VITE_API_URL;
 
 Two consequences follow, and both matter. First, anything `VITE_` ships to the browser in plain text, so it's public by definition. Putting a secret in a `VITE_` var is the mistake I hate finding in a code review, because by then it's already shipped to every visitor. Keep real secrets on your backend. Second, to *change* a `VITE_` value (say your API URL), you have to **rebuild**. Editing an environment value on the server after the build won't touch the already-compiled files. So a Vue frontend's env vars are build-time config, and changing them means a new build.
 
-![The Kloudbean console running a Git build where VITE_ variables are baked into the Vue bundle](../assets/console/git-deployment.png)
+![The Kloudbean console running a Git build where VITE_ variables are baked into the Vue bundle](../assets/console-real/shots/git_connect_step_4.png)
 
 There's a fuller treatment of this in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/), including how build-time and runtime config differ. For a Nuxt SSR app, server-only secrets live in runtime config and stay on the server, which is the other half of the story.
 
-<!-- ADD IMAGE: your build-time VITE_ variables set in the dashboard before a deploy -->
+![your build-time VITE_ variables set in the dashboard before a deploy](../assets/console-real/shots/git_connect_step_4.png)
 
 ## Talking to your API without CORS headaches
 
@@ -159,11 +159,21 @@ Most Vue apps call an API. If that API lives on a different domain, the browser 
 
 For most apps, build the SPA and ship static files. It's the cheapest, most reliable shape, and it scales for free on a CDN. Reach for Nuxt SSR when you genuinely need server rendering: content pages that live or die on SEO, or a slow first paint you have to fix. Reach for prerendering when the content is mostly fixed and you want real HTML without a running server. The good news is you're choosing a build mode, not a host. All three land comfortably on the same platform, so a change of heart later is a config change, not a migration. Set your build command, wire up [auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/), and every push ships the right shape.
 
----
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-**Name your shape, then ship it.** Host a Vue SPA as static files or run a Nuxt server as a live process, both on Kloudbean, both in one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/), compare plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Static SPA hosting · Custom domain + SSL · Node process for SSR · Git auto-deploy · Live build logs · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

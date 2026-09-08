@@ -154,11 +154,20 @@ Some of this no host can do for you, ours included. Nobody can stop you from edi
 
 For the caching side, see [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/), [the Redis caching guide](https://www.kloudbean.com/blog/redis-caching-guide/), and [Redis caching patterns](https://www.kloudbean.com/blog/redis-caching-patterns/). To decide whether Redis is even the right tool, [when to use Redis vs Postgres](https://www.kloudbean.com/blog/when-to-use-redis-vs-postgres/) and [Redis vs Memcached](https://www.kloudbean.com/blog/redis-vs-memcached/). On the WordPress side, [how to clear WordPress cache](https://www.kloudbean.com/blog/how-to-clear-wordpress-cache/).
 
-## Let the cache be someone else's uptime problem
+<!-- cta:start -->
+**A database you can dump and take with you.**
 
-Launch managed Redis in the same dashboard as your site or app, right next to it with a supplied connection string, locked to your app server's IP, backed up automatically, on a flat plan from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Seven managed engines, provisioned and patched for you, with access controlled and backups running automatically. Your schema, your queries, and your data stay exportable with the standard tools.
 
-Managed Redis · Automatic backups · One dashboard · Flat from $8/mo
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

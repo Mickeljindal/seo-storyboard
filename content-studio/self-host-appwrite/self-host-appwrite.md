@@ -80,11 +80,21 @@ The honest boundary: the platform runs the server, the database, SSL, and backup
 
 For the Postgres-first alternative and the full comparison, [self-hosting Supabase](https://www.kloudbean.com/blog/self-host-supabase/). There is a broader survey in [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/). The data layer underneath: [managed MariaDB and MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/) and [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/), kept safe with [server backups](https://www.kloudbean.com/blog/server-backups-guide/), and files in [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). Deploying the app that talks to it is covered in [deploying an app to production](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/).
 
-## Own your backend, keep Firebase's speed.
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-Run Appwrite on a managed server across seven clouds, with managed MariaDB and Redis for its data layer, free auto-renewing SSL, and automatic backups. A bundled backend you control, without the setup grind. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Managed server · Managed MariaDB and Redis · Free auto-renewing SSL · Automatic backups
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -126,9 +126,20 @@ Where does this stop being a hosting question? At step two, mostly. No cache fix
 
 So the decision, plainly: ship without Redis, work down that list when something hurts, and add Redis at step five with a reason you could explain to another engineer in one sentence. If you can't finish that sentence yet, you don't need it yet.
 
----
+<!-- cta:start -->
+**A database you can dump and take with you.**
 
-**Add Redis when it earns its place.** When a hot query, a second server, or a background queue makes Redis the right call, managed Redis on Kloudbean is a click away, right next to your managed server and database. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+Launch MySQL, MariaDB, PostgreSQL, Redis, Memcached, MongoDB, or Elasticsearch in a click, reachable from your app server with automatic backups from minute one. Standard connection strings, standard dumps, no proprietary format.
+
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -122,15 +122,20 @@ The honest boundary: the platform makes the steps fast and consistent, but the r
 
 The other bookend is the [agency client offboarding runbook](https://www.kloudbean.com/blog/agency-client-offboarding/), for when a client eventually leaves. The strategy behind both is the [hosting for agencies playbook](https://www.kloudbean.com/blog/hosting-for-agencies-playbook/), and the scale picture is [how agencies host 20 client apps on one server](https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/). The access step is the [subusers and UAC guide](https://www.kloudbean.com/blog/subuser-and-uac-guide/); the isolation step is [hosting multiple apps on one server](https://www.kloudbean.com/blog/host-multiple-apps-one-server/). Migration in is [migrating hosting without downtime](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/), the verify step leans on [the backups guide](https://www.kloudbean.com/blog/server-backups-guide/), and the billing step is [client billing and markup](https://www.kloudbean.com/blog/client-billing-and-markup-for-hosting/).
 
----
+<!-- cta:start -->
+**One login. Every client app.**
 
-### Onboard every client the same way, fast.
+Host client apps as isolated applications on servers you own, each with its own database and SSL, with per-app backups and Git deploys, and scoped access for teammates through subusers and user access control.
 
-Provision an isolated environment, scoped logins, staging, automatic backups, and free auto-renewing SSL from one account across seven clouds. Free migration assistance to bring a client's site in. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+- One dashboard
+- Per-client isolation
+- Subusers and access control
+- Per-app backups
+- Git deploys
+- Free migration assistance
 
-Isolated environments · Scoped logins · Staging · Automatic backups · Free SSL · Free migration
-
----
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

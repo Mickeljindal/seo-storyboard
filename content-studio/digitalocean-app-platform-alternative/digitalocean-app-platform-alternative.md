@@ -35,7 +35,7 @@ Every PaaS, App Platform included, draws a line around what you're allowed to do
 
 None of this makes App Platform a bad product. These are the normal, well-understood tradeoffs of choosing a PaaS over a server. The question is whether your app has crossed the line where those trades stopped paying off.
 
-<!-- ADD IMAGE: a PaaS component or resource list where the app plus a separate managed database plus add-on services are each metered on their own line. -->
+![Direct values as in Kloudbean console](images/gen-2-terminal.png)
 
 ![Two ways to run the same growing app: a PaaS that hides the server and pushes each extra service out to a separate billed add-on, versus a managed server you control with the toil handled and the whole stack in one dashboard.](diagram)
 
@@ -73,7 +73,7 @@ The fear that stops most people from leaving a PaaS is losing the deploy flow. T
 
 On Kloudbean you connect a GitHub repo, set the build and start commands, and turn on auto-deploy. Every push builds and ships, with live build logs streaming in the console so you can watch it happen and read the error if it fails. That's the App Platform reflex, preserved. The full walkthrough lives in [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-![Kloudbean console Git Deployment tab: connect the repo, set the runtime and build and start commands, and Pull and Deploy](../assets/console/git-deployment.png)
+![Kloudbean console Git Deployment tab: connect the repo, set the runtime and build and start commands, and Pull and Deploy](../assets/console-real/shots/git_connect_step_4.png)
 
 *Git Deployment in Kloudbean: connect GitHub, set the runtime with the build and start commands, then Pull and Deploy. Auto-deploy on push after that, with live build logs.*
 
@@ -87,11 +87,11 @@ npm start                   # start command, a long-lived process on your server
 
 And because it's a real server, you get the runtime knobs App Platform didn't expose. Set the Node or Python version and runtime config in the UI, or open a shell and do the thing the platform never had a button for.
 
-![Kloudbean Add Application screen for creating an app on a managed server with runtime selection and control](../assets/console/add-application.png)
+![Kloudbean Add Application screen for creating an app on a managed server with runtime selection and control](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 *Add Application: pick the runtime and create the app on a server you control. From here you set runtime config in the UI, or SSH in for anything the UI doesn't cover.*
 
-<!-- ADD IMAGE: live build logs streaming in the console during a deploy, so a reader sees the git-push experience is intact. -->
+![live build logs streaming in the console during a deploy, so a reader sees the git-push experience is intact.](../assets/console-real/shots/git_connect_step_4.png)
 
 ## Everything else the app needs, in the same dashboard
 
@@ -99,7 +99,7 @@ This is the real payoff, and it's the thing a PaaS structurally can't match. On 
 
 Databases are the clearest example. Instead of provisioning a separate metered database product and reaching it across the network, you launch a managed database on the same server as the app. Kloudbean gives you seven engines: MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB. Because the database sits on the same box, the app reaches it over 127.0.0.1 instead of a public endpoint, which usually means lower latency and one less network surface to lock down. They're backed up automatically too. There's a full guide in [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
 
-![Kloudbean Launch Database screen for creating a managed PostgreSQL or MySQL instance next to the application](../assets/console/launch-database.png)
+![Kloudbean Launch Database screen for creating a managed PostgreSQL or MySQL instance next to the application](../assets/console-real/shots/psql_launch_step_1.png)
 
 *Launch a managed database next to the app. The connection string points at localhost on the same box, not out to a separate metered service.*
 
@@ -134,11 +134,20 @@ If you want to see how the managed-server model stacks up more broadly, [best ma
 
 A few boundaries, because you'd find them anyway. Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and the frameworks on top like React, Vue, Angular, Laravel, Django, and WordPress. Windows Server is tier-gated to Premium and Enterprise; .NET on Linux is not. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you own and maintain your application and its data. And on autoscaling: App Platform has its own autoscaling inside its model, so if fully automatic scaling is central to your app, weigh that honestly. On Kloudbean, autoscaling and Kubernetes are enterprise or custom setups, not a switch on a standard plan. For most apps you scale by resizing the server or adding instances behind the load balancer, which is plenty. Because it's standard Linux and standard code underneath, you can leave whenever you want. The exit door is part of the design.
 
----
+<!-- cta:start -->
+**Move it once. Own it after.**
 
-**Keep the git push. Get the server back.**
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-Move your app off App Platform to a managed server on DigitalOcean, or six other clouds, at [kloudbean.com](https://www.kloudbean.com/). Git deploy with live build logs, one-click managed databases, S3-compatible storage, built-in load balancer, automatic backups, free SSL, free migration, and a free trial. Plans start from $8/mo on [pricing](https://www.kloudbean.com/pricing/), with custom Enterprise setups on request.
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

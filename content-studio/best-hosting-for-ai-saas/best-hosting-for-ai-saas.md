@@ -122,11 +122,21 @@ That's a short list and it carries most AI products a long way. On Kloudbean it'
 
 Then the part hosting genuinely can't close, ours included. An endpoint that hands back another tenant's rows is your authorisation logic. A prompt-injection hole is your prompt design. A model bill that triples overnight is your missing rate limit. A query with no index will be slow on every provider on earth. Managed covers the server, stack, SSL, backups, and patching; the application and its data stay yours. Any host that pitches itself as the fix for that shorter list is selling, and you should read the rest of their page more slowly.
 
-## Host your AI SaaS in one place, not five
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-**Run the whole stack on an always-on server with a managed database, Redis, object storage, automatic backups, and free SSL, all in one dashboard and deployed straight from Git.** No cold starts, one bill, and object storage that isn't metered for data-transfer-out. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Always-on (no cold starts) · Managed databases · pgvector · Object storage · Automatic backups · Free SSL · Git deploy · Free migration · IP allow-listing
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

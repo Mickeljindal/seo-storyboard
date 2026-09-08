@@ -29,7 +29,7 @@ On Replit, a pile of managed services sit under your code, and your code calls t
 
 None of that exists on a plain Linux server, which is the point of owning one. So each convenience becomes a standard equivalent you control. The code is the easy 90%. The last 10%, the Replit-specific glue, is the actual job. Miss one piece and you get the classic half-migration: the app boots fine, then can't reach its data, because it's still looking for a database that only lived on Replit.
 
-<!-- ADD IMAGE: original SVG migration map, Replit pieces (Replit DB, Secrets, Replit Auth, .replit/replit.nix, Always-On) on the left mapping to standard equivalents (managed Redis/Postgres, env vars, your own auth, start command + runtime, always-on process) on the right -->
+![The same keys, different places](images/gen-1-comparison.png)
 
 ## The pieces, side by side
 
@@ -119,19 +119,19 @@ Replit has Git built in. From the version control pane, connect your Repl to a n
 
 In the [Kloudbean](https://www.kloudbean.com/) console, click **Add Server**, pick a **Cloud Provider**, choose the stack that matches your Repl (Node.js, or a Python stack), pick the nearest datacenter, and give it 2–4 GB. **Launch Now** hands you a configured server in a few minutes, runtime and process manager and firewall and SSL included.
 
-![Kloudbean Add Server screen: choosing a cloud provider, application stack, datacenter, and server size](../assets/console/add-server.png)
+![Kloudbean Add Server screen: choosing a cloud provider, application stack, datacenter, and server size](../assets/console-real/shots/launch_server_step_1.png)
 
 Open the app, go to **Application Administration → Deploy Code**, connect GitHub, paste your repository URL, choose the branch, and **Clone Repository**. Fill the runtime fields with the commands you translated from `.replit`: **App Directory**, **Port** (bind `process.env.PORT`), **runtime version**, and **Install / Build / Start**. Click **Pull & Deploy**.
 
-![Kloudbean Deploy Code / Git Deployment screen: connect a repo, set the runtime fields, and Pull and Deploy](../assets/console/git-deployment.png)
+![Kloudbean Deploy Code / Git Deployment screen: connect a repo, set the runtime fields, and Pull and Deploy](../assets/console-real/shots/git_connect_step_4.png)
 
 ## Step 3: Launch the database and set the variables
 
 From **DBS → Launch Database**, spin up the managed Redis or Postgres you chose, then import your `replit-db-dump.json` (or your relational export) into it. In **Runtime Configuration → Environment Variables**, use the **Paste .env Content** tab to recreate your Secrets, then point `DATABASE_URL` or `REDIS_URL` at the new database.
 
-![Kloudbean Launch Database screen for creating a managed Postgres, MySQL, or Redis instance](../assets/console/launch-database.png)
+![Kloudbean Launch Database screen for creating a managed Postgres, MySQL, or Redis instance](../assets/console-real/shots/psql_launch_step_1.png)
 
-![Kloudbean environment variables editor with a paste .env content tab and key value list](../assets/console/env-vars.png)
+![Kloudbean environment variables editor with a paste .env content tab and key value list](../assets/console-real/shots/nodespm_env_step_1.png)
 
 Test on the temporary `*.kloudbeansite.com` URL, then add your custom domain under **Domain Aliases**, point DNS at the server, and install a free **Let's Encrypt** certificate. Turn on **automated deployment** so a push rebuilds and ships. That's the same instant loop Replit's Run button gave you, now on [a server you own](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/). And if your app, its API, and its database all belong together, they sit on [the one box](https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/) in one dashboard, instead of scattering into separate products the way they were on the platform.
 
@@ -149,7 +149,21 @@ One honest line for Replit: the all-in-one experience is good at what it's for. 
 
 Kloudbean runs Linux stacks: Node, Python, PHP, Ruby, and Java, with frameworks like React, Next.js, Vue, Django, and Laravel on top. That spans what most Repls are built in. Linux .NET versions are supported; a Windows Server box is a Premium and Enterprise item. "Managed" means the server, stack, SSL, backups, and patching are handled; you own and maintain the application and its data. The tool-agnostic version of this walkthrough, covering Lovable, Bolt, Cursor, and v0 too, is the [deploy an AI-built app](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) pillar.
 
-**Keep Replit's speed. Own the server.** Migrate your Replit app to [kloudbean.com](https://www.kloudbean.com/), with a free trial and your first migration done for you. Plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**You built the app. Give it a real home.**
+
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

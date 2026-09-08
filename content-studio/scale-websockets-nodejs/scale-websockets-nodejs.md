@@ -91,11 +91,21 @@ Worth naming plainly: WebSockets want long-lived processes. A connection that st
 
 Redis is doing the heavy lifting here, so see [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/) and [Redis caching patterns](https://www.kloudbean.com/blog/redis-caching-patterns/). For the proxy layer, [Nginx reverse proxy for Node](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/) and [cloud load balancer explained](https://www.kloudbean.com/blog/cloud-load-balancer-explained/) cover the front door. On the scaling decision itself, read [vertical vs horizontal scaling](https://www.kloudbean.com/blog/vertical-vs-horizontal-scaling/), and for why functions struggle here, [Vercel for Node.js backends](https://www.kloudbean.com/blog/vercel-for-node-backends-limits/).
 
-## Real-time needs a real server
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-Run always-on Node under PM2 holding WebSocket connections, with managed Redis for pub/sub in the same dashboard right next to your app, and a load balancer in front when you scale out. Flat pricing from $8/mo. Start at [kloudbean.com](https://www.kloudbean.com/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Always-on Node under PM2 · Managed Redis · Built-in load balancer · Flat from $8/mo
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

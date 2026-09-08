@@ -39,7 +39,7 @@ The rest is ordinary discipline. Sensible keys, foreign keys that mean something
 
 Before the SQL, here's how the tables relate. A user is the hub. Everything hangs off them, and almost every "who owns this row" question is answered by a `user_id` foreign key. Three branches matter: the conversation branch, the knowledge branch, and the money branch. An audit log sits to the side, recording actions across all of them.
 
-<!-- ADD IMAGE: the ER diagram. users hub in the centre; conversation branch (users has many conversations has many messages); knowledge branch (users has many documents, each with many doc_chunks holding an embedding vector); money branch (users has many usage_events that roll up into billing_records); an append-only audit_log to the side that users and system actors write to. -->
+![From request to response](images/gen-1-flow.png)
 
 ## Users, conversations, and messages: the conversational spine
 
@@ -253,9 +253,20 @@ Which is where a managed database honestly belongs in the picture: underneath, h
 
 Then the honest part, which is most of this article. No host designs your tables. Kloudbean can't tell you whether `messages` needs a soft-delete column, it can't write your erase path, and it can't retroactively give you the usage history you never recorded. It doesn't make your app compliant with any data law either; it provides infrastructure controls, and the application-level obligations stay with you. Managed covers the server, the engine, SSL, backups and patching. The schema is the part nobody can do for you, which is exactly why it's worth the afternoon. For the wider view of what changes when an AI app meets real users, see [the last mile of vibe coding](https://www.kloudbean.com/blog/last-mile-of-vibe-coding/).
 
-**Give your schema a home that runs itself.** Design the tables; let the platform run them. Launch managed PostgreSQL or MySQL and managed Redis in one dashboard, keep embeddings beside your relational data, and deploy straight from Git with automatic backups and free SSL. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**A database you can dump and take with you.**
 
-Managed PostgreSQL · Managed Redis · Automatic backups · IP allow-listing · Free SSL · Git deploy · Free migration
+Launch MySQL, MariaDB, PostgreSQL, Redis, Memcached, MongoDB, or Elasticsearch in a click, reachable from your app server with automatic backups from minute one. Standard connection strings, standard dumps, no proprietary format.
+
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

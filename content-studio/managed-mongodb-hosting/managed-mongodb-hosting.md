@@ -88,7 +88,11 @@ It's the middle ground between fully self-hosted MongoDB (all yours to run) and 
 
 Open the **DBS** section and hit **Launch Database**. Pick **MongoDB** from the engine list, name it, and create it. A couple of minutes later it's provisioned, locked to your app server's IP, and already being backed up.
 
-![The Kloudbean console Launch Database screen with MongoDB among the managed engine choices](../assets/console/launch-database.png)
+![Open Managed Databases and add a new database](../assets/console-real/shots/database_step_1.png)
+
+![Choose mongodb, size, and region](../assets/console-real/shots/mongodb_launch_step_1.png)
+
+![The managed mongodb is created with its own host and SSL](../assets/console-real/shots/mongodb_launch_step_2.png)
 
 You'll get the connection details: host, port (MongoDB's default is `27017`), database name, username, and password. Keep them handy for the next step, and keep them out of your code.
 
@@ -98,7 +102,7 @@ You'll get the connection details: host, port (MongoDB's default is `27017`), da
 
 Your app should read its connection from the **environment**, never from a value typed into the source. Open **Runtime Configuration** then **Environment Variables** and add it. Most MongoDB drivers look for `MONGODB_URI`, though the name is up to you:
 
-![The Kloudbean console Environment Variables panel holding the MongoDB connection string safely outside the code](../assets/console/env-vars.png)
+![The Kloudbean console Environment Variables panel holding the MongoDB connection string safely outside the code](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ```bash
 # MongoDB connection string, set as an env var (never in code)
@@ -160,7 +164,7 @@ Every ecosystem has an official driver, and they all read the same connection st
 | **Java** | Official MongoDB Java driver | `MONGODB_URI` |
 | **PHP / Laravel** | mongodb extension (+ Laravel MongoDB) | `MONGODB_URI` |
 
-<!-- ADD IMAGE: a collection open in MongoDB Compass showing a few documents with slightly different fields -->
+![Document view in MongoDB Compass](images/gen-1-flow.png)
 
 ## Modeling documents: a schema even when the database doesn't demand one
 
@@ -188,7 +192,7 @@ db.orders.find({ userId: 123 }).explain("executionStats")
 
 MongoDB indexes the `_id` field for you automatically. Everything else is on you. Run `explain("executionStats")` on any query that feels slow and look at whether it hit an index or scanned the collection. A single well-placed compound index is usually the biggest speedup you'll find.
 
-<!-- ADD IMAGE: terminal showing explain() output, an index scan next to a slow COLLSCAN -->
+![Optimize your MongoDB queries](images/gen-2-terminal.png)
 
 ## Migrating off MongoDB Atlas (or any Mongo)
 
@@ -204,7 +208,7 @@ mongorestore --uri="mongodb://appuser:s3cret@10.0.0.5:27017/appdb" dump/
 
 Then repoint `MONGODB_URI` at the new database and redeploy. Because it's standard MongoDB with standard tools, there's no proprietary format to fight, which is the point of an Atlas alternative you actually control. If you'd rather not run the cutover yourself, Kloudbean's **free migration assistance** can do it with you.
 
-<!-- ADD IMAGE: terminal running mongodump on the old cluster then mongorestore into the new managed MongoDB -->
+![Real migration steps for database transfer](images/gen-3-terminal.png)
 
 ## Security and backups, without the checklist fatigue
 
@@ -219,11 +223,20 @@ A database holds the data you least want leaked, so a few basics aren't optional
 
 Start simple. A single managed instance carries most apps a long way, and the first scaling move is almost always to **resize the server** for more CPU, RAM, and storage. Beyond that, MongoDB's own scaling story is **replica sets** for availability (copies that keep serving if one node dies) and **sharding** for spreading a very large dataset across machines. Those are advanced setups you grow into, not day-one decisions. Before any of it, caching your hottest reads in [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/) is usually the cheapest win, because the query that never reaches MongoDB is the fastest one. If you're weighing running it all yourself against a managed instance, [managed database vs self-managed](https://www.kloudbean.com/blog/managed-database-vs-self-managed/) lays out the real tradeoffs.
 
----
+<!-- cta:start -->
+**A database you can dump and take with you.**
 
-**Run MongoDB on infrastructure you control.** Launch a managed MongoDB with automatic backups, IP allow-listing, and free migration help, connected with one environment variable, on the same dashboard as your app. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Seven managed engines, provisioned and patched for you, with access controlled and backups running automatically. Your schema, your queries, and your data stay exportable with the standard tools.
 
-One-click MongoDB · Automatic backups · Free migration · Free trial · From $8/mo
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

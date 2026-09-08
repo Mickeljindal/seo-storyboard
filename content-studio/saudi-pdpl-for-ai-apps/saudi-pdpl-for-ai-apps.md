@@ -47,7 +47,7 @@ A plain CRUD app keeps personal data in tidy places: a users table, maybe an ord
 - **Training or fine-tuning datasets.** Fine-tune on real user data and their personal data is now baked into a dataset, arguably into the weights. That's very hard to unpick later, which is a good reason to think twice before you do it.
 - **Observability and logs.** Traces, error logs, request bodies captured "for debugging". These quietly accumulate prompts and replies, so your logging stack becomes yet another copy of everything. The discipline for keeping that clean is in [AI app observability](https://www.kloudbean.com/blog/ai-app-observability/).
 
-<!-- ADD IMAGE: the five places personal data lands in an AI app (primary DB, chat logs, vector store, fine-tune set, logs), each labelled as in scope for a deletion request. -->
+![One hop per box](images/gen-1-flow.png)
 
 Notice the pattern. Personal data in an AI app is derived, copied, and scattered by default. Every one of those copies is in scope when someone asks to be deleted. Which is exactly the problem the next section is about.
 
@@ -81,7 +81,7 @@ Here's my one firm opinion for this whole page. Design deletion on day one, and 
 
 The anti-pattern to watch for hides behind a green checkmark. A user asks to be deleted. Your code runs `DELETE FROM users WHERE id = 8842`, the row vanishes, the ticket gets closed, everyone feels compliant. But their name is still in six months of conversation logs. Their embedded chunks are still in the vector store, still getting retrieved and fed into other people's answers. So "deleted" is a comfortable illusion. The person is gone from the one table you looked at and present in the four you didn't. That gap is the whole reason to tag by user id up front.
 
-<!-- ADD IMAGE: a deletion runbook or checklist showing the same user id being removed from each store in turn, with the vector store and chat logs called out as the ones people forget. -->
+![Ensure data is securely deleted across all stores](images/gen-2-comparison.png)
 
 ## Retention: AI apps hoard, and PDPL says stop
 
@@ -127,13 +127,23 @@ Five of those seven answers come out of your codebase or your advisor. No host a
 
 The last two are the ones infrastructure genuinely settles, and settling them properly is not nothing. Seven managed engines (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB), embeddings in Postgres via `pgvector` where available, S3-compatible object storage, in-region automatic backups, free SSL, and Git deploy, all in one dashboard inside the Kingdom. Among managed-cloud platforms, few pair fully managed databases with true in-Kingdom data sovereignty, and Kloudbean is one of them. On compliance the honest word stays "aligned": the platform is built to support PDPL and NCA expectations, it is not a certificate, and compliance is assessed against your organisation. The wider architecture is in the pillar, [hosting AI apps in Saudi Arabia](https://www.kloudbean.com/blog/hosting-ai-apps-saudi-arabia/), and the database-residency story is in [managed databases with Saudi data sovereignty](https://www.kloudbean.com/blog/managed-databases-saudi-data-sovereignty/).
 
-<!-- ADD IMAGE: the Kloudbean console launching a managed Postgres (with pgvector) into the Dammam (me-central2) region, in the same account as the app server. -->
+![Automated deletion of old logs and embeddings](images/gen-3-flow.png)
 
-## Keep the data home, then build the app-level half on top
+<!-- cta:start -->
+**The technical controls, documented.**
 
-**Give the personal data that should stay in the Kingdom a home in the Kingdom, and keep the deletion logic, consent, and retention in your own code where PDPL actually lives.** Kloudbean handles the infrastructure half so you can spend your effort on the half only you can own. Start at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/), and always verify current details there.
+On managed enterprise engagements Kloudbean builds and maintains the infrastructure controls, with evidence delivered as managed reports and in-Kingdom hosting available. The policy, staffing, and application-layer work remains yours, which is the honest boundary.
 
-In-Kingdom GCP Dammam hosting · 7 managed databases · pgvector embeddings · Automatic backups · Free SSL · Git deploy · One dashboard for the infrastructure half of PDPL
+- In-Kingdom (Dammam) available
+- Centralised logging
+- Immutable log storage
+- Private database access
+- MFA and least privilege
+- Automatic backups
+- Evidence as managed reports
+
+[Start free](https://console.kloudbean.com/register) · [Talk to a cloud expert](https://calendly.com/kloudbean)
+<!-- cta:end -->
 
 ## FAQ
 

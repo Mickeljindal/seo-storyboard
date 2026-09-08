@@ -89,15 +89,20 @@ The honest boundary: the platform and the assistance do the heavy technical lift
 
 The per-site mechanics are [migrating hosting without downtime](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/), and the DNS timing detail is [how DNS caching and TTL work](https://www.kloudbean.com/blog/flush-dns-cache/). A migrated-in client flows into the [onboarding runbook](https://www.kloudbean.com/blog/agency-onboarding-checklist/); the consolidation payoff is [hosting 20 client apps on one server](https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/) and the cost logic is [client billing and markup](https://www.kloudbean.com/blog/client-billing-and-markup-for-hosting/). The whole operation is the [hosting for agencies playbook](https://www.kloudbean.com/blog/hosting-for-agencies-playbook/), and moving a client out again is [agency client offboarding](https://www.kloudbean.com/blog/agency-client-offboarding/).
 
----
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-### Make "we'll move you, free, no downtime" your pitch.
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-Free migration assistance, staging to build and verify before cutover, automatic backups as the safety net, and free SSL reissued at the destination, from one account across seven clouds. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
 
-Free migration assistance · Staging · Automatic backups · Free SSL · One account · Seven clouds
-
----
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

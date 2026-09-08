@@ -33,7 +33,7 @@ None of that is a hosting problem. It's a process problem. So let's build the pr
 
 Before the phases, picture the shape you're aiming for. One control plane, your agency account, fanning out to client environments that can't touch each other. Same login for you. Full isolation between them. Scoped logins for everyone else, which the [subusers and UAC guide](https://www.kloudbean.com/blog/subuser-and-uac-guide/) covers as its own runbook.
 
-<!-- ADD IMAGE: agency control plane diagram. One agency account (subusers + UAC) fanning out to isolated per-client environments, each with its own app, database, SSL and backups. -->
+![Isolate a new client app](images/gen-1-flow.png)
 *Diagram: one agency account (subusers + UAC) fanning out to isolated per-client environments. Same login for you, walls between them.*
 
 ## Phase 1: The foundation you build once
@@ -69,7 +69,7 @@ This is the routine you run every single time you take on a site. Make it muscle
 - **Grant scoped access** to the client (view-only, usually) and the right teammates by role.
 - **Run a launch check.** Click through the live site. Test the contact form, a login, a checkout. The client will, so you should first.
 
-<!-- ADD IMAGE: the Add Application screen, dropping a new client app onto the agency server in its own isolated space (../assets/console/add-application.png) -->
+![Export-and-migrate flow for a departing client](images/gen-2-comparison.png)
 
 ## The shared reseller box is where agencies get burned
 
@@ -100,7 +100,7 @@ Hosting well is a light, regular rhythm, not a one-time launch. Set a cadence an
 
 Client sites pile up files fast. Media libraries, downloads, user uploads. Those don't belong scattered on the app server, and your backups definitely don't belong on the same box they're supposed to protect.
 
-![The Kloudbean console: client media and off-server backups in S3-compatible object storage](../assets/console/s3-buckets.png)
+![The Kloudbean console: client media and off-server backups in S3-compatible object storage](../assets/console-real/shots/storage_bucket_step_3.png)
 
 Built-in [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/) gives client media a durable home that survives a server rebuild and serves quickly. Just as important, store backups *off* the server they cover. A backup sitting on the box that failed isn't a backup, it's a souvenir. There's a fuller treatment in the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/).
 
@@ -124,7 +124,7 @@ Sometimes a client leaves. How you handle that day says more about your agency t
 
 A clean exit earns referrals and the occasional returning client. A messy one follows you around the local business community for years.
 
-<!-- ADD IMAGE: a simple handover checklist or an export-and-migrate flow for a departing client (author-supplied) -->
+![Deploy one client's app without affecting others](images/gen-3-flow.png)
 
 ## Where agencies get burned (learn from other people's scars)
 
@@ -143,13 +143,24 @@ You can run this playbook anywhere in theory. It's a lot easier when the platfor
 - **Git deploys per app.** Connect a repo and ship on push with [managed CI/CD](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/), with live build logs. Shipping one client's update never touches another's uptime.
 - **Free migration help** to move the first clients over, so adopting this isn't a lost weekend.
 
-<!-- ADD IMAGE: the Git Deployment screen, shipping one client's app from its repo without touching the rest of the roster (../assets/console/git-deployment.png) -->
+<!-- ADD IMAGE: the Git Deployment screen, shipping one client's app from its repo without touching the rest of the roster (../assets/console-real/shots/git_connect_step_4.png) -->
 
 The honest boundary, since you're the custodian of other people's sites: this is managed Linux hosting. The platform keeps the servers, stack, SSL, and backups healthy. Your clients' code and data always stay theirs (and yours). Running hosting like a pro means owning the process, never locking up the content. If enterprise clients need Kubernetes, autoscaling, a private VPC, or an audit trail, those live on the enterprise tier.
 
-**Run the whole client roster like a process, not a prayer.** One account, real isolation, scoped access, and room to grow. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Run the whole client book from one console.**
 
-One dashboard · Per-client isolation · Subusers + UAC · Staging · Automatic backups · Free migration · Free trial
+Host client apps as isolated applications on servers you own, each with its own database and SSL, with per-app backups and Git deploys, and scoped access for teammates through subusers and user access control.
+
+- One dashboard
+- Per-client isolation
+- Subusers and access control
+- Per-app backups
+- Git deploys
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

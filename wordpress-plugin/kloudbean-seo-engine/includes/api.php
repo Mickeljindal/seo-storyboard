@@ -21,6 +21,16 @@ function kbseo_register_routes() {
         'permission_callback' => 'kbseo_verify_request',
     ]);
     
+    // Set AIOSEO meta + featured image + OG image for an EXISTING post.
+    // Used by publishers that create the post via the WP REST API (which does
+    // not touch AIOSEO's tables) and then need the SEO title/description, focus
+    // keyword, canonical, featured image, and OG image written in one call.
+    register_rest_route($namespace, '/set-post-seo', [
+        'methods' => 'POST',
+        'callback' => 'kbseo_set_post_seo',
+        'permission_callback' => 'kbseo_verify_request',
+    ]);
+
     // Inject internal links into existing posts (backfill)
     register_rest_route($namespace, '/inject-links', [
         'methods' => 'POST',
@@ -75,6 +85,52 @@ function kbseo_health() {
         'version' => KBSEO_VERSION,
         'aioseo' => function_exists('aioseo'),
         'site' => get_site_url(),
+    ];
+}
+
+/**
+ * Write AIOSEO meta (title, description, focus keyword, canonical, OG image,
+ * schema) and optionally the featured image for an existing post. This is the
+ * piece the WP REST publish path cannot do on its own: the REST API writes
+ * Yoast/RankMath post meta but never AIOSEO's own tables, and it never sets the
+ * OG image. og_image falls back to the featured image URL, matching /publish.
+ *
+ * Payload: { post_id, meta_title, meta_description, focus_keyword,
+ *            canonical_url, og_image_url, featured_image_url, schema_jsonld }
+ */
+function kbseo_set_post_seo($request) {
+    $data = $request->get_json_params();
+    if (!$data || !is_array($data)) {
+        return new WP_Error('invalid_body', 'Request body must be valid JSON', ['status' => 400]);
+    }
+    $post_id = isset($data['post_id']) ? intval($data['post_id']) : 0;
+    if ($post_id <= 0 || get_post_status($post_id) === false) {
+        return new WP_Error('bad_post', 'post_id is missing or not a real post', ['status' => 404]);
+    }
+
+    $featured_set = false;
+    if (!empty($data['featured_image_url'])) {
+        // Idempotent: skip if the post already has a featured image.
+        if (!has_post_thumbnail($post_id)) {
+            kbseo_set_featured_image($post_id, $data['featured_image_url']);
+        }
+        $featured_set = true;
+    }
+
+    kbseo_set_aioseo_meta($post_id, [
+        'title' => $data['meta_title'] ?? '',
+        'description' => $data['meta_description'] ?? '',
+        'focus_keyword' => $data['focus_keyword'] ?? '',
+        'canonical' => $data['canonical_url'] ?? '',
+        'og_image' => $data['og_image_url'] ?? $data['featured_image_url'] ?? '',
+        'schema' => $data['schema_jsonld'] ?? null,
+    ]);
+
+    return [
+        'ok' => true,
+        'post_id' => $post_id,
+        'featured_image' => $featured_set,
+        'og_image' => $data['og_image_url'] ?? $data['featured_image_url'] ?? '',
     ];
 }
 

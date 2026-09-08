@@ -36,7 +36,7 @@ crontab -e
 
 It works. But hand-editing a crontab over SSH has real downsides. You need shell access, there's no undo and no history, and the syntax is unforgiving: one field out of place turns a nightly job into an every-minute job. Worst of all, unless you capture output, a failing job leaves no trace. Plenty of teams find out weeks later, when the emails a job was meant to send never went.
 
-## Reading the five fields: what does */5 * * * * mean?
+## Reading the five fields: what does `*/5 * * * *` mean?
 
 Cron's schedule is five fields separated by spaces, always in the same order: minute, hour, day of month, month, day of week. A star means "every value" for that field. So `*/5 * * * *` reads as "every 5th minute, every hour, every day, every month, every weekday," which is just *every 5 minutes*. The `*/5` is a step: run when the minute divides evenly by 5.
 
@@ -98,7 +98,7 @@ env -i /bin/sh -c 'cd /var/www/app && php artisan schedule:run'
 
 Nine times out of ten the culprit is one of those four: PATH, working directory, a missing variable, or the timezone. It's almost never the schedule itself.
 
-<!-- ADD IMAGE: a log file being tailed, showing one clean cron run and one that failed with an error -->
+![From log tail to error capture](images/gen-1-flow.png)
 
 ## Cron for Laravel, Django, Node, and a plain URL
 
@@ -172,7 +172,7 @@ First, the schedule only exists while the app runs. Deploy, crash, or an out-of-
 
 System cron, or a platform scheduler, runs independently of your app. It fires once, on time, whether the app is up or not. My honest take: if a duplicate or missed run would cost real money, charge a card twice, double-send an email, corrupt a report, don't put it in-process. In-process schedulers are fine for lightweight, idempotent work on a single instance, and nice when you can't touch the server. For anything that must run exactly once, use real cron. If you're weighing how app processes stay alive at all, [deploying an Express app](https://www.kloudbean.com/blog/deploy-express-app/) covers the process-management side.
 
-<!-- ADD IMAGE: an in-process schedule resetting on every deploy, next to a system cron that keeps firing on time -->
+![In-process vs. system cron](images/gen-2-flow.png)
 
 ## How to schedule a cron job without SSH on Kloudbean
 
@@ -188,13 +188,13 @@ The win isn't only "no SSH." It's visibility. Every scheduled job sits in one li
 
 The only prerequisite is an app to attach them to: launch a server, deploy, then schedule jobs against it.
 
-![Adding an application in the Kloudbean console before attaching cron jobs to it](../assets/console/add-application.png)
+![Adding an application in the Kloudbean console before attaching cron jobs to it](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 *Cron jobs attach to an application, so you add the app first. Deploy it, then schedule tasks against it from the same dashboard.*
 
 If your code ships from Git, connect the repo so deploys are automatic and let the scheduled command run against whatever's live. That half is covered in [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/). And because the box underneath is a real, patched, backed-up machine rather than an opaque function, the cron behaves like cron always has, just without the terminal. New to the phrase "managed server"? Here's [what a managed server actually includes](https://www.kloudbean.com/blog/what-is-a-managed-server/).
 
-<!-- ADD IMAGE: your own Cron Jobs list with a couple of real jobs added, schedule and command visible -->
+![Real cron jobs visible here](images/gen-3-terminal.png)
 
 > **Rule of thumb:** schedule the smallest, most idempotent command you can, capture its output, and pick a cadence that comfortably outlasts the job's own runtime. A task that runs in 20 seconds is safe every 5 minutes. A task that takes 6 minutes is not.
 
@@ -202,11 +202,21 @@ If your code ships from Git, connect the repo so deploys are automatic and let t
 
 Cron is wonderfully dumb, and that's a feature. It runs a command at a set time. It doesn't know whether the command succeeded, won't retry a failed run, and can't recover one missed while the server was down. If you need retries, dead-letter handling, or fan-out across a fleet, that's a job queue's job (Celery, Sidekiq, BullMQ), not cron's. Reach for cron when the task is "run this on this cadence," which is most scheduled work. Reach for a queue when you need delivery guarantees.
 
----
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-**Schedule tasks without touching a terminal.** Add cron jobs from the dashboard, pick the cadence, paste a command or a URL, and let a managed server run them on time. Start free at [kloudbean.com](https://www.kloudbean.com/), or see plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Cron jobs in the UI · No SSH · Managed servers · Git deploys · Automatic backups · Free migration · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

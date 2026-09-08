@@ -82,11 +82,21 @@ The honest boundary: the platform keeps the server, database, SSL, and backups h
 
 For the wider picture of what is worth running yourself, the [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) guide. For neighbours in this cluster, [self-hosting Nextcloud](https://www.kloudbean.com/blog/self-host-nextcloud/) for files, [self-hosting Supabase](https://www.kloudbean.com/blog/self-host-supabase/) for an app backend, and [self-hosting Postiz](https://www.kloudbean.com/blog/self-host-postiz/) for social scheduling, another one-click app. The pieces Penpot leans on: [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/), [server backups](https://www.kloudbean.com/blog/server-backups-guide/), and [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). And if the SMTP step trips you up, [blocked SMTP ports explained](https://www.kloudbean.com/blog/port-25-blocked-smtp-ports/).
 
-## Run Penpot in one click, own every design file.
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-Launch Penpot as a one-click app on a managed server across seven clouds, with managed PostgreSQL and Redis, free auto-renewing SSL, and automatic backups. No Compose file to babysit. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-One-click Penpot · Managed PostgreSQL and Redis · Free auto-renewing SSL · Automatic backups
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

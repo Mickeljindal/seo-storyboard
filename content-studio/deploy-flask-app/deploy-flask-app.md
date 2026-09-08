@@ -43,11 +43,11 @@ Assume you have an `app.py` that defines `app = Flask(__name__)` and a `requirem
 6. **Paste your environment variables**: `SECRET_KEY`, any API keys, a database URL if you have one.
 7. **Pull & Deploy.** The platform installs your dependencies, starts Gunicorn, gives you a domain, and puts free HTTPS in front.
 
-![The Kloudbean Add Server screen: provisioning a small server for a lightweight Flask app across one of seven clouds](../assets/console/add-server.png)
+![The Kloudbean Add Server screen: provisioning a small server for a lightweight Flask app across one of seven clouds](../assets/console-real/shots/flask_launch_step_1.png)
 
 A basic Flask app really is a few-minutes deploy, because there's so little to it. The start command is the one line that matters:
 
-![The Kloudbean Git Deployment tab: Install set to pip install requirements, Start set to gunicorn app:app binding the assigned port](../assets/console/git-deployment.png)
+![The Kloudbean Git Deployment tab: Install set to pip install requirements, Start set to gunicorn app:app binding the assigned port](../assets/console-real/shots/git_connect_step_4.png)
 
 ## Reference: what `app:app` (or `wsgi:app`) means
 
@@ -91,7 +91,7 @@ Three quick pieces that cover most real Flask apps:
 - **Secrets and config.** Flask's `SECRET_KEY` signs sessions, so set it as an environment variable and keep it stable. Change it between deploys and you log everyone out. API keys and database URLs live in the environment too, never in the repo. The full reasoning is in [environment variables, done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 - **A database.** Flask ships without one on purpose. If your app stores data, launch a [managed Postgres or MySQL](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) and connect with a URL you set as an env var. Your code (via SQLAlchemy or a driver) reads it and connects. Running it on the same box is covered in [host your app, API, and database on one server](https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/).
 
-![The Kloudbean Environment Variables screen: Flask's SECRET_KEY and database URL pasted in as a .env](../assets/console/env-vars.png)
+![The Kloudbean Environment Variables screen: Flask's SECRET_KEY and database URL pasted in as a .env](../assets/console-real/shots/flask_env_step_1.png)
 
 ## Reference: when it won't start
 
@@ -104,13 +104,27 @@ Most first-deploy failures fall into a short list, and each has a clear tell in 
 
 Every one of those tells shows up in the log, and you read it from the dashboard: **Application Administration → Logs Viewer**. The logs are grouped into tabs. **App Errors** is where Gunicorn's tracebacks and worker-timeout lines land, so it's the first tab to open on a 503, because a 503 means the app isn't running. **App Info** holds the app's informational output, the "Starting gunicorn" and "Booting worker" lines included, and **Web Requests Logs** is the access log for requests the web server handled. Search is built in, which is how you find one `ModuleNotFoundError` without reading a whole file. Deploy-time failures are kept separately in **Build and Deployment History**, streaming live as the build runs. The same two files are on disk at `/home/admin/hosted-sites/<app_system_user>/app-logs/` (`app.error.log` and `app.info.log`) if you'd rather use a terminal or the File Manager. Read the log first, before changing code on a hunch. The full 503 playbook is [here](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
 
-<!-- ADD IMAGE: Terminal showing Gunicorn's boot log: "Starting gunicorn", the bound address, and Booting worker lines for each worker PID. -->
+![Master process booting up](images/gen-1-terminal.png)
 
 ## What you own, what Kloudbean runs
 
 Flask runs on Python, and Python is right at home on a Linux server, so nothing here is a workaround. Kloudbean runs the box: it keeps Gunicorn's master alive and restarts it if it ever exits, terminates HTTPS in front, and takes server-level backups. You own the Flask app, its worker count, its secrets, and its data. Because Flask asks so little of a server, it's one of the cheapest things to run well; a small box carries it comfortably. Building an async API instead of a classic app? That's [deploy a FastAPI app](https://www.kloudbean.com/blog/deploy-fastapi-app/). Something bigger and batteries-included? [Deploy a Django app](https://www.kloudbean.com/blog/deploy-django-app/).
 
-**A micro-framework deserves a quick deploy.** Deploy your Flask app with Gunicorn out front at [kloudbean.com](https://www.kloudbean.com/). Git deploy · Managed Postgres · Free Let's Encrypt SSL · A small server is plenty · Free migration · Free trial. Sizes on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**You built the app. Give it a real home.**
+
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

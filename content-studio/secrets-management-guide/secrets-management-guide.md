@@ -69,11 +69,20 @@ Now the part no host solves, ours included. Nothing in a hosting platform can st
 
 The mechanics of putting secrets in the environment, and the build-time trap, are in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). For a vault to hold human secrets, [self-hosting Vaultwarden](https://www.kloudbean.com/blog/self-host-vaultwarden/). Strengthen the logins those secrets protect with [two-factor and social login](https://www.kloudbean.com/blog/two-factor-and-social-login/), and restrict who can reach sensitive endpoints with [IP allowlisting](https://www.kloudbean.com/blog/ip-allowlisting-guide/). The overview is [secure and compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 
-## Keep your keys out of your code.
+<!-- cta:start -->
+**Close the doors you keep forgetting.**
 
-Kloudbean lets you set environment variables in the console instead of committing them, and issue scoped personal API tokens you can revoke, so rotation is a one-field change and a leaked key does limited harm. Run a Vaultwarden for the human side too. Weigh them in [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/), then try it at [kloudbean.com](https://www.kloudbean.com/).
+Every server ships with a Shorewall firewall and Fail2ban, free auto-renewing SSL, automatic backups, and OS patching handled. Add IP access control or a Basic Auth gate when a site should not be public.
 
-Environment variables in the console · Scoped API tokens · Self-hostable vault · One dashboard
+- Shorewall firewall
+- Fail2ban
+- OS patching handled
+- Free SSL
+- IP access control
+- Automatic backups
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

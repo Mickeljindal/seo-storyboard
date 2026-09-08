@@ -116,15 +116,20 @@ The boundary is the usual one. Server, stack, TLS, backups and patching sit with
 
 The rest of the family, sorted by who quit: [408 Request Timeout](https://www.kloudbean.com/blog/http-error-408-request-timeout/) when the server stopped waiting for the request, [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/) when the proxy stopped waiting for the upstream, and [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/) when there was nothing to wait for. If your application threw instead, [500 Internal Server Error](https://www.kloudbean.com/blog/http-error-500-internal-server-error/). For a connection cut at the transport layer rather than closed deliberately, [ERR_CONNECTION_RESET](https://www.kloudbean.com/blog/err-connection-reset/). On the proxy layer itself, [nginx as a reverse proxy for Node](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/) and [cloud load balancers explained](https://www.kloudbean.com/blog/cloud-load-balancer-explained/). To make these logs answerable rather than a pile of awk, [structured logging](https://www.kloudbean.com/blog/structured-logging-nodejs/).
 
----
+<!-- cta:start -->
+**Run the whole client book from one console.**
 
-### Put the 499 count next to the latency graph.
+Host client apps as isolated applications on servers you own, each with its own database and SSL, with per-app backups and Git deploys, and scoped access for teammates through subusers and user access control.
 
-Managed servers across seven clouds with access and error logs beside server health metrics in one dashboard, a managed reverse proxy, managed Redis for caching, and managed databases across six engines. Free SSL issued and renewed. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+- One dashboard
+- Per-client isolation
+- Subusers and access control
+- Per-app backups
+- Git deploys
+- Free migration assistance
 
-Logs and metrics together · Managed proxy · Managed Redis · Six database engines · Free SSL
-
----
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -40,7 +40,7 @@ The way out is unglamorous: break the loop yourself, on the listings side, by ha
 
 So niche selection is really a question about your own capacity. Don't ask which niche is lucrative. Ask which niche you can personally populate to a useful standard in the next month. Every restaurant in Europe is a fantasy. Dog-friendly campsites in Wales is a weekend of research and can be genuinely complete, and complete is what gets a site bookmarked and linked.
 
-<!-- ADD IMAGE: a real listing page from a directory you rate, annotated with what makes it useful (photos, hours, prices, a review). -->
+![From User to Database](images/gen-1-flow.png)
 
 ## How to seed the first listings without wrecking your site
 
@@ -76,7 +76,7 @@ A **search and filter layer** turns "vegan, open Sunday, in this postcode" into 
 
 **Clean URLs and internal links**, so categories link to listings, listings link back, and related listings link sideways. A directory is a link graph, and a well-linked one gets crawled far more thoroughly.
 
-<!-- ADD IMAGE: a diagram of your own data model, or the request path from visitor to app server to database and image storage. -->
+![Search Console coverage comparison](images/gen-2-comparison.png)
 
 A directory is a database with a crawlable link graph on top. If the HTML arrives empty, that graph doesn't exist as far as a crawler is concerned.
 
@@ -107,9 +107,9 @@ Be careful with filters. A filterable directory generates near-infinite URL comb
 
 Three more things that consistently matter: structured data on listing pages, compressed and correctly sized images, and a sitemap that updates when listings change. And don't publish empty categories. A category with two listings tells a visitor the site is dead.
 
-<!-- ADD IMAGE: a Search Console coverage view showing indexed listing pages versus excluded ones. -->
+![vs Custom Code URL & Template Differences](images/gen-3-comparison.png)
 
-<!-- ADD IMAGE: your no-code prototype next to the custom version, showing what changed in the URLs and templates. -->
+![One step per box](images/gen-4-flow.png)
 
 ## Images and logos: the part that quietly gets expensive
 
@@ -153,7 +153,21 @@ Roughly, and adjust to your niche.
 
 If you're bored of the niche by week six, that's real information. Directories reward whoever finds the subject genuinely interesting, because that's who's still adding listings in month nine. The technology is a weekend. The curation is the business.
 
-**Ready to put your listings somewhere permanent?** A managed database, object storage for photos, and a server-rendered app in one place. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Ship the app, not the infrastructure.**
+
+Pick from seven clouds, run your app on a managed server you control, and keep databases, storage, and deploys in the same dashboard instead of four separate vendors.
+
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

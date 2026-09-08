@@ -42,7 +42,7 @@ The migrations we see go sideways almost never fail on the build. They fail on s
 
 One thing that does *not* move in this cutover: your Supabase backend. It keeps running exactly where it is, and the new frontend talks to it the same way the old one did. If you also want to pull Supabase onto your own server, that's a separate decision, and the [deploy-a-Lovable-app guide](https://www.kloudbean.com/blog/deploy-lovable-app-to-your-own-server/) maps that Supabase coupling in full. For a clean flip, leave it in place. One less variable in flight.
 
-<!-- ADD IMAGE: The Vercel project's Settings, with Environment Variables and Domains open side by side. -->
+![Step-by-step process](images/gen-1-flow.png)
 
 ## Step 2: Lower your DNS TTL, two days before the flip
 
@@ -52,17 +52,17 @@ So you lower it ahead of time. Two days out (comfortably longer than the old TTL
 
 Here's the anti-pattern, and it's common: someone flips DNS with a 3600s or even 24-hour TTL still set, watches half their traffic keep hitting Vercel for the rest of the day, and concludes the migration "half worked." It worked fine. The record just hadn't expired from caches yet. Lower the TTL first and that whole class of confusion disappears.
 
-<!-- ADD IMAGE: Your DNS provider's record editor with the TTL field lowered to 300 seconds ahead of the cutover. -->
+![Environment Variables and Domains](images/gen-2-comparison.png)
 
 ## Step 3: Stand up the new server and prove it on a temp URL
 
 Now the part that feels like the migration but is actually the easy half. In the [Kloudbean](https://www.kloudbean.com/) console, click **Add Server**, pick a **Cloud Provider**, choose **Node.js**, select the datacenter closest to your users, and give the build a size with 2 to 4 GB of headroom.
 
-![Kloudbean Add Server screen: choose a cloud provider, Node.js, a datacenter region, and a server size](../assets/console/add-server.png)
+![Kloudbean Add Server screen: choose a cloud provider, Node.js, a datacenter region, and a server size](../assets/console-real/shots/launch_server_step_1.png)
 
 Open the app, go to **Application Administration, Deploy Code**, connect the GitHub repo Lovable syncs to, and set the runtime fields you wrote down in Step 1: app directory, port (your app listens on the assigned `process.env.PORT`), Node version, and your install, build, and start commands. Then **Pull & Deploy**.
 
-![Kloudbean Deploy Code / Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy](../assets/console/git-deployment.png)
+![Kloudbean Deploy Code / Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy](../assets/console-real/shots/git_connect_step_4.png)
 
 Recreate your environment variables under **Runtime Configuration, Environment Variables** (the **Paste .env Content** tab makes this quick), and point them at the same Supabase project as before. If env vars are new territory, [environment variables, done right](https://www.kloudbean.com/blog/environment-variables-done-right/) covers what's safe to expose and what isn't.
 
@@ -120,7 +120,20 @@ Don't expect a smaller number in every case, because that's not always true. Ver
 
 Kloudbean runs Linux web stacks: Node and the modern web toolkit (React, Next.js, Vue) plus PHP, Python, Ruby, and Java when you need them. That's exactly what Lovable produces, so you're in the right place. For .NET, Linux is enough. For Windows Server itself, look at Premium or Enterprise. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and automatic backups; you own the application and its data. And because it's a standard Linux box running standard code, you can move it again later. This migration off Vercel is the same move in reverse whenever you want it.
 
-**A rehoming, not a rebuild.** Move your app at [kloudbean.com](https://www.kloudbean.com/). One-click database launch · scheduled backups · allow-listed access · Git-based deploys. Fresh-deploy walkthrough [here](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/); plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Move it once. Own it after.**
+
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
+
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

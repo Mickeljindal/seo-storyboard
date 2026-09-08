@@ -115,9 +115,21 @@ The honest boundary: managed means the platform owns the server, the engine conf
 
 For the ORM-side version of the SSL error, [connecting Sequelize to a managed database](https://www.kloudbean.com/blog/connect-sequelize-to-a-database/) and [SQLAlchemy](https://www.kloudbean.com/blog/connect-sqlalchemy-to-a-database/), plus [Drizzle with Postgres](https://www.kloudbean.com/blog/connect-drizzle-to-postgres/). Once connections work, the next thing that bites is how many of them you open, covered in [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/). On making the database quick rather than merely reachable, [PostgreSQL performance tuning](https://www.kloudbean.com/blog/postgresql-performance-tuning/). For the network isolation concept, and the private networking that Enterprise plans add, [what a VPC is](https://www.kloudbean.com/blog/what-is-a-vpc/). And if you're still choosing an engine, [MySQL versus PostgreSQL](https://www.kloudbean.com/blog/mysql-vs-postgresql/).
 
-**Skip the file. Keep the database off the public internet.** Managed PostgreSQL locked down with IP access rules, enforced encryption, subusers with granular permissions, and automatic backups, across seven cloud providers in one dashboard. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Ship the app, not the infrastructure.**
 
-IP access control · Automatic backups · Subuser permissions · One dashboard
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
+
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -121,7 +121,10 @@
   <p>The thread through all of these: the data is either a copy of something durable (a cache) or cheap to lose (a counter, a session, a retryable job). When it doesn't fit that shape, Redis is a loaded gun pointed at your data.</p>
 
   <!-- ADD IMAGE: redis-cli running INCR and ZADD then GET, so readers see the data structures in action. Swap for a real screenshot: src -> images/redis-cli-structures.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A redis-cli session running INCR, ZADD, then GET, so the reader sees the data structures are real, not theory.</em><small>Optional: show TTL counting down on a key.</small></span></figure>
+  <figure>
+    <img src="images/gen-1-terminal.png" alt="A redis-cli session running INCR, ZADD, then GET, so the reader sees the data structures are real, not theory.">
+    <figcaption>Demonstrating Redis commands in action</figcaption>
+  </figure>
 
   <h2>When to use Redis vs PostgreSQL: a decision guide</h2>
   <p>The part you came for. Three buckets: reach for Postgres, reach for Redis, or use both. Most apps end up in the third, but you get there by understanding the first two.</p>
@@ -186,7 +189,10 @@ async function getProduct(id) {
   <p>When the product changes, write Postgres first, then delete the key so the next read repopulates it. There's real depth here (TTL choices, invalidation, cache stampede), all covered in <a href="https://www.kloudbean.com/blog/redis-caching-patterns/">Redis caching patterns</a>.</p>
 
   <!-- ADD IMAGE: redis-cli MONITOR streaming GET and SET as the app serves traffic, proving cache-aside is live. Swap for a real screenshot: src -> images/cache-aside-monitor.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A terminal running redis-cli MONITOR while the app serves traffic, showing GET on a hit and SET on a miss.</em><small>Makes cache-aside feel real.</small></span></figure>
+  <figure>
+    <img src="images/gen-2-terminal.png" alt="A terminal running redis-cli MONITOR while the app serves traffic, showing GET on a hit and SET on a miss.">
+    <figcaption>Observing cache hits and misses</figcaption>
+  </figure>
 
   <h3>Session store: one shared login state</h3>
   <p>By default many frameworks keep sessions on one server's disk or memory. That breaks the moment you run a second instance: a user's session lives on a machine they might not hit next. Point sessions at Redis and every server shares one fast store. Usually a one-line change:</p>
@@ -242,13 +248,16 @@ send_email(job)</code></pre>
   <p>The unifying rule fits in one sentence. If Redis disappeared this second, your app should get slow, not lose data. If that isn't true, something durable is in the wrong lane.</p>
 
   <!-- ADD IMAGE: a memory/eviction chart showing Redis hitting maxmemory and evicting keys, to make the "not a database" point land. Swap for a real screenshot: src -> images/redis-eviction.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A Redis memory graph reaching maxmemory and evicting keys, so the volatility point is visible.</em><small>Reinforces why Redis is not your source of truth.</small></span></figure>
+  <figure>
+    <img src="images/gen-1-graph.png" alt="A Redis memory graph reaching maxmemory and evicting keys, so the volatility point is visible.">
+    <figcaption>Memory limit reached, keys start being removed</figcaption>
+  </figure>
 
   <h2>Running Postgres and Redis together on Kloudbean</h2>
   <p>The patterns above run anywhere. What changes is how much babysitting is yours. On Kloudbean, PostgreSQL and Redis are both managed engines, two of the seven on offer (alongside MySQL, MariaDB, <a href="https://www.kloudbean.com/blog/managed-memcached-hosting/">Memcached</a>, Elasticsearch, and MongoDB). Launch each from the same place, and the platform patches and backs them up while you use them.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed database, with PostgreSQL, Redis, MySQL, MariaDB, and more as one-click choices">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean console launching a managed database, with PostgreSQL, Redis, MySQL, MariaDB, and more as one-click choices">
     <figcaption>Launch managed PostgreSQL and managed Redis from the same screen. One click each, both provisioned and backed up.</figcaption>
   </figure>
 
@@ -257,7 +266,7 @@ send_email(job)</code></pre>
   <p>You wire both the same way: one connection value each, read from the environment, so rotating a password is a config change, not a code change.</p>
 
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean console environment variables screen holding DATABASE_URL and REDIS_URL for the app to read">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean console environment variables screen holding DATABASE_URL and REDIS_URL for the app to read">
     <figcaption>Runtime Configuration: <code>DATABASE_URL</code> and <code>REDIS_URL</code> live here, side by side, never in your repository.</figcaption>
   </figure>
 
@@ -266,15 +275,62 @@ DATABASE_URL=postgresql://appuser:secret@10.0.0.5:5432/appdb
 REDIS_URL=redis://:secret@10.0.0.6:6379/0</code></pre>
 
   <!-- ADD IMAGE: the Kloudbean dashboard showing a Postgres instance and a Redis instance side by side in one account. Swap for a real screenshot: src -> images/both-engines-dashboard.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The dashboard with a managed Postgres and a managed Redis in the same account, to show both engines living together.</em><small>Optional: show both engines living in one account.</small></span></figure>
+  <figure>
+    <img src="../assets/console-real/shots/dashboard.png" alt="The dashboard with a managed Postgres and a managed Redis in the same account, to show both engines living together.">
+    <figcaption>The Kloudbean dashboard: servers, apps, and databases in one place</figcaption>
+  </figure>
 
   <p>Managed means the platform provisions, patches, and backs up the engine, locked to your app server's IP, while your schema and data stay yours to export anytime. Both run on Linux. Setting up the durable side first? <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">Adding a managed database to your app</a> walks the full flow, and adding Redis after is the same pattern with one more env var. For engine details, see <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a> and <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis hosting</a>. One honest note: Kloudbean doesn't autoscale a standard app. Autoscaling and Kubernetes are enterprise and custom setups, not a toggle on a normal account.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run the truth and the fast layer side by side.</p>
-    <p style="margin:0 0 .6em">Launch managed PostgreSQL for your source of truth and managed Redis for the hot paths, both one click, both locked to your app server's IP, both backed up. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">One-click Postgres and Redis · Automatic backups · Free migration · Free trial · Simple Git deploy</p>
+<div class="kbcta-move-wrap">
+  <div class="kbcta-move-overlay"></div>
+  <div class="kbcta-move-content">
+    <div class="kbcta-move-eyebrow">MIGRATE &middot; FLAT, PREDICTABLE PRICING</div>
+    <p class="kbcta-move-heading">Bring the app. Keep the deploy flow.</p>
+    <p class="kbcta-move-description">Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.</p>
+    <ul class="kbcta-move-features">
+      <li>&#10003; Free migration assistance</li>
+      <li>&#10003; Free trial</li>
+      <li>&#10003; Seven cloud providers</li>
+      <li>&#10003; Flat monthly price</li>
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Git deploy</li>
+    </ul>
+    <div class="kbcta-move-buttons">
+      <a class="kbcta-move-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-move-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-move: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-move-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#0A0730;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-move-wrap *{box-sizing:border-box}
+.kbcta-move-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #0A0730 0%, #1B0F5A 58%, rgba(79,26,243,.55) 100%);pointer-events:none}
+.kbcta-move-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.28) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-move-content{position:relative;z-index:3;max-width:700px}
+.kbcta-move-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-move-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-move-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-move-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-move-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-move-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-move-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#2A0E7A;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-move-btn:hover,.kbcta-move-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-move-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-move-link:hover,.kbcta-move-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-move-wrap{padding:36px 24px}
+  .kbcta-move-heading{font-size:31px}
+  .kbcta-move-description{font-size:16px}
+  .kbcta-move-features li{white-space:normal}
+  .kbcta-move-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-move-btn{width:100%}
+  .kbcta-move-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

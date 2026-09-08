@@ -102,7 +102,21 @@ define( 'SUBDOMAIN_INSTALL', true );</code></pre>
   <p>My honest steer: pick <strong>subdirectories</strong> unless you have a reason not to. It sidesteps wildcard DNS and wildcard SSL entirely, and free SSL from your host just covers the one domain. Go subdomains when each site really needs to feel like its own hostname, or you're mapping custom domains per site anyway. Either way, decide now, because flipping it after you've got live subsites means URL surgery you don't want.</p>
 
   <!-- Author: replace this slot with a real screenshot. src -> images/multisite-network-setup.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The Tools then Network Setup screen where you choose subdomains or subdirectories before creating the network.</em><small>Author-supplied screenshot from your own WordPress admin.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #1
+Create a left-to-right architecture / flow diagram for a technical blog post titled "WordPress Multisite Hosting: What It Is and Whether You Actually Want It".
+
+What it must show: The Tools then Network Setup screen where you choose subdomains or subdirectories before creating the network.
+Also: Author-supplied screenshot from your own WordPress admin.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-flow.png" alt="The Tools then Network Setup screen where you choose subdomains or subdirectories before creating the network.">
+    <figcaption>Choose subdomains or subdirectories</figcaption>
+  </figure>
 
   <h2>The question everyone asks: one theme or multiple?</h2>
   <p>This one comes up constantly, so here's the plain answer. A multisite network can absolutely use <strong>multiple themes, and each subsite can run its own</strong>. You install a theme once and "network-enable" it, which just makes it <em>available</em>; then each subsite picks which of the available themes it actually wears. Dept A can look nothing like Dept B.</p>
@@ -161,31 +175,103 @@ wp db export --tables=$(wp db tables --url=dept-a.example.com --format=csv)</cod
   <p>That last one hints at the truth about "just pull one site out": it's an export, a URL search-and-replace, and a rebuild of that site's uploads, not a button. The full command set is in the <a href="https://www.kloudbean.com/blog/wordpress-cli-guide/">WordPress CLI guide</a>, and you drive all of it over SSH on a managed server.</p>
 
   <!-- Author: replace this slot with a real screenshot. src -> images/multisite-sites-list.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The Network Admin Sites list showing several subsites, or a terminal running wp site list.</em><small>Author-supplied screenshot.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #2
+Create a realistic terminal / command-line screenshot for a technical blog post titled "WordPress Multisite Hosting: What It Is and Whether You Actually Want It".
+
+What it must show: The Network Admin Sites list showing several subsites, or a terminal running wp site list.
+Also: Author-supplied screenshot.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-terminal.png" alt="The Network Admin Sites list showing several subsites, or a terminal running wp site list.">
+    <figcaption>Use wp site list to see your subsites</figcaption>
+  </figure>
 
   <h2>What a WordPress multisite network needs from hosting</h2>
   <p>Here's where WordPress multisite hosting stops being a WordPress topic and becomes an infrastructure one. Because every subsite lives in the <em>same</em> database and runs on the <em>same</em> codebase, your entire network is, from the server's point of view, a single WordPress application. That has three consequences worth planning around.</p>
   <p>First, <strong>backups cover the whole network at once</strong>. Great for consistency, less great when you want to roll back just one subsite, so know that going in. Second, <strong>the database grows with every site you add</strong>, so a large network wants a <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL database</a> sized for the network, not for one blog. Third, <strong>every subsite shares the server's CPU, RAM, and PHP workers</strong>, so a spike on one is felt by all.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed MySQL database sized for a whole WordPress multisite network">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean console launching a managed MySQL database sized for a whole WordPress multisite network">
     <figcaption>A whole multisite network runs on one shared managed database. Size it for the network, not for a single site.</figcaption>
   </figure>
 
   <p>On Kloudbean the network runs as one managed WordPress application on the cloud you pick, with <a href="https://www.kloudbean.com/blog/server-backups-guide/">automatic backups</a>, free SSL, staging, and Shorewall plus Fail2ban hardening handled for you. You add the managed MySQL database beside it and give the server room to breathe. It's a Linux and PHP stack, and "managed" here means the server, WordPress, SSL, backups, and patching are handled while your sites and their content stay yours. If a client ever does need to move out, the content is yours to export, and <a href="https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/">migrating a site</a> is a known, supported path rather than a hostage situation.</p>
 
   <!-- Author: replace this slot with a real screenshot. src -> images/multisite-app-dashboard.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The managed WordPress multisite application in the hosting dashboard, showing it running as one app on one server.</em><small>Author-supplied screenshot.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #3
+Create a left-to-right architecture / flow diagram for a technical blog post titled "WordPress Multisite Hosting: What It Is and Whether You Actually Want It".
+
+What it must show: The managed WordPress multisite application in the hosting dashboard, showing it running as one app on one server.
+Also: Author-supplied screenshot.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-flow.png" alt="The managed WordPress multisite application in the hosting dashboard, showing it running as one app on one server.">
+    <figcaption>One hop per box</figcaption>
+  </figure>
 
   <h2>Where multisite quietly bites</h2>
   <p>Be clear-eyed about the flip side of "update once." Because the sites share core, plugins, and a database, they share risk too. A security hole in a network-active plugin exposes every site at the same time. A bad update breaks the network, not one page. If the install goes down, all the sites go down together. You update once, but you also <em>fail</em> once, across everything.</p>
   <p>And extraction is the one that catches people. Getting a single subsite out of a network is a real migration: export its tables, rewrite URLs, move its uploads, and stand it up as a fresh install. For a network of related sites you control, that risk is a fine trade for the convenience. For a pile of unrelated client sites, it's a bad one, and separate installs would have kept you free. That's the whole decision, really. Not "is multisite good" but "should these particular sites share a fate?"</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Network them, or keep them separate. On purpose, either way.</p>
-    <p style="margin:0 0 .6em">Run a WordPress multisite network or a set of independent installs on hosting sized for the whole picture at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Managed WordPress · Managed MySQL · Staging · Automatic backups · Free SSL · Free migration · Free trial</p>
+<div class="kbcta-wp-wrap">
+  <div class="kbcta-wp-overlay"></div>
+  <div class="kbcta-wp-content">
+    <div class="kbcta-wp-eyebrow">MANAGED WORDPRESS &middot; ONE DASHBOARD</div>
+    <p class="kbcta-wp-heading">Let someone else patch the server.</p>
+    <p class="kbcta-wp-description">The stack, the patching, SSL, and backups are handled, so your work stays on the site rather than the box. Staging is one click, and the managed database sits right next to the app.</p>
+    <ul class="kbcta-wp-features">
+      <li>&#10003; Managed WordPress stack</li>
+      <li>&#10003; One-click staging</li>
+      <li>&#10003; Managed MySQL and MariaDB</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Built-in load balancer</li>
+    </ul>
+    <div class="kbcta-wp-buttons">
+      <a class="kbcta-wp-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-wp-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-wp: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-wp-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-wp-wrap *{box-sizing:border-box}
+.kbcta-wp-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-wp-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-wp-content{position:relative;z-index:3;max-width:700px}
+.kbcta-wp-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-wp-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-wp-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-wp-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-wp-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-wp-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-wp-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-wp-btn:hover,.kbcta-wp-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-wp-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-wp-link:hover,.kbcta-wp-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-wp-wrap{padding:36px 24px}
+  .kbcta-wp-heading{font-size:31px}
+  .kbcta-wp-description{font-size:16px}
+  .kbcta-wp-features li{white-space:normal}
+  .kbcta-wp-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-wp-btn{width:100%}
+  .kbcta-wp-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

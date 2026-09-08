@@ -184,11 +184,20 @@ One modern note worth knowing: Node 22 and later include a built-in `node:sqlite
 
 For the database decision itself, [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) and [MySQL versus PostgreSQL](https://www.kloudbean.com/blog/mysql-vs-postgresql/). For deployment failures around this one, [Node apps crashing on deploy](https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/), [Cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/), and [auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/). On configuration and moving data, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) and [migrating with pg_dump and mysqldump](https://www.kloudbean.com/blog/database-migration-pg_dump-mysqldump/). And on keeping copies you can restore, [server backups](https://www.kloudbean.com/blog/server-backups-guide/).
 
-## Outgrown a file on disk?
+<!-- cta:start -->
+**Managed, backed up, and still yours.**
 
-One-click managed PostgreSQL, MySQL, MariaDB, MongoDB, Redis, and Elasticsearch with automatic backups and private access, plus Git deploys that install on the target so native modules build once, correctly. From $8/mo, with free migration assistance. Start at [kloudbean.com](https://www.kloudbean.com/).
+Launch MySQL, MariaDB, PostgreSQL, Redis, Memcached, MongoDB, or Elasticsearch in a click, reachable from your app server with automatic backups from minute one. Standard connection strings, standard dumps, no proprietary format.
 
-6 managed databases · Automatic backups · Private access · Git deploy with live build logs · Flat from $8/mo
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 
@@ -196,7 +205,7 @@ One-click managed PostgreSQL, MySQL, MariaDB, MongoDB, Redis, and Elasticsearch 
 
 It is the Node.js ABI version, the binary contract between compiled add-ons and the Node runtime. It changes with major Node releases because V8 internals change, so a module compiled for one major will refuse to load on another. Node 18 is 108, Node 20 is 115, Node 22 is 127, Node 24 is 137.
 
-**How do I fix "was compiled against a different Node.js version"?**
+**How do I fix 'was compiled against a different Node.js version'?**
 
 Rebuild the module against the runtime that will load it: `npm rebuild better-sqlite3 --build-from-source`. If that does not resolve it, delete `node_modules` and run `npm ci` on the machine that runs the app. Then find out why two Node versions were involved, because otherwise it returns on the next deploy.
 
@@ -204,7 +213,7 @@ Rebuild the module against the runtime that will load it: `npm rebuild better-sq
 
 It is a native module. It bundles SQLite as C code and exposes it through a compiled binary rather than being pure JavaScript, which is where its speed comes from. Prebuilt binaries are published for common combinations, and when none matches your ABI, architecture, platform, and C library, npm falls back to compiling from source.
 
-**Why do I get "No prebuilt binaries found"?**
+**Why do I get 'No prebuilt binaries found'?**
 
 No published binary matched your exact combination of target ABI, runtime, architecture, platform, and C library. The most frequent cause is a musl-based image such as Alpine. It then tries to build from source, so the next error you see is usually about a missing `python3` or C++ compiler rather than about SQLite.
 

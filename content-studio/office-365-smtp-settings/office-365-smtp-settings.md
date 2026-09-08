@@ -105,15 +105,21 @@ The boundary is unchanged. The box, its stack, its certificates and its backups 
 
 On ports, relays, and the DNS records that decide deliverability, [port 25 and the SMTP ports](https://www.kloudbean.com/blog/port-25-blocked-smtp-ports/) is the companion to this page and covers what this one deliberately does not. For keeping an API key out of your code, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). If sending is batched or retried, [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/) and [Celery with Redis](https://www.kloudbean.com/blog/celery-with-redis/). When a mailer failure surfaces as a generic server error instead, [500 Internal Server Error](https://www.kloudbean.com/blog/http-error-500-internal-server-error/) covers getting the real message out of the log. And on the WordPress side, [managed WordPress hosting](https://www.kloudbean.com/blog/managed-wordpress-hosting/).
 
----
+<!-- cta:start -->
+**Own the server. Skip the server admin.**
 
-### Find the real error instead of retyping the password.
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
 
-Managed servers across seven clouds with application and server logs in one dashboard, runtime configuration for your API keys, and cron jobs from the UI. Free SSL issued and renewed. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
 
-App and server logs · Runtime config · Cron in the UI · Free SSL · One dashboard
-
----
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

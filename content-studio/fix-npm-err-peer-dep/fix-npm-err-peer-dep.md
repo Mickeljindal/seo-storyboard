@@ -58,7 +58,7 @@ Read it as one sentence: *you have React 18, and react-fancy-widget@2.1.0 only c
 
 Watch for this: the complaining package often isn't the one you were installing. If the error names something you've never typed, you've hit a transitive conflict. Same reading method, different fix, and `overrides` becomes relevant.
 
-<!-- ADD IMAGE: annotated terminal screenshot of a real ERESOLVE block with arrows on the Found line and the peer line -->
+![Annotated terminal screenshot of a real ERESOLVE block](images/gen-1-terminal.png)
 
 ## Fix npm ERR peer dep in order of correctness
 
@@ -166,7 +166,7 @@ It works today because the mismatch happens to be harmless today. Nothing keeps 
 
 Fix the version. Don't silence the check. If you must silence it, leave a date and a reason so the next person knows they can remove it.
 
-<!-- ADD IMAGE: side by side, a local install succeeding with a warm node_modules and a clean CI install failing on the same commit -->
+![A glance at the CI trap](images/gen-2-comparison.png)
 
 ## The CI trap: it works locally, then fails on a clean install
 
@@ -222,7 +222,7 @@ git commit -m "resolve react peer conflict: bump react-fancy-widget to 3.x"
 
 The commit message matters. Six months from now it's the only explanation anyone will have.
 
-<!-- ADD IMAGE: decision tree, read the block then upgrade the complainer, align versions, use overrides, or a time-boxed legacy-peer-deps -->
+![Steps to fix ERESOLVE](images/gen-3-flow.png)
 
 ## A short checklist
 
@@ -254,15 +254,26 @@ If that fails while `npm install` succeeds, whatever you did isn't in the reposi
 
 Now the part hosting cannot do, and this one is worth saying plainly because the temptation is real. No platform resolves a version conflict for you. If `react-fancy-widget@2` genuinely does not support React 18, that stays true on every build machine ever made, and a build that goes green because someone globally disabled peer checks is not a fixed dependency tree, it's an unobserved one. The decision, upgrade the complainer, align the versions, scope an override, or accept a dated stopgap, is a judgement about your own code. All a good platform does is show you the real error and run the strict install honestly.
 
-![Live build logs from a Git deploy in the Kloudbean console showing the npm install step](../assets/console/git-deployment.png)
+![Live build logs from a Git deploy in the Kloudbean console showing the npm install step](../assets/console-real/shots/git_connect_step_4.png)
 
 ## If npm ERR Peer Dep keeps coming back
 
 For a build that runs the same way every push, see [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/). If the install works but the app can't find something, read [Error: Cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/). Builds dying mid-install are often memory: [JavaScript heap out of memory](https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/). For config drift between local and production, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/), and to place the whole thing, [deploy a Node app to managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/).
 
-**See the build log, not just the failure.** Deploy your Node app from Git with managed CI/CD that streams live build logs and keeps deployment history, so install errors are readable while you're fixing them. From $8/mo. Start at [kloudbean.com](https://www.kloudbean.com/).
+<!-- cta:start -->
+**Deploys that tell you what broke.**
 
-Git deploys · Live build logs · Deployment history · Free SSL · From $8/mo
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
+
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

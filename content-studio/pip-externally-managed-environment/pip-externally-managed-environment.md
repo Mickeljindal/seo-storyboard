@@ -101,11 +101,21 @@ No host fixes any of those four, ours included. They're all your side of the lin
 
 If a different Python import is failing, [ModuleNotFoundError in Python](https://www.kloudbean.com/blog/fix-modulenotfounderror-python/) walks the five causes. For shipping Python to production, [deploy a Flask app](https://www.kloudbean.com/blog/deploy-flask-app/), [a Django app](https://www.kloudbean.com/blog/deploy-django-app/), and [a FastAPI app](https://www.kloudbean.com/blog/deploy-fastapi-app/). Configuration that should travel with your app, not your system, is covered in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
-## Run Python on a server you don't have to babysit.
+<!-- cta:start -->
+**Own the server. Skip the server admin.**
 
-Kloudbean keeps the OS and system Python patched and consistent, so you deploy your app in its own environment and leave the base system to us. Managed servers, managed databases, Git deploys, free SSL. Start at [kloudbean.com](https://www.kloudbean.com/), or see the tradeoffs in [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/).
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
 
-Managed, patched OS · Python runtime config · Git deploys · Managed databases
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

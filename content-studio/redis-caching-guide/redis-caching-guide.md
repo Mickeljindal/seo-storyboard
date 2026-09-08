@@ -108,7 +108,7 @@ def get_product(product_id):
 
 Two habits are baked in. Values are JSON-serialized in and parsed out, because Redis stores strings and bytes, not your language's objects. And every write uses `setex`, so there's a TTL from second one. Why cache-aside by default? It fails safe: if Redis is down, every request becomes a miss that falls through to the database, so the app slows down instead of falling over.
 
-<!-- ADD IMAGE: redis-cli MONITOR streaming live GET and SETEX calls as the app serves traffic -->
+![Checking TTL for product:42](images/gen-2-terminal.png)
 
 ## Setting a Redis TTL that isn't a guess
 
@@ -122,7 +122,7 @@ A TTL (time to live) is how long a key survives before Redis deletes it. `SETEX 
 
 Unsure? Go shorter. A short TTL fails safe, at worst a few seconds of staleness and a slightly higher miss rate. A long TTL with no invalidation is how users end up staring at data that changed ten minutes ago.
 
-<!-- ADD IMAGE: redis-cli running TTL product:42 and showing the seconds left on the key -->
+![Redis rate limiting in action](images/gen-3-terminal.png)
 
 ## Cache invalidation and cache stampede: the hard part
 
@@ -208,7 +208,7 @@ async function allow(userId) {
 
 The first request in a window creates the key and sets a 60-second expiry; every request increments. Past 100, return a 429 until the window rolls over and the key expires. Sliding-window and token-bucket variants exist, but a fixed window covers most needs in four lines.
 
-<!-- ADD IMAGE: an HTTP 429 Too Many Requests response once the INCR count passes the limit -->
+![Cache hits and writes in real time](images/gen-1-terminal.png)
 
 ### Redis as a session store
 
@@ -233,7 +233,7 @@ The patterns are the same wherever Redis runs; what changes is how much babysitt
 
 1. **Launch a managed Redis.** Open the DBS section, hit Launch Database, and pick Redis. Name it, create it. A minute or two later it's provisioned, secured, and being backed up. No config files, no `apt install`.
 
-![The Kloudbean console launching a managed Redis instance alongside MySQL, MariaDB, PostgreSQL, Memcached, Elasticsearch, and MongoDB](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed Redis instance alongside MySQL, MariaDB, PostgreSQL, Memcached, Elasticsearch, and MongoDB](../assets/console-real/shots/redis_launch_step_1.png)
 
 2. **Build your REDIS_URL.** Take the host, port, and password from the connection details and assemble a single connection string:
 
@@ -249,7 +249,7 @@ The empty slot before the colon is the (usually blank) username, then the passwo
 
 3. **Store it as an environment variable.** Open Runtime Configuration then Environment Variables and add `REDIS_URL`. It lives here, never in source, so it stays out of Git and you can rotate the password without touching code.
 
-![The Kloudbean console environment variables screen holding REDIS_URL for the app to read at runtime](../assets/console/env-vars.png)
+![The Kloudbean console environment variables screen holding REDIS_URL for the app to read at runtime](../assets/console-real/shots/nodespm_env_step_1.png)
 
 4. **Install a client and connect.** `ioredis` or `node-redis` for Node, `redis-py` for Python. Each reads `REDIS_URL` and connects. The client is just a library; your app runs on Kloudbean's managed runtime and talks to managed Redis over its internal address, not the public internet.
 5. **Deploy and watch a hit.** Push through [Git-based deploys](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/), redeploy so the app picks up `REDIS_URL`, then load a cached endpoint twice. First a miss, second a hit.
@@ -284,11 +284,20 @@ maxmemory-policy allkeys-lru
 
 Caching is one layer. Your app reads and writes a real database, caches hot reads in Redis, keeps sessions there, and rate-limits its endpoints with the same instance. Because app and Redis sit side by side in the same account, connection reuse stays cheap, the same reason [connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) is gentler on an always-on server than on serverless. One dashboard, one server, one bill, and the fast layer right where it belongs.
 
----
+<!-- cta:start -->
+**Managed, backed up, and still yours.**
 
-**Put the fast layer next to your app.** Launch a managed Redis in a click, connect it with one `REDIS_URL`, and let cache-aside lift the repeat load off your database. Sessions, rate limiting, and caching from a single managed instance right next to your app. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+Launch MySQL, MariaDB, PostgreSQL, Redis, Memcached, MongoDB, or Elasticsearch in a click, reachable from your app server with automatic backups from minute one. Standard connection strings, standard dumps, no proprietary format.
 
-One-click Redis · IP allow-listing · Automatic backups · Free migration assistance · Free trial · Simple Git deploy
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

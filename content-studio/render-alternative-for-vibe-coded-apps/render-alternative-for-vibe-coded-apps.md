@@ -67,7 +67,7 @@ Once you've counted the services, the criteria write themselves. A real Render a
 
 That's the model [Kloudbean](https://www.kloudbean.com/) runs. One real server, provisioned and managed for you on the cloud you pick, at a flat monthly price, running the whole app tier, with managed databases alongside it as their own services. You connect a Git repo and deploy from the console, same muscle memory as Render.
 
-![Kloudbean console Deploy Code and Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy](../assets/console/git-deployment.png)
+![Kloudbean console Deploy Code and Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy](../assets/console-real/shots/git_connect_step_4.png)
 
 The web process and the worker are just processes on the same machine. You run them under a process manager so they restart on crash and survive a reboot.
 
@@ -80,11 +80,11 @@ pm2 save                                 # bring them back after a reboot
 
 Need a second app on the same server? Add it. That's not another subscription, it's another application on the server you already have.
 
-<!-- ADD IMAGE: A Render dashboard listing several services (web, worker, cron, Postgres) so the per-service count is visible at a glance. -->
+![Service interactions for a request](images/gen-1-flow.png)
 
 The database is a separate service, and that's on purpose. Launch a managed PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Memcached or Elasticsearch instance from the same console, allow your app server to reach it, and point the app at its private connection details. It never sits on the public internet, and it isn't competing with your web process for CPU.
 
-![Kloudbean Launch Database screen for creating a managed Postgres instance as its own service in the data tier](../assets/console/launch-database.png)
+![Kloudbean Launch Database screen for creating a managed Postgres instance as its own service in the data tier](../assets/console-real/shots/psql_launch_step_1.png)
 
 ```
 # the app tier reads the data tier over private, allowed-only access
@@ -112,9 +112,20 @@ Live mostly in the left column and switching would cost you more than it saves. 
 
 Kloudbean runs Linux stacks: Node, PHP, Python, Ruby, Java, Go, and the frameworks on top like React, Next.js, Vue, Laravel and Django, plus .NET on Linux. That's what vibe-coded apps are built on. Windows Server itself is a Premium and Enterprise option rather than a standard one. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you own and maintain the app and its data. And to be fair about cost: for a single tiny service, Render's low tiers can be cheaper than any always-on server, because a server you rent by the month costs the same whether it serves ten requests or ten million. The flat model wins as your app gains pieces, and it wins on predictability at any size.
 
-## One app tier, not five meters
+<!-- cta:start -->
+**Move it once. Own it after.**
 
-See how the whole app on one owned server compares for you at [kloudbean.com](https://www.kloudbean.com/). Always-on processes, managed databases in their own tier, automatic backups, cron in the UI, free migration, free trial, and git deploy. Plans on [pricing](https://www.kloudbean.com/pricing/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
+
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

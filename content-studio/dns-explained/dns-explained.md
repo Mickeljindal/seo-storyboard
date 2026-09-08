@@ -43,7 +43,7 @@ example.com.    283    IN    A    203.0.113.10
 dig example.com +trace
 ```
 
-<!-- ADD IMAGE: a terminal running dig or nslookup, showing the A record and the TTL value -->
+![Find your server's IP](images/gen-1-terminal.png)
 
 ## The DNS records you'll actually touch
 
@@ -74,7 +74,7 @@ Two of these cause most of the confusion, so be precise about the A record and C
 
 Now the classic trap: you can't put a CNAME on the apex (the bare `example.com`) in standard DNS, because the apex needs records like NS and often MX, and a CNAME can't sit beside them. So the apex gets an A record and only `www` gets a CNAME. Some providers offer an ALIAS or ANAME record (or CNAME flattening) to fake an apex CNAME, which is handy when you have it. The plain rule holds: apex is an A record, `www` is a CNAME.
 
-<!-- ADD IMAGE: your registrar's DNS panel with an A record for the apex and a CNAME for www -->
+![From registrar to CNAME](images/gen-2-flow.png)
 
 ## TTL and why DNS propagation takes time
 
@@ -84,7 +84,7 @@ One thing to unlearn: nothing actually propagates. Change a record and no signal
 
 There's a practical move here. Migrating servers? Lower the TTL a day ahead, to 300 seconds or even 60. Once the old high TTL has aged out everywhere, every resolver holds the record for only a minute, so flipping to the new IP is nearly quick. Raise it back after. Skip this and a TTL of `86400` means some visitors keep hitting your old server for a full day after you moved.
 
-<!-- ADD IMAGE: a DNS propagation checker showing the new IP live in some cities and the old one still cached in others -->
+![New IP in some, old cached in others](images/gen-3-flow.png)
 
 ## Where DNS goes wrong (the classic gotchas)
 
@@ -102,13 +102,13 @@ Most DNS problems aren't exotic. They're the same handful of mistakes, over and 
 
 All this theory lands on one act: pointing a domain at a server you control. The shape never changes. Your server has a public IP. You create an A record at your registrar pointing the domain at that IP (plus a `www` CNAME onto the apex). DNS resolves. Done.
 
-![Provisioning a server in the Kloudbean console, which assigns the public IP your DNS A record points at](../assets/console/add-server.png)
+![Provisioning a server in the Kloudbean console, which assigns the public IP your DNS A record points at](../assets/console-real/shots/launch_server_step_1.png)
 
 One point trips people up, so plainly: your DNS records live at your registrar, not inside your host. On [Kloudbean](https://www.kloudbean.com/) you tell the server which domains to answer for, and the platform issues the certificate, but the A and CNAME records are managed wherever you registered the domain. Host and registrar are different jobs. The step-by-step version, with the www-versus-apex call and the exact records, is in [how to add a custom domain and free SSL](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/).
 
 Once the name resolves to your server, SSL falls into place. Kloudbean issues free, auto-renewing certificates on your Linux server, and the order matters for a pure-DNS reason: a certificate authority proves you control the domain by checking that it points where it should. No resolution, no certificate. So when an SSL request fails moments after you set up DNS, the honest first answer is usually that DNS hasn't finished resolving yet, not that the certificate is broken.
 
-![A free auto-renewing SSL certificate active in the Kloudbean console once DNS resolves to the server](../assets/console/ssl-certificate.png)
+![A free auto-renewing SSL certificate active in the Kloudbean console once DNS resolves to the server](../assets/console-real/shots/le_ssl_step_1.png)
 
 And the IP your record points at isn't abstract. It's a real server in a region you picked, which is where [data residency](https://www.kloudbean.com/blog/data-residency-explained/) quietly enters the DNS story. Run more than one server and the A record can point at a [load balancer's](https://www.kloudbean.com/blog/cloud-load-balancer-explained/) address instead, one public IP in front of a pool. DNS gets your visitor to the front door. What sits behind it is your architecture.
 
@@ -116,13 +116,23 @@ And the IP your record points at isn't abstract. It's a real server in a region 
 
 A zone file is small, with outsized power, and still just the first hop. Behind that IP sit the server, the app, the database, SSL, and backups. On Kloudbean they share one login, so the domain, the server it resolves to, and its certificate all sit on one screen.
 
-![The Kloudbean dashboard showing servers, applications, databases, and SSL in one place](../assets/console/dashboard.png)
+![The Kloudbean dashboard showing servers, applications, databases, and SSL in one place](../assets/console-real/shots/dashboard.png)
 
----
+<!-- cta:start -->
+**One dashboard for the whole stack.**
 
-**Point your domain. Get the padlock. Move on.** Spin up a Linux server, point your A record at its IP, and let free auto-renewing SSL kick in the moment DNS resolves. Plans start from $8/mo and Enterprise is custom, so check current pricing on [pricing](https://www.kloudbean.com/pricing/). See the whole stack on one dashboard at [kloudbean.com](https://www.kloudbean.com/), or weigh the numbers in [DigitalOcean vs Kloudbean](https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/).
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
 
-Point your domain · Free auto-renewing SSL · 7 clouds · Automatic backups · Free migration · Free trial
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -82,7 +82,7 @@ CACHE_STORE=redis
 SESSION_DRIVER=redis
 ```
 
-![The Kloudbean console Environment Variables screen: Laravel's APP_KEY, APP_ENV, database and queue settings pasted from a .env file](../assets/console/env-vars.png)
+![The Kloudbean console Environment Variables screen: Laravel's APP_KEY, APP_ENV, database and queue settings pasted from a .env file](../assets/console-real/shots/nodespm_env_step_1.png)
 
 The why behind keeping secrets out of git, and the mistakes people make with it, is in [environment variables, done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
@@ -90,7 +90,7 @@ The why behind keeping secrets out of git, and the mistakes people make with it,
 
 Laravel is a first-class managed app type here, so you're deploying onto a PHP stack that already exists rather than installing PHP-FPM by hand. That's a big reason so many hosts fight over the "best Laravel hosting" spot: the boring server work is done and you just ship code. Connect your repo under **Application Administration → Deploy Code → Git Deployment** and drop the sequence above into the Build field. The Start side is PHP-FPM, already serving `public/index.php`.
 
-![The Kloudbean Deploy Code / Git Deployment screen: a Laravel repo connected with the Composer and artisan build sequence set, ready to pull and deploy](../assets/console/git-deployment.png)
+![The Kloudbean Deploy Code / Git Deployment screen: a Laravel repo connected with the Composer and artisan build sequence set, ready to pull and deploy](../assets/console-real/shots/git_connect_step_4.png)
 
 Push once to wire it up, then turn on auto-deploy and every push re-runs the build and restarts your workers. If you want to rehearse a risky migration first, Laravel supports **staging** here too, so you can deploy to a copy, watch it, then promote. More on the push-to-deploy loop in [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
@@ -106,7 +106,7 @@ The fix is one command in your deploy: `php artisan queue:restart`. It doesn't k
 
 The worker itself runs as a persistent background process, kept alive by the server's process manager so it restarts if it ever dies. No worker means jobs pile up in the queue, unprocessed, and you find out when a customer asks where their receipt went.
 
-<!-- ADD IMAGE: The queue worker running: a terminal showing php artisan queue:work processing jobs, or Laravel Horizon's dashboard with active workers. -->
+![php artisan queue:work processing jobs](images/gen-1-terminal.png)
 
 ## The scheduler is one cron line
 
@@ -127,7 +127,7 @@ Three config choices are cheap now and painful to change later. Sort them before
 - **Uploads.** Files saved to the local `storage/` disk live on that one box, so they vanish on a rebuild and don't exist if you scale out. Point Laravel's filesystem at [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). It's a config change and credentials, not a rewrite, because the driver ships with the framework.
 - **Database.** Launch a [managed MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/) and reach it over the local network on the same box, backed up for you. Postgres works just as well if that's your preference.
 
-![The Kloudbean Launch Database screen: creating a managed MySQL instance for a Laravel app on the same server](../assets/console/launch-database.png)
+![The Kloudbean Launch Database screen: creating a managed MySQL instance for a Laravel app on the same server](../assets/console-real/shots/psql_launch_step_1.png)
 
 Running the app, queue, scheduler and database on one box is a clean starting point for most Laravel apps. The full pattern is in [host your app, API, and database on one server](https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/).
 
@@ -148,7 +148,21 @@ Two logs, not one, and mixing them up wastes an evening. `storage/logs/laravel.l
 
 Laravel is a PHP app, and PHP on Linux is exactly what a managed server runs, so nothing here is a workaround. Kloudbean keeps the box healthy: the PHP runtime, PHP-FPM and the web server, free SSL, the firewall, and server-level backups, on whichever of its seven clouds you pick. You own the Laravel app: its `.env`, its migrations, the queue worker, the scheduled tasks. Clean split, and it's the arrangement most PHP teams actually want. (If your app were .NET on IIS, this wouldn't be your platform. For PHP and Laravel, it's home turf.) Building elsewhere in your stack too? The Python sibling is [deploy a Django app](https://www.kloudbean.com/blog/deploy-django-app/), and the Node path is [deploy a Node app](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/). If your next project is Symfony rather than Laravel, the three-process shape carries straight over, except the background half is [Symfony's Messenger workers in production](https://www.kloudbean.com/blog/deploy-symfony-app/) instead of artisan queues.
 
-**Web, queue, and scheduler. All accounted for.** Deploy your Laravel app on a server you own at [kloudbean.com](https://www.kloudbean.com/). Managed MySQL & Redis · Automatic backups · Free Let's Encrypt SSL · Staging · Git deploy · Free migration · Free trial. Server sizes are on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Take it off localhost for good.**
+
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

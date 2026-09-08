@@ -116,7 +116,21 @@
   <p>So the honest read: shared hosting is fine for a store that's barely a store, a handful of orders a month and no real traffic. The moment a WooCommerce site has customers and a revenue number, the shared plan stops being a bargain and starts being a liability.</p>
 
   <!-- ADD IMAGE: server metrics during a flash sale, CPU and RAM climbing while PHP workers max out. Swap for a real screenshot: src -> images/store-under-load.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Server metrics during a sale: CPU and RAM climbing as PHP workers max out and requests start to queue.</em><small>A resource graph tells the story better than words.</small></span></figure>
+  <!-- IMAGE GENERATE [graph] #1
+Create a clean line chart / time-series graph for a technical blog post titled "WooCommerce Hosting: What Your Store Actually Needs".
+
+What it must show: Server metrics during a sale: CPU and RAM climbing as PHP workers max out and requests start to queue.
+Also: A resource graph tells the story better than words.
+
+Label both axes. Draw the trend the description implies. Add a dashed red threshold line only if a limit is being hit. Legible axis labels, no 3D, no gradient clutter.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-graph.png" alt="Server metrics during a sale: CPU and RAM climbing as PHP workers max out and requests start to queue.">
+    <figcaption>Requests queue as CPU and RAM climb</figcaption>
+  </figure>
 
   <h2>What good WooCommerce hosting actually gives you</h2>
   <p>Here's the checklist that separates hosting a store can trust from hosting that will embarrass you on launch day. Each item earns its place, so I've put the reason next to it.</p>
@@ -130,7 +144,7 @@
   <p><strong>Room to scale.</strong> Traffic grows, and sales are spiky by nature. You want to resize the server up when you need more headroom, and for big stores, put a load balancer in front and run more than one app server. Hosting that traps you on one fixed box is hosting you'll outgrow mid-sale.</p>
 
   <figure>
-    <img src="../assets/console/add-application.png" alt="The Kloudbean Add Application screen with WooCommerce selected as the application stack">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="The Kloudbean Add Application screen with WooCommerce selected as the application stack">
     <figcaption>WooCommerce launches as a one-click managed application, provisioned tuned, hardened, and SSL-ready rather than a bare box you configure.</figcaption>
   </figure>
 
@@ -187,26 +201,52 @@ wp_woocommerce_session_</code></pre>
   <p><strong>And offload the heavy static stuff.</strong> Product images and downloads can move to object storage and sit behind an edge CDN, so your app servers spend their cycles on carts and checkouts, not on serving photos. For the full mental model of resize versus add-servers, we wrote it up in <a href="https://www.kloudbean.com/blog/scalable-wordpress-hosting/">scalable WordPress hosting</a>.</p>
 
   <!-- ADD IMAGE: a load balancer with two or three app servers behind it, all pointing at one managed database. Swap for a real screenshot: src -> images/store-scale-out.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Scaling out: a load balancer in front of two or three app servers, all sharing one managed database and object cache.</em></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "WooCommerce Hosting: What Your Store Actually Needs".
+
+What it must show: Scaling out: a load balancer in front of two or three app servers, all sharing one managed database and object cache.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-fanout.png" alt="Scaling out: a load balancer in front of two or three app servers, all sharing one managed database and object cache.">
+    <figcaption>To multiple app servers sharing a managed database</figcaption>
+  </figure>
 
   <h2>How Kloudbean does managed WooCommerce hosting</h2>
   <p>WooCommerce has been a first-class stack on Kloudbean since launch, right alongside WordPress, so none of this is bolted on after the fact. Here's the path, with the actual screens.</p>
   <p>You pick a cloud (seven of them: AWS, Amazon Lightsail, Google Cloud, DigitalOcean, Vultr, Akamai Linode, and UpCloud), launch a server in a region near your customers, and add WooCommerce as an application. The PHP stack comes tuned and hardened, with free SSL ready to go, not a blank box waiting for you to configure it.</p>
 
   <!-- ADD IMAGE: the WooCommerce application overview with the live URL, PHP version, and cache controls. Swap for a real screenshot: src -> images/woo-app-overview.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The WooCommerce application overview: live URL, PHP version, cache controls, and staging in one panel.</em></span></figure>
+  <!-- IMAGE GENERATE [flow] #3
+Create a left-to-right architecture / flow diagram for a technical blog post titled "WooCommerce Hosting: What Your Store Actually Needs".
+
+What it must show: The WooCommerce application overview: live URL, PHP version, cache controls, and staging in one panel.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-flow.png" alt="The WooCommerce application overview: live URL, PHP version, cache controls, and staging in one panel.">
+    <figcaption>Execution flow from live URL to cache</figcaption>
+  </figure>
 
   <p>The store keeps its data in managed MySQL or MariaDB: provisioned, secured, kept off the public internet, and backed up automatically with controlled access. Alongside it you add a managed Redis or Memcached for the object cache, the layer that keeps the dynamic pages quick. That's the caching a plugin can't provide, running as real infrastructure you can size.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean Launch Database screen showing managed MySQL and MariaDB for WooCommerce, plus Redis and Memcached for object caching">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean Launch Database screen showing managed MySQL and MariaDB for WooCommerce, plus Redis and Memcached for object caching">
     <figcaption>Managed MySQL or MariaDB for the store, plus managed Redis or Memcached for the object cache. All backed up, all in the same console.</figcaption>
   </figure>
 
   <p>From there you get the pieces a store leans on. One-click staging for WordPress (WooCommerce runs on it) so plugin and theme updates get tested before they hit live sales. Automatic backups with self-serve restore, because orders are money. Free auto-renewing SSL for the checkout. Cron jobs from the dashboard without SSH for scheduled tasks. And when a sale is coming, you resize the server or put the built-in Flexible Load Balancer in front, all from the same place.</p>
 
   <figure>
-    <img src="../assets/console/manage-backups.png" alt="The Kloudbean backups screen showing automatic backups and self-serve restore for a WooCommerce store">
+    <img src="../assets/console-real/shots/app_backup_step_2.png" alt="The Kloudbean backups screen showing automatic backups and self-serve restore for a WooCommerce store">
     <figcaption>Automatic backups with self-serve restore. Test a restore once before you need it, so you know the path works.</figcaption>
   </figure>
 
@@ -219,11 +259,55 @@ wp_woocommerce_session_</code></pre>
   <p>Two things, said plainly. WooCommerce runs on a <strong>Linux and PHP</strong> stack, which is exactly what it was built for, so this is a strong fit rather than a workaround. And "managed" is a split, not a takeover. The platform runs the server, the stack, the object cache wiring, SSL, and backups. You still own your products, your orders, your plugin and theme choices, and your checkout flow. On compliance, treat it as shared: the platform provides and keeps maturing the infrastructure controls, while the application-level compliance of your specific store, especially around payments, stays with you. That clarity is the point. You always know who owns what.</p>
   <p>If you're still deciding between plain managed WordPress and a store-ready setup, <a href="https://www.kloudbean.com/blog/managed-wordpress-hosting/">managed WordPress hosting</a> lays out the general version, and this page is the WooCommerce-specific answer sitting on top of it.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Your store stays fast. We run the stack under it.</p>
-    <p style="margin:0 0 .6em">Managed WooCommerce hosting on infrastructure you own, with the database, object cache, backups, and SSL handled for you. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; check current plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">One-click WooCommerce · Managed MySQL &amp; Redis · Full-page + object cache · Automatic backups · Free auto-renewing SSL · One-click staging · Free migration · Free trial</p>
+<div class="kbcta-wp-wrap">
+  <div class="kbcta-wp-overlay"></div>
+  <div class="kbcta-wp-content">
+    <div class="kbcta-wp-eyebrow">MANAGED WORDPRESS &middot; ONE DASHBOARD</div>
+    <p class="kbcta-wp-heading">Let someone else patch the server.</p>
+    <p class="kbcta-wp-description">The stack, the patching, SSL, and backups are handled, so your work stays on the site rather than the box. Staging is one click, and the managed database sits right next to the app.</p>
+    <ul class="kbcta-wp-features">
+      <li>&#10003; Managed WordPress stack</li>
+      <li>&#10003; One-click staging</li>
+      <li>&#10003; Managed MySQL and MariaDB</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Built-in load balancer</li>
+    </ul>
+    <div class="kbcta-wp-buttons">
+      <a class="kbcta-wp-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-wp-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-wp: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-wp-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-wp-wrap *{box-sizing:border-box}
+.kbcta-wp-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-wp-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-wp-content{position:relative;z-index:3;max-width:700px}
+.kbcta-wp-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-wp-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-wp-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-wp-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-wp-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-wp-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-wp-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-wp-btn:hover,.kbcta-wp-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-wp-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-wp-link:hover,.kbcta-wp-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-wp-wrap{padding:36px 24px}
+  .kbcta-wp-heading{font-size:31px}
+  .kbcta-wp-description{font-size:16px}
+  .kbcta-wp-features li{white-space:normal}
+  .kbcta-wp-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-wp-btn{width:100%}
+  .kbcta-wp-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

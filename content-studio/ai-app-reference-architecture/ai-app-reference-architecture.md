@@ -36,7 +36,7 @@ Two boxes sit outside your control: the client (a browser or app) and the model 
 
 This is the generalized version. A chatbot is one instance of it (see the [chatbot version of this](https://www.kloudbean.com/blog/host-ai-chatbot-in-production/) for that request path in detail). An agent, a RAG search tool, and an AI SaaS backend are others. The boxes are the same. What changes is which ones you lean on. If you want the argument behind all of it, the [last mile of vibe coding](https://www.kloudbean.com/blog/last-mile-of-vibe-coding/) is the bigger picture, and this page is the architecture it points at.
 
-<!-- ADD IMAGE: an always-on Node or Python app running in one dashboard, with its domain and running status visible. -->
+![From Dashboard to Execution](images/gen-1-flow.png)
 
 ## Every box, and what breaks without it
 
@@ -99,7 +99,7 @@ Object storage is for files: user uploads, the source documents your RAG pipelin
 
 Four boxes, and the practical question is how many vendors that becomes. On Kloudbean all four sit in the same dashboard as the app: Postgres and Redis are two of seven managed engines (MySQL, MariaDB, Memcached, Elasticsearch, and MongoDB fill out the list), and the S3-compatible buckets are built in with no metered egress on them. Access to a managed database is IP allow-listing, so you whitelist your app server's address and every other source is refused. Not a private network on a standard plan. The allow-list is the real control and it's a solid one.
 
-<!-- ADD IMAGE: the managed database list showing PostgreSQL and Redis side by side, with the IP allow-list field in view. -->
+![Lockdown with IP allow-listing](images/gen-2-comparison.png)
 
 ## Getting slow work off the request path
 
@@ -109,7 +109,7 @@ The queue is usually Redis-backed (BullMQ in Node, for instance), and the worker
 
 The bit that trips people up is where the worker actually lives. It's a second long-running process, so a platform that only knows how to run one web process per app leaves you improvising. Kloudbean runs a worker as its own always-on process next to the API (PM2 handles multi-process Node), with cron schedules set from the UI instead of over SSH, and the Redis the queue needs is a tile in the same dashboard.
 
-<!-- ADD IMAGE: a background worker process running next to the web app, plus a scheduled cron entry. -->
+![Off the request path](images/gen-3-flow.png)
 
 ## Seeing what's actually happening
 
@@ -137,7 +137,7 @@ This is a real architectural decision, not a checkbox. It shapes where you host 
 
 Practically, residency is a provisioning decision you make before the first deploy, which is why retrofitting it hurts. Kloudbean can provision in any region its seven clouds offer, in-Kingdom included via Google Cloud's Dammam region, so the boundary box can be drawn inside one country without splitting your stack across vendors. Aligned with local data-protection expectations, not certified for them, and the difference matters if anyone asks.
 
-<!-- ADD IMAGE: a region picker showing an in-region data centre option for data that must stay in-country. -->
+![Ensure data stays in-country](images/gen-4-flow.png)
 
 ## Why the boundary is drawn where it is
 
@@ -151,9 +151,21 @@ Which is also the design argument for running the inside of the box in one place
 
 And the part no host settles, ours included. The boundary is a shape, not a safety net. Nothing about co-locating these boxes writes your timeout, chooses your rate limit, keeps the key out of a bundled JS file, or stops a prompt from being wrong. An unauthenticated endpoint that relays to the model on your key is exactly as expensive on well-run infrastructure as on badly-run infrastructure. Managed covers the server, the stack, SSL, backups, and patching; the code inside the boundary is yours. One scope note so the diagram isn't oversold: full network isolation in a VPC is part of the Enterprise package, so on a standard plan IP allow-listing is how a database stays off the open internet, and that's the version of the boundary most readers here will actually have.
 
-**Run the whole architecture in one place, not five.** Launch an always-on Node or Python API, add managed PostgreSQL with pgvector and managed Redis, object storage, a background worker, automatic backups, and free SSL, all in one dashboard and deployed straight from Git. No cold starts, so your first user never waits. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-Always-on (no cold starts) · Managed Postgres + pgvector · Managed Redis · Object storage · Background workers + cron · Automatic backups · Free SSL · Git deploy · IP allow-listing
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

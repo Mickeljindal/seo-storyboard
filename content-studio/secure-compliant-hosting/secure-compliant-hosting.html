@@ -56,7 +56,21 @@
   <div class="note"><b>The number-one misconception:</b> "our host is compliant, so we're compliant." No host makes you compliant. It supplies the infrastructure controls an auditor wants to see, and you supply everything above the app boundary. Read the right column as your homework.</div>
 
   <!-- ADD IMAGE: a one-page shared-responsibility matrix an admin can hand to an auditor. Swap for a real screenshot: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A one-page shared-responsibility matrix you can share with an auditor or a client.</em><small>Optional: brand it with your own logo.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #1
+Create a side-by-side comparison table for a technical blog post titled "Secure, Compliant Hosting: Who Actually Secures What".
+
+What it must show: A one-page shared-responsibility matrix you can share with an auditor or a client.
+Also: Optional: brand it with your own logo.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-comparison.png" alt="A one-page shared-responsibility matrix you can share with an auditor or a client.">
+    <figcaption>Who secures what in a cloud environment</figcaption>
+  </figure>
 
   <h2>Defense in depth: the layers a platform should give you</h2>
   <p>Security isn't one wall. It's a stack of them, so when one fails (and one eventually does) the next still holds. Attackers call it work; defenders call it defense in depth. A managed platform should hand you most of these layers already switched on, not as a paid upsell you find after an incident.</p>
@@ -115,7 +129,7 @@
   <p>Want an extra layer? BitNinja is available as an added security option on Premium and Enterprise. Treat it as a bonus, not the baseline. The firewall and Fail2ban are the floor, and they're already under your feet.</p>
 
   <figure>
-    <img src="../assets/console/firewall.png" alt="The Kloudbean console firewall settings showing Shorewall and Fail2ban enabled by default, with BitNinja as an added option">
+    <img src="../assets/console-real/shots/app_ip_whitelisting.png" alt="The Kloudbean console firewall settings showing Shorewall and Fail2ban enabled by default, with BitNinja as an added option">
     <figcaption>Security settings: the Shorewall firewall and Fail2ban are on by default; BitNinja shows up as an added layer, not a requirement.</figcaption>
   </figure>
 
@@ -124,7 +138,7 @@
   <p>One boundary worth stating. Encryption in transit is the platform's job, and it's handled. Encryption at rest for the fields you consider sensitive, a national ID, a card token, is an app-level decision you make in your own code. The platform protects the pipe. You decide what deserves an extra lock inside the payload.</p>
 
   <figure>
-    <img src="../assets/console/ssl-certificate.png" alt="The Kloudbean console SSL certificate screen with free, auto-renewing HTTPS enabled for a domain">
+    <img src="../assets/console-real/shots/le_ssl_step_1.png" alt="The Kloudbean console SSL certificate screen with free, auto-renewing HTTPS enabled for a domain">
     <figcaption>SSL: issue a free certificate, and it renews on its own. HTTPS everywhere, without the calendar reminder.</figcaption>
   </figure>
 
@@ -133,7 +147,7 @@
   <p>Layer identity on top. Two-factor authentication means a stolen password alone isn't enough to get in. Social login (Google, GitHub, LinkedIn) leans on providers that already do hard identity work. And sessions use HttpOnly cookies, so a cross-site scripting bug can't read the session token out of JavaScript. None of it is flashy. All of it closes the doors attackers use most.</p>
 
   <figure>
-    <img src="../assets/console/subusers-uac.png" alt="The Kloudbean console subusers and User Access Control screen assigning least-privilege, per-resource permissions">
+    <img src="../assets/console-real/shots/uac_resources_access.png" alt="The Kloudbean console subusers and User Access Control screen assigning least-privilege, per-resource permissions">
     <figcaption>Subusers + UAC: grant per-resource, per-action permissions so nobody carries more access than the task needs.</figcaption>
   </figure>
 
@@ -144,13 +158,27 @@
   <p>The most common self-inflicted wound in hosting is a database with a public IP and a weak password. Scanners find it in hours. So keep internal services internal. On Kloudbean your database runs right next to your app, and IP Access Control lets you whitelist your app server's IP so only that server can connect; everything else is refused. The app reaches it on the inside; the public internet can't. For admin work you tunnel in through the server rather than exposing a port to the world. On Enterprise you can go further and put the database on a private network (VPC).</p>
 
   <!-- ADD IMAGE: a simple topology showing the app whitelisted to reach the database, with the internet blocked from the database. Swap for a real screenshot: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Network topology: the app whitelisted to reach the database, public internet blocked from the database.</em><small>Optional: highlight the IP allow-list boundary.</small></span></figure>
+  <!-- IMAGE GENERATE [panel] #2
+Create a clean settings / configuration panel UI mockup for a technical blog post titled "Secure, Compliant Hosting: Who Actually Secures What".
+
+What it must show: Network topology: the app whitelisted to reach the database, public internet blocked from the database.
+Also: Optional: highlight the IP allow-list boundary.
+
+A white card with a small uppercase section label, then labelled rows. Highlight the row that carries the point with a violet border. Optional green check line at the bottom confirming the result.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-panel.png" alt="Network topology: the app whitelisted to reach the database, public internet blocked from the database.">
+    <figcaption>Isolating the database from the public internet</figcaption>
+  </figure>
 
   <h3>Backups: the first step of resilience</h3>
   <p>People file backups under "recovery," but they belong in any honest security conversation. Ransomware, a bad migration, a fat-fingered delete: what saves you is a clean, recent, restorable copy. Kloudbean backs up automatically. The step almost everyone skips is testing a restore before they actually need one. Do it once, so the path is proven. You do not have backups until you have completed a restore. There's more on cadence and retention in the <a href="https://www.kloudbean.com/blog/server-backups-guide/">guide to server backups and restore testing</a>.</p>
 
   <figure>
-    <img src="../assets/console/manage-backups.png" alt="The Kloudbean console backups screen showing automatic, restorable server and application backups">
+    <img src="../assets/console-real/shots/app_backup_step_2.png" alt="The Kloudbean console backups screen showing automatic, restorable server and application backups">
     <figcaption>Backups run automatically. The habit to build is restoring one on purpose, before a real incident forces it.</figcaption>
   </figure>
 
@@ -158,7 +186,21 @@
   <p>When something changes, compliance and incident response ask the same question: who did that, and when? An audit trail answers it. Kloudbean's Audit Trail, on Enterprise, is an immutable, searchable, account-wide log of activity with CSV export, built with compliance in mind. For a SOC 2 review or a post-incident timeline, that log is the difference between "we think" and "we can show you." It's the layer that turns a pile of good controls into evidence an auditor accepts.</p>
 
   <!-- ADD IMAGE: the audit trail view with a searchable, timestamped activity log and a CSV export button. Swap for a real screenshot: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Audit trail: a searchable, timestamped activity log with CSV export.</em><small>Enterprise feature.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #3
+Create a left-to-right architecture / flow diagram for a technical blog post titled "Secure, Compliant Hosting: Who Actually Secures What".
+
+What it must show: Audit trail: a searchable, timestamped activity log with CSV export.
+Also: Enterprise feature.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-flow.png" alt="Audit trail: a searchable, timestamped activity log with CSV export.">
+    <figcaption>From activity to CSV export</figcaption>
+  </figure>
 
   <h2>Your side of the line: what no host can do for you</h2>
   <p>Now the right column of that table, because this is where audits are won or lost. The platform hands you a hardened base. Your application is still yours to secure.</p>
@@ -171,7 +213,21 @@
   </ul>
 
   <!-- ADD IMAGE: a terminal showing an npm audit or pip-audit run flagging a vulnerable dependency. Swap for a real screenshot: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A dependency audit run (npm audit or pip-audit) flagging a vulnerable package.</em><small>Reinforces that patching your code is your job.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #4
+Create a realistic terminal / command-line screenshot for a technical blog post titled "Secure, Compliant Hosting: Who Actually Secures What".
+
+What it must show: A dependency audit run (npm audit or pip-audit) flagging a vulnerable package.
+Also: Reinforces that patching your code is your job.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-4-terminal.png" alt="A dependency audit run (npm audit or pip-audit) flagging a vulnerable package.">
+    <figcaption>Patch your code</figcaption>
+  </figure>
 
   <h2>How GDPR, PCI DSS, and SOC 2 map to shared responsibility</h2>
   <p>Compliance frameworks look scary from outside, but each one splits along the same platform-versus-you line. Read them as two columns, not one wall. Here's how GDPR, PCI DSS, and SOC 2 hosting map to who does what.</p>
@@ -212,11 +268,55 @@
   </ul>
   <p>That is the short version. The full, categorized audit, with the reasoning behind each item and a map of what the platform covers versus what you own, is in the <a href="https://www.kloudbean.com/blog/security-audit-checklist/">server security audit checklist</a>. And for proving your controls actually held, an <a href="https://www.kloudbean.com/blog/audit-trail-for-compliance/">immutable audit trail</a> is what turns them into evidence.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A hardened base, on day one.</p>
-    <p style="margin:0 0 .6em">Ship on infrastructure that arrives secured, so you can spend your effort on the app-level controls only you can own. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>, and always verify current details there.</p>
-    <p style="margin:0">Firewall + Fail2ban baseline · Free auto-renewing SSL · Subusers + UAC · 2FA · Automatic backups · Audit trail (Enterprise)</p>
+<div class="kbcta-sec-wrap">
+  <div class="kbcta-sec-overlay"></div>
+  <div class="kbcta-sec-content">
+    <div class="kbcta-sec-eyebrow">SECURITY &middot; HARDENED BY DEFAULT</div>
+    <p class="kbcta-sec-heading">Close the doors you keep forgetting.</p>
+    <p class="kbcta-sec-description">Every server ships with a Shorewall firewall and Fail2ban, free auto-renewing SSL, automatic backups, and OS patching handled. Add IP access control or a Basic Auth gate when a site should not be public.</p>
+    <ul class="kbcta-sec-features">
+      <li>&#10003; Shorewall firewall</li>
+      <li>&#10003; Fail2ban</li>
+      <li>&#10003; OS patching handled</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; IP access control</li>
+      <li>&#10003; Automatic backups</li>
+    </ul>
+    <div class="kbcta-sec-buttons">
+      <a class="kbcta-sec-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-sec-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-sec: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-sec-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-sec-wrap *{box-sizing:border-box}
+.kbcta-sec-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-sec-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-sec-content{position:relative;z-index:3;max-width:700px}
+.kbcta-sec-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-sec-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-sec-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-sec-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-sec-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-sec-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-sec-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-sec-btn:hover,.kbcta-sec-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-sec-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-sec-link:hover,.kbcta-sec-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-sec-wrap{padding:36px 24px}
+  .kbcta-sec-heading{font-size:31px}
+  .kbcta-sec-description{font-size:16px}
+  .kbcta-sec-features li{white-space:normal}
+  .kbcta-sec-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-sec-btn{width:100%}
+  .kbcta-sec-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

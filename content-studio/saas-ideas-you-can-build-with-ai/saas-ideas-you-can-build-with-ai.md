@@ -66,7 +66,7 @@ Developers pay for tools that save them a headache, and they're forgiving early 
 
 **A small internal automation hub.** For ops teams stitching a few SaaS tools together. Connectors and schedules are the kind of boilerplate AI handles well. The wrinkle: the scheduler is stateful and has to keep running. If the process falls asleep, the automations quietly stop and nobody notices until something breaks.
 
-<!-- ADD IMAGE: a simple 3x2 grid of tiny app mockups, one per example idea (scheduler, invoice generator, client portal, compliance log, report generator, uptime tool). src -> images/idea-grid.png -->
+![From User to Database](images/gen-1-flow.png)
 
 ## The part most idea lists skip: what it takes to run these
 
@@ -88,7 +88,7 @@ Map the categories back to those needs and the shape is clear.
 | Document and RAG tools | Receipts to entries, docs Q and A | Long-running jobs and a persistent (often vector) database |
 | Monitoring and dev tools | Uptime checker, webhook inspector | A process that stays up around the clock to catch events |
 
-<!-- ADD IMAGE: the frontend-vs-backend split as a diagram if you want a polished version. src -> images/production-spine.png -->
+![Which is better for AI SaaS?](images/gen-2-comparison.png)
 
 *AI ships the demo in an afternoon. The right-hand column is what keeps it alive once people rely on it.*
 
@@ -106,7 +106,7 @@ Pick a niche you actually understand, or one you can talk to a dozen real people
 | Your edge | Hard to stand out | You know the workflow |
 | The moat | Thin without something unique | Domain knowledge and workflow fit |
 
-<!-- ADD IMAGE: a two-column contrast graphic, crowded consumer lane vs quiet niche lane. src -> images/niche-vs-crowded.png -->
+![Define your focus](images/gen-3-flow.png)
 
 ## The thin wrapper trap to avoid
 
@@ -134,11 +134,21 @@ Read back through the list and you'll notice every idea leans on the same spine 
 
 It's also the part a managed platform is meant to take off your plate. That's where Kloudbean fits: managed databases like Postgres and MySQL, apps that run as persistent, always-on processes so there are no cold starts, cron jobs and long-running workers for the scheduled stuff, and built-in object storage for files, all from one dashboard with predictable flat pricing that starts at $8 a month. If you're still comparing options, here's a look at [where to host an AI SaaS](https://www.kloudbean.com/blog/best-hosting-for-ai-saas/). Whatever you pick, plan the backend before the launch, not after it.
 
----
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-**Build the idea. Then give it somewhere real to run.**
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-When your weekend project needs a database, an always-on backend, background jobs, and file storage, that's what Kloudbean handles from one dashboard. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/). Managed databases · Always-on app processes · Background jobs · Object storage · Automatic backups · Simple Git deploy.
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

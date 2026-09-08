@@ -40,7 +40,7 @@ curl -o /dev/null -s -w "%{time_total}s -> %{http_code}\n" \
 
 Swap `ORIGIN_IP` for your server's real address and `/slow-path` for the URL that throws the 524. The `--resolve` flag sends the request straight to your origin with the correct Host header and SNI, so you're testing the same thing Cloudflare tests, minus the edge. The output is the total time and the status code. Now read it.
 
-<!-- ADD IMAGE: Terminal running the curl timer against the origin, with time_total climbing past several seconds on the slow path. -->
+![Time total climbs on slow path](images/gen-1-terminal.png)
 
 | Direct curl result | What it means | Next step |
 |---|---|---|
@@ -74,7 +74,7 @@ ORDER BY runtime DESC;
 
 If a query has been active for tens of seconds, that's your 524. Index it, or cache the result, or, if it's genuinely heavy work, take it off the request path entirely. That last option is the one that actually fixes this class of bug for good.
 
-<!-- ADD IMAGE: A slow query in the slow-query log, or the endpoint's query run through EXPLAIN with a large row estimate. -->
+![From slow query to timeout](images/gen-2-flow.png)
 
 The worker-exhaustion case is sneakier, because there's nothing wrong with any single request. You have, say, four workers, and four slow requests arrive. Now request five has to wait for a worker to free up, and if that wait plus its own runtime crosses 100 seconds, it 524s while doing nothing at all. That's why 524s often appear only under load and vanish when traffic drops. It looks intermittent. It's really a capacity ceiling.
 
@@ -102,7 +102,7 @@ app.post('/reports', async (req, res) => {
 
 This is a bigger change than flipping a setting, and it's worth it. For the mechanics, [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/) walks through a real queue and worker, [running a long task without hitting a timeout](https://www.kloudbean.com/blog/deploy-long-running-ai-task-without-timeout/) covers the return-immediately pattern end to end, and [splitting an app into API, worker, and database](https://www.kloudbean.com/blog/run-ai-app-api-worker-database/) shows the architecture it leads to. The shape is the same whether the slow thing is a report, a video encode, or an AI call.
 
-<!-- ADD IMAGE: Scheduling recurring off-request work from the Cron Jobs screen, no SSH needed (Kloudbean console: cron-jobs.png). -->
+![Cron Jobs screen in Kloudbean console](images/gen-3-terminal.png)
 
 ## Fixes that cannot work (skip these)
 
@@ -122,15 +122,26 @@ That's mostly about visibility. On Kloudbean, application and server logs sit ne
 
 One thing to be clear about: the background-job fix is your application design. You write the worker and the queue. Kloudbean runs the servers, the managed database, and the cron, and it won't magically move your work into the background or autoscale a standard app for you. What it removes is the server and stack maintenance around all of it, so you spend your time on the slow query rather than on the box it runs on. Seven cloud providers, one dashboard, free SSL, staging for WordPress and Laravel, automatic backups, and free migration assistance if you're moving something already running.
 
-<!-- ADD IMAGE: Server health metrics (CPU, memory, load) beside the app, so a spike in 524s lines up with a spike in load (Kloudbean console: server-health.png). -->
+![New 524s correlated with server load](images/gen-4-graph.png)
 
 ## If you are debugging more than one thing
 
 If you're not sure which number you actually have, start at the [Cloudflare 5xx error codes](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/) overview. The nearest neighbours are [522 connection timed out](https://www.kloudbean.com/blog/cloudflare-error-522-connection-timed-out/) for the handshake that never completes, [523 origin is unreachable](https://www.kloudbean.com/blog/cloudflare-error-523-origin-is-unreachable/) when Cloudflare can't route to your address, and [525 SSL handshake failed](https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/) when the connection works and TLS does not. For the same slow-response family from a different angle, [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/). And for the fix itself, [running a long task without a timeout](https://www.kloudbean.com/blog/deploy-long-running-ai-task-without-timeout/) and [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/).
 
-**See the slow request and the load in one place.** Managed servers across seven clouds, with application and server logs beside CPU, memory, and load metrics, so a 524 is something you can watch rather than guess at. Managed databases to tune the slow query, cron jobs from the UI, free SSL, and free migration assistance if you're moving something already running. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Fewer mysteries on the next deploy.**
 
-Logs and metrics together · Managed databases · Cron from the UI · Free SSL · One dashboard
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
+
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

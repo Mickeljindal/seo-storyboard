@@ -72,11 +72,21 @@ Whatever you pick, get answers to these first. They're the ones people wish they
 
 Go deeper: [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/) for the decision framework, [Render vs Railway vs Kloudbean](https://www.kloudbean.com/blog/render-vs-railway-vs-kloudbean/) and [Cloudways Velocity vs Kloudbean](https://www.kloudbean.com/blog/cloudways-velocity-vs-kloudbean/) for head-to-heads. On the criteria themselves: [cold starts](https://www.kloudbean.com/blog/render-cold-starts-fix/), [metered billing](https://www.kloudbean.com/blog/why-is-my-railway-bill-so-high/), [background workers](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/), [WebSockets at scale](https://www.kloudbean.com/blog/scale-websockets-nodejs/), [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), and [picking a Node version that won't break your deploy](https://www.kloudbean.com/blog/node-version-management/).
 
-## Nine for nine on the criteria that matter
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-Always-on Node under PM2, workers and WebSockets on the same server, seven managed database engines, S3-compatible storage, a built-in load balancer, seven clouds to choose from, and no egress metering, on a flat plan from $8/mo. Free trial and free migration assistance. Start at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Always-on, no cold starts · 7 clouds · 7 managed DB engines · No egress metering · GitHub deploys · Flat from $8/mo
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

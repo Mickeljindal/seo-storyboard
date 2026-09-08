@@ -59,7 +59,7 @@ Access isn't one switch. Real control is granular: can this person do this actio
 
 Access creeps. People change teams, grab a temporary permission, and quietly keep it forever, so six months later half your team holds access they never use. Each stale grant is extra blast radius for the day something goes wrong. The fix is a habit, not a tool: every quarter, pull the who-can-do-what list and prune anything that no longer matches the job.
 
-<!-- ADD IMAGE: a quarterly access-review table an admin can use -->
+![Stale Grants for Removal](images/gen-1-comparison.png)
 
 ## What is role-based access control (RBAC)?
 
@@ -112,17 +112,21 @@ Principles are cheap until a platform lets you enforce them. Here's how they map
 
 Create a subuser for each person, then grant permissions per resource and per action. Granular by design, so your developer can deploy one app without touching billing, the database, or the other twenty projects. This is RBAC and least privilege made concrete.
 
-![The Kloudbean console subusers and User Access Control screen granting least-privilege, per-resource, per-action permissions](../assets/console/subusers-uac.png)
+![Invite a team member from Team Management](../assets/console-real/shots/manage_team_add_user_step_1.png)
+
+![Set the member's overall access level](../assets/console-real/shots/uac_main_access.png)
+
+![Grant granular per-resource, per-action permissions](../assets/console-real/shots/uac_resources_access.png)
 
 *Subusers + UAC: one account per person, with granular per-resource, per-action permissions.*
 
-<!-- ADD IMAGE: a close-up of a single subuser's permission set -->
+![Control access to specific apps and actions](images/gen-2-panel.png)
 
 ### Stronger identity: social login and hardened sessions
 
 Authorization only holds if authentication is solid. Kloudbean supports social login with Google, GitHub, and LinkedIn, so you lean on providers that already do serious identity work instead of minting another password. Sessions use HttpOnly cookies, so a cross-site scripting bug can't read the session token out of JavaScript. As a general best practice, turn on two-factor authentication for every account from your account security settings.
 
-![The Kloudbean console account security screen where you enable two-factor authentication and manage login security](../assets/console/user-2fa-security.png)
+![The Kloudbean console account security screen where you enable two-factor authentication and manage login security](../assets/console-real/shots/updating_account_password.png)
 
 *Account security settings: enable two-factor authentication so a leaked password on its own can't get in.*
 
@@ -134,7 +138,7 @@ Two more controls shrink your attack surface cheaply. IP Access Control allows o
 
 When something changes, both compliance and incident response ask the same question: who did that, and when? On Kloudbean, the Audit Trail is an Enterprise feature: an immutable, searchable, account-wide log of activity with CSV export, built with compliance in mind. It turns a pile of good controls into evidence. For a SOC 2 review or a post-incident timeline, it's the difference between "we think" and "here's the record." The [SOC 2 hosting guide](https://www.kloudbean.com/blog/soc2-compliant-hosting/) shows where that evidence fits.
 
-<!-- ADD IMAGE: the Enterprise audit trail view with a searchable activity log and CSV export -->
+![From activity to CSV export](images/gen-3-flow.png)
 
 Access control is one layer of a bigger picture. For how it sits alongside firewalls, SSL, and backups, see the [shared-responsibility guide to secure, compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/), and the [explainer on what a managed server includes](https://www.kloudbean.com/blog/what-is-a-managed-server/) covers what "managed" handles underneath.
 
@@ -153,11 +157,21 @@ Take the list if nothing else. Do these and you've closed the doors attackers us
 
 Access control and recoverability are two halves of surviving a bad day, so the [guide to server backups and restore testing](https://www.kloudbean.com/blog/server-backups-guide/) covers the other half. Weighing platforms on how seriously they take team access? A read like [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/) beats any homepage checkbox.
 
----
+<!-- cta:start -->
+**One dashboard for the whole stack.**
 
-**Real team access, without the shared password.** Give everyone their own scoped account, keep least privilege by default, and manage it all from one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/), and always confirm current details there.
+Pick from seven clouds, run your app on a managed server you control, and keep databases, storage, and deploys in the same dashboard instead of four separate vendors.
 
-Subusers + UAC · Per-resource, per-action permissions · Social login · IP Access Control · Basic Auth gate · Automatic backups · Audit trail (Enterprise)
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

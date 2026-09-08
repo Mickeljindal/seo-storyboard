@@ -77,11 +77,21 @@ Where that leaves the split: infrastructure alignment, residency, technical cont
 
 Start with [cloud hosting in Saudi Arabia](https://www.kloudbean.com/blog/cloud-hosting-saudi-arabia/) for the how, and [data residency in Saudi Arabia](https://www.kloudbean.com/blog/data-residency-saudi-arabia/) for the residency mechanics. The database heart of it is [managed databases with Saudi data sovereignty](https://www.kloudbean.com/blog/managed-databases-saudi-data-sovereignty/). For the frameworks, [PDPL-compliant hosting](https://www.kloudbean.com/blog/pdpl-compliance-hosting/) and [the NCA CSCC guide](https://www.kloudbean.com/blog/nca-cscc-compliance-guide/), and for the region itself, [the GCP Dammam region guide](https://www.kloudbean.com/blog/gcp-dammam-region-guide/).
 
-## Host to match the national direction.
+<!-- cta:start -->
+**In-Kingdom hosting, managed for you.**
 
-Run your servers, managed databases, and backups in-Kingdom on the Dammam region, aligned with PDPL and the NCA controls, from one dashboard. Start at [kloudbean.com](https://www.kloudbean.com/), and see how the pieces fit in [cloud hosting in Saudi Arabia](https://www.kloudbean.com/blog/cloud-hosting-saudi-arabia/).
+Provision in Google Cloud's Dammam region (me-central2) so the server, the managed database, and the backups all stay on Saudi soil, managed from a single dashboard.
 
-In-Kingdom Dammam region · Managed databases · PDPL and NCA aligned · One dashboard
+- Dammam (me-central2)
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- One dashboard
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [Talk to a cloud expert](https://calendly.com/kloudbean)
+<!-- cta:end -->
 
 ## FAQ
 

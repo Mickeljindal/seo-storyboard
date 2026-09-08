@@ -29,7 +29,7 @@ With a UI-first tool you get a bounded artifact: the screen it generated, roughl
 
 Here's the honest version, and it's not a knock on the tool. An agent that can refactor forty files in one turn can also, in one turn, paste your `OPENAI_API_KEY` straight into a config file because that made the thing run right now. It can hard-code `/Users/you/project/uploads` as a path. It can `npm install` a package and forget to save it. None of that shows up when you hit run locally, because locally all of it happens to work. Read the agent's changes before you trust them. That one habit prevents most of what goes wrong later.
 
-<!-- ADD IMAGE: original SVG diagram of the three review gates, SEE (git diff), SCRUB (grep for keys and paths), LOCK (commit lockfile, pin runtime), then SHIP -->
+![Review the changes](images/gen-1-terminal.png)
 
 The three gates, in order: **1. See** what changed (`git diff --stat`, read it). **2. Scrub** for inlined keys and absolute paths, keep `.env` untracked. **3. Lock** the build with a committed lockfile and a pinned runtime. Then ship.
 
@@ -105,19 +105,19 @@ Reviews done? Now the quick part. Push your reviewed code to GitHub (you can ask
 
 In the [Kloudbean](https://www.kloudbean.com/) console, click **Add Server**. Pick a **Cloud Provider** (AWS, DigitalOcean, Linode, Vultr, GCP, UpCloud, or Lightsail), choose the stack that matches your app (Node.js, or a Python stack), pick the datacenter nearest your users, and give a build 2–4 GB of headroom. **Launch Now** provisions it in a few minutes, with the runtime, web server, process manager, firewall, and SSL already set up.
 
-![Kloudbean Add Server screen: choosing a cloud provider, application stack, datacenter, and server size](../assets/console/add-server.png)
+![Kloudbean Add Server screen: choosing a cloud provider, application stack, datacenter, and server size](../assets/console-real/shots/launch_server_step_1.png)
 
 Open the app and go to **Application Administration → Deploy Code**. Connect GitHub over OAuth, paste your repository URL, pick the branch, and **Clone Repository**. Then fill the runtime fields with the exact commands from your table above: **App Directory** (the folder with your `package.json` or entrypoint), **Port**, **runtime version**, and your **Install / Build / Start** commands. Click **Pull & Deploy** and the build log streams live.
 
-![Kloudbean Deploy Code / Git Deployment screen: connect a repo, then set App Directory, port, and build and start commands](../assets/console/git-deployment.png)
+![Kloudbean Deploy Code / Git Deployment screen: connect a repo, then set App Directory, port, and build and start commands](../assets/console-real/shots/git_connect_step_4.png)
 
 If your app stores data, launch a managed **Postgres** or **MySQL** from **DBS → Launch Database**. It runs on the same box, backed up and secured, and your app reaches it over the local network. If the agent built you a schema and you've a local database, export it and import it here so the deployed app boots with its tables. There's a fuller walkthrough in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
 
-![Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance](../assets/console/launch-database.png)
+![Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance](../assets/console-real/shots/psql_launch_step_1.png)
 
 Now the values you pulled out of the code in review two. In **Runtime Configuration → Environment Variables**, use the **Paste .env Content** tab, drop in your local `.env`, hit **Convert to Key/Value**, and replace the dev values with real ones, starting with the database connection string.
 
-![Kloudbean environment variables editor with a paste .env content tab and key value list](../assets/console/env-vars.png)
+![Kloudbean environment variables editor with a paste .env content tab and key value list](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ```
 DATABASE_URL=postgres://kb_user:generated-pass@postgres-123456.kloudbeansite.com:5432/kb_appdb
@@ -148,7 +148,21 @@ So SSH in and have Claude Code read `app.error.log` with you, interpret the erro
 
 Kloudbean runs Linux stacks: Node, Python, PHP, Ruby, and Java, plus the frameworks on top (React, Next.js, Vue, Django, FastAPI, Laravel). That's essentially everything Claude Code builds for the web. If you had it write a Windows or .NET app expecting IIS, that's a port, not a deploy. "Managed" means the server, the stack, SSL, backups, and patching are handled. Your code and your data stay yours, on a standard Linux box you can move whenever you like. No per-app tax as you grow. For the tool-agnostic version that also covers Cursor, Lovable, Bolt, and v0, there's the [deploy an AI-built app](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) pillar.
 
-**You reviewed it. Now run it.** Take your Claude Code app to production at [kloudbean.com](https://www.kloudbean.com/), with a free trial and your first migration handled for you. Sizes and plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
+
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

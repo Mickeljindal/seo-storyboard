@@ -69,10 +69,10 @@ Four of GDPR's ideas land squarely on hosting. This is the host's homework, and 
 
 **Breach readiness.** GDPR gives you a tight window to report a serious breach, so you need to know when one happened and what it touched. Logging and monitoring matter here. On enterprise accounts, an immutable audit trail (searchable, exportable) is exactly the evidence you'd reach for.
 
-<!-- ADD IMAGE: the Kloudbean console launching a server, where you pick the cloud provider and an EU region for data residency -->
-![The Kloudbean console launching a server, where you pick the cloud provider and the region for data residency](../assets/console/add-server.png)
+![From collection to sharing](images/gen-1-flow.png)
+![The Kloudbean console launching a server, where you pick the cloud provider and the region for data residency](../assets/console-real/shots/launch_server_step_1.png)
 
-<!-- ADD IMAGE: a simple map of your own data flows: what personal data you collect, where it lives, and who you share it with -->
+![Steps to fulfill an erasure request](images/gen-2-flow.png)
 
 ## The rights that live in your code, not your region
 
@@ -82,7 +82,7 @@ The one that trips people up is deletion. Someone asks you to erase their data, 
 
 A basic control that helps: don't scatter the credentials that unlock personal data through your codebase. Keep them as managed, access-controlled environment variables so only the right people and services can reach the data at all.
 
-![The Kloudbean console managing database and app credentials as environment variables with controlled access](../assets/console/env-vars.png)
+![The Kloudbean console managing database and app credentials as environment variables with controlled access](../assets/console-real/shots/nodespm_env_step_1.png)
 
 <!-- ADD IMAGE: your app's delete-account flow, or a data-export screen, showing a real erasure or access request being fulfilled -->
 
@@ -96,11 +96,21 @@ My honest take after seeing plenty of these: pick your region on purpose, sign t
 
 So where does Kloudbean sit in all this? Squarely on the processor's side of the line. It gives you the infrastructure controls your GDPR work stands on: your choice of cloud and EU region, free SSL for encryption in transit, IP allow-listing so your database answers only to your app server, subusers and granular access control for least privilege, automatic backups, and, on enterprise accounts, private networking (VPC) and an immutable audit trail built for exactly this kind of evidence. The servers run on tier-1 clouds whose own data centers carry the major certifications. What Kloudbean does not do, and won't pretend to, is hand you a finished status or make you compliant on its own. That half, the controller's half, stays yours. Sibling reads if you're mapping your whole obligation: [SOC 2 compliant hosting](https://www.kloudbean.com/blog/soc2-compliant-hosting/) and [PCI compliant hosting](https://www.kloudbean.com/blog/pci-compliant-hosting/).
 
----
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-**Get the infrastructure half handled, cleanly.** Build in the region you choose, with the controls that support your GDPR work, on one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/) and see plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-EU-region choice · Free SSL · Automatic backups · Subuser access control · Enterprise audit trail
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## GDPR hosting FAQ
 

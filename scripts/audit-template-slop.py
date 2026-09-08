@@ -51,6 +51,10 @@ sents = collections.defaultdict(list)
 for slug, text in articles:
     body = re.sub(r"^---.*?^---", "", text, flags=re.S | re.M)      # drop front matter
     body = re.sub(r"```.*?```", " ", body, flags=re.S)              # drop code
+    # Drop the conversion block. A CTA is a designed, deliberately consistent
+    # component (the owner reuses one verbatim across live posts), so it is not
+    # the templated editorial prose this audit exists to catch.
+    body = re.sub(r"<!--\s*cta:start\s*-->.*?<!--\s*cta:end\s*-->", " ", body, flags=re.S)
     body = re.sub(r"<!--.*?-->", " ", body, flags=re.S)             # drop author notes
     for h in re.findall(r"^##\s+(.+?)\s*$", body, re.M):
         if h.strip().lower() not in EXEMPT_HEADINGS:

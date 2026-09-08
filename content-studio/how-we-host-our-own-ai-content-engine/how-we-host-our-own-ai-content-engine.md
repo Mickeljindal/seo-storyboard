@@ -47,7 +47,7 @@ The stack is deliberately boring, which is a compliment.
 
 Nothing here is exotic. That's the point. A React-and-Node app, a relational database, one model provider, a couple of outbound API calls. Squint, and it's the same shape as most of the AI apps we help people host.
 
-<!-- ADD IMAGE: the engine's own dashboard, the topic queue and a draft with its quality score -->
+![Real-time data processing](images/gen-1-flow.png)
 
 ## The architecture, mapped to our reference
 
@@ -74,7 +74,7 @@ The managed database is locked down by IP allow-listing. You whitelist the app s
 
 Because the app opens a connection every time it reaches for the database, we keep a pool in front of Postgres rather than opening a fresh connection per query. [Connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) explains why that limit bites earlier than you'd expect.
 
-<!-- ADD IMAGE: the Kloudbean console launching a managed PostgreSQL database, showing the connection details panel -->
+![the Kloudbean console launching a managed PostgreSQL database, showing the connection details panel](../assets/console-real/shots/psql_launch_step_1.png)
 
 ## Why the engine has to stay always-on
 
@@ -97,7 +97,7 @@ The config is small enough to write on a napkin:
 
 That's it. A Docker option exists too, if you'd rather ship an image, but the plain Node app is what we run day to day. The auto-deploy-from-Git flow is written up in [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/), and the discipline of keeping secrets in env vars, never in the code, is in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). We follow both because we got tired of the alternatives.
 
-<!-- ADD IMAGE: the Kloudbean Git deployment view with build logs streaming after a push to main -->
+![Automated deployment process](images/gen-2-flow.png)
 
 ## What this hosting an AI app case study taught us
 
@@ -120,10 +120,21 @@ What it doesn't do, and shouldn't: it doesn't run the model. That's an external 
 That boundary is the honest part. Kloudbean makes the running easy. It doesn't make a draft accurate or a gate strict. Those are our job, and they stay our job.
 
 <div class="cta">
-  <p><strong>Run your own AI app the boring, reliable way: an always-on process with a database that outlives every deploy.</strong></p>
-  <p>The engine you just read about runs on exactly this setup. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-  <p>Always-on Node and Python · Managed PostgreSQL · Env vars in the dashboard · Git deploy · Free SSL · Automatic backups · IP allow-listing</p>
-</div>
+<!-- cta:start -->
+**Take it off localhost for good.**
+
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -87,7 +87,7 @@ The two features that save the most weekends are staging and backups, and they w
 
 Backups are the net for when something slips through anyway. The three things that make a backup real: it runs automatically (a backup you have to remember isn't one), it lives off the box it's protecting (a backup on the same disk dies with the disk), and you can actually restore it yourself. That last one is the step people skip. Test a restore once, before you need it, so you know the path works. When a bad update or a bad query hits, restoring a clean copy is almost always faster and safer than hand-cleaning a broken site.
 
-<!-- ADD IMAGE: the one-click Staging screen creating a staging copy of a live WordPress site, with a push-to-live action. -->
+![One click for staging, then push to live](images/gen-1-flow.png)
 
 ## Security, kept brief
 
@@ -101,19 +101,19 @@ WordPress has been a first-class stack on Kloudbean since launch, alongside WooC
 
 You start by launching a server on the cloud you want (seven providers: AWS, Amazon Lightsail, Google Cloud, DigitalOcean, Vultr, Akamai Linode, and UpCloud) in a region near your audience, then add WordPress as an application. The stack comes tuned, hardened, and SSL-ready, not a bare box you configure.
 
-![The Kloudbean Add Server page: choosing a cloud provider and region for a WordPress site](../assets/console/add-server.png)
+![The Kloudbean Add Server page: choosing a cloud provider and region for a WordPress site](../assets/console-real/shots/launch_server_step_1.png)
 
-![The Kloudbean Add Application screen with WordPress selected as the application stack](../assets/console/add-application.png)
+![The Kloudbean Add Application screen with WordPress selected as the application stack](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 WordPress stores its data in MySQL or MariaDB, and on Kloudbean those are managed engines: provisioned, secured, kept off the public internet, and backed up. Add a managed Redis alongside it and you've got the object cache that keeps a busy site quick. That's the caching layer a plugin can't reach, running as real infrastructure.
 
-![The Kloudbean Launch Database screen showing managed MySQL and MariaDB for WordPress, plus Redis for object caching](../assets/console/launch-database.png)
+![The Kloudbean Launch Database screen showing managed MySQL and MariaDB for WordPress, plus Redis for object caching](../assets/console-real/shots/psql_launch_step_1.png)
 
 From there you get the managed WordPress toolkit: one-click staging, automatic backups with self-serve restore, free auto-renewing SSL, cron jobs from the dashboard without SSH, and WP-CLI when you want the command line (see the [WordPress CLI guide](https://www.kloudbean.com/blog/wordpress-cli-guide/)). Cloudflare, including its Enterprise edge caching, is available as an add-on for extra speed at the edge (included for Enterprise accounts). And it's all in one dashboard next to any other apps, databases, and storage you run, with one login and one bill.
 
-<!-- ADD IMAGE: the WordPress application overview showing the live URL, PHP version, cache controls, staging, and backups in one panel. -->
+![From live URL to database](images/gen-2-flow.png)
 
-<!-- ADD IMAGE: the Domain & SSL screen adding a custom domain and installing a free auto-renewing certificate. -->
+![Steps for adding a custom domain and SSL](images/gen-3-flow.png)
 
 If a WordPress database ever refuses to connect, the fix is usually a config detail, and we walked the whole thing in [error establishing a database connection](https://www.kloudbean.com/blog/fix-error-establishing-database-connection-wordpress/).
 
@@ -132,11 +132,20 @@ Weighing us against the usual managed-WP names? The honest head-to-heads are [Kl
 
 Two things, plainly. Kloudbean runs WordPress on a **Linux and PHP** stack, the environment WordPress was built for, so this is a strong fit, not a stretch. And "managed" is a split, not a takeover: the platform runs the server, the stack, caching, SSL, and backups, while you still own your content, your plugin choices, your theme, and your users. On compliance, treat it as shared responsibility. The platform provides the infrastructure controls and keeps maturing them; the application-level compliance of your specific site stays yours. That division is the honest version of "managed," and it's a good deal precisely because it's clear about who does what.
 
----
+<!-- cta:start -->
+**WordPress, without the server admin.**
 
-**You write the posts. We run the stack.** Managed WordPress on infrastructure you own, with caching, staging, backups, and free SSL handled for you. Start at [kloudbean.com](https://www.kloudbean.com/); check current plans on [pricing](https://www.kloudbean.com/pricing/).
+Run WordPress and WooCommerce on a managed server with a staging site, automatic backups, free auto-renewing SSL, and a managed MySQL or MariaDB beside it. Pick the cloud and the region yourself.
 
-One-click staging · Managed MySQL & Redis · Automatic backups · Free auto-renewing SSL · Firewall + brute-force banning · Free migration · Free trial
+- Managed WordPress stack
+- One-click staging
+- Managed MySQL and MariaDB
+- Automatic backups
+- Free SSL
+- Built-in load balancer
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

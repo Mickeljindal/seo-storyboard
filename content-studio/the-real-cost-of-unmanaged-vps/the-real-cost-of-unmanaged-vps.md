@@ -42,7 +42,7 @@ Here's the work the sticker leaves out, the mass under the surface. None of it i
 - **Monitoring.** Something has to tell you the disk is full or the site is down before your users do. That's another thing to set up, and then to actually watch.
 - **Incident response.** When it falls over, and eventually something will, you are the on-call engineer. At 2am. On a holiday. This is the line item that hurts most and appears on no invoice.
 
-<!-- ADD IMAGE: a photo or mockup that says "on-call" (a terminal full of red errors at 2am, or a phone showing a downtime alert). -->
+![Drives home the incident-response line item](images/gen-1-terminal.png)
 
 ## Put a number on your time
 
@@ -60,7 +60,7 @@ This is where the sticker quietly becomes something else. Assign your time even 
 
 Add the few-dollar server and that "cheap" VPS is really running somewhere in the low hundreds a month once your time is counted, and that's a calm month with only average firefighting. The first month, with multi-hour setup on top, is worse. My honest opinion after watching this play out many times: a five-dollar VPS was never five dollars. It's five dollars plus every hour it takes to keep alive, and for anyone whose hours are worth more than a rounding error, that math usually loses.
 
-<!-- ADD IMAGE: a napkin-math sketch of hours times your hourly rate, or a calendar full of recurring maintenance tasks. -->
+![Estimate your time cost](images/gen-2-flow.png)
 
 ## Where it really bites: the month you skip a step
 
@@ -86,9 +86,9 @@ Managed costs more on the sticker precisely because it removes the rows below th
 
 If you go managed, the useful move is to size the actual server you need and see the rate before you provision, rather than guessing and truing up later.
 
-![The Kloudbean console: pick a cloud provider and server size and see the price before you provision, with management included](../assets/console/add-server.png)
+![The Kloudbean console: pick a cloud provider and server size and see the price before you provision, with management included](../assets/console-real/shots/launch_server_step_1.png)
 
-<!-- ADD IMAGE: the add-application or Git deployment screen, showing the app going live without any manual server setup. Console screenshot: add-application.png or git-deployment.png fits here. -->
+![Steps to go live](images/gen-3-flow.png)
 
 ## When a cheap VPS still wins
 
@@ -100,11 +100,21 @@ Honesty cuts both ways, so here's when unmanaged genuinely is the better buy.
 
 For a real product that needs to stay up, though, the calculation almost always favors buying those hours back. Your attention is the scarce resource, not five dollars. If you're still weighing it, [free tier vs cheap VPS](https://www.kloudbean.com/blog/free-tier-vs-cheap-vps/) and [what a side project really costs](https://www.kloudbean.com/blog/cost-of-running-a-side-project/) come at the same question from other angles, and [cutting your cloud bill](https://www.kloudbean.com/blog/how-to-cut-your-cloud-bill/) covers trimming whatever you land on.
 
----
+<!-- cta:start -->
+**Ship the app, not the infrastructure.**
 
-**See the all-in number, not the down payment.** Size the server you actually need at [kloudbean.com](https://www.kloudbean.com/), with setup, patching, free SSL, and automatic backups included, across seven clouds and one dashboard. Plans on [pricing](https://www.kloudbean.com/pricing/), and migration is free.
+Pick from seven clouds, run your app on a managed server you control, and keep databases, storage, and deploys in the same dashboard instead of four separate vendors.
 
-Managed setup · Automatic patching · Free SSL · Automatic backups · Free migration · Free trial
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

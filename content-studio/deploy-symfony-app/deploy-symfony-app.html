@@ -119,14 +119,28 @@ DATABASE_URL="postgresql://appuser:secret@postgres-123456.kloudbeansite.com:5432
 composer dump-env prod</code></pre>
 
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean console environment variables screen showing a Symfony app's APP_ENV, APP_SECRET and DATABASE_URL set on the server">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean console environment variables screen showing a Symfony app's APP_ENV, APP_SECRET and DATABASE_URL set on the server">
     <figcaption>Environment variables set in the console. <code>APP_ENV=prod</code>, <code>APP_SECRET</code>, and <code>DATABASE_URL</code> live on the server, not in the repo.</figcaption>
   </figure>
 
   <p>The deeper reasoning on keeping secrets out of code, and the mistakes people make rotating them, is in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
 
   <!-- ADD IMAGE: a code editor showing .env vs .env.local side by side, with the placeholder value in .env and the real secret in .env.local. Swap for a real screenshot: src -> images/env-files.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The two env files side by side: safe placeholders in .env, the real secret in .env.local.</em><small>Makes the "which file do I edit" question concrete.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #1
+Create a side-by-side comparison table for a technical blog post titled "Deploy a Symfony App to Production, the Honest Way".
+
+What it must show: The two env files side by side: safe placeholders in .env, the real secret in .env.local.
+Also: Makes the "which file do I edit" question concrete.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-comparison.png" alt="The two env files side by side: safe placeholders in .env, the real secret in .env.local.">
+    <figcaption>Which file to edit for secrets</figcaption>
+  </figure>
 
   <h2>The production build: install without dev, then warm the cache</h2>
   <p>A production Symfony deploy runs a fixed set of commands, in order, every time. Each has a purpose and a matching failure mode. This is the part generic PHP tutorials skip, so here's the whole sequence with the reasons attached.</p>
@@ -172,7 +186,21 @@ setfacl -dR -m u:www-data:rwX var</code></pre>
   <p>On a managed PHP server this is handled for you: the deploy runs as the right system user and the web root already has the correct ownership, so the classic <code>var/</code> 500 mostly stops being your problem. Worth knowing why it happens anyway, because the day you SSH in and run a console command as the wrong user, you'll recognize the error on sight.</p>
 
   <!-- ADD IMAGE: a terminal showing the "Unable to write in the cache directory" error, then the setfacl fix and a working page. Swap for a real screenshot: src -> images/var-permissions.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The var/cache permissions error in a log, next to the ACL fix that clears it.</em><small>The single most common first-deploy Symfony 500.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "Deploy a Symfony App to Production, the Honest Way".
+
+What it must show: The var/cache permissions error in a log, next to the ACL fix that clears it.
+Also: The single most common first-deploy Symfony 500.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="The var/cache permissions error in a log, next to the ACL fix that clears it.">
+    <figcaption>Common first-deploy Symfony 500</figcaption>
+  </figure>
 
   <h2>Run Doctrine migrations on every deploy</h2>
   <p>If you use Doctrine (most Symfony apps do), your schema lives in migration classes, and production applies them with one command:</p>
@@ -196,7 +224,7 @@ DATABASE_URL="mysql://appuser:secret@127.0.0.1:3306/appdb?serverVersion=8.0"</co
   <p>One production note. PHP opens a database connection per request, so a busy app opens and closes a lot of them; watch your database's connection limit as traffic grows. And set <code>serverVersion</code> correctly in the URL, since Doctrine uses it to decide which SQL features are safe to emit.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean Launch Database screen: creating a managed PostgreSQL instance on the same server as a Symfony app">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean Launch Database screen: creating a managed PostgreSQL instance on the same server as a Symfony app">
     <figcaption>Launch Database: a managed PostgreSQL or MySQL on the same server, reached over the local network and backed up automatically.</figcaption>
   </figure>
 
@@ -229,12 +257,12 @@ DATABASE_URL="mysql://appuser:secret@127.0.0.1:3306/appdb?serverVersion=8.0"</co
   <p>Connect your Git repository under <strong>Application Administration &#8594; Deploy Code &#8594; Git Deployment</strong> and put the build sequence (Composer, cache warmup, migrations, assets) into the build step. The start side is PHP-FPM already serving <code>public/index.php</code>.</p>
 
   <figure>
-    <img src="../assets/console/add-application.png" alt="The Kloudbean Add Application screen: creating a PHP application to host a Symfony app on the managed stack">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="The Kloudbean Add Application screen: creating a PHP application to host a Symfony app on the managed stack">
     <figcaption>Add an application on the managed PHP stack. Symfony deploys as a PHP app, no bespoke server build required.</figcaption>
   </figure>
 
   <figure>
-    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Deploy Code / Git Deployment screen with a Symfony repo connected and the Composer and console build sequence set">
+    <img src="../assets/console-real/shots/git_connect_step_4.png" alt="The Kloudbean Deploy Code / Git Deployment screen with a Symfony repo connected and the Composer and console build sequence set">
     <figcaption>Deploy Code &#8594; Git Deployment: connect the repo, set the build sequence, then Pull &amp; Deploy. The build log streams live so you watch the warmup and migrations run.</figcaption>
   </figure>
 
@@ -243,7 +271,21 @@ DATABASE_URL="mysql://appuser:secret@127.0.0.1:3306/appdb?serverVersion=8.0"</co
   <div class="note"><b>Running background work?</b> If your app uses Symfony Messenger for async jobs, that's a long-lived worker process, kept alive by the server and restarted on deploy so it picks up new code. This guide stays on the web-request path; the worker pattern deserves its own walkthrough.</div>
 
   <!-- ADD IMAGE: the live build log streaming composer install, cache:warmup and doctrine:migrations:migrate output during a deploy. Swap for a real screenshot: src -> images/build-log.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The live build log during a deploy: composer install, cache warmup, then migrations running line by line.</em><small>Where a broken deploy shows itself first.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #3
+Create a left-to-right architecture / flow diagram for a technical blog post titled "Deploy a Symfony App to Production, the Honest Way".
+
+What it must show: The live build log during a deploy: composer install, cache warmup, then migrations running line by line.
+Also: Where a broken deploy shows itself first.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-flow.png" alt="The live build log during a deploy: composer install, cache warmup, then migrations running line by line.">
+    <figcaption>Live build log during a deploy</figcaption>
+  </figure>
 
   <h2>When the first deploy goes sideways</h2>
   <p>Symfony's opening-night failures are few and predictable, and each maps to something above. Read the log before you change code on a hunch.</p>
@@ -260,10 +302,56 @@ DATABASE_URL="mysql://appuser:secret@127.0.0.1:3306/appdb?serverVersion=8.0"</co
   <p>Symfony is PHP, and PHP on Linux is what a managed server runs, so none of this is a workaround. Kloudbean keeps the box healthy: the PHP runtime, PHP-FPM and nginx, free SSL, the Shorewall and Fail2ban baseline, and server-level backups, on whichever of its seven clouds you pick. You own the Symfony app: its environment variables, its Doctrine migrations, its cache warmup, the <code>public/</code> docroot the platform already points at. Clean split, and it's the arrangement most PHP teams actually want. If your app were .NET on IIS this wouldn't be your platform. For PHP and Symfony, it's home turf.</p>
   <p>Building elsewhere in the same stack? The closest sibling is <a href="https://www.kloudbean.com/blog/deploy-laravel-app/">deploy a Laravel app</a>, the other big PHP framework, with its own set of production quirks around queues and the artisan sequence. Same platform, different sharp edges.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Warmed, migrated, and served from public/. That's a Symfony deploy.</p>
-    <p style="margin:0">Deploy your Symfony app on a server you own at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Managed MySQL &amp; PostgreSQL · Automatic backups · Free auto-renewing SSL · Git deploy with live build logs · Free migration · Free trial. Server sizes are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">Prototype to production, without the babysitting.</p>
+    <p class="kbcta-ai-description">Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

@@ -158,9 +158,21 @@ Use it when the environment is genuinely complicated, when a team needs identica
 One more thing, because it trips people up constantly. If your app runs locally but falls over on the server, that's almost never a Docker problem. It's usually config, and [why your AI app works locally but not in production](https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/) walks through the usual suspects. Getting an AI-built app live end to end is covered in [deploy your AI-built app to production](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/).
 
 <div class="cta">
-  <p><strong>Want the simple path?</strong></p>
-  <p>Skip the Dockerfile and deploy straight from Git. Kloudbean connects to your Git repo and builds and deploys your Node or Python app on every push, so you can spend your time on the product instead of maintaining a container. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> and see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-</div>
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
+
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

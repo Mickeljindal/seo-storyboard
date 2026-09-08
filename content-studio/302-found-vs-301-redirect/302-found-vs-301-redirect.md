@@ -145,11 +145,20 @@ Beyond that, this is a decision rather than a feature: pick the code that matche
 
 When two rules disagree, [ERR_TOO_MANY_REDIRECTS](https://www.kloudbean.com/blog/err-too-many-redirects/). For the 303 pattern after a form submission, [ERR_CACHE_MISS](https://www.kloudbean.com/blog/err-cache-miss/). On conditional responses and caching, [304 Not Modified](https://www.kloudbean.com/blog/304-not-modified/). For HTTPS and certificates, [custom domain and SSL](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/) and [fixing SSL certificate errors](https://www.kloudbean.com/blog/fix-ssl-certificate-errors/). On headers including HSTS, [the security headers guide](https://www.kloudbean.com/blog/security-headers-guide/). And for the proxy layer, [the nginx reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/).
 
-## Test the rule before your visitors do
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-Managed servers with free SSL issued and renewed, one-click staging for testing redirect rules against real old URLs, and everything in one dashboard from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-Free SSL · Staging sites · Managed nginx · One dashboard · Flat from $8/mo
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -102,11 +102,20 @@ And the part no platform can do, ours firmly included: nothing about where you d
 
 The other resource-exhaustion error is [JavaScript heap out of memory](https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/), which is RAM rather than descriptors. Leaks often trace back to connections, so [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) and [scaling WebSockets in Node](https://www.kloudbean.com/blog/scale-websockets-nodejs/) are close neighbours, and [graceful shutdown](https://www.kloudbean.com/blog/graceful-shutdown-nodejs/) covers closing things cleanly. For where to run Node, [the managed Node.js hosting guide](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/).
 
-## Run Node where the limits are sane and the process is watched.
+<!-- cta:start -->
+**Read the log, fix it, ship again.**
 
-Kloudbean runs your app under PM2 on a system tuned for real workloads, so a bad deploy restarts cleanly while you fix the cause, and legitimate concurrency has room. Managed servers, managed databases with pooling, Git deploys. Start at [kloudbean.com](https://www.kloudbean.com/), or see [the managed Node.js hosting guide](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/).
+Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.
 
-Sensible system limits · PM2 process supervision · Managed pooled databases · Git deploys
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

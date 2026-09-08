@@ -94,11 +94,20 @@ One honest asymmetry worth knowing before you choose. Staging sites on Kloudbean
 
 On the WordPress side, [managed WordPress hosting](https://www.kloudbean.com/blog/managed-wordpress-hosting/), [secure WordPress hosting](https://www.kloudbean.com/blog/secure-wordpress-hosting/), [staging environments](https://www.kloudbean.com/blog/wordpress-staging-environment/), and [speeding up WordPress](https://www.kloudbean.com/blog/speed-up-wordpress/). For commerce, [WooCommerce hosting](https://www.kloudbean.com/blog/woocommerce-hosting/). On the database underneath both, [MariaDB vs MySQL](https://www.kloudbean.com/blog/mariadb-vs-mysql/). For the failure mode that dominates both platforms, [the critical error guide](https://www.kloudbean.com/blog/there-has-been-a-critical-error-on-this-website/). And on backups you can actually restore, [the backups guide](https://www.kloudbean.com/blog/server-backups-guide/).
 
-## Choose the CMS, not the platform that limits you to one
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-WordPress, WooCommerce, Joomla, Drupal, Magento, and Laravel as one-click installs on managed servers across seven clouds, with managed MySQL and MariaDB, free SSL, and automatic backups from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-One-click WordPress and Joomla · 7 clouds · Managed databases · Free SSL · Flat from $8/mo
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -52,7 +52,7 @@ On top of that, the shared account is deliberately locked down, and each limit b
 
 None of this is a knock on cPanel. These are the classic cPanel limitations, and they exist because the platform does one job (serve PHP cheaply and safely to a lot of tenants) well. It just wasn't built for a program that has to stay alive.
 
-<!-- ADD IMAGE: a two-lane diagram in brand colors (navy #000f27, purple #4F1AF3, green #40b75f). Top lane "shared cPanel, PHP per request": three short-lived PHP worker boxes that spin up and exit, with "nothing running" gaps between them. Bottom lane "long-running process, Node/Python": one persistent green box "app process, stays alive" holding tags for event loop, websocket open, background job. -->
+![From cPanel to 500 / Passenger Error](images/gen-1-flow.png)
 
 *Shared cPanel hosting starts a PHP worker per request and ends it when the page is sent. An AI-built app is one process the server has to keep alive, which is the thing shared hosting can't give it.*
 
@@ -141,9 +141,20 @@ Kloudbean is one option shaped like that. It runs WordPress plus Node, Python, R
 
 One honest boundary, because it decides who owns what when you're the one being paid to keep it running: the managed part covers the server, the stack, TLS, backups, and patching. The client's app code and their data stay yours and the client's to own. That line is worth putting in the contract.
 
----
+<!-- cta:start -->
+**Let someone else patch the server.**
 
-**You don't have to leave WordPress to take AI work.** Run the WordPress fleet and the new apps in one place at [kloudbean.com](https://www.kloudbean.com/). Plans on [pricing](https://www.kloudbean.com/pricing/). Runs WordPress and Node / Python · Managed databases · Staging · Automatic backups · Free SSL · Free migration · Free trial · Simple Git deploy.
+The stack, the patching, SSL, and backups are handled, so your work stays on the site rather than the box. Staging is one click, and the managed database sits right next to the app.
+
+- Managed WordPress stack
+- One-click staging
+- Managed MySQL and MariaDB
+- Automatic backups
+- Free SSL
+- Built-in load balancer
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

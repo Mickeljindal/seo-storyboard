@@ -132,9 +132,20 @@ The row I want to underline is the slow-pages one, because it's where the most m
 
 For the rows that are infrastructure, though, the cheap fix is the point. A managed server with a managed database, automatic backups, SSL and Git deploys covers rows one, two, three and seven without a control plane in sight, and the built-in load balancer covers row two properly when a blip actually costs you something. That's the setup most SaaS run on for years. If you genuinely arrive at rows six and eight, with the services and the team to match, Kubernetes is waiting, and on Kloudbean it's an Enterprise conversation rather than something you were supposed to figure out alone at launch. Containerise early, keep it boring, and let the symptom pick the layer.
 
----
+<!-- cta:start -->
+**When the standard shape is not enough.**
 
-**Run the SaaS, not a cluster.** If you need a managed server, a managed database, backups, and SSL, with room to add another app server behind a built-in load balancer as you grow, that's what Kloudbean is for. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+For workloads that need orchestration, private networking, or a custom architecture, Kloudbean operates it as an Enterprise engagement, acting like your in-house infrastructure team.
+
+- Kubernetes (Enterprise)
+- Autoscaling (Enterprise)
+- Private networking (Enterprise)
+- Audit trail (Enterprise)
+- Custom architecture
+- In-Kingdom available
+
+[Start free](https://console.kloudbean.com/register) · [Talk to a cloud expert](https://calendly.com/kloudbean)
+<!-- cta:end -->
 
 ## FAQ
 

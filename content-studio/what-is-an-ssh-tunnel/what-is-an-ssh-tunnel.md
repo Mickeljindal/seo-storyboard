@@ -139,9 +139,21 @@ Host db-tunnel
 
 If a tunnel needs to survive a dropped link, `autossh` restarts it for you. For reaching a managed database, the normal pattern is a local forward through your app server or a jump host, paired with IP allow-listing on the database so only that server is allowed to connect. On a Kloudbean [managed server](https://www.kloudbean.com/blog/what-is-a-managed-server/) you get full SSH access, so every command in this guide works as written. And if you want resources to sit on a standing private network rather than a per-session tunnel, that is a job for a VPC, not SSH forwarding.
 
----
+<!-- cta:start -->
+**One dashboard for the whole stack.**
 
-**Tunnels are a tool, not a home for your infrastructure.** Kloudbean gives you full SSH access to every managed server, so the forwarding patterns here work out of the box. Full SSH access · Managed servers · Automatic backups · Free SSL · IP allow-listing · Free migration. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+Pick from seven clouds, run your app on a managed server you control, and keep databases, storage, and deploys in the same dashboard instead of four separate vendors.
+
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

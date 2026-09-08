@@ -140,11 +140,20 @@ The honest limit: a managed platform cannot stop your code from loading fifty th
 
 For the full family and how to tell the codes apart, see [Cloudflare error codes 520 to 527](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/). Its closest neighbours: [error 521](https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/) and [error 525](https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/). For the upstream layer where these often surface, [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/) and [the nginx reverse proxy setup](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). To move session data out of cookies, [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/). And when a request is simply doing too much, [background jobs](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/).
 
-## Stop guessing which limit you hit
+<!-- cta:start -->
+**Read the log, fix it, ship again.**
 
-Managed servers with PHP, FPM, and nginx configured and tuned, visible memory and load metrics, managed Redis for real session storage, and a resize when the answer is more memory. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-Managed servers · Tuned PHP and nginx · Managed Redis · Server metrics · One dashboard
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

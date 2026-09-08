@@ -100,11 +100,20 @@ Most of these bugs hide in the gap between "my laptop" and "the server." A consi
 
 Clean builds and config prevent most of these. See [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) for a build that runs on every push, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) for the config side, and framework guides like [deploy an Express app](https://www.kloudbean.com/blog/deploy-express-app/) and [deploy a NestJS app](https://www.kloudbean.com/blog/deploy-nestjs-app/). Chasing a different error? Try [ECONNREFUSED in Node.js](https://www.kloudbean.com/blog/fix-econnrefused-node/) or [EADDRINUSE: port already in use](https://www.kloudbean.com/blog/fix-eaddrinuse-port-already-in-use-node/).
 
-## Build on the server, every push
+<!-- cta:start -->
+**Read the log, fix it, ship again.**
 
-Deploy your Node app from GitHub with managed CI/CD that runs your install and build in a real Linux environment and streams the logs live, so "Cannot find module" shows up in the build, not in production. Flat pricing from $8/mo. Start at [kloudbean.com](https://www.kloudbean.com/).
+Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.
 
-GitHub deploys · Live build logs · Consistent Linux builds · Always-on Node · Flat from $8/mo
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

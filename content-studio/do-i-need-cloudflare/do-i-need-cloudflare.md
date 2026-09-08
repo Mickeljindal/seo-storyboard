@@ -119,9 +119,21 @@ Here's the part people forget: some of what you'd reach to Cloudflare for might 
 
 Kloudbean is one example. Every Kloudbean server comes with free SSL and baseline hardening (a Shorewall firewall plus Fail2ban) as standard, so the "I have zero protection" starting point isn't where you begin. If you do want Cloudflare's edge on top, it's available as a paid add-on on any plan, and included for Enterprise. Two honest caveats, though: Cloudflare isn't unique to Kloudbean (plenty of hosts resell it), and it isn't free for everyone here (the add-on is paid outside Enterprise). The useful takeaway is simpler than any sales pitch. Check what your host already gives you before assuming you must bolt Cloudflare on.
 
----
+<!-- cta:start -->
+**Ship the app, not the infrastructure.**
 
-**Turn on the parts you need, skip the rest.** If you'd rather start on a host that already covers the basics, Kloudbean ships free SSL and baseline server hardening (Shorewall plus Fail2ban) as standard, with Cloudflare available as an optional paid add-on. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/). Free SSL · Baseline hardening · Automatic backups · Managed databases · Free migration · Simple Git deploy.
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
+
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

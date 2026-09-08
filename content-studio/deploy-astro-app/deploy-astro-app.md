@@ -11,7 +11,7 @@ secondary_keywords:
   - astro output mode
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 3 — App Deployment Tutorials
+cluster: 3 - App Deployment Tutorials
 ---
 
 ![Deploy an Astro app: static files or a live server, decided by one config line](images/hero.png)
@@ -54,7 +54,7 @@ One config line, three deploy targets
   output: 'server' + adapter  -> dist/server/entry.mjs  -> Always-on Node server
 ```
 
-<!-- ADD IMAGE: your astro.config.mjs open in the editor with the output line highlighted -->
+![Specify the build destination](images/gen-1-panel.png)
 
 ## The blank-page trap: shipping server routes as static
 
@@ -106,11 +106,11 @@ npm run build   # Astro writes your whole site into dist/
 
 Publish that `dist/` folder to object storage, put a CDN in front, and you're done. There's no app server to keep alive, nothing to patch, and a traffic spike is the CDN's problem, not yours. On Kloudbean this is the **free static site hosting** path: point it at your repo, set the build, publish `dist/`, then add a custom domain with free SSL. You even get built-in visit analytics without bolting on a third-party script. Connect the Git repo once and every push rebuilds and republishes.
 
-![The Kloudbean console connecting a Git repo so each push rebuilds and republishes the static Astro site](../assets/console/git-deployment.png)
+![The Kloudbean console connecting a Git repo so each push rebuilds and republishes the static Astro site](../assets/console-real/shots/git_connect_step_4.png)
 
 Point the domain, let the platform issue SSL, and the site is live. Here's the deeper walkthrough on [custom domain and SSL setup](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/), and on wiring up [auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) so you never hand-upload a build again.
 
-<!-- ADD IMAGE: your static Astro site live in the browser with a custom domain and the SSL padlock -->
+![Proof the process booted](images/gen-3-terminal.png)
 
 ## When you actually need a server (and how to deploy it)
 
@@ -143,11 +143,11 @@ HOST=0.0.0.0 PORT=$PORT node ./dist/server/entry.mjs
 
 On Kloudbean you add it as an application on a server, set that start command, and the platform supervises the process, restarting it if it crashes. This is exactly the flow in the [deploy a Node app guide](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/), and it applies unchanged to server-mode Astro.
 
-![The Kloudbean console adding a server-mode Astro app as an application on a server](../assets/console/add-application.png)
+![The Kloudbean console adding a server-mode Astro app as an application on a server](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 One thing to get right: the port. If you hard-code a port instead of reading `$PORT`, the process can start but never receive traffic, and you get the classic 503. If that bites you, the [503-after-deploy fix](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/) walks through it. Any secrets or config the server needs (a database URL, an API key) go in environment variables, set in the dashboard, not committed to the repo.
 
-![The Kloudbean console environment variables screen for a server-mode Astro app](../assets/console/env-vars.png)
+![The Kloudbean console environment variables screen for a server-mode Astro app](../assets/console-real/shots/nodespm_env_step_1.png)
 
 More on doing this safely in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). And if your server-mode app needs to persist anything, that's when you reach for a real datastore rather than a file on disk. Here's how to [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
 
@@ -177,11 +177,21 @@ Worth knowing, because it shapes what you deploy: Astro ships **zero JavaScript 
 
 Default to static. It's cheaper, simpler, and scales without effort, and for the content-heavy sites Astro excels at, it's everything you need. Reach for server (or hybrid) only when a page must be decided at request time. And because switching is one config line plus an adapter, you're never locked in. Start static. If a feature later needs the server, add the adapter, mark that route, redeploy. You don't have to pick perfectly up front, and you don't have to change hosts to change your mind.
 
----
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-**One project, two ways to ship. Your call.** Deploy your Astro site static or server on Kloudbean, and switch modes later without switching hosts. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Free static hosting · Custom domain + SSL · Built-in visit analytics · Node process for SSR · Git auto-deploy with live build logs · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

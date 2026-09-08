@@ -11,7 +11,7 @@ secondary_keywords:
   - right-size cloud server
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 8 — Pricing, Cost & SaaS Consolidation
+cluster: 8 - Pricing, Cost & SaaS Consolidation
 ---
 
 ![A cost audit to cut your cloud bill, ordered by biggest lever first](images/hero.png)
@@ -46,9 +46,9 @@ Most single-app servers sit mostly idle. So co-hosting a few apps, plus their da
 
 Consolidation is also where the pricing model matters. Scattered metered services give you a bill that moves every month. One server on a flat, predictable plan gives you a number you can actually budget, and it's often cheaper once you total all those little per-unit charges you stopped noticing.
 
-![The Kloudbean console showing server sizes and prices, used to right-size and consolidate several apps onto one predictable server](../assets/console/add-server.png)
+![The Kloudbean console showing server sizes and prices, used to right-size and consolidate several apps onto one predictable server](../assets/console-real/shots/launch_server_step_1.png)
 
-<!-- ADD IMAGE: a simple before and after (a scatter of many small metered services on the left, one consolidated server on the right). Keep it abstract, no real vendor logos needed. -->
+![Before and after cost reduction](images/gen-1-comparison.png)
 
 ### 3. Plug the egress leak
 
@@ -58,7 +58,7 @@ For a lot of bills the biggest surprise isn't compute. It's egress, the charge f
 
 Cloud accounts collect ghosts. A server spun up for a test and never deleted. A storage volume detached from any server but still billing. A reserved IP attached to nothing. Each charges you for exactly nothing. Audit the account and delete the unused. Be careful and confirm before removing anything holding data, but a zombie hunt almost always turns up a line or two paying for air. Do it every few months and it stays clean.
 
-<!-- ADD IMAGE: an itemized cloud bill with the biggest line and a couple of zombie line items highlighted. Blur account numbers. -->
+![Identify and eliminate unnecessary costs](images/gen-2-flow.png)
 
 ### 5. Prune the snapshots and backups piling up
 
@@ -81,7 +81,7 @@ If you want the whole audit on one screen:
 | **Snapshot pile-up** | Creeps quietly | Set retention, archive cold data cheaply |
 | **Non-prod running 24/7** | Small per env | Schedule it off out of hours |
 
-<!-- ADD IMAGE: a cloud spend graph trending down after the audit, or the budget-alert settings screen. Blur real figures. -->
+![Budget alerts trigger cost-saving measures](images/gen-3-graph.png)
 
 ## A cheaper app that's also faster? Cache.
 
@@ -93,11 +93,21 @@ Two habits make the whole audit stick. Keep the budget alert on, so the next cre
 
 Honestly, on managed hosting there's simply less to hunt. Right-sized plans, included backups with sane retention, one dashboard instead of a dozen metered services, object storage for the heavy files. A lot of the efficiency this audit chases is already shaped for you, so the bill starts closer to what you actually use. If you're comparing that against a raw box, [the real cost of an unmanaged VPS](https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/) does the full math.
 
----
+<!-- cta:start -->
+**Own the server. Skip the server admin.**
 
-**Pay for what you use, not what you forgot.** Consolidate your apps and databases onto one server with predictable pricing, object storage for the heavy files, and included backups, all on one dashboard, at [kloudbean.com](https://www.kloudbean.com/). Plans on [pricing](https://www.kloudbean.com/pricing/), and migration help is free.
+Pick from seven clouds, run your app on a managed server you control, and keep databases, storage, and deploys in the same dashboard instead of four separate vendors.
 
-Predictable pricing · One dashboard · Object storage · Automatic backups · Free migration · Free trial
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

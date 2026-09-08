@@ -61,7 +61,7 @@ Score each candidate on those five and the "best" alternative usually picks itse
 
 This is where Kloudbean sits, and it's the category built for "my needs grew." You get managed hosting across **seven clouds** (AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, UpCloud), plus apps in many languages, six managed databases, object storage, and a load balancer, all under one login. Provisioning starts with picking the provider:
 
-![The Kloudbean console launching a server, with a choice of seven cloud providers](../assets/console/add-server.png)
+![The Kloudbean console launching a server, with a choice of seven cloud providers](../assets/console-real/shots/launch_server_step_1.png)
 
 The reason this category answers "I outgrew PHP" is simple. It doesn't assume PHP. You can run WordPress and WooCommerce (Kloudbean does both, since launch), and also a Node.js or Python service, a Java workload, a static frontend, or a one-click app like n8n or Supabase, next to each other. More on that fit in the [Kloudbean vs Cloudways head-to-head](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/).
 
@@ -77,7 +77,7 @@ These make managing your own server far less painful. You point the panel at a V
 
 Push code, it builds and runs, you never see a server. Lovely for small apps and quick launches. The tradeoffs are real though: less visibility into the box underneath, occasional trouble when you need to reason about it, and costs that can climb as certain workloads scale. It's a different model from Cloudways, not a like-for-like swap. Worth it when zero server ops is the priority.
 
-<!-- ADD IMAGE: your current setup spread across separate tabs (host, database, storage, CDN) next to one consolidated dashboard -->
+![Continuous integration and deployment](images/gen-2-flow.png)
 
 ## Best for, and the catch, at a glance
 
@@ -94,7 +94,7 @@ Every host can claim to be "the best." Cloud count is checkable. Kloudbean runs 
 
 The rest of the pitch is breadth in one login. Six managed databases (MySQL, MariaDB, PostgreSQL, Redis, Elasticsearch, MongoDB). S3-compatible object storage and managed Google Cloud Storage buckets. A built-in Flexible Load Balancer you can switch on from any account, no separate product:
 
-![The Kloudbean console showing the built-in Flexible Load Balancer setup](../assets/console/flb-load-balancer.png)
+![The Kloudbean console showing the built-in Flexible Load Balancer setup](../assets/console-real/shots/flb_launch_step_2.png)
 
 Add managed CI/CD that builds and deploys on every Git push with live build logs, staging for WordPress and Laravel, subusers with granular access control, and, for enterprise and government teams, an immutable audit trail plus Kubernetes and custom architectures. It's one dashboard for servers, apps, [managed databases](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/), [load balancing](https://www.kloudbean.com/blog/cloud-load-balancer-explained/), and private networking. That's the "fewer moving parts" answer to the add-on fatigue that sends people looking in the first place.
 
@@ -108,11 +108,20 @@ Cloudways earned its reputation. It's mature, it has a big and helpful community
 
 Try to finish this sentence: "I'm leaving Cloudways because ______." Can't do it cleanly? Then don't leave yet. A comparison article is a terrible reason to eat a migration. If you can finish it (a specific cloud, a stack that grew past WordPress, one console for the whole thing) then you've found your reason, and that's exactly the move Kloudbean is built for. When you're ready, our [zero-downtime migration guide](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/) walks the path, and free migration assistance can do the heavy lifting.
 
----
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-**Outgrew PHP-only? Get the whole stack in one place.** Run WordPress and apps in any language, six managed databases, object storage, and a load balancer across seven clouds. Start free at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-7 clouds · One dashboard for your whole stack · 6 managed databases · Built-in load balancer · Free migration · Free trial
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

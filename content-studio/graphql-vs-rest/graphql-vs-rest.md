@@ -144,8 +144,20 @@ Whichever you choose, the runtime underneath is the same unglamorous, important 
 And notice what decides your API's real performance. It is rarely REST vs GraphQL. It is the database behind it. That N+1 problem lands on your database as load, so a pooled connection setup and a right-sized managed database do more for tail latency than the API style ever will. Get the data layer right first, then argue about the query language.
 
 <div class="cta">
-Ship the API, not the server headaches. REST or GraphQL, it is a Node or Python app that still needs a server, a database, and backups. Kloudbean runs managed servers for Express, FastAPI, Django and more across several clouds, with managed databases and automatic backups, so you can focus on the schema instead of the sysadmin. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
-</div>
+<!-- cta:start -->
+**Bring the app. Keep the deploy flow.**
+
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
+
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

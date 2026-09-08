@@ -50,7 +50,7 @@ Open your repo and your Netlify site settings side by side, and go looking for e
 
 If your inventory only turns up `netlify.toml`, a `_redirects` file, and a hosted database, you've got an easy move. Every extra row is a little more work, and Identity is the one that's genuinely a project rather than a config tweak.
 
-<!-- ADD IMAGE: Netlify site settings showing Identity, Forms, and the build/redirects config, with the pieces you'll be migrating highlighted. -->
+![Configure identity, forms, and build settings](images/gen-1-panel.png)
 
 ## The one that bites: pieces that fail silently
 
@@ -64,17 +64,17 @@ Second, and worse, Netlify Forms. If your contact or signup form was a Netlify F
 
 With the inventory done, the deploy itself is the same clean flow any Lovable app uses. In the [Kloudbean](https://www.kloudbean.com/) console, click **Add Server**, pick a cloud provider, choose **Node.js**, select the datacenter nearest your users, and give the build 2 to 4 GB of headroom. Then open the app and go to **Application Administration, Deploy Code**.
 
-![Kloudbean Deploy Code / Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy](../assets/console/git-deployment.png)
+![Kloudbean Deploy Code / Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy](../assets/console-real/shots/git_connect_step_4.png)
 
 Connect GitHub, pick the branch, and set the runtime fields: app directory, the assigned `process.env.PORT`, Node version, and your install, build, and start commands (usually `npm install`, `npm run build`, `npm start`). This is where your `netlify.toml` build settings turn into explicit commands.
 
 Recreate your Netlify environment variables under **Runtime Configuration, Environment Variables**. The **Paste .env Content** tab makes it quick.
 
-![Kloudbean environment variables editor showing a Paste .env Content tab and a key value list](../assets/console/env-vars.png)
+![Kloudbean environment variables editor showing a Paste .env Content tab and a key value list](../assets/console-real/shots/nodespm_env_step_1.png)
 
 On the database, you've got a choice. Keep pointing at your existing Supabase (change nothing), or launch a managed [Postgres](https://www.kloudbean.com/blog/managed-postgresql-hosting/) and bring the data onto your own server. The tradeoffs there, especially around Supabase auth and storage, are mapped in the [deploy-a-Lovable-app guide](https://www.kloudbean.com/blog/deploy-lovable-app-to-your-own-server/), so I won't repeat them here.
 
-<!-- ADD IMAGE: The migrated app on its temporary URL, with a hard refresh on a deep route (like /dashboard) loading correctly instead of 404ing. -->
+![Proof of SPA catch-all route](images/gen-2-flow.png)
 
 ## Test on the temp URL, then cut over DNS
 
@@ -96,7 +96,20 @@ Don't expect a smaller number in every case. Netlify's free and starter tiers ar
 
 Kloudbean runs Linux stacks: Node and the modern web toolkit (React, Vue, Next.js) that Lovable produces, plus PHP, Python, Ruby, and Java when you need them. Windows Server belongs to Premium and Enterprise; .NET does not need it. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and automatic backups; you own and maintain the application and its data. That split is the whole point: the pieces Netlify used to hide are now yours, in one place you can actually see into.
 
-**Nothing left behind.** Move your app at [kloudbean.com](https://www.kloudbean.com/). Databases in a click, backups on by default, IP allow-listing, migration help, Git deploys. Deploy walkthrough [here](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/); plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Move it once. Own it after.**
+
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
+
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

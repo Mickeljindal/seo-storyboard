@@ -121,7 +121,21 @@
   </figure>
 
   <!-- Author: replace with your own diagram or screenshot. src -> images/phi-data-flow-map.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A data-flow map for your own app: every place PHI is collected, where it travels, and every service that can see it.</em><small>The single most useful artefact for a HIPAA review, and it is entirely yours to draw.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #1
+Create a left-to-right architecture / flow diagram for a technical blog post titled "HIPAA-Compliant Hosting: What It Covers, and What Stays Yours".
+
+What it must show: A data-flow map for your own app: every place PHI is collected, where it travels, and every service that can see it.
+Also: The single most useful artefact for a HIPAA review, and it is entirely yours to draw.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-flow.png" alt="A data-flow map for your own app: every place PHI is collected, where it travels, and every service that can see it.">
+    <figcaption>One hop per box</figcaption>
+  </figure>
 
   <h2>How Kloudbean's controls support a HIPAA-aligned setup</h2>
   <p>Honest framing first: none of this makes your app HIPAA-compliant on its own. It hands you the infrastructure half of the safeguards above, so controls you'd otherwise assemble by hand are already there. Kloudbean sits on the infrastructure side of the line.</p>
@@ -141,7 +155,7 @@
   <p>Every page and API call that carries PHI runs over HTTPS, with no mixed content. On a managed host that's a free SSL certificate that issues and renews itself, so there's no excuse to serve health data over plain HTTP.</p>
 
   <figure>
-    <img src="../assets/console/ssl-certificate.png" alt="The Kloudbean console issuing a free SSL certificate so PHI is encrypted in transit">
+    <img src="../assets/console-real/shots/le_ssl_step_1.png" alt="The Kloudbean console issuing a free SSL certificate so PHI is encrypted in transit">
     <figcaption>Encryption in transit, on by default: a free SSL certificate covers the transmission-security safeguard.</figcaption>
   </figure>
 
@@ -149,7 +163,7 @@
   <p>Give every teammate a unique login, never a shared one, and grant the narrowest role that does the job. Use subusers and granular access control for least privilege, and restrict where admins can connect from with IP allow-lists. When a review asks who can reach PHI, you want a precise answer, not a shrug.</p>
 
   <figure>
-    <img src="../assets/console/subusers-uac.png" alt="The Kloudbean console showing subusers and granular User Access Control for least-privilege access to PHI">
+    <img src="../assets/console-real/shots/uac_resources_access.png" alt="The Kloudbean console showing subusers and granular User Access Control for least-privilege access to PHI">
     <figcaption>Access control, evidenced: subusers plus per-resource, per-action permissions so only the right people reach PHI.</figcaption>
   </figure>
 
@@ -157,7 +171,7 @@
   <p>Unpatched software and open ports start a lot of breaches. Keep the OS and stack patched, and run baseline protections like a firewall and brute-force blocking by default, not as a task you hope to remember. It pays off the day someone starts probing.</p>
 
   <figure>
-    <img src="../assets/console/firewall.png" alt="The Kloudbean console firewall settings closing unused ports in front of the server holding PHI">
+    <img src="../assets/console-real/shots/app_ip_whitelisting.png" alt="The Kloudbean console firewall settings closing unused ports in front of the server holding PHI">
     <figcaption>Baseline hardening: a firewall that closes everything you don't explicitly need open.</figcaption>
   </figure>
 
@@ -165,7 +179,7 @@
   <p>HIPAA cares about availability and recoverability, not just secrecy. Automatic backups stored off the main server mean a bad day doesn't erase patient records. Do the step everyone skips: actually test a restore, so you know your backups work before the moment you need them.</p>
 
   <figure>
-    <img src="../assets/console/manage-backups.png" alt="The Kloudbean console managing automatic backups of the database that stores PHI">
+    <img src="../assets/console-real/shots/app_backup_step_2.png" alt="The Kloudbean console managing automatic backups of the database that stores PHI">
     <figcaption>Availability, covered: automatic backups so PHI survives failure, with a restore you've actually tested.</figcaption>
   </figure>
 
@@ -173,13 +187,41 @@
   <p>This is where healthcare apps quietly break their own compliance. PHI leaks into places nobody classified as sensitive: request logs that capture full bodies, patient IDs in URL query strings that land in access logs, an error tracker shipping stack traces to a third party you never signed a BAA with. Scrub PHI before it's logged, keep it out of URLs, and audit every service your app talks to.</p>
 
   <!-- Author: replace with your own screenshot. src -> images/log-scrubbing-config.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Your logging or error-tracker config with PHI fields masked or dropped before anything is written.</em><small>Proof that patient data never leaks into logs or a third-party tool.</small></span></figure>
+  <!-- IMAGE GENERATE [panel] #2
+Create a clean settings / configuration panel UI mockup for a technical blog post titled "HIPAA-Compliant Hosting: What It Covers, and What Stays Yours".
+
+What it must show: Your logging or error-tracker config with PHI fields masked or dropped before anything is written.
+Also: Proof that patient data never leaks into logs or a third-party tool.
+
+A white card with a small uppercase section label, then labelled rows. Highlight the row that carries the point with a violet border. Optional green check line at the bottom confirming the result.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-panel.png" alt="Your logging or error-tracker config with PHI fields masked or dropped before anything is written.">
+    <figcaption>PHI fields redacted or dropped</figcaption>
+  </figure>
 
   <h3>Step 7. Line up your BAAs and your risk analysis</h3>
   <p>Now the part only you can do. List every vendor that creates, receives, stores, or transmits PHI for you: host, email provider, SMS gateway, analytics, error tracker. Each is a business associate, and HIPAA generally expects a signed BAA with each. Then write your risk analysis and your access and retention policies. This is the half that actually keeps you compliant.</p>
 
   <!-- Author: replace with your own screenshot. src -> images/baa-vendor-tracker.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Your vendor and BAA tracker: every service that touches PHI, and whether a signed agreement is in place.</em><small>The list an auditor asks for first.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #3
+Create a left-to-right architecture / flow diagram for a technical blog post titled "HIPAA-Compliant Hosting: What It Covers, and What Stays Yours".
+
+What it must show: Your vendor and BAA tracker: every service that touches PHI, and whether a signed agreement is in place.
+Also: The list an auditor asks for first.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-flow.png" alt="Your vendor and BAA tracker: every service that touches PHI, and whether a signed agreement is in place.">
+    <figcaption>Services touching PHI and BAA status</figcaption>
+  </figure>
 
   <div class="note">
     <b>Please read this part.</b> This is general educational information, not legal advice. HIPAA has real nuance, and your specific situation (the PHI you handle, your role as a covered entity or business associate, your risk analysis) deserves a qualified compliance professional. Before you store real PHI anywhere, confirm two things: that you've done a proper risk analysis, and that you have a BAA with every vendor that will touch that data. Confirm BAA availability with any provider directly.
@@ -190,11 +232,56 @@
   <p>My honest opinion after plenty of healthcare builds: most early teams overspend on exotic infrastructure and underspend on the two things that catch them out, minimizing the PHI they collect and keeping it out of places they forgot to secure. HIPAA cloud hosting is a foundation, not a finish line. A hardened server won't save an app that logs patient data into a tool with no agreement behind it.</p>
   <p>Where Kloudbean fits: on the infrastructure side, giving you the controls your HIPAA work stands on, from free SSL and IP allow-listing to access control, automatic backups, and, on enterprise, private networking (VPC) and an immutable Audit Trail. It runs on tier-1 clouds that maintain their own data-center security programs. What it won't do, because no honest host can, is make your app HIPAA-compliant for you or sell you a certification that doesn't exist. Mapping several obligations at once? The siblings pair well: <a href="https://www.kloudbean.com/blog/soc2-compliant-hosting/">SOC 2 compliant hosting</a>, <a href="https://www.kloudbean.com/blog/pci-compliant-hosting/">PCI compliant hosting</a>, <a href="https://www.kloudbean.com/blog/gdpr-compliant-hosting/">GDPR compliant hosting</a>, and the broader <a href="https://www.kloudbean.com/blog/secure-compliant-hosting/">secure and compliant hosting</a> overview.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Build healthcare apps on a foundation you can stand behind.</p>
-    <p style="margin:0 0 .6em">Run your app on infrastructure with hardening, encryption in transit, IP allow-listing, access controls, and automatic backups, all on one dashboard. Talk to us about enterprise Audit Trail and custom setups for regulated workloads. Start with a free trial and free migration assistance at <a href="https://www.kloudbean.com/">kloudbean.com</a>, and see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">Free SSL · IP allow-listing · Subuser access control · Shorewall + Fail2ban · Automatic backups · Enterprise Audit Trail</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">You built the app. Give it a real home.</p>
+    <p class="kbcta-ai-description">Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>HIPAA hosting FAQ</h2>
   <div class="faq">

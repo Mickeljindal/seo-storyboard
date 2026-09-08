@@ -109,11 +109,20 @@ What you gain beyond price: your whole stack in one dashboard, no per-piece add-
 
 Useful companions: [a Heroku alternative for modern apps](https://www.kloudbean.com/blog/heroku-alternative-for-modern-apps/) for the platform comparison, [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) for the database side, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) for config, and [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) to replace git-push deploys. For workers, see [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/), and for a clean cutover, [how to migrate hosting with zero downtime](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/).
 
-## Let us do the migration with you
+<!-- cta:start -->
+**Bring the app. Keep the deploy flow.**
 
-Move your Node app, worker, Postgres, and Redis onto one flat plan from $8/mo, with GitHub deploys, live build logs, and free migration assistance including the inventory and cutover. Start at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-Free migration assistance · Whole stack, one dashboard · Managed Postgres and Redis · No egress metering · Flat from $8/mo
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -35,7 +35,7 @@ The honest bit most articles skip: for a typical CRUD web app with a few thousan
 
 It also helps to notice how much of the old pressure on this decision was operational, not technical. Choosing an engine used to mean choosing what your ops team would learn to run. When both are one-click managed engines on the same screen (Kloudbean lists seven: MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB), the decision drops down to a per-project one. That doesn't make the engineering differences below go away. It just means picking "wrong" costs you a migration, not a hiring plan.
 
-![The Kloudbean console launching a managed database, with MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB as choices](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed database, with MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB as choices](../assets/console-real/shots/psql_launch_step_1.png)
 
 <!-- Decision tree SVG in the HTML: Start -> need JSONB/arrays/PostGIS/pgvector? -> WordPress/LAMP/PHP? -> complex queries or strict integrity? -> team fluent in one? -> default PostgreSQL. Follow the branches by what your project needs; ecosystem and team familiarity override the default. -->
 
@@ -55,7 +55,7 @@ SELECT id FROM users WHERE prefs @> '{"beta": true}';
 
 MySQL has a JSON type too, and it's fine for storing and pulling back documents. It's just less of a Swiss Army knife. If your app leans on flexible, document-shaped data, Postgres gives you room MySQL doesn't hand over as easily. Many teams pick Postgres for this reason alone.
 
-<!-- ADD IMAGE: A SQL client showing a JSONB query returning rows, so the reader sees querying inside JSON is real, not theory. -->
+![Real JSONB query results](images/gen-1-terminal.png)
 
 ### Strictness and the SQL standard
 
@@ -87,7 +87,7 @@ Both engines use MVCC (multi-version concurrency control), so readers don't bloc
 
 This one has no real MySQL equivalent, and it's why so many teams quietly standardize on Postgres. Extensions bolt whole new capabilities onto the database without leaving it. **PostGIS** turns Postgres into a serious geospatial engine. **pgvector** turns it into a store for the embeddings behind AI search, so a lot of RAG and semantic-search stacks just use Postgres and skip a separate vector database. If there's any chance your product grows in those directions, that optionality is worth a lot.
 
-<!-- ADD IMAGE: A PostGIS map result or a pgvector similarity query, showing the extension ecosystem doing something concrete. -->
+![Flow of a spatial query](images/gen-2-flow.png)
 
 ### Replication and the pull of the MySQL ecosystem
 
@@ -108,13 +108,13 @@ DATABASE_URL=postgresql://appuser:secret@10.0.0.5:5432/appdb
 DATABASE_URL=mysql://appuser:secret@10.0.0.5:3306/appdb
 ```
 
-![The Kloudbean console environment variables screen, where the database connection string lives outside the code](../assets/console/env-vars.png)
+![The Kloudbean console environment variables screen, where the database connection string lives outside the code](../assets/console-real/shots/nodespm_env_step_1.png)
 
 - **Choosing on a benchmark you found online.** Someone else's numbers, on someone else's hardware, running someone else's query, tell you almost nothing about your app. If performance actually matters, run `EXPLAIN` on your own slow query and add the missing index. That's where the real wins are.
 
 And while we're clearing the air, retire two ancient beliefs. "Postgres is slow" is decades out of date; on complex queries it's often the faster one now. "MySQL can't handle serious work" is equally false; it runs some of the largest sites on earth. Both grew up and borrowed each other's best ideas. Choose on fit, not on stale trash talk.
 
-<!-- ADD IMAGE: An EXPLAIN or EXPLAIN ANALYZE output highlighting a sequential scan, to make the "add the missing index" point land. -->
+![Impact of Adding an Index](images/gen-3-comparison.png)
 
 ## What about MariaDB?
 
@@ -145,11 +145,20 @@ Worth being blunt about, because a lot of the energy people spend on this choice
 
 So decide with the verdict above, then go spend the saved afternoon on the query plan. If you want the operational side handled either way, both engines run one-click and patched with automatic backups and IP allow-listing so only your app server can reach them, with your schema and data yours to export whenever you like. The how-to is in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), and the engine-specific detail in [managed MySQL hosting](https://www.kloudbean.com/blog/managed-mysql-hosting/) and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/). Rather run it yourself? [Managed vs self-managed](https://www.kloudbean.com/blog/managed-database-vs-self-managed/) weighs that honestly, and a [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/) cache takes read pressure off either engine.
 
----
+<!-- cta:start -->
+**Move it once. Own it after.**
 
-**Pick the engine that fits, run it managed, get back to building.** MySQL and PostgreSQL, launched in a click, backed up automatically, and locked to your app server's IP, with your data yours to export whenever you like.
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-One-click MySQL or PostgreSQL · Automatic backups · Free migration help · Free trial · Start at [kloudbean.com](https://www.kloudbean.com/) · See [pricing](https://www.kloudbean.com/pricing/).
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

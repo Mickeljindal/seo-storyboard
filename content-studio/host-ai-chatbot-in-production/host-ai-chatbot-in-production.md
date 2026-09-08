@@ -140,11 +140,21 @@ Every row there is a component in one dashboard on Kloudbean, which is the pract
 
 The scope, plainly, because the split matters more than the pitch. Managed covers the server, the stack, SSL, backups, and patching. Your code, your prompts, and your data stay yours. No host fixes an endpoint with no auth on it, ours included, and none of us can stop a prompt-injected reply, trim the history you send to the model, or cap your token spend. Those live in your code. One boundary to know before you design around it: a private VPC is an Enterprise capability, so on a standard plan you keep the database off the open internet by allow-listing your app server's IP, which is genuinely enough for this architecture.
 
-## Give your chatbot a home that streams, remembers, and stays up
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-**Run your AI chatbot on an always-on server with managed Postgres and Redis, object storage, automatic backups, and free SSL, all in one dashboard and deployed straight from Git.** No cold starts, so the first message is fast. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Always-on (no cold starts) · Managed Postgres + Redis · pgvector · Object storage · Automatic backups · Free SSL · Git deploy · IP allow-listing
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -55,7 +55,7 @@ That last point is the quiet reason plugins are popular. They handle the URL rew
 
 So what's the catch? Size. The free tier of most migration plugins caps how large a package it will import, and a big media library blows past that fast. You either buy the paid extension, bump PHP memory and upload limits, or switch to the manual route. Very large sites also hit PHP execution timeouts mid-import, leaving you with a half-loaded database and a bad afternoon. My rule: plugins for small and medium sites, manual for anything multi-gigabyte or already misbehaving.
 
-<!-- ADD IMAGE: the migration plugin export screen (e.g. All-in-One WP Migration or Duplicator) with the Export button. -->
+![Gauge free-tier limit](images/gen-1-comparison.png)
 
 ## Path 2: the manual files-and-database method
 
@@ -118,7 +118,7 @@ wp search-replace 'https://old-domain.com' 'https://new-domain.com' --all-tables
 
 Why `wp search-replace` and not a SQL `UPDATE`? That's the next section, and it's the most important paragraph in this guide.
 
-<!-- ADD IMAGE: editing wp-config.php DB constants in an editor or the file manager. -->
+![Edit these settings in wp-config.php](images/gen-2-panel.png)
 
 ## Why WordPress migrations break (and how to dodge each one)
 
@@ -198,7 +198,7 @@ A site that loads on the temporary URL isn't a finished migration. Run this list
 wp rewrite flush
 ```
 
-<!-- ADD IMAGE: the migrated site loading correctly on the temporary URL or staging domain. -->
+![Proof of successful move](images/gen-3-flow.png)
 
 ## How to migrate WordPress to Kloudbean, specifically
 
@@ -208,7 +208,7 @@ Everything above is host-agnostic. Here's how it maps to Kloudbean, and where th
 
 A free trial lets you build and verify the whole new site before you commit or cut over, which is exactly the safety you want during a migration. You launch a server on the cloud closest to your audience (seven providers: AWS, Amazon Lightsail, Google Cloud, DigitalOcean, Vultr, Akamai Linode, and UpCloud) and add WordPress as a one-click application. The stack comes tuned and hardened, not a bare box you configure.
 
-![The Kloudbean Add Application screen with WordPress selected, the target for the migrated site](../assets/console/add-application.png)
+![The Kloudbean Add Application screen with WordPress selected, the target for the migrated site](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 _Add WordPress as a one-click app, then drop your migrated files and database into it._
 
@@ -218,7 +218,7 @@ Your database lands on a managed engine. WordPress uses MySQL or MariaDB, and on
 
 This is where a migration stops being scary. One-click staging gives you a copy of the site to load, click through, and break freely, on the new server, before anything public changes. Verify the migrated site here, fix whatever the checklist flags, and only then think about DNS.
 
-![The Kloudbean one-click staging screen used to test a migrated WordPress site before the DNS cutover](../assets/console/staging.png)
+![The Kloudbean one-click staging screen used to test a migrated WordPress site before the DNS cutover](../assets/console-real/shots/staging_step_1.png)
 
 _One-click staging: confirm the migrated site works before a single real visitor sees it._
 
@@ -226,11 +226,11 @@ _One-click staging: confirm the migrated site works before a single real visitor
 
 Moving to HTTPS is where mixed-content warnings appear. Kloudbean issues free auto-renewing SSL, so the padlock is handled and you just search-replace any lingering `http://` asset URLs to `https://`. If a certificate ever misbehaves, the fixes are in [fix SSL certificate errors](https://www.kloudbean.com/blog/fix-ssl-certificate-errors/). And automatic backups start immediately, so the moment your data lands you already have a restore point. That's the safety net most people bolt on far too late; the full picture is in the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/).
 
-![The Kloudbean console showing automatic backups on the migrated WordPress site, an immediate restore point](../assets/console/manage-backups.png)
+![The Kloudbean console showing automatic backups on the migrated WordPress site, an immediate restore point](../assets/console-real/shots/app_backup_step_2.png)
 
 _Automatic backups mean the freshly migrated site has a rollback point from minute one._
 
-<!-- ADD IMAGE: the DNS provider A record edit with a lowered TTL, ready for cutover. -->
+![Prepare for cutover](images/gen-4-flow.png)
 
 ### Or let the team run it with you
 
@@ -238,13 +238,20 @@ Rather not do the cutover alone? Kloudbean offers **free migration assistance**.
 
 Once you've landed, the natural next step is speed. A migrated site inherits its old plugins and habits, and this is a good moment to tune them: [speed up WordPress](https://www.kloudbean.com/blog/speed-up-wordpress/) walks the server-level wins. Weighing hosts before you move? The honest head-to-head is [Kloudbean vs WP Engine](https://www.kloudbean.com/blog/kloudbean-vs-wp-engine/), and the wider view of what managed actually covers is in [managed WordPress hosting](https://www.kloudbean.com/blog/managed-wordpress-hosting/).
 
----
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-**Move WordPress in without the downtime.**
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-Build and test the migrated site on a free trial, cut over on your schedule, and keep the old host as a rollback. Start at [kloudbean.com](https://www.kloudbean.com/); check current plans on [pricing](https://www.kloudbean.com/pricing/).
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
 
-Free migration assistance · Free trial · One-click WordPress · Managed MySQL & MariaDB · One-click staging · Automatic backups · Free auto-renewing SSL
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

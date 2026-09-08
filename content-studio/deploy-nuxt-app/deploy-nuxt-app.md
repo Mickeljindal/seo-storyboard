@@ -102,13 +102,13 @@ In production you don't run `node` in a terminal and hope. A process manager (PM
 
 Add the app first. In **Applications, Add Application**, pick the Node.js stack. Nuxt runs as a standard Node app, so there's no special adapter to install and nothing exotic to configure. Give the build some headroom; Nuxt builds are memory-hungry, so 2 GB or more of RAM makes for a smoother first deploy.
 
-![The Kloudbean Add Application screen: adding a Nuxt SSR app on the Node.js stack](../assets/console/add-application.png)
+![The Kloudbean Add Application screen: adding a Nuxt SSR app on the Node.js stack](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 Now connect Git. In **Code Delivery, Git Deployment**, link GitHub over OAuth, paste your repo URL, choose a branch, and clone. Then set the runtime fields: the app directory (where your `package.json` lives), the port, the Node version (20 or newer for current Nuxt), and your commands. Install with `npm ci`, build with `npm run build`, start with `npm start`. Hit **Pull & Deploy** and the build log streams live, so you watch clone, install, build, and boot go past in real time.
 
-![The Kloudbean Git Deployment tab: connect the repo, pick a branch, and set the Nuxt build and start commands](../assets/console/git-deployment.png)
+![The Kloudbean Git Deployment tab: connect the repo, pick a branch, and set the Nuxt build and start commands](../assets/console-real/shots/git_connect_step_4.png)
 
-<!-- ADD IMAGE: the runtime config panel with App Directory, Port, Node version, and Install npm ci / Build npm run build / Start npm start filled in for Nuxt -->
+![Define build and start commands](images/gen-1-terminal.png)
 
 Last, make it findable. Add your custom domain in the app's domain settings, point DNS at the server, and install a free auto-renewing SSL certificate. The full walkthrough lives in [custom domain and SSL for your app](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/). Turn on automated deployment and every `git push` to your branch rebuilds and ships itself. That's the same Git-to-live loop the per-seat platforms rent you, running on hardware you control.
 
@@ -146,9 +146,9 @@ Here's the payoff, and the part that surprises people coming from Vite or Next. 
 
 In the dashboard, set these under **Runtime Configuration, Environment Variables**. There's a **Paste .env Content** tab so you can drop your whole file in and convert it to key/value. Secrets like `apiSecret` stay on the server and never touch your repo, which is the entire point.
 
-![The Kloudbean environment variables editor with NUXT_ prefixed variables set for a Nuxt app](../assets/console/env-vars.png)
+![The Kloudbean environment variables editor with NUXT_ prefixed variables set for a Nuxt app](../assets/console-real/shots/nodespm_env_step_1.png)
 
-<!-- ADD IMAGE: your NUXT_API_SECRET and NUXT_PUBLIC_API_BASE variables entered as key/value pairs in the dashboard before a deploy -->
+![Key settings for deployment](images/gen-2-comparison.png)
 
 If any of this feels fuzzy, the difference between build-time and runtime config is worth twenty minutes: [environment variables, done right](https://www.kloudbean.com/blog/environment-variables-done-right/) covers the whole model.
 
@@ -182,7 +182,7 @@ The output is plain HTML, CSS, and JavaScript. It needs no process to keep alive
 
 When should you pick this over SSR? When your content doesn't change per user and doesn't need live data on load. Blogs, docs, landing pages, portfolios. The trade is that updating content means a rebuild and republish, which for a mostly-static site is a fine price. If your app is a mix, remember Nuxt can prerender some routes and render others on the server, but that hybrid setup wants a running server, so it lands back in the SSR path above.
 
-<!-- ADD IMAGE: the .output/public/ folder after nuxt generate, showing the prerendered .html files -->
+![From nuxt generate to output files](images/gen-3-flow.png)
 
 ## Where Nuxt SSR deploys actually break
 
@@ -205,7 +205,7 @@ The tabs matter here. **App Errors** holds your app's error log, which is where 
 
 If you'd rather work in a terminal or the File Manager, the same files sit at `/home/admin/hosted-sites/<app_system_user>/app-logs`, named `app.info.log` and `app.error.log`.
 
-<!-- ADD IMAGE: The Logs Viewer on the App Errors tab showing a ReferenceError: window is not defined line highlighted -->
+![Follow the error path](images/gen-4-flow.png)
 
 ## Known rough edges
 
@@ -213,11 +213,21 @@ Two things worth saying plainly. First, Kloudbean runs Nuxt as a **Node app on L
 
 The one real difference from an edge platform is geography. Your SSR server sits in the region you choose, not spread across a global edge. For most apps a well-placed server next to its database is plenty fast. If you serve a latency-sensitive audience worldwide, you can put **Cloudflare Enterprise edge caching** in front (a paid add-on, free on Enterprise) so responses cache at the edge while your app runs on hardware you own. Weighing the move off a serverless host? The [Vercel alternative for full-stack apps](https://www.kloudbean.com/blog/vercel-alternative-for-full-stack-apps/) lays out the trade honestly.
 
----
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-**Pick your Nuxt mode, then ship it.** Run a Nuxt SSR app as a live Node process, or host `nuxt generate` output as static files, both on Kloudbean, both in one dashboard with your databases and storage. Start at [kloudbean.com](https://www.kloudbean.com/) from $8/mo, or talk to us about Enterprise. Sizes on [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Node process for SSR · Free static site hosting · Custom domain + SSL · Managed databases · Git auto-deploy with live logs · Free migration · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

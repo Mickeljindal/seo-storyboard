@@ -36,7 +36,7 @@ If your deploys come from Git, and they should, rolling back is just redeploying
 
 What makes this fast is having the deploy history in front of you. On Kloudbean's managed CI/CD, every push is recorded with its build log, so mid-incident you're reading which commit shipped and when instead of guessing from memory. That's the difference between a 90-second rollback and twenty minutes of archaeology in a Git log while the error rate climbs.
 
-<!-- ADD IMAGE: the deployment history screen with the previous build highlighted and a redeploy action, showing that rolling back is redeploying the last good commit. -->
+![Highlight previous good build and redeploy](images/gen-1-flow.png)
 
 ## Why code rolls back cleanly but a database migration doesn't
 
@@ -136,7 +136,7 @@ You don't strictly need full blue-green to get the benefit. The minimum is simpl
 
 If you do want the real traffic switch, that's what a load balancer in front of two application pools gives you. Kloudbean's Flexible Load Balancer is built into every account (off until you enable it), so blue-green becomes moving a pool rather than buying another product. Worth knowing before you decide you can't afford the pattern.
 
-<!-- ADD IMAGE: a simple blue-green diagram or a deploy history list showing several past builds, each redeployable, so the last good build is one action away. -->
+![Roll back to previous build](images/gen-2-flow.png)
 
 ## Roll back the code, roll back the schema, or restore a backup?
 
@@ -152,7 +152,7 @@ Backups are still essential. They're just the wrong tool for a normal rollback. 
 
 One habit that pays for itself: take an on-demand backup right before you run a risky migration. Kloudbean gives you automatic backups plus on-demand ones for apps, so the pre-migration snapshot is a click, and the window of data you'd sacrifice in a worst case shrinks from hours to minutes. It's the cheapest insurance in this whole article.
 
-<!-- ADD IMAGE: the managed database backups or snapshot list, with a note that restoring resets to a point in time and loses newer rows. -->
+![One step per box](images/gen-3-flow.png)
 
 ## A rollback runbook for 2am
 
@@ -181,10 +181,21 @@ Now the part no platform covers. No host fixes a destructive migration, ours inc
 
 So the scope split is clean. Server, stack, SSL, backups, patching, and the deploy pipeline sit with the managed platform. Schema design, expand/contract discipline, and knowing which release actually needs a rehearsal stay with your team. This class of gap, the stuff quick tutorials and AI builders skip, is mapped in [the last mile of vibe coding](https://www.kloudbean.com/blog/last-mile-of-vibe-coding/).
 
-**Make every deploy reversible, so a rollback is just a redeploy.**
-Run your app on Kloudbean and deploy straight from Git, so rolling back means redeploying your last good commit. Automatic backups on the managed database, staging for WordPress and Laravel to catch a bad change first, and free SSL, all in one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-Git deploy (redeploy any previous build) · Automatic backups · Staging (WordPress + Laravel) · Managed databases · Free SSL · Free migration · Free trial
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

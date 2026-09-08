@@ -57,11 +57,21 @@ Kloudbean is not a data centre operator. It manages customer workloads on the in
 
 The CCC lives in a family of frameworks: start with [the NCA CSCC guide](https://www.kloudbean.com/blog/nca-cscc-compliance-guide/) for critical systems and [NCA ECC compliant hosting](https://www.kloudbean.com/blog/nca-ecc-compliant-hosting/) for the baseline. For the privacy side, [PDPL compliant hosting](https://www.kloudbean.com/blog/pdpl-compliance-hosting/). For the residency questions the CCC raises, [data residency in Saudi Arabia](https://www.kloudbean.com/blog/data-residency-saudi-arabia/) and [the GCP Dammam region guide](https://www.kloudbean.com/blog/gcp-dammam-region-guide/). And when you're ready to turn all of this into a build, the [critical systems hosting checklist](https://www.kloudbean.com/blog/critical-systems-hosting-checklist/) is the practical companion.
 
-## Get the subscriber side built right, in the Kingdom.
+<!-- cta:start -->
+**Controls you can actually evidence.**
 
-On managed engagements Kloudbean delivers the subscriber-side infrastructure controls the CCC and CSCC describe, in-Kingdom on the Dammam region, with the evidence as managed reports. Start the conversation at [kloudbean.com](https://www.kloudbean.com/), and read the framework overview in [the NCA CSCC guide](https://www.kloudbean.com/blog/nca-cscc-compliance-guide/).
+On managed enterprise engagements Kloudbean builds and maintains the infrastructure controls, with evidence delivered as managed reports and in-Kingdom hosting available. The policy, staffing, and application-layer work remains yours, which is the honest boundary.
 
-Subscriber-side controls · In-Kingdom Dammam region · Evidence as managed reports · Governance stays yours
+- In-Kingdom (Dammam) available
+- Centralised logging
+- Immutable log storage
+- Private database access
+- MFA and least privilege
+- Automatic backups
+- Evidence as managed reports
+
+[Start free](https://console.kloudbean.com/register) · [Talk to a cloud expert](https://calendly.com/kloudbean)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -188,13 +188,20 @@ When not to bother: if your largest upload is a 4 MB profile image, presigned UR
 
 For the proxy layer itself, [nginx as a reverse proxy for Node](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/) covers the config this sits inside. For the neighbouring failures: [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/) when the upstream is gone, and [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/) when it's too slow. For the status code across every layer rather than just nginx, [413 Content Too Large](https://www.kloudbean.com/blog/http-error-413-content-too-large/).
 
----
+<!-- cta:start -->
+**Read the log, fix it, ship again.**
 
-**Send large files to storage, not through your app server.**
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-S3-compatible object storage with AWS SDK and CLI support, on managed servers where the stack is handled for you. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
 
-S3-compatible storage · Managed servers · Free SSL · Automatic backups · Git deploys
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

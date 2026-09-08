@@ -90,25 +90,69 @@ app.use(cors({
   <p>Straight answer: CORS is your application's responsibility, and no host "fixes" it for you, because only your code knows which origins to trust. What a managed platform does help with is the part that actually causes the production surprise, environment configuration. On Kloudbean you set <code>CORS_ORIGINS</code> (and the rest of your config) per environment in the console, so production naturally lists your production frontend and never quietly falls back to localhost. That removes the config mismatch behind most prod CORS errors, while the policy itself stays where it belongs, in your app.</p>
 
   <figure>
-    <img src="../assets/console/env-vars.png" alt="Setting CORS_ORIGINS as an environment variable per environment in the Kloudbean console">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="Setting CORS_ORIGINS as an environment variable per environment in the Kloudbean console">
     <figcaption>Set allowed origins per environment, so production trusts the production frontend instead of localhost.</figcaption>
   </figure>
 
   <h2>The next questions this raises</h2>
   <p>CORS sits next to your other HTTP security settings. See the <a href="https://www.kloudbean.com/blog/security-headers-guide/">security headers guide</a> for the broader picture, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> for the per-environment config that fixes the localhost mismatch, and <a href="https://www.kloudbean.com/blog/deploy-express-app/">deploy an Express app</a> for the framework side. If a proxy is in the mix, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">Nginx reverse proxy for Node</a> covers the duplicate-header trap, and <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">custom domain and SSL</a> covers getting your origins onto real HTTPS domains.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Set config per environment, and CORS stops surprising you.</p>
-    <p style="margin:0 0 .6em">Run your Node API with environment variables set per environment in one console, so production trusts your real frontend origin instead of localhost. Deploy from GitHub on flat pricing from $8/mo. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">Env vars per environment · Always-on Node · Free SSL · GitHub deploys · Flat from $8/mo</p>
+<div class="kbcta-fix-wrap">
+  <div class="kbcta-fix-overlay"></div>
+  <div class="kbcta-fix-content">
+    <div class="kbcta-fix-eyebrow">DEPLOY &middot; LOGS THAT TELL YOU WHY</div>
+    <p class="kbcta-fix-heading">Read the log, fix it, ship again.</p>
+    <p class="kbcta-fix-description">Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.</p>
+    <ul class="kbcta-fix-features">
+      <li>&#10003; Live build logs</li>
+      <li>&#10003; Deployment history</li>
+      <li>&#10003; Logs viewer</li>
+      <li>&#10003; Managed process restarts</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Git deploy</li>
+    </ul>
+    <div class="kbcta-fix-buttons">
+      <a class="kbcta-fix-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-fix-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-fix: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-fix-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-fix-wrap *{box-sizing:border-box}
+.kbcta-fix-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-fix-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-fix-content{position:relative;z-index:3;max-width:700px}
+.kbcta-fix-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-fix-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-fix-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-fix-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-fix-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-fix-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-fix-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-fix-btn:hover,.kbcta-fix-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-fix-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-fix-link:hover,.kbcta-fix-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-fix-wrap{padding:36px 24px}
+  .kbcta-fix-heading{font-size:31px}
+  .kbcta-fix-description{font-size:16px}
+  .kbcta-fix-features li{white-space:normal}
+  .kbcta-fix-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-fix-btn{width:100%}
+  .kbcta-fix-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">
     <h3>Why does CORS work on localhost but fail in production?</h3>
     <p>Locally your frontend and API are usually the same origin or behind a dev proxy, so CORS never triggers. In production they're on different domains, which is cross-origin, so the browser enforces the policy. If your allowed origin is hardcoded to localhost, it won't match the real frontend, and you get a CORS error. Drive allowed origins from an environment variable instead.</p>
 
-    <h3>How do I fix "No Access-Control-Allow-Origin header is present"?</h3>
+    <h3>How do I fix 'No Access-Control-Allow-Origin header is present'?</h3>
     <p>Configure your server to return that header with your frontend's production origin. In Express, use the <code>cors</code> package with an allowed-origins list from an environment variable. The request may already reach your API, but the browser blocks your code from reading the response until the header names an allowed origin.</p>
 
     <h3>Can I just set Access-Control-Allow-Origin to *?</h3>
@@ -132,8 +176,8 @@ app.use(cors({
 {"@type":"Article","headline":"CORS Errors in Node.js Production: Why It Works Locally but Fails Live","description":"Why CORS works on localhost and fails in production, how to configure allowed origins in Express safely, the wildcard-plus-credentials trap, preflight, and duplicate-header mistakes.","image":"https://www.kloudbean.com/blog/fix-cors-error-node-production/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/fix-cors-error-node-production/"},
 {"@type":"FAQPage","mainEntity":[
 {"@type":"Question","name":"Why does CORS work on localhost but fail in production?","acceptedAnswer":{"@type":"Answer","text":"Locally your frontend and API are usually the same origin or behind a dev proxy, so CORS never triggers. In production they are on different domains, which is cross-origin, so the browser enforces the policy. If your allowed origin is hardcoded to localhost, it will not match the real frontend, and you get a CORS error. Drive allowed origins from an environment variable instead."}},
-{"@type":"Question","name":"How do I fix No Access-Control-Allow-Origin header is present?","acceptedAnswer":{"@type":"Answer","text":"Configure your server to return that header with your frontend's production origin. In Express, use the cors package with an allowed-origins list from an environment variable. The request may already reach your API, but the browser blocks your code from reading the response until the header names an allowed origin."}},
-{"@type":"Question","name":"Can I just set Access-Control-Allow-Origin to a wildcard?","acceptedAnswer":{"@type":"Answer","text":"You can, but you should not in most cases, and you cannot at all if you send cookies. A wildcard invites any site to call your API, and browsers reject a wildcard origin combined with credentials, so cookie auth breaks. Reflect only the origins you trust from an allowlist, and keep credentials working by naming exact origins."}},
+{"@type":"Question","name":"How do I fix 'No Access-Control-Allow-Origin header is present'?","acceptedAnswer":{"@type":"Answer","text":"Configure your server to return that header with your frontend's production origin. In Express, use the cors package with an allowed-origins list from an environment variable. The request may already reach your API, but the browser blocks your code from reading the response until the header names an allowed origin."}},
+{"@type":"Question","name":"Can I just set Access-Control-Allow-Origin to *?","acceptedAnswer":{"@type":"Answer","text":"You can, but you should not in most cases, and you cannot at all if you send cookies. A wildcard invites any site to call your API, and browsers reject a wildcard origin combined with credentials, so cookie auth breaks. Reflect only the origins you trust from an allowlist, and keep credentials working by naming exact origins."}},
 {"@type":"Question","name":"Why does my GET work but my POST get blocked by CORS?","acceptedAnswer":{"@type":"Answer","text":"Because the POST triggers a preflight OPTIONS request that your server is not answering. The browser asks permission before the real request, and if that preflight fails, the POST never fires. Applying the cors middleware app-wide handles OPTIONS automatically, which usually clears this immediately."}},
 {"@type":"Question","name":"The header looks correct but the browser still blocks it, why?","acceptedAnswer":{"@type":"Answer","text":"Check for a duplicated Access-Control-Allow-Origin header. If both your Node app and your proxy add CORS headers, the response carries it twice, which browsers treat as invalid. Own CORS in exactly one layer, usually the app, and make sure the proxy is not adding its own copy."}},
 {"@type":"Question","name":"Is CORS something my host configures?","acceptedAnswer":{"@type":"Answer","text":"No, CORS is your application's responsibility, since only your code knows which origins to trust. A host cannot set it for you. What a managed platform helps with is per-environment configuration, so production lists your production frontend rather than falling back to a localhost value, which is where most production CORS errors come from."}}

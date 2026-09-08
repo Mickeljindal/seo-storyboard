@@ -193,9 +193,20 @@ Use a shared session store from the start if there's any chance you'll run more 
 
 One opinion worth stating plainly, because someone always suggests it: don't disable CSRF protection to make the error go away. It feels like a fix and it's actually removing a real defense against a real attack. If a specific stateless API endpoint genuinely doesn't need it, exempt that one route on purpose and document why. Turning the whole thing off is not a fix, it's a vulnerability with good PR.
 
----
+<!-- cta:start -->
+**Fewer mysteries on the next deploy.**
 
-**Running your app on more than one node?** A CSRF token only validates when every node shares the same session. Kloudbean's built-in Flexible Load Balancer fronts your app pool, and managed Redis gives those nodes one session store to read from, so a token minted on one node still checks out on another. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.
+
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

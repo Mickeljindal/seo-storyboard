@@ -41,7 +41,7 @@ The second is you throttling your callers. Your endpoint calls a paid API on you
 
 One prerequisite sits underneath everything below. If the model key is in your frontend, or the route has no login, none of these limits matter, because the attacker skips your app entirely or hides in the crowd. Keep the key server-side and require auth on every model route. That groundwork is covered fully in [deploy an AI agent without exposing API keys](https://www.kloudbean.com/blog/deploy-ai-agent-without-exposing-api-keys/), so assume it's done. Once auth is in place, every request carries an identity, a user id or an API key, and that identity is what you limit and bill against.
 
-<!-- ADD IMAGE: the request funnel diagram (request to auth to per-user token bucket in Redis to concurrency gate to spend budget to model, with 429 and kill-switch reject branches). -->
+![Ensure your app connects securely](images/gen-1-panel.png)
 
 ## Rate limiting AI API calls: edge, app layer, or both?
 
@@ -82,7 +82,7 @@ And an opinion, because it saves time: most teams over-engineer the algorithm an
 
 Here's a correct, atomic token bucket. The check-and-take runs as one Redis Lua script so two simultaneous requests can't both think they got the last token.
 
-<!-- ADD IMAGE: screenshot of the managed Redis connection details / env var in a dashboard. src -> images/managed-redis.png -->
+![Budget limits prevent runaway costs](images/gen-2-graph.png)
 
 ```js
 // token-bucket.js  (Node, using ioredis)
@@ -235,11 +235,21 @@ Now the part worth being straight about, because it cuts against the pitch. Noth
 
 For the wider picture of what AI builders leave for you to finish, see [the last mile of vibe coding](https://www.kloudbean.com/blog/last-mile-of-vibe-coding/), and run the [AI-built app security checklist](https://www.kloudbean.com/blog/ai-built-app-security-checklist/) before you open the doors. If you're still choosing where to run it, [best hosting for AI SaaS](https://www.kloudbean.com/blog/best-hosting-for-ai-saas/) weighs the options, and [hosting an AI chatbot in production](https://www.kloudbean.com/blog/host-ai-chatbot-in-production/) shows the same limits in a full app.
 
-## Put your rate limiter on a foundation that actually holds a shared counter
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-**Run your limiter middleware on an always-on Node or Python server with a managed Redis for the counters, buckets, budgets, and kill switch, all in one dashboard and deployed from Git.** No cold starts resetting your limits, so the count you enforce is the real count. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Managed Redis for your rate-limit counters · Always-on Node and Python · Environment variables in the dashboard · Free SSL · Git deploy · IP allow-listing
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

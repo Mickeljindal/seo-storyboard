@@ -135,11 +135,20 @@ The genuinely useful adjacent capability is your access log, since that is where
 
 For the redirect side of this decision, [301 versus 302](https://www.kloudbean.com/blog/302-found-vs-301-redirect/) and [redirect loops](https://www.kloudbean.com/blog/err-too-many-redirects/). For temporary unavailability, [503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/). For the neighbouring 4xx codes, [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/) and [405 Method Not Allowed](https://www.kloudbean.com/blog/405-method-not-allowed/). On caching implications of removed URLs, [304 Not Modified](https://www.kloudbean.com/blog/304-not-modified/). And on cleaning up after a compromise, [secure WordPress hosting](https://www.kloudbean.com/blog/secure-wordpress-hosting/).
 
-## Test the config, then ship it.
+<!-- cta:start -->
+**Deploys that tell you what broke.**
 
-Managed servers across seven clouds with staging for WordPress and Laravel, automatic backups, free SSL, and a firewall with intrusion prevention by default, so a config change is reversible rather than public. From $8/mo, with free migration assistance. Start at [kloudbean.com](https://www.kloudbean.com/).
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-Staging · Automatic backups · Free SSL · 7 clouds · Flat from $8/mo
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

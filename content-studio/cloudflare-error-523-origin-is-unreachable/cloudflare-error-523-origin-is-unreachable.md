@@ -97,9 +97,20 @@ The boundary stays where it always is. Server, stack, TLS, backups and patching 
 
 Start with the [Cloudflare 5xx error codes](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/) overview if you're not sure which number you have. The siblings, in the order the failure happens: [521 web server is down](https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/) when something refuses, [522 connection timed out](https://www.kloudbean.com/blog/cloudflare-error-522-connection-timed-out/) when nothing answers, [520](https://www.kloudbean.com/blog/cloudflare-error-520/) when the origin replies with something unusable, and [525 SSL handshake failed](https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/) when the connection works and TLS does not. On the naming layer below, [ERR_NAME_NOT_RESOLVED](https://www.kloudbean.com/blog/err-name-not-resolved/) and [DNS explained](https://www.kloudbean.com/blog/dns-explained/). And for the private networking that route tables belong to, [what is a VPC](https://www.kloudbean.com/blog/what-is-a-vpc/).
 
-**Know your origin's real address at a glance.** Managed servers across seven clouds, with each server's current address and health in one dashboard, so checking a DNS record against the machine takes a glance. Free SSL issued and renewed, and free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Fewer mysteries on the next deploy.**
 
-Current server IP visible · Server metrics · Free SSL · Free migration · One dashboard
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
+
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

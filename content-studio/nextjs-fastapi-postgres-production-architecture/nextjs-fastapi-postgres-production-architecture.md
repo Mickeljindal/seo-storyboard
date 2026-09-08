@@ -140,10 +140,20 @@ The rows at and above your code are the opposite. They can only be answered by s
 That's the honest shape of managed hosting: it owns the layers where the correct answer is universal, and it can't touch the layers where the answer is yours. If you'd rather not hand-wire process supervision, TLS, runtime versions, and database backups, Kloudbean runs both processes on managed servers with managed PostgreSQL and Redis behind them, one dashboard, and moving the API to its own server later stays a config change. The architecture above is the same either way, which is rather the point of drawing it first.
 
 <div class="cta">
-Ship the stack, not the plumbing. If you want managed servers for your Next.js and FastAPI processes and a managed PostgreSQL behind them, that's what Kloudbean is for.
+<!-- cta:start -->
+**One click to a real database.**
 
-Managed servers · Managed PostgreSQL · Automatic backups · Free SSL · Git deploys · Free migration · Free trial. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
-</div>
+Seven managed engines, provisioned and patched for you, with access controlled and backups running automatically. Your schema, your queries, and your data stay exportable with the standard tools.
+
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

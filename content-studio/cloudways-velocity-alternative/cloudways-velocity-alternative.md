@@ -188,11 +188,20 @@ Free migration assistance covers one migration per server on Standard, and there
 
 Start with [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/) for the architectural options, then the hands-on [deploy a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/), [deploy an Express app](https://www.kloudbean.com/blog/deploy-express-app/) and [deploy a NestJS app](https://www.kloudbean.com/blog/deploy-nestjs-app/). For uploads, [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). Weighing Cloudways more broadly? See [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/) and [Cloudways alternatives](https://www.kloudbean.com/blog/cloudways-alternatives/). For the database beside the app, [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/).
 
----
+<!-- cta:start -->
+**Move it once. Own it after.**
 
-**Several apps, several languages, one server, one dashboard.** Deploy from GitHub, run always-on under PM2, keep shell access, and put managed PostgreSQL, MySQL, MongoDB or Redis beside the app with S3-compatible buckets, static sites and a load balancer across seven clouds. Generally available. Start from $8/mo at [kloudbean.com](https://www.kloudbean.com/), and verify current pricing on [pricing](https://www.kloudbean.com/pricing/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-Seven clouds · Many languages · Shell access · Managed databases and buckets in one account · From $8/mo · Free migration
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

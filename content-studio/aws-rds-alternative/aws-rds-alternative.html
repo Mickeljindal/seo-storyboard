@@ -170,18 +170,32 @@ datasource db {
   <p>Open the DBS section and hit Launch Database. Pick PostgreSQL or MySQL (MariaDB, Redis, MongoDB, and more are here too), name it, create it. A minute or two later it's provisioned, secured with IP allow-listing, and already being backed up. You'll get the host, port, database name, username, and password.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen, choosing a managed PostgreSQL or MySQL engine">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean console Launch Database screen, choosing a managed PostgreSQL or MySQL engine">
     <figcaption>Launch a managed database from one screen. No VPC, no security group, no parameter group to configure first.</figcaption>
   </figure>
 
   <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
-  <figure class="img-slot"><span><b>Add image</b><em>An AWS Cost Explorer or billing view showing RDS split into separate instance, storage, IOPS, backup, and data transfer line items.</em><small>Shows readers the pricing complexity this alternative removes. Optional.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #1
+Create a side-by-side comparison table for a technical blog post titled "The AWS RDS Alternative for Teams Who Want Managed Postgres Without the Console Maze".
+
+What it must show: An AWS Cost Explorer or billing view showing RDS split into separate instance, storage, IOPS, backup, and data transfer line items.
+Also: Shows readers the pricing complexity this alternative removes. Optional.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-comparison.png" alt="An AWS Cost Explorer or billing view showing RDS split into separate instance, storage, IOPS, backup, and data transfer line items.">
+    <figcaption>Complexity of AWS RDS vs Managed Postgres</figcaption>
+  </figure>
 
   <h3>2. Store the connection string as an environment variable</h3>
   <p>Go to Runtime Configuration, then Environment Variables, and add your <code>DATABASE_URL</code> (or the discrete <code>DB_HOST</code>, <code>DB_PORT</code>, and friends your framework reads). There's a Paste .env Content tab if you'd rather drop them all in at once. Credentials live here, in the environment, not in your source.</p>
 
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean environment variables editor, where the database connection string is stored safely instead of in code">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean environment variables editor, where the database connection string is stored safely instead of in code">
     <figcaption>Environment variables in the console. Rotate a password here without touching a line of code.</figcaption>
   </figure>
 
@@ -192,12 +206,26 @@ datasource db {
   <p>Redeploy so the app picks up the new <code>DATABASE_URL</code>, then do something real: sign up a test user, create a record, reload. From the server health view you can watch CPU, memory, and disk while traffic flows, so you can size correctly instead of guessing.</p>
 
   <figure>
-    <img src="../assets/console/server-health.png" alt="The Kloudbean server health view showing CPU, memory, and disk usage for the server running the app and its managed database">
+    <img src="../assets/console-real/shots/server_health_step_2.png" alt="The Kloudbean server health view showing CPU, memory, and disk usage for the server running the app and its managed database">
     <figcaption>Server health in one place. Watch the real numbers, then resize when you actually need to, not on a hunch.</figcaption>
   </figure>
 
   <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
-  <figure class="img-slot"><span><b>Add image</b><em>A psql session connected to the new managed database after import, with the table list from a backslash-dt command.</em><small>Proof the data landed. Nothing reassures like a real table list.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #2
+Create a realistic terminal / command-line screenshot for a technical blog post titled "The AWS RDS Alternative for Teams Who Want Managed Postgres Without the Console Maze".
+
+What it must show: A psql session connected to the new managed database after import, with the table list from a backslash-dt command.
+Also: Proof the data landed. Nothing reassures like a real table list.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-terminal.png" alt="A psql session connected to the new managed database after import, with the table list from a backslash-dt command.">
+    <figcaption>Table list after import</figcaption>
+  </figure>
 
   <h2>Migrating your data off RDS</h2>
   <p>Moving off RDS is a plain export and import, then a connection-string swap. RDS runs standard PostgreSQL and MySQL under the hood, so your ordinary tools work without anything special.</p>
@@ -223,11 +251,55 @@ mysql -h NEW_HOST -u USER -p appdb &lt; dump.sql</code></pre>
   <p>I'd be doing you a disservice if I pretended this alternative fits everyone. It doesn't. If your workload genuinely needs synchronous Multi-AZ failover with automatic promotion, you want RDS, full stop. If reads dominate and you need to fan them out across several replicas you can add and drop on demand, RDS read replicas are built for exactly that. If you've benchmarked Aurora and its storage architecture solves a real problem for you, there's no substitute. And if your whole platform already lives in AWS with IAM and CloudWatch and VPC peering wired through everything, adding RDS is less friction than adding anything else.</p>
   <p>The trap is reaching for all of that on a project that will never need it. A common way this goes sideways: a team spins up RDS for an app with a few thousand users, configures a VPC and security groups they'll never revisit, and then gets a bill shaped by IOPS and egress they never chose deliberately. For that app, a single well-sized managed Postgres with nightly backups would have been simpler, cheaper, and easier to reason about. Match the tool to the workload, not to the biggest workload you can imagine.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Get managed Postgres or MySQL live next to your app today.</p>
-    <p style="margin:0">Spin up a database, colocate it with your <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">Node or Python app</a>, locked to your app server's IP, and keep a bill you can actually predict. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; sizes and plans are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:.6em 0 0; font-size:15px; color:#c9b8ff">Managed Postgres and MySQL · Automatic backups · Free migration assistance · Free trial · Simple Git deploy</p>
+<div class="kbcta-move-wrap">
+  <div class="kbcta-move-overlay"></div>
+  <div class="kbcta-move-content">
+    <div class="kbcta-move-eyebrow">MIGRATE &middot; FLAT, PREDICTABLE PRICING</div>
+    <p class="kbcta-move-heading">A rehoming, not a rewrite.</p>
+    <p class="kbcta-move-description">Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.</p>
+    <ul class="kbcta-move-features">
+      <li>&#10003; Free migration assistance</li>
+      <li>&#10003; Free trial</li>
+      <li>&#10003; Seven cloud providers</li>
+      <li>&#10003; Flat monthly price</li>
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Git deploy</li>
+    </ul>
+    <div class="kbcta-move-buttons">
+      <a class="kbcta-move-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-move-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-move: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-move-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#0A0730;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-move-wrap *{box-sizing:border-box}
+.kbcta-move-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #0A0730 0%, #1B0F5A 58%, rgba(79,26,243,.55) 100%);pointer-events:none}
+.kbcta-move-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.28) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-move-content{position:relative;z-index:3;max-width:700px}
+.kbcta-move-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-move-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-move-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-move-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-move-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-move-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-move-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#2A0E7A;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-move-btn:hover,.kbcta-move-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-move-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-move-link:hover,.kbcta-move-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-move-wrap{padding:36px 24px}
+  .kbcta-move-heading{font-size:31px}
+  .kbcta-move-description{font-size:16px}
+  .kbcta-move-features li{white-space:normal}
+  .kbcta-move-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-move-btn{width:100%}
+  .kbcta-move-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

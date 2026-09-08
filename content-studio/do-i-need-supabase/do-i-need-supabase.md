@@ -133,9 +133,21 @@ One thing the tally can't score, and it's the sharpest edge in this whole decisi
 
 Whichever number you landed on has somewhere to run. If it's a database, [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) sits in the same dashboard as your app server, backed up, with access locked to your app server's whitelisted IP. If it's the bundle on infrastructure you control, [self-host Supabase](https://www.kloudbean.com/blog/self-host-supabase/) covers the one-click route. And since it's Postgres underneath either way, a `pg_dump` is always your escape hatch, which is exactly why this decision deserves ten minutes rather than a week.
 
----
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-**Use what you'll use, nothing more.** If a plain managed Postgres is what your app needs, Kloudbean runs it with automatic backups, free SSL, and access locked to your app server. And if you want the full Supabase bundle self-hosted, it's a one-click app. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

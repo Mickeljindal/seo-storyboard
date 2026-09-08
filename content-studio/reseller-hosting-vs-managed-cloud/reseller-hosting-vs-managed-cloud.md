@@ -48,13 +48,13 @@ OVERSOLD SHARED BOX (reseller)   |   MANAGED CLOUD (Kloudbean)
 ```
 *Reseller crams your clients onto one shared box, so a spike bleeds across all of them. Managed cloud gives each client its own isolated server under one dashboard, with scoped access per client and per teammate.*
 
-<!-- ADD IMAGE: A server resource graph where one account's CPU spike pins the machine and the other sites on it slow down. -->
+![Noisy-neighbor effect on shared server](images/gen-1-graph.png)
 
 ## What managed cloud changes
 
 Managed cloud flips the foundation. Instead of a fixed quota you slice up, you run actual cloud servers, managed for you, and place client apps on them. You're not dividing a pre-bought block. You're provisioning real infrastructure and scaling it as needed. Each client app can be isolated, resized, or moved on its own. And you spin one up in a few clicks.
 
-![The Kloudbean console: launching a server, choosing the cloud provider and size, so a busy client can sit on its own isolated box](../assets/console/add-server.png)
+![The Kloudbean console: launching a server, choosing the cloud provider and size, so a busy client can sit on its own isolated box](../assets/console-real/shots/launch_server_step_1.png)
 
 Three things change the day you make that switch. First, real isolation. A busy client sits on its own server, so their spike is their problem, not everyone's. Second, cloud choice: Kloudbean runs across AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud, so you place each client where latency, price, or a data-residency requirement points. Third, room to run more than WordPress. You get six managed databases (MySQL, MariaDB, PostgreSQL, Redis, Elasticsearch, MongoDB), S3-compatible storage, staging for WordPress and Laravel, and a client experience you can put your own brand on. If you're comparing the operating models more broadly, [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) and [single-tenant vs multi-tenant](https://www.kloudbean.com/blog/single-tenant-vs-multi-tenant/) both dig deeper.
 
@@ -64,7 +64,7 @@ This is the part reseller hosting never really solved, and it's the reason growi
 
 Managed cloud on Kloudbean handles this with subusers and User Access Control (UAC): granular, per-resource, per-action permissions. You give a client access to just their own site and nothing else. You let a freelance developer deploy to one app without seeing billing or the other twenty clients. A junior on your team gets exactly the buttons they need. That's not a nice-to-have at agency scale. It's how you avoid the 2am mistake where someone edits the wrong client's site. The mechanics of setting that up, the permission grid and a few role recipes, are in the [subusers and UAC guide](https://www.kloudbean.com/blog/subuser-and-uac-guide/). For the wider agency setup, there's a [hosting for agencies playbook](https://www.kloudbean.com/blog/hosting-for-agencies-playbook/) and a walkthrough of [how agencies host 20 client apps](https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/) without losing their minds.
 
-<!-- ADD IMAGE: The subuser and access-control screen, granting a client access to only their own site while the rest of the roster stays hidden. -->
+![Control access to resources](images/gen-2-flow.png)
 
 ## Reseller hosting vs managed cloud, feature by feature
 
@@ -87,7 +87,7 @@ You don't have to flip everything at once, and you shouldn't. A calm transition 
 
 Over time the center of gravity shifts to cloud, and the reseller account shrinks to whatever genuinely belongs there, or retires. Gradual beats big-bang. It lets you learn the new model on low-stakes sites, and it means the first client you move to managed cloud is one who'll actually feel the upgrade. When one of those clients gets big enough to need more than one server, you put a [load balancer](https://www.kloudbean.com/blog/cloud-load-balancer-explained/) in front and add nodes, rather than dragging the whole roster onto a bigger shared plan.
 
-<!-- ADD IMAGE: A simple migration order: the busy and demanding clients moving first, the small brochure sites staying on reseller for now. -->
+![Busy clients first, small sites stay](images/gen-3-flow.png)
 
 ## So which should you pick?
 
@@ -97,11 +97,20 @@ Most agencies begin on reseller and hit the ceiling. If you can already feel it,
 
 Under either model it's Linux hosting, and your clients' sites and data stay theirs. On the managed-cloud side, the platform runs the servers, stack, SSL, backups, and patching, while you own the apps. The difference isn't ownership. It's whether you're slicing a fixed block or commanding real infrastructure that grows with your roster.
 
----
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-**Give every client a room of their own.** Outgrow the reseller ceiling with managed cloud at [kloudbean.com](https://www.kloudbean.com/), under your own brand. Plans on [pricing](https://www.kloudbean.com/pricing/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-Per-client isolation · 7 clouds · 6 managed databases · Staging · Subusers + granular access control · Built-in load balancer · Free migration · Free trial
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

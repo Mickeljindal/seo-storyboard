@@ -1,6 +1,6 @@
 # The Best Vercel Alternative for Databases
 
-<!-- ADD IMAGE: hero. src -> images/hero.png -->
+![Databases come from partners, not Vercel](images/gen-1-flow.png)
 
 If you're hunting for a Vercel alternative for databases, the front end was probably never the issue. Vercel is genuinely great at hosting Next.js and pushing assets to the edge. The friction starts the moment your app needs a real relational database, because Vercel doesn't run one of its own. You end up running Postgres for your Vercel app on an outside provider, reaching it across the public internet, and watching two bills instead of one. This is about fixing the data layer. Keep the git-push workflow you like, and put a managed database right next to your app.
 
@@ -21,7 +21,7 @@ The concrete bit that trips teams up: Vercel shut down its own Postgres product 
 
 None of this makes Vercel a bad product. It makes it the wrong shape for an app whose center of gravity is the database. That's a fit problem, not a quality problem.
 
-<!-- ADD IMAGE: the Vercel Marketplace storage page showing databases come from partners like Neon and Supabase, not Vercel itself. src -> images/vercel-marketplace.png -->
+![Real-time build logs stream](images/gen-2-flow.png)
 
 ## The Vercel serverless connection limits problem, in plain terms
 
@@ -95,7 +95,7 @@ Once you know the shape of the pain, the requirements write themselves. A real V
 
 That's the gap [Kloudbean](https://www.kloudbean.com/) fills. You run your Next.js or Node app on a managed server it provisions for you, on the cloud you pick (AWS, Lightsail, Google Cloud, DigitalOcean, Linode, Vultr, or UpCloud, so seven providers, not one). Then you launch a managed database on the same server, and the app reaches it over localhost. Same push-to-deploy muscle memory, different thing underneath. Honest tradeoff: it's a persistent server, not a serverless edge, so it won't beat Vercel on cold starts or global delivery. What it fixes is the data-layer sprawl.
 
-<!-- ADD IMAGE: the Kloudbean dashboard with a server, its Next.js app, and a managed database visible together in one view. src -> images/one-dashboard.png -->
+![the Kloudbean dashboard with a server, its Next.js app, and a managed database visible together in one view. src -> images/one-dashboard.png](../assets/console-real/shots/psql_launch_step_1.png)
 
 ## How to move the data layer (without rewriting the app)
 
@@ -105,7 +105,7 @@ You don't have to leave Vercel-shaped code behind. The app stays standard Node. 
 
 Open the **DBS** section and hit **Launch Database**. Kloudbean runs seven managed engines: PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, and MongoDB. For most Next.js apps that's Postgres. Pick it, name it, create it. A minute or two later it's provisioned, secured, and being backed up. No separate signup, no second provider.
 
-![The Kloudbean console Launch Database screen with a choice of managed PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, or MongoDB](../assets/console/launch-database.png)
+![The Kloudbean console Launch Database screen with a choice of managed PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, or MongoDB](../assets/console-real/shots/psql_launch_step_1.png)
 
 *DBS then Launch Database: pick PostgreSQL or MySQL and it's provisioned on your server, locked to your app server's IP, backed up automatically.*
 
@@ -121,7 +121,7 @@ next start        # a long-lived Node process reading process.env.PORT
 
 If you want the framework-specific walkthrough, see [deploying Next.js to your own server](https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/) and the more general [deploy a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/).
 
-![The Kloudbean console Add Application screen where you create the app that will connect to the managed database](../assets/console/add-application.png)
+![The Kloudbean console Add Application screen where you create the app that will connect to the managed database](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 *Add Application: create the app, connect the repo, and it lives on the same server as the database it talks to.*
 
@@ -131,7 +131,7 @@ If you want the framework-specific walkthrough, see [deploying Next.js to your o
 
 Your app reads its connection from the **environment**, never from the source. Open **Runtime Configuration** then **Environment Variables** and add it. Because the database is on the same server, you point at localhost, not a public endpoint on another provider:
 
-![The Kloudbean console Environment Variables screen where the DATABASE_URL connection string is stored safely, not in code](../assets/console/env-vars.png)
+![The Kloudbean console Environment Variables screen where the DATABASE_URL connection string is stored safely, not in code](../assets/console-real/shots/nodespm_env_step_1.png)
 
 *Runtime Configuration then Environment Variables: the connection lives here, on the same server, never in your repository.*
 
@@ -187,13 +187,20 @@ Second, cost. At genuinely tiny traffic, a hobby tier plus a free database can u
 
 Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and the frameworks on top like Next.js, React, Vue, Laravel, and Django. That's what nearly every Vercel-hosted app is built on. Windows Server is not a standard-plan feature, but .NET on Linux is. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you own the app and its data, and you can export the database and leave whenever you like, because underneath it's a standard Linux box running standard Postgres or MySQL. Auto-scaling and Kubernetes are enterprise and custom-setup features, not a default. For the problem this article is about, a managed database next to your app is about as simple as it gets.
 
----
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-**Your app and its database, in one place.**
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-Keep the git-push deploys you like from Vercel, and put a real managed database next to your app on the same server. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
 
-Managed Postgres and MySQL · Automatic backups · Git push deploy · Free migration · Free trial · From $8/mo
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

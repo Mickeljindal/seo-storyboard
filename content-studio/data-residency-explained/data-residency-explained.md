@@ -62,13 +62,13 @@ Here's the good news buried under all the legalese. The thing you control is sim
 
 On Kloudbean you're picking across seven clouds: AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud, each with its own regions. Choose an EU region and your app server and database run in the EU. The managed database is locked down with IP allow-listing so only your app server can reach it rather than the open internet, so it isn't exposed for any scanner to find. On Enterprise plans it can go further onto a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/). You're not filing a ticket and hoping. You're clicking a region at launch.
 
-![The Kloudbean console: choosing the cloud and region deliberately when provisioning a server](../assets/console/add-server.png)
+![The Kloudbean console: choosing the cloud and region deliberately when provisioning a server](../assets/console-real/shots/launch_server_step_1.png)
 
 Same move for the database. A managed engine launches into the region and network you choose, and it's backed up for you from there.
 
-![The Kloudbean console: launching a managed database into a chosen region, locked to your app server's IP](../assets/console/launch-database.png)
+![The Kloudbean console: launching a managed database into a chosen region, locked to your app server's IP](../assets/console-real/shots/psql_launch_step_1.png)
 
-<!-- ADD IMAGE: a simple map or region picker showing your chosen region highlighted against the alternatives -->
+![Choose the region for your data](images/gen-1-flow.png)
 
 ## The copies people forget: backups, logs, the CDN, and your SaaS
 
@@ -81,7 +81,7 @@ This is where residency quietly goes wrong, and it's the part thin guides skip. 
 
 None of these are exotic. They're the default plumbing of a normal app. The mistake isn't using them. It's not knowing they hold copies. Map the copies before someone asks you to.
 
-<!-- ADD IMAGE: a "where the copies live" sketch: primary DB, backups, logs, CDN edge, and SaaS vendors, each tagged with a region -->
+![Primary DB, backups, logs, CDN edge, SaaS](images/gen-2-flow.png)
 
 ## A decision you can make in five minutes
 
@@ -104,7 +104,7 @@ So you provision your server and managed database in an EU region, keep processi
 
 Frankfurt is an easy one. The harder version of this conversation is when the clause names somewhere less obvious, and that's where breadth of regions stops being a spec-sheet item. Across its seven clouds Kloudbean can provision into 80-plus data centres, with in-country hosting available in around 35 countries, from Dammam and Dubai to São Paulo, Sydney, Seoul, and Johannesburg. Whether you can say yes to a clause is often just a question of whether anyone runs a region there.
 
-<!-- ADD IMAGE: a vendor security questionnaire with the "where is customer data stored?" row filled in confidently -->
+![Ensuring data residency compliance](images/gen-3-panel.png)
 
 ## What it costs to fix this after the fact
 
@@ -124,11 +124,21 @@ Where every host stops, ours included: the region is the only part of this that'
 
 For the deeper regulatory angle, go to [GDPR-compliant hosting](https://www.kloudbean.com/blog/gdpr-compliant-hosting/), [SOC 2 hosting](https://www.kloudbean.com/blog/soc2-compliant-hosting/), and [PCI-compliant hosting](https://www.kloudbean.com/blog/pci-compliant-hosting/). If you're buying for a regulated org, [enterprise hosting](https://www.kloudbean.com/blog/enterprise-wordpress-hosting/) covers the audit-trail and access side. And treat this article as a plain-English map, not legal advice. For a high-stakes case, confirm the details with someone qualified.
 
----
+<!-- cta:start -->
+**Ship the app, not the infrastructure.**
 
-**Choose the region before it chooses you.** Launch servers, managed databases, and object storage in the exact region your users and contracts require, on infrastructure you can point at a country on day one. Start at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
 
-Region choice across 7 clouds · Automatic backups · Free migration assistance · Free trial
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

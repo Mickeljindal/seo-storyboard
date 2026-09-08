@@ -279,3 +279,15 @@ and retire what does not.
 
 When the honest answer is "we should not write this", say so. That answer has improved this
 library more than any single article.
+
+
+---
+
+## HARD RULE — never delete or remove an existing article (owner, Aug 2026)
+
+Never delete, remove, or blank an already-built article (its `<slug>/` folder, `.md`, `.html`, or
+its published post). The library only grows or gets improved in place. When two pages overlap, the
+allowed moves are: differentiate, fold one into the other by EDITING (keeping a page live), or
+add a canonical/redirect at the site layer, never delete the file. "Retire" in the optimise ->
+upgrade -> rewrite -> consolidate ladder means redirect/merge at the site level, not file deletion.
+If deletion ever seems necessary, stop and ask the owner first.

@@ -39,7 +39,21 @@
   <p>If that line is there with a timestamp matching your attempt, stop editing application config. For the full layer-by-layer diagnosis across Apache, PHP, and the edge, there's a companion piece on <a href="https://www.kloudbean.com/blog/http-error-413-content-too-large/">413 Content Too Large and finding the ceiling that rejected you</a>. This page stays on nginx.</p>
 
   <!-- Swap for a real screenshot: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Concrete hint: the default nginx 413 error page in a browser, unstyled, with nginx visible at the bottom, next to the same app's normal styled error page.</em><small>The visual contrast is the whole diagnostic.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #1
+Create a left-to-right architecture / flow diagram for a technical blog post titled "413 Request Entity Too Large in nginx: client_max_body_size, Buffers, and Timeouts".
+
+What it must show: Concrete hint: the default nginx 413 error page in a browser, unstyled, with nginx visible at the bottom, next to the same app's normal styled error page.
+Also: The visual contrast is the whole diagnostic.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-flow.png" alt="Concrete hint: the default nginx 413 error page in a browser, unstyled, with nginx visible at the bottom, next to the same app's normal styled error page.">
+    <figcaption>Client request process</figcaption>
+  </figure>
 
   <h2>The nginx 413 fix: client_max_body_size and where it goes</h2>
   <p>One directive controls it. <code>client_max_body_size</code> sets the largest request body nginx will accept, and the <a href="https://nginx.org/en/docs/http/ngx_http_core_module.html#client_max_body_size">nginx documentation</a> gives its default as <code>1m</code>. One megabyte. That's below a photo from any phone you'd buy today, which is most of the reason this error is so common. Confirm the default against your own version, since config shipped by a distro package or a control panel often overrides it before you arrive.</p>
@@ -91,7 +105,20 @@ curl -s -o /dev/null -w '%{http_code}\n' -X POST \
   <p>Use curl rather than a browser here. When nginx generates the 413 itself, the response carries none of the cross-origin headers your app would have added, so a browser reports it as a CORS failure and hides the real status from you. curl doesn't enforce cross-origin policy and shows you the number.</p>
 
   <!-- Swap for a real screenshot: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Concrete hint: terminal output of nginx -T piped through grep, showing two different client_max_body_size values in two different files.</em></span></figure>
+  <!-- IMAGE GENERATE [terminal] #2
+Create a realistic terminal / command-line screenshot for a technical blog post titled "413 Request Entity Too Large in nginx: client_max_body_size, Buffers, and Timeouts".
+
+What it must show: Concrete hint: terminal output of nginx -T piped through grep, showing two different client_max_body_size values in two different files.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-terminal.png" alt="Concrete hint: terminal output of nginx -T piped through grep, showing two different client_max_body_size values in two different files.">
+    <figcaption>grep filtered output from nginx -T</figcaption>
+  </figure>
 
   <h2>nginx is one ceiling out of several</h2>
   <p>Fix nginx and the next layer takes its turn. This is the part that makes 413 feel unfixable: it's not one setting failing repeatedly, it's a queue of independent limits, and each one has to be raised or the smallest still decides your real maximum. Work down the path in request order.</p>
@@ -125,7 +152,21 @@ curl -s -o /dev/null -w '%{http_code}\n' -X POST \
   <p>Both timeouts default to 60 seconds in current nginx releases, and both are worth confirming against your version rather than trusting a blog post, including this one. If your symptom is a timeout rather than a rejection, <a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504 Gateway Timeout</a> is the one to read, and <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway between nginx and Node</a> covers the case where the upstream died mid-request instead.</p>
 
   <!-- Swap for a real screenshot: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Concrete hint: a simple flow showing a request body passing CDN, then nginx, then the app framework, with a different size limit at each hop and the smallest one rejecting.</em><small>Label each hop with its directive or setting name.</small></span></figure>
+  <!-- IMAGE GENERATE [panel] #3
+Create a clean settings / configuration panel UI mockup for a technical blog post titled "413 Request Entity Too Large in nginx: client_max_body_size, Buffers, and Timeouts".
+
+What it must show: Concrete hint: a simple flow showing a request body passing CDN, then nginx, then the app framework, with a different size limit at each hop and the smallest one rejecting.
+Also: Label each hop with its directive or setting name.
+
+A white card with a small uppercase section label, then labelled rows. Highlight the row that carries the point with a violet border. Optional green check line at the bottom confirming the result.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-panel.png" alt="Concrete hint: a simple flow showing a request body passing CDN, then nginx, then the app framework, with a different size limit at each hop and the smallest one rejecting.">
+    <figcaption>Limitations at each stage</figcaption>
+  </figure>
 
   <h2>Why raising the limit is often the wrong answer</h2>
   <p>An opinion, and it's the part of this I'd argue about. Raising <code>client_max_body_size</code> is a fix for forms that are slightly too big. A 6 MB scanned PDF against a 1m default, a batch JSON import that outgrew its endpoint, an avatar upload that nobody sized for modern cameras. Set a sane number, reload, done. That's a config bug with a config fix.</p>
@@ -157,11 +198,55 @@ await fetch(signedUrl, { method: "PUT", body: file });</code></pre>
   <h2>More on 413 Request Entity Too Large in nginx</h2>
   <p>For the proxy layer itself, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx as a reverse proxy for Node</a> covers the config this sits inside. For the neighbouring failures: <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a> when the upstream is gone, and <a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504 Gateway Timeout</a> when it's too slow. For the status code across every layer rather than just nginx, <a href="https://www.kloudbean.com/blog/http-error-413-content-too-large/">413 Content Too Large</a>.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Send large files to storage, not through your app server.</p>
-    <p style="margin:0 0 .6em">S3-compatible object storage with AWS SDK and CLI support, on managed servers where the stack is handled for you. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">S3-compatible storage · Managed servers · Free SSL · Automatic backups · Git deploys</p>
+<div class="kbcta-fix-wrap">
+  <div class="kbcta-fix-overlay"></div>
+  <div class="kbcta-fix-content">
+    <div class="kbcta-fix-eyebrow">DEPLOY &middot; LOGS THAT TELL YOU WHY</div>
+    <p class="kbcta-fix-heading">Read the log, fix it, ship again.</p>
+    <p class="kbcta-fix-description">Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.</p>
+    <ul class="kbcta-fix-features">
+      <li>&#10003; Live build logs</li>
+      <li>&#10003; Deployment history</li>
+      <li>&#10003; Logs viewer</li>
+      <li>&#10003; Managed process restarts</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Git deploy</li>
+    </ul>
+    <div class="kbcta-fix-buttons">
+      <a class="kbcta-fix-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-fix-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-fix: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-fix-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-fix-wrap *{box-sizing:border-box}
+.kbcta-fix-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-fix-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-fix-content{position:relative;z-index:3;max-width:700px}
+.kbcta-fix-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-fix-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-fix-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-fix-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-fix-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-fix-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-fix-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-fix-btn:hover,.kbcta-fix-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-fix-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-fix-link:hover,.kbcta-fix-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-fix-wrap{padding:36px 24px}
+  .kbcta-fix-heading{font-size:31px}
+  .kbcta-fix-description{font-size:16px}
+  .kbcta-fix-features li{white-space:normal}
+  .kbcta-fix-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-fix-btn{width:100%}
+  .kbcta-fix-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

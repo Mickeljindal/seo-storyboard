@@ -137,7 +137,7 @@ DATABASE_URL="postgresql://appuser:secret@10.0.0.5:5432/appdb"</code></pre>
   <p>On Kloudbean you open <strong>DBS</strong>, click <strong>Launch Database</strong>, and wire the connection in as an environment variable. The full walkthrough, with migration commands for Prisma, Drizzle, Django, Laravel, and Rails, is in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">how to add a managed database to your app</a>. Do this before you have real users, not after you lose them.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen, creating a managed Postgres or MySQL that survives redeploys">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean console Launch Database screen, creating a managed Postgres or MySQL that survives redeploys">
     <figcaption>DBS, then Launch Database. A managed Postgres or MySQL persists across every deploy, unlike a local file.</figcaption>
   </figure>
 
@@ -147,7 +147,7 @@ DATABASE_URL="postgresql://appuser:secret@10.0.0.5:5432/appdb"</code></pre>
   <p><strong>Fix:</strong> set every secret on the server itself. In Kloudbean that's <strong>Runtime Configuration &#8594; Environment Variables</strong>, where you can paste your whole <code>.env</code> and convert it to key/value in one go, then redeploy. The reliable habit is env parity: put your local <code>.env</code> and the server's variables side by side and set anything that's missing. New to this? Read <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> before you trust any deploy. And don't paste secrets into the repo to make the deploy pass. That leaks your keys into Git history forever.</p>
 
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean Environment Variables editor with a paste dot env tab, where secrets are set on the server">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean Environment Variables editor with a paste dot env tab, where secrets are set on the server">
     <figcaption>Runtime Configuration, Environment Variables. Set the keys the log named, then redeploy.</figcaption>
   </figure>
 
@@ -177,7 +177,21 @@ uvicorn main:app --host 0.0.0.0 --port $PORT</code></pre>
   <p><strong>Fix:</strong> write uploads to <strong>object storage</strong> instead of the app's disk. It's built for this: durable, separate from your app, reachable by every instance. Kloudbean has built-in S3-compatible buckets with full AWS S3 SDK compatibility, so most existing upload code works with a config change rather than a rewrite. The <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage guide</a> shows how to point uploads at a bucket.</p>
 
   <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/uploads-disk-vs-bucket.png) and a <figcaption> -->
-  <figure class="img-slot"><span><b>Add image</b><em>A before/after: an upload saved to a local /uploads folder that vanishes on redeploy, versus the same file living safely in an object storage bucket.</em><small>Makes the ephemeral-disk trap obvious at a glance.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #1
+Create a side-by-side comparison table for a technical blog post titled "Why Your AI App Works Locally but Not in Production".
+
+What it must show: A before/after: an upload saved to a local /uploads folder that vanishes on redeploy, versus the same file living safely in an object storage bucket.
+Also: Makes the ephemeral-disk trap obvious at a glance.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-comparison.png" alt="A before/after: an upload saved to a local /uploads folder that vanishes on redeploy, versus the same file living safely in an object storage bucket.">
+    <figcaption>Before and After: An Ephemeral-Disk Trap</figcaption>
+  </figure>
 
   <h2>5. Your frontend still points at localhost (the CORS wall)</h2>
   <p><strong>Symptom:</strong> the deployed site loads, but nothing fetches. The browser console reads <code>Access to fetch at 'http://localhost:3001/api' from origin 'https://yourapp.com' has been blocked by CORS policy</code>. Or every API call just fails silently.</p>
@@ -194,7 +208,7 @@ fetch(API + '/users')</code></pre>
   <p><strong>Fix:</strong> set the build command explicitly (usually <code>npm run build</code>) so the production assets actually get generated. If a package is needed to build, make sure it's installed at build time rather than pruned. On Kloudbean you set the install, build, and start commands right in the Git deployment config, and the live build logs show you exactly which step failed.</p>
 
   <figure>
-    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Git deployment configuration where install, build, and start commands are set">
+    <img src="../assets/console-real/shots/git_connect_step_4.png" alt="The Kloudbean Git deployment configuration where install, build, and start commands are set">
     <figcaption>Set install, build, and start as separate steps. The live build log tells you which one broke.</figcaption>
   </figure>
 
@@ -229,11 +243,55 @@ fetch(API + '/users')</code></pre>
   <p>Most of these failures share a root: the app needs services and config that live somewhere other than your laptop, and stitching them across three or four providers is where things slip through. That's the part Kloudbean removes. Your managed database, environment variables, object storage, and build logs sit in one dashboard, on a server you own, in one account. You set the port and env vars in the UI, launch the database next to the app, and watch the build stream live. Fewer moving pieces, fewer places for a localhost assumption to hide.</p>
   <p>Weighing where to put a vibe-coded app after a hobby host? The <a href="https://www.kloudbean.com/blog/render-alternative-for-vibe-coded-apps/">Render alternative for vibe-coded apps</a> breaks down the tradeoffs, and the pillar guide, <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">how to deploy an AI-built app to production</a>, ties every step together.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">The code already runs. Now give it a real home.</p>
-    <p style="margin:0">Launch a managed server, database, and object storage from one dashboard at <a href="https://www.kloudbean.com/">kloudbean.com</a>, with a free trial and your first migration done for you. Sizes and plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:.7em 0 0; font-size:15px; color:#c9b8ff">Managed databases · Environment variables in the UI · Object storage · Live build logs · Free migration</p>
+<div class="kbcta-fix-wrap">
+  <div class="kbcta-fix-overlay"></div>
+  <div class="kbcta-fix-content">
+    <div class="kbcta-fix-eyebrow">DEPLOY &middot; LOGS THAT TELL YOU WHY</div>
+    <p class="kbcta-fix-heading">Read the log, fix it, ship again.</p>
+    <p class="kbcta-fix-description">Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.</p>
+    <ul class="kbcta-fix-features">
+      <li>&#10003; Live build logs</li>
+      <li>&#10003; Deployment history</li>
+      <li>&#10003; Logs viewer</li>
+      <li>&#10003; Managed process restarts</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Git deploy</li>
+    </ul>
+    <div class="kbcta-fix-buttons">
+      <a class="kbcta-fix-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-fix-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-fix: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-fix-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-fix-wrap *{box-sizing:border-box}
+.kbcta-fix-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-fix-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-fix-content{position:relative;z-index:3;max-width:700px}
+.kbcta-fix-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-fix-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-fix-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-fix-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-fix-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-fix-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-fix-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-fix-btn:hover,.kbcta-fix-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-fix-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-fix-link:hover,.kbcta-fix-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-fix-wrap{padding:36px 24px}
+  .kbcta-fix-heading{font-size:31px}
+  .kbcta-fix-description{font-size:16px}
+  .kbcta-fix-features li{white-space:normal}
+  .kbcta-fix-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-fix-btn{width:100%}
+  .kbcta-fix-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

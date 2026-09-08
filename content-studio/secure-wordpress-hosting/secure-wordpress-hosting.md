@@ -56,7 +56,7 @@ This is the half people forget while installing security plugins. On managed hos
 
 Let me be straight, because the industry oversells this. A firewall plus Fail2ban plus an edge network is a strong baseline, not a magic shield. It's layers doing their jobs, with the app layer you own sitting on top.
 
-![The Kloudbean console: provisioning a server that ships with a Shorewall firewall and Fail2ban configured automatically](../assets/console/add-server.png)
+![The Kloudbean console: provisioning a server that ships with a Shorewall firewall and Fail2ban configured automatically](../assets/console-real/shots/launch_server_step_1.png)
 
 ## What only you can do: the app layer
 
@@ -68,7 +68,7 @@ No host can do these for you, because they live inside your WordPress. None are 
 - **Least privilege for every account.** An editor should be an editor, not an administrator. Fewer admins means fewer keys to the kingdom, and [what each WordPress role can actually do](https://www.kloudbean.com/blog/wordpress-user-roles/) is worth reading before you hand one out, because the real gap sits between Editor and Administrator, where content permissions turn into permission to change the site's code. On the hosting side, **subusers with User Access Control** scope who can touch the server and deploys, so a freelancer gets exactly the access their job needs and nothing more.
 - **Lock down your config and secrets.** Set unique authentication keys and salts in `wp-config.php` (never the defaults), and keep credentials in environment configuration rather than committed to a repo.
 
-![The Kloudbean console: storing WordPress keys, salts, and database credentials as environment variables instead of hard-coding them](../assets/console/env-vars.png)
+![The Kloudbean console: storing WordPress keys, salts, and database credentials as environment variables instead of hard-coding them](../assets/console-real/shots/nodespm_env_step_1.png)
 
 Two one-line hardening moves worth pasting into `wp-config.php`:
 
@@ -91,7 +91,7 @@ The login page is where most of the noise lands, so give it extra walls. A few o
 - **Rate-limit or move the login.** Limiting attempts slows guessing; Fail2ban already bans repeat offenders at the server. Moving the login URL is minor obscurity, not real security, but it does cut the log noise.
 - **HttpOnly cookie sessions.** On the platform side, session cookies are HttpOnly, which hardens against common XSS and CSRF session-theft tricks. Pair that with sensible [security headers](https://www.kloudbean.com/blog/security-headers-guide/) on your site.
 
-<!-- ADD IMAGE: the IP Access Control screen locking wp-admin and wp-login to your office CIDR range, showing allow/deny rules. -->
+![Restrict wp-admin and wp-login to known networks](images/gen-1-panel.png)
 
 ## Threat to fix, at a glance
 
@@ -120,17 +120,26 @@ Landed here because a site is *already* compromised? Do these in order, and don'
 
 A calm, ordered recovery beats frantic clicking. And if step three failed because your only backup lived on the same box, that's the lesson for next time.
 
-<!-- ADD IMAGE: the one-click restore screen, picking a clean restore point from before the compromise. -->
+![Select a clean restore point](images/gen-2-flow.png)
 
 ## The opinion I'll defend
 
 A backup you've actually test-restored, plus plugins that are current, beats any "magic" security plugin. Security plugins help with parts of the app layer: 2FA, login limits, malware scanning. But a plugin can't patch the OS, isolate you from a noisy neighbour, or be your only backup. The sites that get hurt almost always installed a security plugin and called it done, while the server sat unpatched. Do the boring list. It works.
 
----
+<!-- cta:start -->
+**WordPress, without the server admin.**
 
-**You mind the site. We keep the stack hardened.** Run WordPress on hosting that owns the server layer for you at [kloudbean.com](https://www.kloudbean.com/). Plans on [pricing](https://www.kloudbean.com/pricing/).
+Run WordPress and WooCommerce on a managed server with a staging site, automatic backups, free auto-renewing SSL, and a managed MySQL or MariaDB beside it. Pick the cloud and the region yourself.
 
-Auto firewall + Fail2ban · Free SSL · Off-site backups · Staging · Free migration · Free trial
+- Managed WordPress stack
+- One-click staging
+- Managed MySQL and MariaDB
+- Automatic backups
+- Free SSL
+- Built-in load balancer
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

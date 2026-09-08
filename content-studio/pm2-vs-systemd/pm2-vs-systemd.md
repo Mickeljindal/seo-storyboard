@@ -78,7 +78,7 @@ Two features earn PM2 its reputation. **Cluster mode** forks your app across cor
 
 The catch, and it's the one that burns people: PM2 does *not* survive a reboot on its own. You have to run `pm2 startup` once (it prints a `sudo` line you paste back) and then `pm2 save` after your apps are running. Skip either and your carefully configured processes vanish the next time the server restarts.
 
-<!-- ADD IMAGE: terminal output of pm2 list showing the app online with uptime and restart count across workers. -->
+![Node.js app running across workers](images/gen-1-terminal.png)
 
 ## What is systemd, and how do you run Node under it?
 
@@ -119,7 +119,7 @@ journalctl -u node-api -f       # follow the live logs
 
 Logs go to journald, so `journalctl -u node-api` gives you searchable, rotated history with no extra tooling. There's no cluster mode, though. systemd will happily run one process reliably; if you want four workers you either run four units or reach for socket activation, which is more moving parts than most people want. That gap is exactly where PM2 shines.
 
-<!-- ADD IMAGE: systemctl status output showing active (running) in green plus a few journalctl lines. -->
+![Systemd view of a healthy Node service](images/gen-2-terminal.png)
 
 ## PM2 vs systemd for Node: the honest comparison
 
@@ -145,7 +145,7 @@ Now the part the internet argues about and mostly gets wrong: it isn't strictly 
 
 One honest caveat: two supervisors means two places to look when something breaks. So test it. Reboot the box on purpose and confirm the app comes back before you trust it.
 
-<!-- ADD IMAGE: a simple two-layer diagram or terminal showing PM2 running as an enabled systemd service. -->
+![Two-layer process management](images/gen-3-flow.png)
 
 ## The gotchas that actually bite people
 
@@ -164,23 +164,32 @@ Short answer: no, and that's kind of the point. Everything above is what you do 
 
 On Kloudbean, your Node app runs under PM2 as part of the managed stack, so a crash doesn't become downtime and the app comes back after a reboot without you writing a unit file or memorizing `systemctl`. PM2 multi-process is supported, so when one core stops being enough you can run a copy per core behind the same port. You set the Node runtime, the start command, and the process settings in the dashboard, not by hand-editing files over SSH.
 
-![The Kloudbean Add Application screen: adding a Node.js app and setting its runtime and start command](../assets/console/add-application.png)
+![The Kloudbean Add Application screen: adding a Node.js app and setting its runtime and start command](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 Then you watch it instead of babysitting it. The server health view shows CPU, memory, and disk, so you can see a worker misbehaving or a memory leak climbing before it becomes a page. That's the supervisor's job made visible.
 
-![The Kloudbean server health view: CPU, memory, and disk for a running app kept alive by the managed process manager](../assets/console/server-health.png)
+![The Kloudbean server health view: CPU, memory, and disk for a running app kept alive by the managed process manager](../assets/console-real/shots/server_health_step_2.png)
 
-<!-- ADD IMAGE: the Kloudbean runtime configuration panel for a Node app, showing the start command and process options. -->
+![Configure start command and process options](images/gen-1-terminal.png)
 
 To be clear about a boundary people ask about: cluster mode uses the cores on the server you already have. It is not autoscaling. Automatically adding or removing servers under load is an enterprise and custom-architecture thing, not something that happens on a standard app, so don't expect a normal managed app to grow servers by itself. For most apps, right-sizing one box and using all its cores is exactly enough.
 
 The same managed flow deploys the frameworks that sit on top. If you're shipping a specific stack, see [deploy an Express app](https://www.kloudbean.com/blog/deploy-express-app/) or [deploy a NestJS app](https://www.kloudbean.com/blog/deploy-nestjs-app/), and wire pushes to auto-deploy with [CI/CD from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/). However you keep the process alive, a [reverse proxy](https://www.kloudbean.com/blog/reverse-proxy-explained/) still sits in front to terminate TLS and forward traffic to it.
 
----
+<!-- cta:start -->
+**Move it once. Own it after.**
 
-**Keep your Node app alive without hand-writing a single unit file.** Deploy from Git, let the managed stack supervise the process with PM2 (multi-process supported), watch health in one dashboard, and add a managed database and free SSL when you need them. Start at [kloudbean.com](https://www.kloudbean.com/); sizes and plans (from $8/mo, Enterprise custom) are on [pricing](https://www.kloudbean.com/pricing/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-PM2 process management · Git deploy with live logs · Managed databases · Free auto-renewing SSL · Free migration · Free trial
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

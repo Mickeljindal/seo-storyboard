@@ -49,7 +49,20 @@
   .cta{ margin:2.4em 0 0; padding:22px 24px; border-radius:16px; color:#fff; background:linear-gradient(135deg,var(--navy),#0a1f45); }
   .cta a{color:#c9b8ff; border-bottom-color:rgba(201,184,255,.4)}
   .byline{font-size:14px; color:var(--muted); border-top:1px solid var(--line); margin-top:2em; padding-top:14px}
-  /* image spacer: replace the whole <figure class="img-slot"> with a real <figure><img ...><figcaption>...</figcaption></figure> */
+  /* image spacer: replace the whole <!-- IMAGE GENERATE [flow] #1
+Create a left-to-right architecture / flow diagram for a technical blog post titled "Deploy a Cursor App to Production: the Localhost Trap".
+
+What it must show: 
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-flow.png" alt="">
+    <figcaption>From LB to DB</figcaption>
+  </figure> */
   .img-slot{display:flex;align-items:center;justify-content:center;text-align:center;min-height:210px;margin:2em 0;padding:30px 24px;border:2px dashed #c9d0e3;border-radius:16px;background:repeating-linear-gradient(45deg,var(--bg-soft),var(--bg-soft) 14px,#eef1f8 14px,#eef1f8 28px);color:var(--muted)}
   .img-slot > span{display:block;max-width:80%}
   .img-slot b{display:block;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--purple);margin-bottom:8px}
@@ -142,6 +155,20 @@ const api = axios.create({ baseURL: "http://localhost:3000/api" });
 const api = axios.create({ baseURL: import.meta.env.VITE_API_URL ?? "/api" });</code></pre>
 
   <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
+  <!-- IMAGE CAPTURE [browser-shot] #2
+SCREENSHOT NEEDED (do not generate this one).
+This slot shows a real browser window (address bar, devtools, or tabs), so an AI image would be inaccurate and a reader could tell.
+Capture: Browser DevTools, Network tab: the failed request to http://localhost:3000 from the deployed site.
+Note: Shows the symptom readers recognize. Optional.
+Crop to 16:9, keep text legible at 1200px wide, and blur or fake any real credentials, tokens, IPs or customer data.
+-->
+  <!-- IMAGE CAPTURE [browser-shot] #1
+SCREENSHOT NEEDED (do not generate this one).
+This slot shows a real browser window (address bar, devtools, or tabs), so an AI image would be inaccurate and a reader could tell.
+Capture: Browser DevTools, Network tab: the failed request to http://localhost:3000 from the deployed site.
+Note: Shows the symptom readers recognize. Optional.
+Crop to 16:9, keep text legible at 1200px wide, and blur or fake any real credentials, tokens, IPs or customer data.
+-->
   <figure class="img-slot"><span><b>Add image</b><em>Browser DevTools, Network tab: the failed request to http://localhost:3000 from the deployed site.</em><small>Shows the symptom readers recognize. Optional.</small></span></figure>
 
   <h3>3. Know that frontend env vars bake in at build time</h3>
@@ -168,7 +195,21 @@ datasource db {
   <p>Use <code>migrate deploy</code>, not <code>migrate dev</code>. The <code>dev</code> variant is interactive and can try to reset the database, which is not what you want anywhere near production. Kloudbean runs seven managed engines (Postgres, MySQL, MariaDB, Redis, Memcached, MongoDB, Elasticsearch), so if your app already speaks Mongo or MySQL you're not forced to rewrite it. More on the setup in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a> and the <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> guide.</p>
 
   <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
-  <figure class="img-slot"><span><b>Add image</b><em>Terminal: <code>npx prisma migrate deploy</code> applying migrations and creating tables on the managed database.</em><small>A real terminal screenshot here is worth a paragraph.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #3
+Create a realistic terminal / command-line screenshot for a technical blog post titled "Deploy a Cursor App to Production: the Localhost Trap".
+
+What it must show: Terminal: npx prisma migrate deploy applying migrations and creating tables on the managed database.
+Also: A real terminal screenshot here is worth a paragraph.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-terminal.png" alt="Terminal: npx prisma migrate deploy applying migrations and creating tables on the managed database.">
+    <figcaption>Real terminal output for Prisma migration deploy</figcaption>
+  </figure>
 
   <h3>Send uploads to object storage, not the disk</h3>
   <p>If your app lets people upload anything, an avatar, a PDF, a CSV, and Cursor wired <code>multer</code> to write into <code>./uploads</code>, those files live on the same disk that resets on redeploy. Same disappearing act as SQLite. Point uploads at an S3-compatible bucket instead. Kloudbean has object storage built in with full AWS S3 SDK compatibility, so the standard <code>@aws-sdk/client-s3</code> code works unchanged. Here's the <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">object storage walkthrough</a>.</p>
@@ -182,14 +223,14 @@ datasource db {
   <p>Sign in to the <a href="https://www.kloudbean.com/">Kloudbean</a> console and click <strong>Add Server</strong>. Pick your <strong>Cloud Provider</strong> (AWS, DigitalOcean, Linode, Vultr, GCP, UpCloud, or Lightsail), choose <strong>Node.js</strong> as the application, pick the datacenter closest to your users, and give a Node build a couple of gigs of headroom on the server size. <strong>Launch Now</strong> provisions it in a few minutes with the stack ready.</p>
 
   <figure>
-    <img src="../assets/console/add-server.png" alt="Kloudbean Add Server screen: choosing cloud provider, Node.js application, datacenter, and server size">
+    <img src="../assets/console-real/shots/launch_server_step_1.png" alt="Kloudbean Add Server screen: choosing cloud provider, Node.js application, datacenter, and server size">
     <figcaption>Add Server: pick a provider, choose Node.js, size it, and launch. The stack comes ready.</figcaption>
   </figure>
 
   <p>Open the app, go to <strong>Application Administration → Deploy Code</strong>, and you're on the Git Deployment screen. This is where the whole thing happens.</p>
 
   <figure>
-    <img src="../assets/console/git-deployment.png" alt="Kloudbean console Deploy Code / Git Deployment screen: connect a repo, then set App Directory, port, and build and start commands">
+    <img src="../assets/console-real/shots/git_connect_step_4.png" alt="Kloudbean console Deploy Code / Git Deployment screen: paste the Git repository URL, fetch branches, and clone the repo to the app">
     <figcaption>Deploy Code, then Git Deployment: connect the repo up top, set the runtime fields below, on one screen.</figcaption>
   </figure>
 
@@ -203,14 +244,14 @@ datasource db {
   <p>Click <strong>Pull &amp; Deploy</strong>. Kloudbean pulls the code, pins your Node version, installs, builds, and puts it on the web. Then wire up the database and secrets:</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance">
     <figcaption>Launch a managed database from the console, then copy its connection details into your environment variables.</figcaption>
   </figure>
 
   <p>In <strong>Runtime Configuration → Environment Variables</strong> there's a <strong>Paste .env Content</strong> tab. Drop your local <code>.env</code> in, <strong>Convert to Key/Value</strong>, and swap the dev values for the real ones, especially the database connection string pointing at the instance you just launched.</p>
 
   <figure>
-    <img src="../assets/console/env-vars.png" alt="Kloudbean environment variables editor with a paste .env content tab and key value list">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="Kloudbean environment variables editor with a paste .env content tab and key value list">
     <figcaption>Environment variables live in the console, not the repo. Paste your .env, then replace the local values.</figcaption>
   </figure>
 
@@ -223,6 +264,13 @@ SESSION_SECRET=a-long-random-string</code></pre>
   <p>Last, add your custom domain under <strong>Domain Aliases</strong>, point its DNS at the server, and install a free <strong>Let's Encrypt</strong> certificate so it's HTTPS and renews itself. Turn on <strong>automated deployment</strong> and every push to your branch builds and ships on its own, with the build log streaming live in the console. From then on, shipping is just <code>git push</code>. That's the same auto-deploy loop the per-app platforms rent you, except it's <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">running on a server you own</a>.</p>
 
   <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
+  <!-- IMAGE CAPTURE [browser-shot] #4
+SCREENSHOT NEEDED (do not generate this one).
+This slot shows a real browser window (address bar, devtools, or tabs), so an AI image would be inaccurate and a reader could tell.
+Capture: Your Cursor app live on its custom domain, with the SSL padlock in the address bar.
+Note: The payoff shot. Nothing sells "it works" like the real thing.
+Crop to 16:9, keep text legible at 1200px wide, and blur or fake any real credentials, tokens, IPs or customer data.
+-->
   <figure class="img-slot"><span><b>Add image</b><em>Your Cursor app live on its custom domain, with the SSL padlock in the address bar.</em><small>The payoff shot. Nothing sells "it works" like the real thing.</small></span></figure>
 
   <h2>One app, or two?</h2>
@@ -231,7 +279,20 @@ SESSION_SECRET=a-long-random-string</code></pre>
   <p>Built a <strong>separate frontend and backend</strong>, say a Vite React SPA and a standalone Express API? You've got two good options. Simplest: build the frontend and let your Node server serve those static files, so it stays one app on one domain. Or run them as two applications on the same server, the API on <code>api.yourapp.com</code> and the client on <code>app.yourapp.com</code>, which you add from <strong>Applications → Add Application</strong>. Same box, same bill. Mirror whatever you already do locally: one dev server means one app, two dev servers means two. The mechanics of stacking apps are in <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">hosting multiple apps on one server</a>.</p>
 
   <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
-  <figure class="img-slot"><span><b>Add image</b><em>The Applications list on one server: the API on api.yourapp.com and the client on app.yourapp.com, side by side.</em></span></figure>
+  <!-- IMAGE GENERATE [comparison] #5
+Create a side-by-side comparison table for a technical blog post titled "Deploy a Cursor App to Production: the Localhost Trap".
+
+What it must show: The Applications list on one server: the API on api.yourapp.com and the client on app.yourapp.com, side by side.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-5-comparison.png" alt="The Applications list on one server: the API on api.yourapp.com and the client on app.yourapp.com, side by side.">
+    <figcaption>Performance and Security Trade-offs</figcaption>
+  </figure>
 
   <h2>Do you actually need Docker for this?</h2>
   <p>No. Not for a single Cursor app. A Dockerfile and a Kubernetes cluster solve problems you don't have yet: fleets of services, teams shipping in parallel, orchestration across many machines. Your app is a Node process. A managed server runs it directly, restarts it if it falls over, and gets out of the way. If you're ever running dozens of services and need real orchestration, that's an enterprise conversation and a different article. Docker does earn its place once you have fiddly system dependencies or a team that needs identical environments, and <a href="https://www.kloudbean.com/blog/do-i-need-docker-to-deploy-an-ai-app/">where the Docker line actually falls for an AI-built app</a> walks through those cases. For getting your Cursor build in front of users this week, containers are ceremony you can skip.</p>
@@ -243,15 +304,74 @@ SESSION_SECRET=a-long-random-string</code></pre>
   <p>One less obvious cause with AI-built TypeScript projects: the build fails because the tools it needs (the TypeScript compiler, Vite, Tailwind) are in <code>devDependencies</code>, and something set <code>NODE_ENV=production</code> before install, so <code>npm</code> skipped them. Either move the build-time tools where they belong or make sure install runs before that variable is set. Cheapest way to catch this class of failure before the server does: clone your repo into an empty folder and build it there, which is exactly the test behind <a href="https://www.kloudbean.com/blog/deploy-windsurf-app/">whether an AI editor project builds from a clean clone</a>. There's also <code>sudo adm</code>, the deploy utility, which runs the whole build-and-ship in one command over SSH. The full 503 playbook is <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">here</a>.</p>
 
   <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
-  <figure class="img-slot"><span><b>Add image</b><em>The Logs Viewer open on the App Errors tab, with the missing-variable line that explains the 503.</em></span></figure>
+  <!-- IMAGE GENERATE [flow] #6
+Create a left-to-right architecture / flow diagram for a technical blog post titled "Deploy a Cursor App to Production: the Localhost Trap".
+
+What it must show: The Logs Viewer open on the App Errors tab, with the missing-variable line that explains the 503.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-6-flow.png" alt="The Logs Viewer open on the App Errors tab, with the missing-variable line that explains the 503.">
+    <figcaption>One line</figcaption>
+  </figure>
 
   <h2>What you own, and what you don't</h2>
   <p>Kloudbean runs Linux stacks: Node, plus PHP, Python, Ruby, and Java, with the frameworks on top (React, Next.js, Vue, Laravel, Django, WordPress). That's essentially everything Cursor builds for the web. If you had Cursor write a classic Windows or .NET app that expects IIS and SQL Server, that's a port, not a deploy, and this isn't the platform for it. "Managed" means the server, the stack, SSL, backups, and patching are handled. Your code and your data stay yours. You can move hosts whenever you like, because underneath it's a normal Linux box running normal code. No slot to rent, no per-app tax as you grow.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">You did the hard part in the editor.</p>
-    <p style="margin:0">Get your Cursor app live at <a href="https://www.kloudbean.com/">kloudbean.com</a>, with a free trial and your first migration done for you. Want the tool-agnostic version that covers Lovable, Bolt, v0, and Replit too? That's the <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy an AI-built app</a> guide. Server sizes and plans are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">Take it off localhost for good.</p>
+    <p class="kbcta-ai-description">Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

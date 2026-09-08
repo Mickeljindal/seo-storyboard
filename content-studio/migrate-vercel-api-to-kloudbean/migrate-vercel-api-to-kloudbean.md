@@ -98,11 +98,20 @@ The genuinely fair part, and worth repeating: keep your Next.js frontend on Verc
 
 Next steps and context: [a Vercel alternative for full-stack apps](https://www.kloudbean.com/blog/vercel-alternative-for-full-stack-apps/), [deploy an Express app](https://www.kloudbean.com/blog/deploy-express-app/) and [deploy a NestJS app](https://www.kloudbean.com/blog/deploy-nestjs-app/) for the API side, [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/) for the queue you couldn't run before, [scaling WebSockets](https://www.kloudbean.com/blog/scale-websockets-nodejs/) for real-time, and [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) for the config split.
 
-## Give your API a persistent home
+<!-- cta:start -->
+**Move it once. Own it after.**
 
-Run an always-on Node API under PM2 with real background workers, managed PostgreSQL and Redis, and no egress metering, on a flat plan from $8/mo. Keep your frontend wherever you like. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-No duration limits on your handlers · Real workers and WebSockets · Managed Postgres and Redis · No egress metering · Flat from $8/mo
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

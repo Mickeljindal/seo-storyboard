@@ -37,7 +37,7 @@ Worth working out which of those layers you can even see. On a managed platform 
 
 This shows up anywhere the work is genuinely slow. A long model generation that runs 30 to 120 seconds. An agent run that fires several tool calls in sequence, each adding latency, until the whole thing blows past the ceiling (an agent run timeout). A batch embedding job pushing thousands of chunks through an embeddings API (a batch embedding timeout). None of these are broken. They're just too long to live inside one HTTP request. Timeouts on long model calls are one of the classic ways [AI apps fail in production](https://www.kloudbean.com/blog/why-ai-apps-fail-in-production/), and this is the fix for that particular failure.
 
-<!-- ADD IMAGE: a 504 Gateway Timeout in the browser network tab, next to a request that hung for about 30 seconds before failing -->
+![Progress to result](images/gen-2-flow.png)
 
 ## Why raising the proxy timeout doesn't really fix it
 
@@ -120,7 +120,7 @@ async function runLongTask(prompt) {
 
 That's the core of it. The POST returns in milliseconds. The worker takes as long as it takes. The client checks in every two seconds and shows a spinner or a progress note until the result is there. No layer in the middle ever waits long enough to time out, because nothing in the middle is waiting at all.
 
-<!-- ADD IMAGE: a simple UI showing a progress spinner while the client polls, then the finished result appearing once the job status flips to done -->
+![From queue to completion](images/gen-3-flow.png)
 
 ## When streaming is the right answer instead
 
@@ -138,7 +138,7 @@ In practice that means running two processes, not one, plus a Redis and a databa
 
 A queue buys you more than just moving work off the request path. You get retries when a job fails, control over how many jobs run at once (so ten users don't launch ten simultaneous GPU-heavy calls), and a record of what ran. In Node, the common tool is BullMQ on top of Redis; [background jobs in Node.js with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/) covers the worker, retries, and concurrency in detail. Python has RQ and Celery in the same role. The job's state, queued, running, done, or failed, plus the result, lives in your database, which is what the status endpoint reads back. This whole setup, API plus worker plus queue plus store, is laid out in the [AI app reference architecture](https://www.kloudbean.com/blog/ai-app-reference-architecture/), and it's the natural next step after [the last mile of vibe coding](https://www.kloudbean.com/blog/last-mile-of-vibe-coding/) leaves you with a working prototype and a production gap.
 
-<!-- ADD IMAGE: a queue dashboard showing jobs moving through queued, running, done, and failed states with counts -->
+![Impact on app performance and downtime](images/gen-4-comparison.png)
 
 One opinion, from watching this play out more than once: if a task can plausibly run past about 30 seconds, build it as a background job from day one. Retrofitting the 202 pattern after you've already hit the timeout in production, with users watching, is more work and more stress than designing it that way up front. It's far easier to start with a job you don't strictly need than to bolt one on during an incident.
 
@@ -160,13 +160,20 @@ Now the part no host fixes, ours included. Removing the platform timeout doesn't
 
 <!-- ADD IMAGE: the Kloudbean dashboard showing an app, a background worker process, and a scheduled cron job side by side -->
 
-## Run long jobs on a server that won't quit on them
+<!-- cta:start -->
+**Deploys that tell you what broke.**
 
-**Run the slow work on an always-on server with a real background worker, a managed queue, and somewhere durable to keep job state.** Launch the server (no function timeout), add a background worker and cron jobs from the dashboard, back the queue with managed Redis, keep job state in managed Postgres, and deploy from Git with free SSL. One dashboard for the whole thing.
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
 
-Always-on server (no function timeout) · Background workers + cron · Managed Redis queue · Managed Postgres · Git deploy · Free SSL
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

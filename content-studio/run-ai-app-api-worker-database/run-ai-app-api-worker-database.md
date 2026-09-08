@@ -50,7 +50,7 @@ The thing to notice: the API and the worker don't talk to each other. No HTTP ca
 
 This is one slice of a larger picture. If you want the full map (edge, auth, storage, observability, and where this middle sits), the [AI app reference architecture](https://www.kloudbean.com/blog/ai-app-reference-architecture/) draws the whole thing. This page zooms into the API, worker, and database at the centre of it.
 
-<!-- ADD IMAGE: the dashboard showing a web app and a separate background worker process running side by side. -->
+![Running tasks side by side](images/gen-1-comparison.png)
 
 ## What one request actually does
 
@@ -233,15 +233,22 @@ What a single dashboard changes is the number of boundaries. The always-on serve
 
 Scope boundary, plainly: running more workers or more web instances is a step you take. A standard plan doesn't autoscale, and Kubernetes, autoscaling, and private networking are Enterprise capabilities rather than switches on an $8 server. Design so adding a process is a five-minute job, not something you wait for the platform to do.
 
-<!-- ADD IMAGE: the managed database list showing PostgreSQL and Redis, with the IP allow-list field in view. -->
+![Lock down your shared state with IP allow-listing](images/gen-2-panel.png)
 
-## Run the slow work where it belongs
+<!-- cta:start -->
+**Managed, backed up, and still yours.**
 
-**Give your API a worker to hand the heavy lifting to, on an always-on server with managed Redis and PostgreSQL, cron jobs, Git deploy, and free SSL, all in one dashboard.** No cold starts, so the worker is always there to drain the queue. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+Launch MySQL, MariaDB, PostgreSQL, Redis, Memcached, MongoDB, or Elasticsearch in a click, reachable from your app server with automatic backups from minute one. Standard connection strings, standard dumps, no proprietary format.
 
-Always-on server + worker · Managed Redis (the queue) · Managed PostgreSQL (shared state) · Cron jobs · Git deploy · Free SSL · IP allow-listing
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
 
-<!-- ADD IMAGE: cron jobs configured from the dashboard, scheduling recurring work with no SSH. -->
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

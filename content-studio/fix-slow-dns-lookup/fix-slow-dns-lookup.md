@@ -142,11 +142,20 @@ And because servers are managed, the server-side resolver path described above i
 
 For the fundamentals of records, resolution, and propagation, start with [DNS explained](https://www.kloudbean.com/blog/dns-explained/). If you came here intending to clear a cache, [flushing your DNS cache](https://www.kloudbean.com/blog/flush-dns-cache/) covers what that does and does not fix, and it is not a speed fix. For the caching layer in front of your origin, [CDN explained](https://www.kloudbean.com/blog/cdn-explained/). On the response-time side that usually matters more, [speed up WordPress](https://www.kloudbean.com/blog/speed-up-wordpress/) and [speed up WooCommerce](https://www.kloudbean.com/blog/speed-up-woocommerce/). For caching that cuts real server work, [the Redis caching guide](https://www.kloudbean.com/blog/redis-caching-guide/). And when resolution succeeds but the connection is refused, [fixing ECONNREFUSED](https://www.kloudbean.com/blog/fix-econnrefused-node/).
 
-## Put the application where your users are
+<!-- cta:start -->
+**Fewer mysteries on the next deploy.**
 
-Seven clouds, your choice of region, managed servers with the resolver path maintained, and Cloudflare available as an add-on for Anycast DNS and edge caching. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-7 clouds · Region choice · Cloudflare edge add-on · Managed servers · One dashboard
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -168,15 +168,20 @@ The line stays where it always is. Patching, TLS renewal, backups and stack upke
 
 The rest of the 5xx family, each a different failure: [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/) when the proxy cannot get an answer, [503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/) when nothing came up, and [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/) when it answered too slowly. At the edge, [Cloudflare's 5xx codes](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/). For the inbound mirror image, [408 Request Timeout](https://www.kloudbean.com/blog/http-error-408-request-timeout/). On making the logs worth reading, [structured logging in Node](https://www.kloudbean.com/blog/structured-logging-nodejs/). For the config half of the problem, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) and [nginx as a reverse proxy](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). And when a module import is what raised, [cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/).
 
----
+<!-- cta:start -->
+**Read the log, fix it, ship again.**
 
-### Stop hunting for the log file.
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-Managed servers across seven clouds with application and server logs in the same dashboard as the server, a managed and patched reverse proxy, staging for WordPress and Laravel, and automatic backups. Free SSL issued and renewed. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
 
-App and server logs · Managed proxy · Staging · Automatic backups · Free SSL · One dashboard
-
----
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

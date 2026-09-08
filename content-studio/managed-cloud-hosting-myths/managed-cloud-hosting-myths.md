@@ -39,7 +39,7 @@ The myths, crossed out
   [x] 1 dashboard = 1 cloud  -->  1 dashboard, 7 clouds
 ```
 
-<!-- ADD IMAGE: a shareable myth-vs-reality card summarizing all eight myths in one graphic -->
+![Security and Management Trade-offs](images/gen-1-comparison.png)
 
 ## Myth 1: "Managed hosting means you can't SSH in or control anything"
 
@@ -47,7 +47,7 @@ The myths, crossed out
 
 This is the big one, and it's mostly a mix-up about what "managed" even covers. On a real managed cloud host you still get shell access over SSH, your choice of framework and libraries, your own environment variables, your deploy process, your database. What the platform runs is the *operational layer*: provisioning the server, the base stack, OS patching, free SSL, automatic backups, a baseline firewall with Fail2ban watching for brute-force attempts. That's the 2am toil. It isn't the steering wheel. Calling that "losing control" is like saying you lose control of your car because you don't refine your own gasoline.
 
-<!-- ADD IMAGE: an SSH session on a managed server, running an ordinary shell command -->
+![Real shell access proves it](images/gen-2-terminal.png)
 
 ## Myth 2: "Managed cloud hosting is just overpriced shared hosting"
 
@@ -77,7 +77,7 @@ Skilled engineers pick managed hosting for production all the time, precisely *b
 
 The idea that managed means a ceiling is backwards. Scale up by resizing the server, more CPU and RAM, the simplest first move. Scale out by putting several app servers behind the built-in **Flexible Load Balancer**, which health-checks each node and spreads traffic across them. Cache your hottest reads with managed Redis so the database barely notices them.
 
-![The Kloudbean console: a load balancer spreading traffic across multiple app nodes](../assets/console/flb-load-balancer.png)
+![The Kloudbean console: a load balancer spreading traffic across multiple app nodes](../assets/console-real/shots/flb_launch_step_2.png)
 
 The difference from DIY isn't *whether* you can scale. It's that the tools are provided instead of assembled from scratch. For the vast majority of apps that reaches much further than they'll ever need. And for the genuinely huge cases (the kind with a platform team and traffic to match), Kloudbean offers [Kubernetes and autoscaling](https://www.kloudbean.com/blog/autoscaling-explained/) at the enterprise tier. There's more on the mechanics in [how a cloud load balancer works](https://www.kloudbean.com/blog/cloud-load-balancer-explained/). Running redundant nodes like this is also how you turn a decent SLA into real uptime, which we unpack in [what a cloud SLA really means](https://www.kloudbean.com/blog/cloud-sla-explained/).
 
@@ -87,7 +87,7 @@ The difference from DIY isn't *whether* you can scale. It's that the tools are p
 
 "Managed" describes who keeps the server patched and backed up, not who owns your work. Your code is in your repo. Your data is in your database, which on Kloudbean is locked down with **IP allow-listing** so only your app server can reach it, not the scanners poking around the public internet. Who on your *own* team can touch what is up to you, through subusers and **User Access Control**, granular per-resource, per-action permissions. Compliance is shared work: the platform provides the infrastructure controls, you own the application-level compliance. None of that is the host reading your source over your shoulder.
 
-<!-- ADD IMAGE: the User Access Control screen with per-resource permissions set for a subuser -->
+![Permissions set for a subuser](images/gen-3-flow.png)
 
 ## Myth 7: "One dashboard means you're stuck with one cloud"
 
@@ -95,7 +95,7 @@ The difference from DIY isn't *whether* you can scale. It's that the tools are p
 
 This one's easy to disprove. Kloudbean is one dashboard across **seven clouds**: AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud. You pick the provider and the region per server, then manage them all from the same login. So you get the convenience of one console without marrying a single provider to get it. That's more cloud choice than most managed platforms put in front of you.
 
-![The Kloudbean console: launching a server with a choice of seven cloud providers](../assets/console/add-server.png)
+![The Kloudbean console: launching a server with a choice of seven cloud providers](../assets/console-real/shots/launch_server_step_1.png)
 
 ## Myth 8: "Managed cloud hosting is only for WordPress"
 
@@ -128,11 +128,21 @@ Those are real. What doesn't hold up is dodging managed hosting because you thin
 
 Here's the clean split, no mythology. The **platform** owns the server, the base stack, OS patching, SSL (with a [custom domain](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/)), automatic backups, and the baseline firewall. **You** own the application code, the data, the framework choices, and the deploy process. One honest boundary worth naming: this is the Linux world (PHP, Node, Python, Ruby, Java and their databases), not Windows or .NET on IIS. That's the entire deal. For anyone who'd rather build than babysit a server, it's a good one.
 
----
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-**Control, portability, room to scale, no myths.** See what "managed" actually gives you: SSH access, your code and data, seven clouds, a built-in load balancer, and free migration help to get there. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Seven clouds · Full server access · Automatic backups · Free migration · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

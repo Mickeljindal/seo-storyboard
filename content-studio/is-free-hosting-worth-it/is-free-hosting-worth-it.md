@@ -34,7 +34,7 @@ Let's give free its due first, because it earns it. This isn't a takedown. Free 
 
 Experienced developers lean on free tiers all the time, and not because they're cheap. Because they're the correct tool for a throwaway or a test. The skill isn't avoiding free hosting. It's knowing when it fits.
 
-<!-- ADD IMAGE: a free-tier dashboard showing a small demo app deployed at a zero balance, the happy case for free. -->
+![Happy case for free hosting](images/gen-1-comparison.png)
 
 ## What it quietly costs
 
@@ -57,7 +57,7 @@ Most of that list you can feel. This one you have to be honest with yourself abo
 
 Think about the shape of it. You build on a free tier. It works. You get a little traction. Then you spend an evening working around a limit, another chasing a cold-start fix that half-works, and eventually a whole weekend migrating off the free platform because you've outgrown it, moving data, repointing a domain, and untangling the lock-in you didn't notice signing up. None of that hit a bill. All of it was real. And it usually adds up to more than a year of a cheap server would have cost. That's the trap: free feels like it saved you money while it was quietly spending your weekends. If you want the raw-server version of this same "your time is the real cost" argument, [the real cost of an unmanaged VPS](https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/) runs the numbers.
 
-<!-- ADD IMAGE: a timeline of the hidden hours: an evening working around a limit, another on a cold-start fix, a weekend on the migration. -->
+![Hours spent around a limit](images/gen-2-graph.png)
 
 ## So, is free hosting worth it? The decision rule
 
@@ -79,7 +79,7 @@ People imagine graduating off free means a real bill. It doesn't. The step up fr
 
 One slow launch day, where visitors hit a cold start and bounce, can cost more attention than months of that server. One lost weekend migrating in a hurry costs more of your time than a year of it. One "why is the site down" message from a real user costs something you can't price. So the break-even isn't some far-off scale milestone. It arrives the moment the project is real, and the number that clears it is tiny. That's why I keep saying a few dollars beats free: not because free is bad, but because the alternative is so cheap that any real stake tips it instantly. [What a side project really costs](https://www.kloudbean.com/blog/cost-of-running-a-side-project/) and [cloud hosting pricing explained](https://www.kloudbean.com/blog/cloud-hosting-pricing-explained/) both show how small that real number is.
 
-<!-- ADD IMAGE: a crossover chart where free's hidden costs rise past the flat line of a cheap always-on server as the project grows. -->
+![Free hosting vs. always-on server](images/gen-3-graph.png)
 
 ## My take: free is a phase, not a plan
 
@@ -91,15 +91,25 @@ The developers who get burned by "free" aren't the ones who used it. They're the
 
 The move off free is smaller than the dread around it. Your app is code in a repo, maybe a database beside it, so graduating to an always-on server is a redeploy rather than a rewrite. Connect the Git repo, bring your environment variables, point the domain, and you've got no cold starts, no surprise ceilings, and your own domain on real infrastructure.
 
-![The Kloudbean console: deploy a project onto a small always-on server when it graduates from a free tier](../assets/console/add-application.png)
+![The Kloudbean console: deploy a project onto a small always-on server when it graduates from a free tier](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 And graduating doesn't mean signing up for the sysadmin work a raw server hands you. A small managed server stays always-on with automatic backups, free SSL, and a Shorewall plus Fail2ban baseline handled for you, on a predictable plan, while your code and data stay yours to export any time. It's Linux underneath either way, so nothing's locked in a box you can't open. If you're weighing who does the upkeep, [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) lays it out, and a free trial plus free migration help means testing the graduation costs you nothing.
 
----
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-**Free was the start. This is the step up.** When your project earns real users, graduate it to a small always-on server with no cold starts and no hidden ceilings, at [kloudbean.com](https://www.kloudbean.com/). Plans on [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Always-on · No cold starts · Automatic backups · Free SSL · Free migration · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

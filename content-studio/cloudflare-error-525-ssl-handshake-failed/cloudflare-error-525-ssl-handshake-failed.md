@@ -131,11 +131,20 @@ Where the boundary sits: a platform cannot stop you selecting Flexible mode in y
 
 For the whole family of these codes, see [Cloudflare error codes 520 to 527](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/), plus [error 521](https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/) and [error 520](https://www.kloudbean.com/blog/cloudflare-error-520/). On certificates generally, [fixing SSL certificate errors](https://www.kloudbean.com/blog/fix-ssl-certificate-errors/) and [SSL and TLS explained](https://www.kloudbean.com/blog/ssl-tls-explained/). For setting up a custom domain and certificate from scratch, [custom domain and SSL for your app](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/). And for the records this all depends on, [DNS explained](https://www.kloudbean.com/blog/dns-explained/).
 
-## Certificates that renew without you remembering
+<!-- cta:start -->
+**Patched, firewalled, and backed up.**
 
-Free SSL issued and renewed automatically, TLS configuration maintained, Shorewall and Fail2ban configured, and Cloudflare available as an add-on so proxy and origin agree. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Every server ships with a Shorewall firewall and Fail2ban, free auto-renewing SSL, automatic backups, and OS patching handled. Add IP access control or a Basic Auth gate when a site should not be public.
 
-Free SSL · Automatic renewal · Maintained TLS config · Cloudflare add-on · One dashboard
+- Shorewall firewall
+- Fail2ban
+- OS patching handled
+- Free SSL
+- IP access control
+- Automatic backups
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

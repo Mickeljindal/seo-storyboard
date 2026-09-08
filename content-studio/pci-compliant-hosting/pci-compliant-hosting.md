@@ -54,7 +54,7 @@ AVOID IF YOU CAN
 
 My blunt opinion: unless you have a very specific reason and a compliance budget to match, put yourself in the left column and stay there. The teams that get into trouble are usually the ones who decided to "just handle the card ourselves" and underestimated what that pulls in.
 
-<!-- ADD IMAGE: your payment provider's hosted checkout or embedded card fields, showing the card is typed into the processor, not your app -->
+![Card data never reaches your server](images/gen-1-flow.png)
 
 ## The scope you keep still needs a secure foundation
 
@@ -72,7 +72,7 @@ Reducing scope shrinks the problem. It doesn't erase it. You still run a server 
 
 **Log who did what, and keep the logs safe.** PCI requires a record of access to systems and data so an incident can be investigated. On enterprise accounts an immutable audit trail records every significant action across the account, which is exactly the evidence an assessor asks for. Keep logs in access-controlled storage, private by default.
 
-![The Kloudbean console showing object storage with public and private access controls for logs and stored data](../assets/console/s3-buckets.png)
+![The Kloudbean console showing object storage with public and private access controls for logs and stored data](../assets/console-real/shots/storage_bucket_step_3.png)
 
 **Back up, then test the restore.** PCI is about resilience as much as secrecy. Automatic [backups](https://www.kloudbean.com/blog/server-backups-guide/) stored off the main server mean an incident doesn't erase your records. Testing that they actually restore is the step people skip until the day it matters.
 
@@ -84,17 +84,27 @@ PCI compliance is a process *you* complete. For most merchants that means a Self
 
 What a host provides is the infrastructure the standard leans on. Kloudbean, for its part, gives you the controls that support the scope you keep: free SSL for encryption in transit, a configured Shorewall firewall with Fail2ban brute-force blocking, IP access control so only your app server can reach the database, subusers and granular access control for least privilege, automatic backups, and, on enterprise accounts, private networking and an immutable audit trail. It runs on tier-1 clouds whose data centers carry the major certifications. What it won't do, because no honest host can, is make you PCI compliant on its own or hand you a finished status. Reduce your scope, secure what's left on solid infrastructure, and complete the validation your bank requires. That's PCI done properly. If you're mapping several obligations at once, the siblings help: [SOC 2 compliant hosting](https://www.kloudbean.com/blog/soc2-compliant-hosting/) and [GDPR compliant hosting](https://www.kloudbean.com/blog/gdpr-compliant-hosting/).
 
-<!-- ADD IMAGE: the SAQ A questionnaire from your acquiring bank, or the compliance tab in your processor dashboard -->
+![Complete the SAQ A questionnaire](images/gen-2-panel.png)
 
 A last note on keys. The API keys and secrets your app uses to talk to the payment processor are themselves sensitive. Don't paste them into code or commit them to Git. Keep them in managed environment variables with controlled access, and rotate them when someone leaves.
 
-![The Kloudbean console managing payment provider API keys as environment variables with controlled access](../assets/console/env-vars.png)
+![The Kloudbean console managing payment provider API keys as environment variables with controlled access](../assets/console-real/shots/nodespm_env_step_1.png)
 
----
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-**A smaller thing to secure, on a stronger foundation.** Run payments on managed infrastructure with the controls that support your PCI work, all on one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/) and see plans on [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Free SSL · Firewall + brute-force blocking · Access control · Automatic backups · Enterprise audit trail
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## PCI hosting FAQ
 

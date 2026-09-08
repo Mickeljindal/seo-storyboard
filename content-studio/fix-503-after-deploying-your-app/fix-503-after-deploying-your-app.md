@@ -133,7 +133,7 @@ Once you've cleared one, a thirty-second habit keeps the next deploy clean:
 
 None of that is heavy process. It turns "deploy and hope" into "deploy and know." The best 503 is the one you prevented before pushing.
 
-## The honest limits
+## When this is not a hosting-layer 503
 
 This tree covers the overwhelming majority of post-deploy 503s on a **Linux** app server, because those 503s nearly always reduce to "the app process isn't up and listening," and the logs say why. What it can't do is debug your application's own logic. If the app starts, listens, and still misbehaves, that's ordinary app debugging, not a deploy problem, and the code you'll see for it is usually 500 rather than 503: [500 Internal Server Error](https://www.kloudbean.com/blog/http-error-500-internal-server-error/) picks up from there, since a 500 proves the process came up. And "managed" here means the platform keeps the server, the stack, and the web server healthy, while your code and its config (the port, the env vars, the Start command) are yours to get right. That's precisely where these 503s live, which is also why they're so fixable: the evidence is on a box you can read, every time. If you're still getting the app onto a server in the first place, the [deploy an AI-built app guide](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) and the Node-specific [managed cloud walkthrough](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) cover the full flow, and [auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) shows where in the pipeline this same failure tends to surface.
 

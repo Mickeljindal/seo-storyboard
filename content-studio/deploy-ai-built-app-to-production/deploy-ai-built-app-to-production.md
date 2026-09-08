@@ -150,7 +150,7 @@ This is the difference that shows up six months later. On a managed server, the 
 
 You don't need to plan for scale on day one (that's usually premature), but the path exists. When traffic climbs, you add resources or put a load balancer in front rather than rewriting anything. Kloudbean turns on server-level backups by default; if you want daily automated backups and disaster recovery, those come with the Premium and Enterprise plans. And because multi-process Node runs under PM2, your app already restarts itself and reloads without dropping requests. None of these are cliffs. They're dials you turn when you actually need to.
 
-## The honest limits
+## Before you deploy an AI-built app
 
 Two things worth saying plainly, because over-promising helps nobody.
 
@@ -158,9 +158,7 @@ Kloudbean runs **Linux** stacks: Node, PHP, Python, Ruby, Java, and frameworks l
 
 And "managed" doesn't mean "nothing to think about." The platform sets up and runs the server, the stack, PM2, SSL, and backups; you still own your application. Its logic, its security, its data. That's the right division of labor, and a good deal, but it isn't magic.
 
-## Ship the thing
-
-The build was the hard, creative part, and you already did it. Deployment is a checklist: launch a server, add your app, connect Git, set the runtime, add a database and your env vars, point your domain, and turn on SSL. Do it once, and your app stops being a thing on your laptop. It starts being a thing people use, on infrastructure you own.
+**Ship the thing.** The build was the hard, creative part, and you already did it. Deployment is a checklist: launch a server, add your app, connect Git, set the runtime, add a database and your env vars, point your domain, and turn on SSL. Do it once, and your app stops being a thing on your laptop. It starts being a thing people use, on infrastructure you own.
 
 Start at [kloudbean.com](https://www.kloudbean.com/). There's a free trial, and the first migration is done for you. When you want to weigh sizes and plans, see [pricing](https://www.kloudbean.com/pricing/) (Standard starts at $8/mo).
 

@@ -114,7 +114,7 @@ Set the missing variable, redeploy, and the app comes up. The broader 503 playbo
 
 > **Per-environment values.** Running a staging app next to production? Give each its own variables: a staging database, staging keys, a different public URL. The same codebase then behaves correctly in each place because each environment supplies its own config, and your tests never touch production data. That separation is the entire reason environment variables exist. It pairs naturally with [running your app, API, and database on one server](https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/).
 
-## The honest limits
+## What environment variables cannot protect
 
 On Kloudbean, environment variables are stored for your app and injected at runtime on your **Linux** server; you own the values and can update or rotate them anytime. Here's the boundary worth stating: the platform handles storage and injection, but it can't know which of your variables are secret and which are public. That judgment (the client-exposure discipline in this guide) is always yours to apply. It's true on every host, because a prefix is a framework convention, not something a platform can police for you. Used well, this split is what makes an app safe to open-source and painless to run across environments. If you're still getting the app onto a server, start with the [deploy an AI-built app guide](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/), then come back here to get the variables right.
 

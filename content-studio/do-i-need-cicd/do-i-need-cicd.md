@@ -124,9 +124,21 @@ Now the part no tooling covers. No platform writes your tests, and no pipeline k
 
 If you're shipping something built with an AI tool, where the code arrives faster than your confidence in it, that smoke test matters more than usual. [Deploying an AI-built app to production](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) picks up from there.
 
----
+<!-- cta:start -->
+**Ship the app, not the infrastructure.**
 
-**Make deploys boring, then make them safe.** If you want push-to-deploy from a Git repo, with deployment history and live build logs, that's built into Kloudbean's managed CI/CD. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
+
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

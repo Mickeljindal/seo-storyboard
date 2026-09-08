@@ -137,7 +137,7 @@ CACHE_STORE=redis
 SESSION_DRIVER=redis</code></pre>
 
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables screen: Laravel's APP_KEY, APP_ENV, database and queue settings pasted from a .env file">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean console Environment Variables screen: Laravel's APP_KEY, APP_ENV, database and queue settings pasted from a .env file">
     <figcaption>Runtime Configuration, Environment Variables. Paste your <code>.env</code> and Laravel reads <code>APP_KEY</code>, the database and queue settings from here.</figcaption>
   </figure>
 
@@ -147,7 +147,7 @@ SESSION_DRIVER=redis</code></pre>
   <p>Laravel is a first-class managed app type here, so you're deploying onto a PHP stack that already exists rather than installing PHP-FPM by hand. That's a big reason so many hosts fight over the "best Laravel hosting" spot: the boring server work is done and you just ship code. Connect your repo under <strong>Application Administration &#8594; Deploy Code &#8594; Git Deployment</strong> and drop the sequence above into the Build field. The Start side is PHP-FPM, already serving <code>public/index.php</code>.</p>
 
   <figure>
-    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Deploy Code / Git Deployment screen: a Laravel repo connected with the Composer and artisan build sequence set, ready to pull and deploy">
+    <img src="../assets/console-real/shots/git_connect_step_4.png" alt="The Kloudbean Deploy Code / Git Deployment screen: a Laravel repo connected with the Composer and artisan build sequence set, ready to pull and deploy">
     <figcaption>Deploy Code &#8594; Git Deployment: connect the repo, set the Composer and artisan build sequence, Pull &amp; Deploy. The build log streams live.</figcaption>
   </figure>
 
@@ -162,7 +162,21 @@ SESSION_DRIVER=redis</code></pre>
   <p>The worker itself runs as a persistent background process, kept alive by the server's process manager so it restarts if it ever dies. No worker means jobs pile up in the queue, unprocessed, and you find out when a customer asks where their receipt went.</p>
 
   <!-- Swap this slot for a real screenshot. src -> images/queue-worker.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The queue worker running: a terminal showing php artisan queue:work processing jobs, or Laravel Horizon's dashboard with active workers.</em><small>Makes the "is my worker even running?" question concrete.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #1
+Create a realistic terminal / command-line screenshot for a technical blog post titled "Deploy a Laravel App the Right Way (Queues and All)".
+
+What it must show: The queue worker running: a terminal showing php artisan queue:work processing jobs, or Laravel Horizon's dashboard with active workers.
+Also: Makes the "is my worker even running?" question concrete.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-terminal.png" alt="The queue worker running: a terminal showing php artisan queue:work processing jobs, or Laravel Horizon's dashboard with active workers.">
+    <figcaption>php artisan queue:work processing jobs</figcaption>
+  </figure>
 
   <h2>The scheduler is one cron line</h2>
   <p>Laravel's scheduler, all those <code>-&gt;daily()</code> and <code>-&gt;everyFiveMinutes()</code> tasks in your app, is driven by a single cron entry that runs <code>php artisan schedule:run</code> once a minute. Laravel decides internally what's actually due. Add the one line and you're done. Skip it and none of your scheduled tasks ever fire, which is a genuinely confusing silence the first time.</p>
@@ -181,7 +195,7 @@ SESSION_DRIVER=redis</code></pre>
   </ul>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean Launch Database screen: creating a managed MySQL instance for a Laravel app on the same server">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean Launch Database screen: creating a managed MySQL instance for a Laravel app on the same server">
     <figcaption>Launch Database: a managed MySQL (or Redis) on the same server, reached over the local network and backed up for you.</figcaption>
   </figure>
 
@@ -201,10 +215,56 @@ SESSION_DRIVER=redis</code></pre>
   <h2>What you run, what Kloudbean runs</h2>
   <p>Laravel is a PHP app, and PHP on Linux is exactly what a managed server runs, so nothing here is a workaround. Kloudbean keeps the box healthy: the PHP runtime, PHP-FPM and the web server, free SSL, the firewall, and server-level backups, on whichever of its seven clouds you pick. You own the Laravel app: its <code>.env</code>, its migrations, the queue worker, the scheduled tasks. Clean split, and it's the arrangement most PHP teams actually want. (If your app were .NET on IIS, this wouldn't be your platform. For PHP and Laravel, it's home turf.) Building elsewhere in your stack too? The Python sibling is <a href="https://www.kloudbean.com/blog/deploy-django-app/">deploy a Django app</a>, and the Node path is <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app</a>. If your next project is Symfony rather than Laravel, the three-process shape carries straight over, except the background half is <a href="https://www.kloudbean.com/blog/deploy-symfony-app/">Symfony's Messenger workers in production</a> instead of artisan queues.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Web, queue, and scheduler. All accounted for.</p>
-    <p style="margin:0">Deploy your Laravel app on a server you own at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Managed MySQL &amp; Redis · Automatic backups · Free Let's Encrypt SSL · Staging · Git deploy · Free migration · Free trial. Server sizes are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">Take it off localhost for good.</p>
+    <p class="kbcta-ai-description">Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

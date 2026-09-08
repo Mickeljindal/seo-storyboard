@@ -50,7 +50,7 @@ The single most useful mental model for production RAG is that it's two pipeline
 
 The offline path can be slow. It runs in the background, it can retry, and nobody's staring at a spinner while it works. The online path has to be fast, because a person is waiting. Confuse the two, put the slow work on the fast path, and you get the classic RAG timeout.
 
-<!-- ADD IMAGE: the two-pipeline RAG diagram. Offline indexing (documents -> chunk -> embed -> vector store) runs as a background worker; online query (question -> embed query -> retrieve top-k + filter -> LLM -> answer) runs in the web request. -->
+![From ingest to completion](images/gen-1-flow.png)
 
 ## Prototype RAG vs production RAG
 
@@ -167,9 +167,21 @@ Notice that three of those four branches lead back to your ingest pipeline, not 
 
 None of this is something a host can do for you, and I'd be suspicious of anyone selling it as such. No platform makes your chunking smart, writes your `tenant_id` filter, or decides your top-k, and Kloudbean doesn't either. What it does remove is the logistics that make the pieces above annoying to assemble: the vectors, the cache, the documents and the worker usually arrive from four vendors with four consoles and four bills. Here they're one dashboard. [Managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) holds your vectors beside your application data with pgvector where your Postgres version supports it, [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/) backs the queue and the cache, S3-compatible [object storage](https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/) keeps the source documents, and the embedding worker runs as a long-lived process next to the app. Git deploys, automatic backups, free SSL, and the database locked to your app server's IP. The retrieval logic stays yours, which is as it should be, because it's the part that's actually your product. For the wider map of what changes when an AI app meets real users, see [the last mile of vibe coding](https://www.kloudbean.com/blog/last-mile-of-vibe-coding/).
 
-**Give your RAG stack one home.** Run the vector store, the queue, the documents, and the worker in a single dashboard. Managed PostgreSQL and Redis, S3-compatible object storage, a background process beside your app, automatic backups, and free SSL, deployed straight from Git. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-Managed PostgreSQL · Managed Redis · Object storage · Background workers · IP allow-listing · Automatic backups · Free SSL · Git deploy · Free migration
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

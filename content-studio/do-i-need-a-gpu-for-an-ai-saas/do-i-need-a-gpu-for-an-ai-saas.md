@@ -114,9 +114,21 @@ The honest limits on this, ours included. No platform makes a model fit in less 
 
 Pick the path that matches where your model runs, not the one that sounds most serious.
 
----
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-**Match the infrastructure to the workload.** Calling an API? A managed server runs it with a database, backups, and SSL. Self-hosting a model? A GPU server is there when you actually need one. Either way, one dashboard. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

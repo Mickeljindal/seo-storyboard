@@ -137,11 +137,21 @@ That's the specific job Kloudbean does. Managed servers and managed databases in
 
 Two items on that list no host fixes, ours included. If your app writes user files to the local disk, backups of the server won't save the data you meant to keep, because the app put it somewhere temporary. And no platform makes the product decisions, answers the first support email, or checks whether your `/admin` route asks who's knocking. Renting the operations half doesn't buy you a cofounder. It removes the reason you needed one to start.
 
----
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-**Run the business, not the servers.**
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-If you want managed servers, managed databases, backups, and SSL without hiring DevOps, that's what Kloudbean is for. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

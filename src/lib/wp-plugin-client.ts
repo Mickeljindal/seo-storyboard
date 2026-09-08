@@ -302,6 +302,33 @@ async function pluginPost<T>(
   }
 }
 
+export type SetPostSeoPayload = {
+  post_id: number;
+  meta_title?: string;
+  meta_description?: string;
+  focus_keyword?: string;
+  canonical_url?: string;
+  og_image_url?: string;
+  featured_image_url?: string;
+  schema_jsonld?: unknown;
+};
+
+/**
+ * Write AIOSEO meta + OG image (and optionally the featured image) for a post
+ * that was created via the WP REST API. The REST path sets Yoast/RankMath post
+ * meta and featured_media but never AIOSEO's own tables or the OG image, so this
+ * fills that gap in one call. Best-effort: never throw into the publish path.
+ */
+export async function setPostSeo(
+  payload: SetPostSeoPayload,
+): Promise<{ ok: boolean; og_image?: string; featured_image?: boolean; error?: string }> {
+  const r = await pluginPost<{ ok: boolean; og_image?: string; featured_image?: boolean }>(
+    "/set-post-seo",
+    payload,
+  );
+  return "ok" in r ? r : { ok: false, error: (r as { error: string }).error };
+}
+
 /** List existing tool pages in a category (with AIOSEO score + Elementor info). */
 export async function listToolPages(
   opts: {

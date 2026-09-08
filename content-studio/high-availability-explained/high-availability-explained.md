@@ -63,7 +63,7 @@ Availability gets measured in "nines." You've seen them on every pricing page: 9
 
 Read the 99.9% row again. Three nines still allows almost nine hours of downtime a year, a whole working day dark, with nothing promised that wasn't delivered. One more nine, 99.99%, drops the yearly budget under an hour. Here's the catch: an uptime number on a sales page promises the provider's infrastructure, not your app. Your server can reboot, your database can fall over, you can ship a bad Friday deploy, and the provider's nines stay intact while users see errors. HA is how you close that gap. For what these promises legally mean, read our [cloud SLA explainer](https://www.kloudbean.com/blog/cloud-sla-explained/). The number is the floor. Your architecture is the building.
 
-<!-- ADD IMAGE: A before and after uptime timeline, one server with a red outage gap versus a redundant pair with none. -->
+![Redundant pair stays up, single server goes down](images/gen-1-graph.png)
 
 ## The building blocks of high availability
 
@@ -108,7 +108,7 @@ This is the distinction most articles smear together, and getting it wrong leave
 
 One example makes it click. Someone runs `DELETE FROM orders` with no `WHERE` clause. HA faithfully replicates that empty table to every replica in milliseconds. It did its job perfectly, and your data is still gone. Only a backup saves you. Flip it: your primary region goes dark for an afternoon. Backups are safe, but a backup sitting in that same dead region doesn't get you online right now. That's disaster recovery. Sell one of the three as if it covers all three and you've quietly left two holes. Our [guide to server backups](https://www.kloudbean.com/blog/server-backups-guide/) covers the layer HA can't.
 
-<!-- ADD IMAGE: Three columns separating HA, backups, and DR by the problem each one solves. -->
+![Solving common issues](images/gen-2-flow.png)
 
 ## Where the database fits, and why it's the hard part
 
@@ -130,25 +130,35 @@ My honest advice: start with one well-sized server on reliable infrastructure, p
 
 So what does a managed platform give you as a foundation? Start with the floor. Kloudbean runs your servers on tier-1 cloud infrastructure across **seven providers**: AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud. That's the same hardware and networking the largest sites on the internet run on. No amount of clever architecture saves you if the ground floor is shaky.
 
-![The Kloudbean console showing the built-in Flexible Load Balancer spreading traffic across a pool of servers](../assets/console/flb-load-balancer.png)
+![The Kloudbean console showing the built-in Flexible Load Balancer spreading traffic across a pool of servers](../assets/console-real/shots/flb_launch_step_2.png)
 *The built-in Flexible Load Balancer sits in front of an application pool and routes each request to a healthy node.*
 
 The floor was never the whole story. The **Flexible Load Balancer (FLB) is built into every account**. It's off by default, but it isn't a separate product or a tier you buy up into. Switch it on, point it at an application pool of two or more servers, and a dead node becomes a rerouted request instead of an outage. You also get SSL management and access logs. That's the core HA move, redundant servers behind a health-checked balancer, as a feature you enable, not a project you assemble.
 
-![The Kloudbean console showing per-server health with CPU, memory, and disk usage](../assets/console/server-health.png)
+![The Kloudbean console showing per-server health with CPU, memory, and disk usage](../assets/console-real/shots/server_health_step_2.png)
 *Server health at a glance. Spotting a node under strain before it falls over is half the battle.*
 
 Underneath, automatic backups cover the data layer HA can't protect, and IP allow-listing keeps your database reachable only from your app servers rather than the public internet. On enterprise, you can isolate the database and backend nodes further on [a private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/). It's all one dashboard, which matters more than it sounds: redundancy you can set up in a few clicks is redundancy you'll actually set up.
 
 Two honest boundaries. Kloudbean manages Linux stacks (PHP, Node, Python, Ruby, Java and their databases), not Windows or IIS. And the heavier machinery, Kubernetes, autoscaling, and fully custom HA architectures, is an enterprise and custom offering, where Kloudbean acts like your in-house infrastructure team. On the SLA question: real uptime comes from redundancy you build on a solid base, not a banner percentage. Check the current terms for your plan directly.
 
-<!-- ADD IMAGE: A two node application pool behind the Flexible Load Balancer in the dashboard. -->
+![Redundant node setup](images/gen-3-flow.png)
 
----
+<!-- cta:start -->
+**One dashboard for the whole stack.**
 
-**Turn one box that can die into a setup that stays up.** Run redundant servers behind a built-in load balancer, on tier-1 cloud infrastructure, with automatic backups and IP allow-listing, all from one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/) · compare plans on [pricing](https://www.kloudbean.com/pricing/).
+Pick from seven clouds, run your app on a managed server you control, and keep databases, storage, and deploys in the same dashboard instead of four separate vendors.
 
-Built-in load balancer · Automatic backups · 7 clouds · Free migration · Free trial
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

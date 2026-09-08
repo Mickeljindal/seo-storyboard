@@ -74,9 +74,9 @@ A **database on infrastructure you pick**. On Kloudbean you launch the managed M
 
 And **one dashboard for the rest of it**. The same console runs your app, object storage, a load balancer, and backups. Fewer vendors, one login, one bill.
 
-![The Kloudbean console launching a managed MySQL database, provisioned, patched, and backed up](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed MySQL database, provisioned, patched, and backed up](../assets/console-real/shots/psql_launch_step_1.png)
 
-<!-- ADD IMAGE: the managed database connection-details panel (host, port, database, user) with a copy button -->
+![Standard MySQL endpoint](images/gen-1-flow.png)
 
 ## Connecting is a normal connection string
 
@@ -89,7 +89,7 @@ DATABASE_URL=mysql://appuser:s3cret@10.0.0.6:3306/appdb
 
 That's it. Prisma, Drizzle, Sequelize, TypeORM, Eloquent, Django's ORM, Rails, all of them read a standard MySQL URL. If you want the full app-side walkthrough (env vars, ORMs, running migrations, verifying the connection sticks), it's in [how to add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). This page is about the switch, not the wiring.
 
-![The Kloudbean console showing the MySQL connection string set as an environment variable](../assets/console/env-vars.png)
+![The Kloudbean console showing the MySQL connection string set as an environment variable](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ## Moving from PlanetScale to a managed MySQL
 
@@ -110,7 +110,7 @@ mysql -h NEW_HOST -u appuser -p appdb < appdb.sql
 
 Point `DATABASE_URL` at the new database, redeploy, done. One thing to check on the way: if your app was built around Vitess behavior (say it never used foreign key constraints because the old setup discouraged them), you can add them back now, since a single-node managed MySQL supports them normally. For a large or production database where you'd rather not run the first cutover alone, Kloudbean's free migration assistance will do it with you and keep downtime minimal.
 
-<!-- ADD IMAGE: a terminal running mysqldump then the mysql import, showing rows flowing in -->
+![Demonstrating the dump and load process](images/gen-2-terminal.png)
 
 ## When PlanetScale is still the right call
 
@@ -126,13 +126,22 @@ On pricing, standard plans start from $8/mo and Enterprise is custom, so a small
 
 The honest boundary, once: these are Linux-based managed engines. Managed means the platform handles provisioning, patching, backups, tuning, and monitoring. Your schema, your queries, and your data stay yours, and a standard dump walks out the door with you whenever you want. That's the deal, and it's the whole reason to own your MySQL database in the first place.
 
-<!-- ADD IMAGE: the one-dashboard overview showing servers and managed databases together -->
+![Easier management for your app and its database](images/gen-3-comparison.png)
 
----
+<!-- cta:start -->
+**Bring the app. Keep the deploy flow.**
 
-**Move to a MySQL you can dump, move, and keep.** Launch a managed MySQL or MariaDB, standard connection and automatic backups from minute one, on infrastructure you own. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-One-click MySQL and MariaDB · Standard mysql:// connection · Automatic backups · Free migration · Free trial
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

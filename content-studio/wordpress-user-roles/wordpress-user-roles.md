@@ -150,11 +150,20 @@ Keeping the layers separate is the habit worth building: CMS roles for content d
 
 On locking a site down, [secure WordPress hosting](https://www.kloudbean.com/blog/secure-wordpress-hosting/) and the [server hardening checklist](https://www.kloudbean.com/blog/server-hardening-checklist/). On testing changes safely, [staging environments](https://www.kloudbean.com/blog/wordpress-staging-environment/) and [backups](https://www.kloudbean.com/blog/server-backups-guide/). On doing this at the command line, the [WP-CLI guide](https://www.kloudbean.com/blog/wordpress-cli-guide/). For fleets and networks, [agency WordPress hosting](https://www.kloudbean.com/blog/agency-wordpress-hosting/) and [multisite hosting](https://www.kloudbean.com/blog/wordpress-multisite-hosting/). And if granular permissions are a hard requirement for your project, [Joomla versus WordPress](https://www.kloudbean.com/blog/joomla-vs-wordpress/) explains why Joomla's core ACL is a genuine point in its favour.
 
-## Two permission layers, one dashboard.
+<!-- cta:start -->
+**WordPress, without the server admin.**
 
-Managed WordPress on seven clouds with subusers and granular access control, staging, automatic backups, free SSL, and a firewall with intrusion prevention by default. From $8/mo, with free migration assistance. Start at [kloudbean.com](https://www.kloudbean.com/).
+The stack, the patching, SSL, and backups are handled, so your work stays on the site rather than the box. Staging is one click, and the managed database sits right next to the app.
 
-Subusers and UAC · Staging · Automatic backups · Free SSL · Flat from $8/mo
+- Managed WordPress stack
+- One-click staging
+- Managed MySQL and MariaDB
+- Automatic backups
+- Free SSL
+- Built-in load balancer
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

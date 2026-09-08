@@ -61,11 +61,21 @@ A managed cloud can run the patching on the required cadence, apply CIS-style ha
 
 This is one subdomain of a bigger framework: start with [the NCA CSCC guide](https://www.kloudbean.com/blog/nca-cscc-compliance-guide/), and prepare with the [critical systems hosting checklist](https://www.kloudbean.com/blog/critical-systems-hosting-checklist/). The management-network control connects to [CSCC network segmentation](https://www.kloudbean.com/blog/cscc-network-segmentation/), and the testing cadence that finds what needs patching is in [CSCC vulnerability assessment and penetration testing](https://www.kloudbean.com/blog/cscc-vulnerability-assessment-and-pentest/). The general, non-critical-systems version of this is [the server hardening checklist](https://www.kloudbean.com/blog/server-hardening-checklist/), and credentials belong in [secrets management](https://www.kloudbean.com/blog/secrets-management-guide/).
 
-## Keep the infrastructure on the clock the controls set.
+<!-- cta:start -->
+**Controls you can actually evidence.**
 
-On managed engagements Kloudbean runs the patch cadence, hardened baselines, and controlled privileged access the CSCC 2-3 subdomain requires, in-Kingdom where needed, with the dates recorded as evidence. Start the conversation at [kloudbean.com](https://www.kloudbean.com/), and read the framework overview in [the NCA CSCC guide](https://www.kloudbean.com/blog/nca-cscc-compliance-guide/).
+Kloudbean delivers the infrastructure alignment behind these controls on managed enterprise engagements: centralised logging, immutable retention, private database access, MFA, and in-Kingdom hosting where required. Certification is assessed against your organisation, so governance and application work stay with you.
 
-Patching on cadence · CIS-style hardened baselines · No default credentials · Evidence as managed reports
+- In-Kingdom (Dammam) available
+- Centralised logging
+- Immutable log storage
+- Private database access
+- MFA and least privilege
+- Automatic backups
+- Evidence as managed reports
+
+[Start free](https://console.kloudbean.com/register) · [Talk to a cloud expert](https://calendly.com/kloudbean)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -68,7 +68,7 @@ What "starving it" actually looks like, because the symptoms are specific and wo
 
 None of that is a GitLab bug. It's a box that's too small for the workload. I'll say it flatly: this is the one place where being frugal backfires. Every other cost in self-hosting is forgiving. Memory isn't. Size for 8 GB if you possibly can, and add swap on top so a brief spike doesn't trigger the OOM killer.
 
-<!-- ADD IMAGE: GitLab admin monitoring page showing memory and CPU usage on the server -->
+![Server memory under pressure](images/gen-1-graph.png)
 
 ## Sizing it by team size
 
@@ -83,9 +83,9 @@ A rough guide, and it errs toward giving GitLab room rather than cutting it clos
 
 On a managed platform you choose that size up front when you add the server: a provider, a region near your team, and a size with headroom.
 
-![The Kloudbean console Add Server screen: pick a cloud, region, and a server size with enough RAM for GitLab](../assets/console/add-server.png)
+![The Kloudbean console Add Server screen: pick a cloud, region, and a server size with enough RAM for GitLab](../assets/console-real/shots/launch_server_step_1.png)
 
-<!-- ADD IMAGE: Your self-hosted GitLab project page at git.yourcompany.com with repos and merge requests -->
+![One hop per box](images/gen-2-flow.png)
 
 ## CI runners need their own room
 
@@ -93,7 +93,7 @@ This is the second thing people forget, and it's related to the first. Your pipe
 
 The fix is boring and effective: give runners their own space. Add a small second server dedicated to CI, or size the main box larger if your pipelines are genuinely light. If you're already [running several apps across servers](https://www.kloudbean.com/blog/host-multiple-apps-one-server/), a dedicated runner box slots right in. A GitLab that's snappy in the UI but stalls every build is not the win you were after.
 
-<!-- ADD IMAGE: A GitLab CI/CD pipeline view with stages and job logs streaming -->
+![Stages and job logs streaming](images/gen-3-flow.png)
 
 ## The setup, right-sized
 
@@ -140,11 +140,21 @@ GitLab is absolutely worth self-hosting when you want control of your source and
 
 Curious what else earns its keep on your own server? Our [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup covers the neighbors, and if files are next on your list, [self-hosting Nextcloud](https://www.kloudbean.com/blog/self-host-nextcloud/) is a natural companion.
 
----
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-**Own the repo, not the per-seat bill.** Spin up a right-sized server for GitLab at [kloudbean.com](https://www.kloudbean.com/). Pick 8 GB, a region near your team, and free SSL. Start on a free trial and scale up as you grow. See plans on [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-7 clouds · Right-size the RAM · Free SSL · Server-level backups · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

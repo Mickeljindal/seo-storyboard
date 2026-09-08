@@ -52,7 +52,7 @@ A VPS is an empty Linux box, so the comparison is really a list of chores and wh
 
 Neither column is wrong. The left is what you sign up for with a raw VPS, and plenty of engineers do it well and enjoy every minute. The right is what a managed layer folds into the price. The choice is which of those two lists you want to own. The screen where "not either/or" stops being abstract is where you pick your cloud, with Linode right there among the options.
 
-![Kloudbean Add Server screen showing Linode among the cloud provider choices when provisioning a managed server](../assets/console/add-server.png)
+![Kloudbean Add Server screen showing Linode among the cloud provider choices when provisioning a managed server](../assets/console-real/shots/nodespm_launch_step_1.png)
 
 ## The part of a VPS that outlasts the setup
 
@@ -71,9 +71,9 @@ The instances that get people into trouble are almost never hacked in some cleve
 
 I'll take a side here. A raw Linode is the right tool when running the server is part of the project and you'll keep up with it. The common mistake isn't choosing Linode. It's choosing a VPS and treating it like it's managed: set up once, patched never, backed up "eventually" because the backups add-on was the thing you meant to enable and didn't. If the box is just where your product lives, paying so you never think about the patch cadence is the better trade. We dig into that in [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) and put real numbers on it in [the real cost of an unmanaged VPS](https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/).
 
-![Kloudbean Backups screen showing automatic backups and a restore point for a managed server](../assets/console/manage-backups.png)
+![Kloudbean Backups screen showing automatic backups and a restore point for a managed server](../assets/console-real/shots/app_backup_step_2.png)
 
-<!-- ADD IMAGE: A Linode Cloud Manager instance beside a terminal running apt and certbot. -->
+![Hands-on raw-VPS side](images/gen-1-terminal.png)
 
 ## Akamai Linode vs managed cloud: does the acquisition change your decision?
 
@@ -91,9 +91,9 @@ Kloudbean is the better fit when you'd rather ship than administer: the app, API
 
 There's a bonus a raw instance can't hand you: you're not married to Linode. Because Kloudbean runs on seven clouds, you can start on Linode today and move the same setup to AWS, Google Cloud, DigitalOcean, Vultr, UpCloud, or Lightsail later, behind one dashboard. The same reasoning plays out cloud by cloud, so if Vultr is the box you were actually pricing, [raw Vultr next to managed Vultr hosting](https://www.kloudbean.com/blog/vultr-vs-kloudbean/) runs this comparison there instead. You keep Linode if you love it. You keep the exit if you don't.
 
-![Kloudbean dashboard showing servers, applications, and managed databases across clouds in one view](../assets/console/dashboard.png)
+![Kloudbean dashboard showing servers, applications, and managed databases across clouds in one view](../assets/console-real/shots/dashboard.png)
 
-<!-- ADD IMAGE: The Launch Database screen creating a managed engine on a Linode server. -->
+![Managed engine setup](images/gen-2-flow.png)
 
 On a raw VPS you install and secure the database yourself; on Kloudbean you launch a managed engine on the same server, reached over the local network and backed up automatically. There's a walk-through in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), and the whole-market view in the pillar, [best managed cloud hosting](https://www.kloudbean.com/blog/best-managed-cloud-hosting/).
 
@@ -107,9 +107,20 @@ The rule of thumb: if your schedule is tighter than your budget, managed wins; i
 
 Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and frameworks like React, Vue, Angular, Laravel, Django, and WordPress. Windows Server is a Premium and Enterprise option rather than a standard one, though .NET itself runs on Linux here. Standalone managed Kubernetes is also enterprise or custom rather than a default. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you still own your application and your data. That division of labor is the point: you keep the app, someone else keeps the box healthy. And because it's standard Linux and standard code underneath, you can leave for a raw Linode, or anywhere else, whenever you want.
 
-## Linode's infrastructure. Without the 2am pager.
+<!-- cta:start -->
+**Move it once. Own it after.**
 
-Run a managed server on Linode (or six other clouds) at [kloudbean.com](https://www.kloudbean.com/). Seven managed databases, free SSL, automatic backups, a built-in load balancer, free migration, and a free trial. Compare plans on [pricing](https://www.kloudbean.com/pricing/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
+
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

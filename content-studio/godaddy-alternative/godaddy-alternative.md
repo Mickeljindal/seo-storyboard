@@ -29,7 +29,7 @@ Nobody sends you an email that says "you've outgrown this plan." You just start 
 
 One of these alone is just a papercut. Three or four together is your site telling you it needs its own room. That's the point where an alternative to GoDaddy hosting stops being a maybe.
 
-<!-- ADD IMAGE: A GoDaddy checkout or dashboard screen showing stacked add-on upsells like SSL, backups, and security. -->
+![Navigate the upsell options](images/gen-1-flow.png)
 
 ## The add-on problem, drawn out
 
@@ -67,7 +67,7 @@ A fair, side-by-side look. GoDaddy wins a few rows on purpose, and I've kept tho
 
 Read the last three rows plainly. GoDaddy is cheaper to start, it sells Windows hosting, and it registers domains. Those are real advantages, and you shouldn't move for the sake of moving. You move up when the cheap plan is costing you visitors, patience, and a growing monthly bill. For the same logic aimed at cheap registrars, our [Namecheap alternative](https://www.kloudbean.com/blog/namecheap-alternative/) walks the same road from a different starting point.
 
-<!-- ADD IMAGE: A before and after page-load comparison, GoDaddy shared plan versus your own server under the same traffic. -->
+![Page load speed comparison under same traffic](images/gen-2-comparison.png)
 
 ## How to move your site off GoDaddy
 
@@ -77,19 +77,19 @@ The move is less dramatic than it sounds. Nothing here needs a terminal marathon
 
 Start with the cloud (AWS, Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, UpCloud), then region, then size. That's your own box, not a shared slice you fight the neighbors for. You can resize it later, so don't agonize over the first choice.
 
-![Picking where the server runs and how big it is, in the Kloudbean console](../assets/console/add-server.png)
+![Picking where the server runs and how big it is, in the Kloudbean console](../assets/console-real/shots/launch_server_step_1.png)
 
 ### 2. Add your application
 
 Add the app you're moving. There are one-click stacks for WordPress, WooCommerce, Laravel, Magento, Drupal and Joomla. Running something GoDaddy never made easy? Node.js, Python, Ruby, and Java all have a home here, and static sites host free.
 
-![Choosing an application stack when adding it to a Kloudbean server](../assets/console/add-application.png)
+![Choosing an application stack when adding it to a Kloudbean server](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 ### 3. Bring your site over
 
 Two paths. If it's a WordPress or PHP site, free migration assistance can move it for you, files and database included. If it's a codebase in Git, connect the repo and let managed CI/CD build and deploy on every push, with live build logs you can watch. No more dragging files up over FTP and praying.
 
-![Wiring a repository to a Kloudbean application for push-to-deploy](../assets/console/git-deployment.png)
+![Wiring a repository to a Kloudbean application for push-to-deploy](../assets/console-real/shots/git_connect_step_4.png)
 
 Connect GitHub and deploy on push, with live build logs. More in the [Git deploy guide](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
@@ -97,9 +97,9 @@ Connect GitHub and deploy on push, with live build logs. More in the [Git deploy
 
 Backups are on by default, not a checkbox you'll forget. You can see them, and you can restore from one when you need it. If you've ever lost a site to a bad plugin update, you already know why this matters. The full picture is in the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/).
 
-![The Kloudbean backup screen, with schedule and available restore points](../assets/console/manage-backups.png)
+![The Kloudbean backup screen, with schedule and available restore points](../assets/console-real/shots/app_backup_step_2.png)
 
-<!-- ADD IMAGE: The GoDaddy Managed WordPress notice that a plugin is disallowed, next to the same plugin running freely on Kloudbean. -->
+![GoDaddy to Kloudbean migration](images/gen-3-flow.png)
 
 ## Keep your GoDaddy domain, just point the DNS
 
@@ -120,7 +120,7 @@ Drop the TTL to 600 seconds a day before you cut over so the change propagates f
 
 > **Keeping your GoDaddy domain? No transfer needed.** Kloudbean isn't a registrar, and it doesn't need to be. Your domain stays at GoDaddy, you edit two DNS records, and the hosting moves. Your domain registration and your GoDaddy email don't have to change at all.
 
-<!-- ADD IMAGE: The GoDaddy DNS management panel with two A records pointing at a server IP. -->
+![Set up two A records for your server](images/gen-4-flow.png)
 
 ## Moving a WordPress site off GoDaddy
 
@@ -132,13 +132,20 @@ Not on WordPress? Moving off GoDaddy isn't a PHP-only story. Node.js, Python, Ru
 
 Straight talk, because fair cuts both ways. Kloudbean isn't a domain registrar, and it isn't a $1 shared plan. If all you need is a parked domain and a single static page, GoDaddy is cheaper and completely fine, and you should stay. And if you specifically need Windows, Plesk, or a .NET app, Kloudbean isn't that, because it's Linux managed cloud. What it is: your own server across seven clouds, from $8/mo, for sites and apps that have outgrown the shared slice and the upsell wall. Managed means the server, stack, SSL, backups, and patching are handled for you, while your code and your data stay yours to take anywhere.
 
----
+<!-- cta:start -->
+**Move it once. Own it after.**
 
-### Real resources, no upsell wall.
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-Keep your domain at GoDaddy and move the hosting to your own managed server. Launch one at [kloudbean.com](https://www.kloudbean.com/), and read the tiers on [pricing](https://www.kloudbean.com/pricing/).
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
 
-Your own server resources · 7 clouds · Managed databases · Git deploy · Staging · Automatic backups · Free SSL · Free migration · Free trial
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 
@@ -164,7 +171,7 @@ No. Kloudbean is Linux managed cloud, so there's no Windows, Plesk, or .NET here
 
 **Is it more expensive than GoDaddy?**
 
-To start, yes. GoDaddy shared hosting is a few dollars a month, and Kloudbean managed cloud starts from $8/mo. You're paying for dedicated resources and a managed platform instead of a shared slice, and SSL and backups are included rather than upsold. Check current pricing on the pricing page before you decide.
+To start, yes. GoDaddy shared hosting is a few dollars a month, and Kloudbean managed cloud starts from $8/mo. You're paying for dedicated resources and a managed platform instead of a shared slice, and SSL and backups are included rather than upsold. Confirm the current numbers on the pricing page first.
 
 **Do I need to be a sysadmin or know Linux?**
 

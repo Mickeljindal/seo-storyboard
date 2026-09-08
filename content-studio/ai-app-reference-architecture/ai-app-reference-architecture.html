@@ -110,7 +110,21 @@
   <p>This is the generalized version. A chatbot is one instance of it (see the <a href="https://www.kloudbean.com/blog/host-ai-chatbot-in-production/">chatbot version of this</a> for that request path in detail). An agent, a RAG search tool, and an AI SaaS backend are others. The boxes are the same. What changes is which ones you lean on. If you want the argument behind all of it, the <a href="https://www.kloudbean.com/blog/last-mile-of-vibe-coding/">last mile of vibe coding</a> is the bigger picture, and this page is the architecture it points at.</p>
 
   <!-- ADD IMAGE: swap in a real console shot of an always-on Node or Python app running, showing its domain and status. src -> images/always-on-app.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>An always-on Node or Python app running in one dashboard, with its domain and running status visible.</em><small>A real console screenshot works better than a stock diagram here.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #1
+Create a left-to-right architecture / flow diagram for a technical blog post titled "A Reference Architecture for Production AI Apps".
+
+What it must show: An always-on Node or Python app running in one dashboard, with its domain and running status visible.
+Also: A real console screenshot works better than a stock diagram here.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-flow.png" alt="An always-on Node or Python app running in one dashboard, with its domain and running status visible.">
+    <figcaption>From Dashboard to Execution</figcaption>
+  </figure>
 
   <h2>Every box, and what breaks without it</h2>
   <p>Before we zoom in, the whole reference in one table. This is the part worth bookmarking. Each row is a component, its job, the failure you invite by skipping it, and where to go deeper.</p>
@@ -158,7 +172,21 @@ const reply = await withTimeout(
   <p>Four boxes, and the practical question is how many vendors that becomes. On Kloudbean all four sit in the same dashboard as the app: Postgres and Redis are two of seven managed engines (MySQL, MariaDB, Memcached, Elasticsearch, and MongoDB fill out the list), and the S3-compatible buckets are built in with no metered egress on them. Access to a managed database is IP allow-listing, so you whitelist your app server's address and every other source is refused. Not a private network on a standard plan. The allow-list is the real control and it's a solid one.</p>
 
   <!-- ADD IMAGE: swap in a real console shot of the managed database list with Postgres and Redis, and the IP allow-list field. src -> images/managed-databases.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The managed database list showing PostgreSQL and Redis side by side, with the IP allow-list field in view.</em><small>Shows the state layer living outside the app, locked down by IP.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #2
+Create a side-by-side comparison table for a technical blog post titled "A Reference Architecture for Production AI Apps".
+
+What it must show: The managed database list showing PostgreSQL and Redis side by side, with the IP allow-list field in view.
+Also: Shows the state layer living outside the app, locked down by IP.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-comparison.png" alt="The managed database list showing PostgreSQL and Redis side by side, with the IP allow-list field in view.">
+    <figcaption>Lockdown with IP allow-listing</figcaption>
+  </figure>
 
   <h2>Getting slow work off the request path</h2>
   <p>Some work is too slow to do while a user waits. Indexing a big document for retrieval, a long multi-step generation, a batch export, sending email. If you do it inside the request, the request either times out or holds a connection hostage for 40 seconds. So you don't. You push the job onto a queue, return right away, and let a separate worker process drain the queue in the background.</p>
@@ -166,7 +194,21 @@ const reply = await withTimeout(
   <p>The bit that trips people up is where the worker actually lives. It's a second long-running process, so a platform that only knows how to run one web process per app leaves you improvising. Kloudbean runs a worker as its own always-on process next to the API (PM2 handles multi-process Node), with cron schedules set from the UI instead of over SSH, and the Redis the queue needs is a tile in the same dashboard.</p>
 
   <!-- ADD IMAGE: swap in a real console shot of a worker process next to the web app, plus a scheduled cron entry. src -> images/worker-and-cron.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A background worker process running next to the web app, plus a scheduled cron entry.</em><small>The queue drains here, off the request path.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #3
+Create a left-to-right architecture / flow diagram for a technical blog post titled "A Reference Architecture for Production AI Apps".
+
+What it must show: A background worker process running next to the web app, plus a scheduled cron entry.
+Also: The queue drains here, off the request path.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-flow.png" alt="A background worker process running next to the web app, plus a scheduled cron entry.">
+    <figcaption>Off the request path</figcaption>
+  </figure>
 
   <h2>Seeing what's actually happening</h2>
   <p>When the app is slow, failing, or expensive, you need to see why, and you can't debug what you don't measure. Observability is the sink that collects logs, metrics, and traces from your API and its stores. Which routes are slow, how many tokens went out, where errors cluster, what a request did on its way through.</p>
@@ -186,7 +228,21 @@ const reply = await withTimeout(
   <p>Practically, residency is a provisioning decision you make before the first deploy, which is why retrofitting it hurts. Kloudbean can provision in any region its seven clouds offer, in-Kingdom included via Google Cloud's Dammam region, so the boundary box can be drawn inside one country without splitting your stack across vendors. Aligned with local data-protection expectations, not certified for them, and the difference matters if anyone asks.</p>
 
   <!-- ADD IMAGE: swap in a real console shot of a region picker with an in-region data centre option. src -> images/region-picker.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A region picker showing an in-region data centre option for data that must stay in-country.</em><small>Residency is a hosting decision, made before you deploy.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #4
+Create a left-to-right architecture / flow diagram for a technical blog post titled "A Reference Architecture for Production AI Apps".
+
+What it must show: A region picker showing an in-region data centre option for data that must stay in-country.
+Also: Residency is a hosting decision, made before you deploy.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-4-flow.png" alt="A region picker showing an in-region data centre option for data that must stay in-country.">
+    <figcaption>Ensure data stays in-country</figcaption>
+  </figure>
 
   <h2>Why the boundary is drawn where it is</h2>
   <p>Go back to the diagram and look at the dashed line. It isn't a decoration, and it isn't drawn around "our stuff" versus "their stuff." Everything inside shares three properties: it's stateful, it's long-lived, and it talks to its neighbours constantly over short, chatty connections. The one thing outside is a single request over the public internet to a service you don't operate.</p>
@@ -195,12 +251,56 @@ const reply = await withTimeout(
   <p>Which is also the design argument for running the inside of the box in one place, and why the platform kept coming up in the API, state, worker, and region sections instead of arriving here as a surprise. The model itself stays your choice either way. Call a hosted API if that suits you, or self-host an open model on a GPU server when you'd rather it ran inside your own boundary, with DeepSeek available one-click and other models installed on request. What that actually costs to operate is its own decision, worked through in <a href="https://www.kloudbean.com/blog/self-host-an-llm/">self-host an LLM</a>.</p>
   <p>And the part no host settles, ours included. The boundary is a shape, not a safety net. Nothing about co-locating these boxes writes your timeout, chooses your rate limit, keeps the key out of a bundled JS file, or stops a prompt from being wrong. An unauthenticated endpoint that relays to the model on your key is exactly as expensive on well-run infrastructure as on badly-run infrastructure. Managed covers the server, the stack, SSL, backups, and patching; the code inside the boundary is yours. One scope note so the diagram isn't oversold: full network isolation in a VPC is part of the Enterprise package, so on a standard plan IP allow-listing is how a database stays off the open internet, and that's the version of the boundary most readers here will actually have.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run the whole architecture in one place, not five.</p>
-    <p style="margin:0 0 .6em">Launch an always-on Node or Python API, add managed PostgreSQL with pgvector and managed Redis, object storage, a background worker, automatic backups, and free SSL, all in one dashboard and deployed straight from Git. No cold starts, so your first user never waits.</p>
-    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Always-on (no cold starts) · Managed Postgres + pgvector · Managed Redis · Object storage · Background workers + cron · Automatic backups · Free SSL · Git deploy · IP allow-listing</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">You built the app. Give it a real home.</p>
+    <p class="kbcta-ai-description">Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

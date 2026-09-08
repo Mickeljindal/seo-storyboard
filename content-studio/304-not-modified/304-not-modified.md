@@ -137,11 +137,21 @@ The honest boundary: nobody else can fingerprint your assets, because that is a 
 
 On the caching layer in front of your origin, [CDN explained](https://www.kloudbean.com/blog/cdn-explained/). For application-level caching, [the Redis caching guide](https://www.kloudbean.com/blog/redis-caching-guide/) and [caching patterns](https://www.kloudbean.com/blog/redis-caching-patterns/). On the browser error caused by the opposite mistake, [ERR_CACHE_MISS](https://www.kloudbean.com/blog/err-cache-miss/). For redirect status codes, [302 vs 301](https://www.kloudbean.com/blog/302-found-vs-301-redirect/). On headers generally, [the security headers guide](https://www.kloudbean.com/blog/security-headers-guide/). And on WordPress caching specifically, [clearing WordPress cache](https://www.kloudbean.com/blog/how-to-clear-wordpress-cache/) and [speeding up WordPress](https://www.kloudbean.com/blog/speed-up-wordpress/).
 
-## Stop paying to send files people already have
+<!-- cta:start -->
+**Own the server. Skip the server admin.**
 
-Managed servers with nginx configured properly, Cloudflare available as an add-on for edge caching, managed Redis for application caching, and staging to test header changes safely. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Pick from seven clouds, run your app on a managed server you control, and keep databases, storage, and deploys in the same dashboard instead of four separate vendors.
 
-Managed nginx · Cloudflare edge caching · Managed Redis · Staging sites · One dashboard
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

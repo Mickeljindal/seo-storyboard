@@ -121,9 +121,21 @@ Here's the trap on the other side of the threshold, and it's the expensive one: 
 
 And if you're weighing a bundled edge product rather than the CDN slice of one, [whether you actually need Cloudflare, feature by feature](https://www.kloudbean.com/blog/do-i-need-cloudflare/) takes it apart properly. There's a lot in those bundles you may never touch.
 
----
+<!-- cta:start -->
+**Own the server. Skip the server admin.**
 
-**Add a CDN when your site actually needs one.** Hosting a static site? Kloudbean includes free static hosting with a custom domain and SSL, and a Cloudflare CDN add-on for when edge caching is worth it. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
+
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

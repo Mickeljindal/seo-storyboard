@@ -85,11 +85,21 @@ Graceful shutdown is the app-side half of zero-downtime deployments. The platfor
 
 Shutdown pairs with a few neighbors. Set up the readiness signal in [Node.js health checks](https://www.kloudbean.com/blog/nodejs-health-checks/), get the release mechanism in [zero-downtime deployments](https://www.kloudbean.com/blog/zero-downtime-deployments/), and run the process well with the [PM2 process manager guide](https://www.kloudbean.com/blog/pm2-process-manager-guide/). Closing the pool cleanly connects to [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/), and a mid-deploy blip often shows up as a [502 bad gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/).
 
-## Deploy without the error blip
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-Run your Node app always-on under PM2 with GitHub deploys, so a shutdown handler that drains on SIGTERM turns every release into a non-event for your users. Flat pricing from $8/mo. Start at [kloudbean.com](https://www.kloudbean.com/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Always-on under PM2 · Rolling reloads · GitHub deploys · Managed database · Flat from $8/mo
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

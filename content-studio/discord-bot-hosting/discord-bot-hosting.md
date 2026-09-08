@@ -56,7 +56,7 @@ Before anything ships, one fix that isn't optional: **your bot token cannot live
 
 So read it from an environment variable, and never commit it. In discord.js that's `process.env.DISCORD_TOKEN`. In discord.py it's `os.environ["DISCORD_TOKEN"]`. Add `.env` to your `.gitignore` and set the real value on the server instead. If a token ever does leak, you regenerate it in the Discord Developer Portal and update one environment variable. No code change. We go deeper on this in [environment variables, done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
-<!-- ADD IMAGE: Discord Developer Portal, the Bot tab, with the Reset Token button (token value blurred) -->
+![Retrieve token from Discord Developer Portal](images/gen-1-flow.png)
 
 ## A tiny bot you can actually deploy
 
@@ -179,35 +179,45 @@ The flow is short. Add a server, connect the repo, set the token, done. No domai
 
 **1. Add a server.** Pick a cloud provider (AWS, DigitalOcean, Linode, Vultr, GCP, UpCloud, or Lightsail), choose the runtime your bot uses (Node.js or Python), and a small size is fine. It provisions in a few minutes with the stack ready.
 
-![The Kloudbean console Add Server screen: choose a cloud provider, Node.js or Python, a datacenter, and a small server size for a Discord bot](../assets/console/add-server.png)
+![The Kloudbean console Add Server screen: choose a cloud provider, Node.js or Python, a datacenter, and a small server size for a Discord bot](../assets/console-real/shots/launch_server_step_1.png)
 
 **2. Connect your repo and set the start command.** On the Git deployment screen, connect GitHub, pick the branch, and set the start command to `node index.js` or `python bot.py`. There's no build step to fuss over for a simple bot, and no port to expose.
 
-![The Kloudbean console Git deployment screen: connect the Discord bot repo and set the start command](../assets/console/git-deployment.png)
+![The Kloudbean console Git deployment screen: connect the Discord bot repo and set the start command](../assets/console-real/shots/git_connect_step_4.png)
 
 **3. Set the token as an environment variable.** In Runtime Configuration → Environment Variables, add `DISCORD_TOKEN` and any other secrets (a database URL, API keys). Your bot reads them at startup. They live in the console, not the repo, so rotating the token later is a one-field change.
 
-![The Kloudbean console environment variables editor, where DISCORD_TOKEN is stored safely instead of in the code](../assets/console/env-vars.png)
+![The Kloudbean console environment variables editor, where DISCORD_TOKEN is stored safely instead of in the code](../assets/console-real/shots/nodespm_env_step_1.png)
 
 Deploy, and the platform pulls your code, installs dependencies, starts the process, and keeps it running, relaunching it automatically if it ever stops. That's the supervision a bot needs, handled for you.
 
-<!-- ADD IMAGE: your bot showing as Online in a server's member list, right after deploy -->
+![From deploy to online](images/gen-2-flow.png)
 
 ## Read the logs when something's off
 
 Once it's live, the logs are your window in. A healthy bot logs "Logged in as YourBot" the moment it connects, then goes quiet except when handling events. That line is your green light. If it never appears, the bot never reached Discord, and the reason is almost always one of three: a bad or missing token, a dependency that didn't install, or a plain code error on startup. Crash-looping bots print the same error on every restart, which makes it easy to spot.
 
-<!-- ADD IMAGE: live log output showing "Logged in as YourBot" followed by a couple of handled commands -->
+![Real replies, not pseudo-code](images/gen-3-terminal.png)
 
 ## What discord Bot Hosting leaves on your plate
 
 Kloudbean runs Linux stacks, so a Node or Python bot is right at home. A bot written for a Windows-only runtime isn't the fit here. "Managed" means the server, the runtime, patching, backups, and process supervision are handled, while your bot code and its token stay yours to move whenever you like. And a bot is genuinely one of the simplest things to host well, because it skips the web-serving parts entirely. You don't need Docker or a cluster for it either. A bot is a single long-running process, so [containers are a choice, not a requirement](https://www.kloudbean.com/blog/docker-container-hosting/). It just has to stay running, which is exactly what an always-on server is for.
 
----
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-**Host it once, and stop watching it die.** Run your Discord bot on an always-on server that restarts itself and never clocks off. Start free at [kloudbean.com](https://www.kloudbean.com/); sizes and plans on [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Always-on process · Auto-restart on crash · Git deploy · Managed databases · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

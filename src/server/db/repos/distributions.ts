@@ -3,7 +3,24 @@ import { getDb, schema } from "../client";
 
 const { distributions } = schema;
 
-export type DistributionChannel = "linkedin" | "x_thread" | "newsletter";
+/**
+ * Channel ids. The authoritative catalogue (with each destination's rules) lives
+ * in `src/lib/distribution-channels.ts`; this union exists so a typo in a channel
+ * name fails at compile time rather than silently creating an orphan draft row.
+ */
+export type DistributionChannel =
+  | "linkedin"
+  | "x_thread"
+  | "newsletter"
+  | "facebook"
+  | "instagram"
+  | "youtube_description"
+  | "reddit"
+  | "hacker_news"
+  | "dev_to"
+  | "hashnode"
+  | "medium"
+  | "community_chat";
 
 export type Distribution = {
   id: string;

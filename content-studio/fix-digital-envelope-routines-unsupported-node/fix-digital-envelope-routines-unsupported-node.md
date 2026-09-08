@@ -91,11 +91,20 @@ Now the part no host solves, ours included. Nothing about where you deploy upgra
 
 The root cause here is version drift, covered in [Node.js version management](https://www.kloudbean.com/blog/node-version-management/). If your build fails a different way, [why my app crashes on deploy](https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/) and [fixing cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/) are the usual suspects. For a React build specifically, [deploy a full-stack React app](https://www.kloudbean.com/blog/deploy-fullstack-react-app-to-production/), and for where to host Node, [the best managed Node.js hosting guide](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/).
 
-## Build on the Node version you actually chose.
+<!-- cta:start -->
+**Read the log, fix it, ship again.**
 
-Kloudbean lets you set your app's Node version in the console and deploy from Git with live build logs, so the runtime under your build stops being a surprise. Managed, patched servers; free SSL; managed databases. Start at [kloudbean.com](https://www.kloudbean.com/), or compare options in [the managed Node.js hosting guide](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/).
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-Set your Node version · Git deploys with build logs · PM2 support · Managed, patched stack
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

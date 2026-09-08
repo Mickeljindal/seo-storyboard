@@ -97,11 +97,20 @@ A lot of ECONNREFUSED pain is really "my app and my database can't find each oth
 
 Connection issues and configuration go hand in hand. See [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) to stop the localhost trap for good, [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) for stable connections under load, and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) for the database side. For neighboring errors, there's [EADDRINUSE: port already in use](https://www.kloudbean.com/blog/fix-eaddrinuse-port-already-in-use-node/), and to place your app overall, [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/).
 
-## Keep your app and database right next to each other
+<!-- cta:start -->
+**Fewer mysteries on the next deploy.**
 
-Run your Node app and a managed database in one dashboard, side by side, connected with a supplied connection string and locked to your app server's IP, so the usual causes of ECONNREFUSED never come up. Deploy from GitHub on flat pricing from $8/mo. Start at [kloudbean.com](https://www.kloudbean.com/).
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-Managed database · Env vars per environment · GitHub deploys · Flat from $8/mo
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

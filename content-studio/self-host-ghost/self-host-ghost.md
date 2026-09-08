@@ -95,7 +95,7 @@ Transactional SMTP goes in your config like this:
 
 Bulk newsletters get set up separately, in Ghost admin under Settings, Email newsletter, where you paste your Mailgun API key, sending domain, and region. Do both and email just works. Skip the second and you'll be puzzled why your first post never went out.
 
-<!-- ADD IMAGE: Ghost admin Email newsletter settings, showing the Mailgun API key and sending domain fields -->
+![Configure your newsletter sending](images/gen-1-panel.png)
 
 Payments are the friendlier cousin. You connect your own Stripe account once, and subscription revenue flows directly to you. Because it's your Stripe, there's no platform cut on top of Stripe's normal processing fee.
 
@@ -103,7 +103,7 @@ Payments are the friendlier cousin. You connect your own Stripe account once, an
 
 The footprint is genuinely light. Ghost is happy on around **1 GB of RAM** to start. The one firm production rule: use MySQL, not SQLite. SQLite is fine for kicking the tires locally, but a real publication belongs on MySQL. On a managed platform you launch a [managed MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/) in a click and hand Ghost the connection details.
 
-![The Kloudbean console Launch Database screen: create a managed MySQL instance for Ghost](../assets/console/launch-database.png)
+![The Kloudbean console Launch Database screen: create a managed MySQL instance for Ghost](../assets/console-real/shots/psql_launch_step_1.png)
 
 Ghost ships an official command-line installer that does the heavy lifting on a standard Linux server. Because a managed server gives you a real box with root, the installer runs exactly as the Ghost docs describe:
 
@@ -119,7 +119,7 @@ ghost install
 
 The pattern is the same as running any [Node app on a managed server](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/): a right-sized box, a database, a domain. Point your domain at the server, grab free SSL, and you're live at `yourdomain.com` with the padlock. It's your own server, so Ghost can share the box with your other apps if you're already [running several on one server](https://www.kloudbean.com/blog/host-multiple-apps-one-server/).
 
-<!-- ADD IMAGE: Ghost admin Members dashboard with total subscribers and paid tier breakdown -->
+![Owning your audience outright](images/gen-2-comparison.png)
 
 The whole thing is an afternoon, much of it just waiting on DNS. Connect Mailgun and Stripe, pick a theme, publish. Serve images and media from [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/) or a CDN rather than the app server, and Ghost stays snappy even under a traffic spike.
 
@@ -148,7 +148,7 @@ ghost update     # pull and apply the new version
 
 Pair that with the platform's automatic [server-level backups](https://www.kloudbean.com/blog/server-backups-guide/) and you've got two safety nets: the platform protecting the box, your snapshot protecting the publication. Managed hosting keeps the server, OS, web layer, and SSL healthy. The Ghost app and its content backups stay yours.
 
-<!-- ADD IMAGE: A published Ghost post on your own domain with the membership signup bar visible -->
+![One hop per box](images/gen-3-flow.png)
 
 ## So, should you self-host Ghost?
 
@@ -156,11 +156,21 @@ If you're building an audience or a paid publication and you want to own it (you
 
 Ghost is one of several tools that reward owning them outright. If you're mapping out a stack, our roundup of the [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) puts it in context alongside the rest. And if what you actually want is a dedicated mailing list manager rather than a website with a newsletter, [self-hosting Listmonk](https://www.kloudbean.com/blog/self-host-listmonk/) is the pure-list tool for sending at scale.
 
----
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-**Own the audience, not just the archive.** Stand up a Ghost-ready stack (a Node server, a managed MySQL, free SSL, and automatic backups) at [kloudbean.com](https://www.kloudbean.com/). Start on a free trial, with free migration help if you're moving in. See plans on [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Managed MySQL · Free SSL · Automatic backups · Object storage for media · Free migration · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

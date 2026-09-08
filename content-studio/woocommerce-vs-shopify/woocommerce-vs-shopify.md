@@ -93,15 +93,20 @@ The honest boundary is the same as ever. Server, stack, TLS, backups and patchin
 
 If you have decided on WooCommerce, [WooCommerce hosting](https://www.kloudbean.com/blog/woocommerce-hosting/) covers what good hosting for a store actually requires, and [speed up WooCommerce](https://www.kloudbean.com/blog/speed-up-woocommerce/) covers keeping it fast. For a store selling in the Gulf, [hosting for Saudi ecommerce](https://www.kloudbean.com/blog/hosting-for-saudi-ecommerce/) gets into latency, RTL, and payment-data residency. On keeping card data off your own server, that same guide covers PCI scope. For the database underneath, [managed MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/), and to move an existing store in, [migrating hosting with zero downtime](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/). If you are weighing a larger catalogue platform instead, [Magento SEO](https://www.kloudbean.com/blog/magento-seo/) covers where that one is heavier.
 
----
+<!-- cta:start -->
+**Bring the app. Keep the deploy flow.**
 
-### Chose WooCommerce? Put it on hosting built for a store.
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-Managed WordPress and WooCommerce across seven clouds, with the database, Redis object cache, and reverse proxy tuned for a store, staging, automatic backups, and the Cloudflare edge add-on. Free SSL issued and renewed. Free migration assistance, including from Shopify. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
 
-Managed WooCommerce · Staging · Redis cache · Automatic backups · Free SSL · Free migration
-
----
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

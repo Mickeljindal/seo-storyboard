@@ -236,13 +236,22 @@ On [Kloudbean managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgre
 
 The honest boundary, stated once: managed covers the server, the engine, backups, and patching. Your schema, your data, and your queries stay yours, exportable with a plain `pg_dump` whenever you want. Wiring a fresh app to a managed database from scratch is walked through in [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), and if you are still choosing an engine, [MySQL vs PostgreSQL](https://www.kloudbean.com/blog/mysql-vs-postgresql/) lays out the trade-offs. The MySQL counterpart to this reference is [MySQL port, and listing databases and tables](https://www.kloudbean.com/blog/mysql-default-port-and-show-databases/).
 
-![The Kloudbean console launching a managed PostgreSQL database from a list of managed engines, with automatic backups on](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed PostgreSQL database from a list of managed engines, with automatic backups on](../assets/console-real/shots/psql_launch_step_1.png)
 
----
+<!-- cta:start -->
+**A database you can dump and take with you.**
 
-**Run the queries, skip the server admin.** Managed PostgreSQL with one-click provisioning, automatic backups, and IP allow-listing so only your app server can reach it. Seven managed engines, seven clouds, one dashboard. Free SSL, and free migration assistance if you are bringing a database with you. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+Launch MySQL, MariaDB, PostgreSQL, Redis, Memcached, MongoDB, or Elasticsearch in a click, reachable from your app server with automatic backups from minute one. Standard connection strings, standard dumps, no proprietary format.
 
-Managed PostgreSQL · Automatic backups · IP allow-listing · Free SSL · Free migration · One dashboard
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

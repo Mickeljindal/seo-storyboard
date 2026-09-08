@@ -127,7 +127,21 @@ writeFileSync("replit-db-dump.json", JSON.stringify(dump, null, 2));</code></pre
   <p>This one is a straight rename, which is a relief. The Secrets pane holds values that Replit injects as environment variables while your app runs, so in code you already read them with <code>process.env.SOME_KEY</code>. On a server, those same values live in the console as environment variables and reach your code the same way. Copy each secret across. The only ones you don't copy are the Replit built-ins like <code>REPLIT_DB_URL</code>; those get replaced by your own <code>DATABASE_URL</code> or <code>REDIS_URL</code> from the step above. If you want the full picture of runtime versus build-time variables, it's in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
 
   <!-- IMAGE SLOT: swap this figure for a real figure + img (src -> images/your-file.png) + figcaption -->
-  <figure class="img-slot"><span><b>Add image</b><em>Side by side: the Replit Secrets pane and the destination environment variables editor, the same keys in both.</em><small>Makes the "same idea, different place" point instantly.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #1
+Create a side-by-side comparison table for a technical blog post titled "Deploy a Replit App to Your Own Server: the Migration Map".
+
+What it must show: Side by side: the Replit Secrets pane and the destination environment variables editor, the same keys in both.
+Also: Makes the "same idea, different place" point instantly.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-comparison.png" alt="Side by side: the Replit Secrets pane and the destination environment variables editor, the same keys in both.">
+    <figcaption>The same keys, different places</figcaption>
+  </figure>
 
   <h3>Replit Auth becomes your own auth</h3>
   <p>Replit Auth lets people sign in with their Replit account. Handy while you live on the platform, and tied to it. Off Replit, you own login. Be honest with yourself about how much you leaned on it. If it was a light gate on an internal tool, swapping it is small. If it was your whole user system, budget real time for this row.</p>
@@ -150,14 +164,14 @@ entrypoint = "index.js"</code></pre>
   <p>In the <a href="https://www.kloudbean.com/">Kloudbean</a> console, click <strong>Add Server</strong>, pick a <strong>Cloud Provider</strong>, choose the stack that matches your Repl (Node.js, or a Python stack), pick the nearest datacenter, and give it 2–4 GB. <strong>Launch Now</strong> hands you a configured server in a few minutes, runtime and process manager and firewall and SSL included.</p>
 
   <figure>
-    <img src="../assets/console/add-server.png" alt="Kloudbean Add Server screen: choosing a cloud provider, application stack, datacenter, and server size">
+    <img src="../assets/console-real/shots/launch_server_step_1.png" alt="Kloudbean Add Server screen: choosing a cloud provider, application stack, datacenter, and server size">
     <figcaption>Add Server: provider, stack, size, launch. This is your always-on box, no toggle required.</figcaption>
   </figure>
 
   <p>Open the app, go to <strong>Application Administration → Deploy Code</strong>, connect GitHub, paste your repository URL, choose the branch, and <strong>Clone Repository</strong>. Fill the runtime fields with the commands you translated from <code>.replit</code>: <strong>App Directory</strong>, <strong>Port</strong> (bind <code>process.env.PORT</code>), <strong>runtime version</strong>, and <strong>Install / Build / Start</strong>. Click <strong>Pull &amp; Deploy</strong>.</p>
 
   <figure>
-    <img src="../assets/console/git-deployment.png" alt="Kloudbean Deploy Code / Git Deployment screen: connect a repo, set the runtime fields, and Pull and Deploy">
+    <img src="../assets/console-real/shots/git_connect_step_4.png" alt="Kloudbean Deploy Code / Git Deployment screen: connect a repo, set the runtime fields, and Pull and Deploy">
     <figcaption>Deploy Code, then Git Deployment: the <code>.replit</code> run line becomes these Install/Build/Start fields.</figcaption>
   </figure>
 
@@ -165,18 +179,32 @@ entrypoint = "index.js"</code></pre>
   <p>From <strong>DBS → Launch Database</strong>, spin up the managed Redis or Postgres you chose, then import your <code>replit-db-dump.json</code> (or your relational export) into it. In <strong>Runtime Configuration → Environment Variables</strong>, use the <strong>Paste .env Content</strong> tab to recreate your Secrets, then point <code>DATABASE_URL</code> or <code>REDIS_URL</code> at the new database.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="Kloudbean Launch Database screen for creating a managed Postgres, MySQL, or Redis instance">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="Kloudbean Launch Database screen for creating a managed Postgres, MySQL, or Redis instance">
     <figcaption>Launch a managed database, import your Replit data, and connect through your own URL.</figcaption>
   </figure>
 
   <figure>
-    <img src="../assets/console/env-vars.png" alt="Kloudbean environment variables editor with a paste .env content tab and key value list">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="Kloudbean environment variables editor with a paste .env content tab and key value list">
     <figcaption>Recreate every Secret here, and replace the Replit built-in URLs with your own connection strings.</figcaption>
   </figure>
 
   <p>Test on the temporary <code>*.kloudbeansite.com</code> URL, then add your custom domain under <strong>Domain Aliases</strong>, point DNS at the server, and install a free <strong>Let's Encrypt</strong> certificate. Turn on <strong>automated deployment</strong> so a push rebuilds and ships. That's the same instant loop Replit's Run button gave you, now on <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">a server you own</a>. And if your app, its API, and its database all belong together, they sit on <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">the one box</a> in one dashboard, instead of scattering into separate products the way they were on the platform.</p>
 
   <!-- IMAGE SLOT: swap this figure for a real figure + img (src -> images/your-file.png) + figcaption -->
+  <!-- IMAGE CAPTURE [browser-shot] #2
+SCREENSHOT NEEDED (do not generate this one).
+This slot shows a real browser window (address bar, devtools, or tabs), so an AI image would be inaccurate and a reader could tell.
+Capture: Your former Repl running on its own domain with the SSL padlock, served from your own server.
+Note: The "it's really off Replit now" payoff.
+Crop to 16:9, keep text legible at 1200px wide, and blur or fake any real credentials, tokens, IPs or customer data.
+-->
+  <!-- IMAGE CAPTURE [browser-shot] #1
+SCREENSHOT NEEDED (do not generate this one).
+This slot shows a real browser window (address bar, devtools, or tabs), so an AI image would be inaccurate and a reader could tell.
+Capture: Your former Repl running on its own domain with the SSL padlock, served from your own server.
+Note: The "it's really off Replit now" payoff.
+Crop to 16:9, keep text legible at 1200px wide, and blur or fake any real credentials, tokens, IPs or customer data.
+-->
   <figure class="img-slot"><span><b>Add image</b><em>Your former Repl running on its own domain with the SSL padlock, served from your own server.</em><small>The "it's really off Replit now" payoff.</small></span></figure>
 
   <h2>If it won't come up</h2>
@@ -188,10 +216,56 @@ entrypoint = "index.js"</code></pre>
   <h2>What deploy a Replit App to Your Own Server cannot do</h2>
   <p>Kloudbean runs Linux stacks: Node, Python, PHP, Ruby, and Java, with frameworks like React, Next.js, Vue, Django, and Laravel on top. That spans what most Repls are built in. Linux .NET versions are supported; a Windows Server box is a Premium and Enterprise item. "Managed" means the server, stack, SSL, backups, and patching are handled; you own and maintain the application and its data. The tool-agnostic version of this walkthrough, covering Lovable, Bolt, Cursor, and v0 too, is the <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy an AI-built app</a> pillar.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Keep Replit's speed. Own the server.</p>
-    <p style="margin:0">Migrate your Replit app to <a href="https://www.kloudbean.com/">kloudbean.com</a>, with a free trial and your first migration done for you. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">You built the app. Give it a real home.</p>
+    <p class="kbcta-ai-description">Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

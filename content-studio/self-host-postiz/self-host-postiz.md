@@ -77,11 +77,21 @@ The honest boundary: the platform runs the server, database, SSL, and backups. Y
 
 Other tools worth self-hosting are collected in [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/). Close neighbours: [self-hosting Penpot](https://www.kloudbean.com/blog/self-host-penpot/) for design and [self-hosting n8n](https://www.kloudbean.com/blog/self-host-n8n/) for automation, which pairs well if you want to trigger posts from workflows. The pieces Postiz leans on: [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/), [server backups](https://www.kloudbean.com/blog/server-backups-guide/), and [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/) for the media library. Running social for clients? [The agency hosting playbook](https://www.kloudbean.com/blog/hosting-for-agencies-playbook/) fits alongside.
 
-## Run your own social scheduler, in one click.
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-Launch Postiz as a one-click app on a managed server across seven clouds, with managed PostgreSQL and Redis, free auto-renewing SSL, and automatic backups. You bring the API keys; we handle the rest. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-One-click Postiz · Managed PostgreSQL and Redis · Free auto-renewing SSL · Automatic backups
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -69,11 +69,20 @@ Swap `DATABASE_URL`, redeploy, verify on the temporary URL, then switch DNS. No 
 
 More context: [a Cloudways Velocity alternative](https://www.kloudbean.com/blog/cloudways-velocity-alternative/) for the narrative version, [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/) for the wider platform comparison, and [Cloudways alternatives](https://www.kloudbean.com/blog/cloudways-alternatives/) for the field. On the Node side: [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/), [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/), and [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/).
 
-## Run the whole stack, not just the Node process
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-Deploy your Node app always-on under PM2 from GitHub, with managed databases, S3-compatible storage, static sites, and a load balancer in the same dashboard across seven clouds, on flat pricing from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-7 clouds · 7 managed database engines · Built-in load balancer · S3-compatible storage · No egress metering · Flat from $8/mo
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

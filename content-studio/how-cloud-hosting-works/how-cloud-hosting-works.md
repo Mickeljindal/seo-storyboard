@@ -12,7 +12,7 @@ Start with what the word "cloud" hides: there's a real computer. What is cloud h
 
 The old way was one physical server in a rack. It died, you drove to it. You outgrew it, you migrated to a bigger one over a weekend. Cloud hosting broke that. Your server is virtual, so it spins up in minutes, resizes while it runs, and moves to healthy hardware if a host fails. That, at its most basic, is how web hosting works: a server with an address, waiting to answer requests.
 
-![Provisioning a cloud server in the Kloudbean console, choosing a provider and a size](../assets/console/add-server.png)
+![Provisioning a cloud server in the Kloudbean console, choosing a provider and a size](../assets/console-real/shots/launch_server_step_1.png)
 
 ## The shape of it: one request, end to end
 
@@ -45,7 +45,7 @@ curl -I https://example.com
 
 That `300` is the TTL, how many seconds the answer stays cached. It's why a DNS change takes time to show up everywhere: the record is cached all over the internet, and those copies expire on their own clock. This is the naming answer to how web hosting works. A DNS record points your domain at your server's public IP, and everything after depends on that one line.
 
-<!-- ADD IMAGE: a DNS records panel with an A record pointing your domain at the server's public IP, TTL visible -->
+![From domain to server IP](images/gen-1-flow.png)
 
 ### The load balancer: one public door for many servers
 
@@ -53,7 +53,7 @@ For a single server, DNS points straight at it. Run more than one, and something
 
 It usually terminates SSL as well, so HTTPS ends there and you manage certificates in one place. Do you need one on day one? Honestly, no. A single well-sized server handles plenty first, and adding a balancer early is moving parts without a problem to solve. Reach for it when one server isn't enough, or when you need a dead node to be a shrug instead of an outage. Full breakdown in [how a cloud load balancer works](https://www.kloudbean.com/blog/cloud-load-balancer-explained/). It leans on [health checks](https://www.kloudbean.com/blog/nodejs-health-checks/) to route only to servers that can actually serve, which is also what makes [zero-downtime deploys](https://www.kloudbean.com/blog/zero-downtime-deployments/) safe.
 
-![A load balancer in the Kloudbean console distributing traffic across healthy backend servers](../assets/console/flb-load-balancer.png)
+![A load balancer in the Kloudbean console distributing traffic across healthy backend servers](../assets/console-real/shots/flb_launch_step_2.png)
 
 ### The web server: answering on ports 80 and 443
 
@@ -79,7 +79,7 @@ Databases are for structured data, not a 40MB video or a profile photo. Big file
 
 One rule saves a lot of pain: don't write uploads to the app server's local disk. Redeploy and it can be wiped. Add a second server and half your traffic can't see what the other half saved. Send them to a bucket from the start and the problem never exists.
 
-<!-- ADD IMAGE: an object storage bucket listing with uploaded files and their access settings -->
+![Secure asset storage for your application](images/gen-2-panel.png)
 
 ### Backups: the layer you hope you never open
 
@@ -93,7 +93,7 @@ Three things wrap around the whole path rather than living at a single hop.
 
 **SSL/TLS** is the padlock in the address bar. It encrypts the connection between visitor and server so nobody in between can read or tamper with it. Modern hosting issues free, auto-renewing certificates, so HTTPS is the default rather than a yearly chore. **A CDN** caches static content in locations around the world and serves each visitor from the nearest one, which cuts latency and origin load. Kloudbean offers Cloudflare Enterprise edge caching as an add-on for exactly this. And in front of all of it, **DDoS protection** absorbs floods of junk traffic before they ever reach your server. Here's [how DDoS protection actually works](https://www.kloudbean.com/blog/ddos-protection-explained/) and why the filtering happens at the edge.
 
-<!-- ADD IMAGE: an SSL certificate status view, or the edge caching toggle, showing HTTPS active and auto-renewing -->
+![Ensuring secure connections](images/gen-3-panel.png)
 
 ## Managed vs unmanaged cloud hosting: who fixes it at 3am?
 
@@ -120,7 +120,7 @@ Traffic grows. You have two real moves, and one overhyped one.
 
 Then there's **autoscaling**, which adds and removes servers automatically as load changes. Sounds essential, mostly oversold. Most small and mid-sized apps never need it. A right-sized server plus the option to resize covers years of growth, minus the surprise bills that come from machines spinning up on their own. On Kloudbean, autoscaling and Kubernetes are part of enterprise and custom setups, not a switch a standard account flips. If you think you might need it, read [autoscaling and whether you actually need it](https://www.kloudbean.com/blog/autoscaling-explained/) first. The honest default: watch your graphs, resize near the ceiling, add a server when uptime demands it.
 
-![Server health metrics in the Kloudbean console showing CPU, RAM, and disk usage over time](../assets/console/server-health.png)
+![Server health metrics in the Kloudbean console showing CPU, RAM, and disk usage over time](../assets/console-real/shots/server_health_step_2.png)
 
 ## Regions and data residency: where your server physically sits
 
@@ -128,7 +128,7 @@ Then there's **autoscaling**, which adds and removes servers automatically as lo
 
 First, latency. A server close to your users answers faster, because the request travels less distance. Traffic mostly in Europe? A European region shaves real milliseconds off every round trip. Second, **data residency**. Some rules require personal data to stay inside a country or bloc, so where the bytes live becomes a legal question, not just a performance one. The full picture is in [data residency, explained](https://www.kloudbean.com/blog/data-residency-explained/).
 
-<!-- ADD IMAGE: a region picker showing data center locations, one selected close to the target audience -->
+![One hop per box](images/gen-4-flow.png)
 
 ## Uptime, SLAs, and what "reliable" actually means
 
@@ -142,13 +142,23 @@ Here's where it comes together. Every layer we just walked, the server, the load
 
 Kloudbean puts the entire stack behind **one dashboard** and one login. Seven clouds to launch on: AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud. Seven managed database engines, from PostgreSQL and MySQL to Redis and MongoDB. Built-in S3-compatible object storage. A Flexible Load Balancer available on every account, off until you flip it on. Free auto-renewing SSL and automatic backups on by default. Run a server, a database, a static site, and a standalone load balancer side by side without leaving the panel. Comparing your options? [What makes the best managed cloud hosting](https://www.kloudbean.com/blog/best-managed-cloud-hosting/) lays out what's actually worth looking for.
 
-![The Kloudbean dashboard showing servers, applications, databases, and storage in one place](../assets/console/dashboard.png)
+![The Kloudbean dashboard showing servers, applications, databases, and storage in one place](../assets/console-real/shots/dashboard.png)
 
----
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-**See the whole path from one place.** Servers, managed databases, object storage, a built-in load balancer, free SSL, and automatic backups, across 7 clouds and one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/); compare plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-One dashboard · 7 clouds · Managed databases · Built-in load balancer · Free SSL · Automatic backups · Free migration
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

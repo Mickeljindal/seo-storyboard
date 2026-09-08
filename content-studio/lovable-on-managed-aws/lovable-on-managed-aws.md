@@ -50,19 +50,19 @@ My honest opinion after watching a lot of these: most Lovable apps don't need ni
 
 Get your Lovable code into GitHub first (connect and push if you haven't), then in the [Kloudbean](https://www.kloudbean.com/) console click **Add Server**. Set the **Cloud Provider** to **AWS**, choose your AWS **region**, pick **Node.js**, and choose a size with 2 to 4 GB of headroom for the build.
 
-![Kloudbean Add Server screen: choose AWS as the cloud provider, pick a region, select Node.js and a server size](../assets/console/add-server.png)
+![Kloudbean Add Server screen: choose AWS as the cloud provider, pick a region, select Node.js and a server size](../assets/console-real/shots/launch_server_step_1.png)
 
 Open the app and go to **Application Administration, Deploy Code**. Connect GitHub, paste the repo URL, pick the branch, and set the runtime fields: app directory, the assigned `process.env.PORT`, Node version, and your install, build, and start commands. Then **Pull & Deploy**. The build runs on your AWS server exactly as it would anywhere, because the platform abstracts the cloud, not the code.
 
-![Kloudbean Deploy Code / Git Deployment on the AWS server: connect the repo, set the runtime, and Pull and Deploy](../assets/console/git-deployment.png)
+![Kloudbean Deploy Code / Git Deployment on the AWS server: connect the repo, set the runtime, and Pull and Deploy](../assets/console-real/shots/git_connect_step_4.png)
 
 Launch a managed database from **DBS, Launch Database**. It runs on your AWS infrastructure alongside the app, and you wire the credentials in as environment variables rather than hard-coding them. If your Lovable app uses Supabase, you can point at your existing project or run [managed Supabase](https://www.kloudbean.com/blog/self-host-supabase/) here too.
 
-![Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance on the AWS server](../assets/console/launch-database.png)
+![Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance on the AWS server](../assets/console-real/shots/psql_launch_step_1.png)
 
 Add your variables under **Runtime Configuration, Environment Variables** (the **Paste .env Content** tab is quickest), attach your domain under **Domain Aliases** with a free Let's Encrypt certificate, and turn on **automated deployment** so every push builds and ships on your AWS server. A missing variable is the most common reason a first deploy 503s, so if that happens, read the app log and see [environment variables, done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
-<!-- ADD IMAGE: The AWS region picker on the Add Server screen, with a region selected close to the app's users. -->
+![Choose a region close to your users](images/gen-1-flow.png)
 
 ## Choosing an AWS region
 
@@ -86,7 +86,21 @@ One reason to be on AWS at all is the ceiling, and there's a lot of room above y
 
 Two straight facts. Kloudbean runs Linux web stacks on AWS: Node and the modern frameworks (React, Next.js, Vue) that Lovable produces, plus PHP, Python, Ruby, and Java. This isn't a bare-metal AWS tutorial. .NET is supported on Linux, and Windows Server is offered on Premium and Enterprise. It's managed Linux hosting that happens to run on AWS. And "managed" means Kloudbean runs the server, the stack, SSL, patching, and automatic backups; you still own your application and its data. That division is the whole value: AWS underneath, your app on top, and the ops in between handled. For the Lovable-specific side of things, the [deploy-a-Lovable-app guide](https://www.kloudbean.com/blog/deploy-lovable-app-to-your-own-server/) covers the frontend and Supabase details.
 
-**AWS underneath, without the console maze.** Run your app on managed AWS at [kloudbean.com](https://www.kloudbean.com/). Click to launch a database, backups running, access allow-listed, deploys from Git. Tool-agnostic deploy walkthrough [here](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/); plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Take it off localhost for good.**
+
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

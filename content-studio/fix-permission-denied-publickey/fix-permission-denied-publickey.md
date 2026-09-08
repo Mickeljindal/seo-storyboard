@@ -63,7 +63,7 @@ The single most valuable line is `Offering public key:`. If it never appears, yo
 | `send_pubkey_test: no mutual signature algorithm` | Key type disabled by the server | Use an ed25519 key, or enable rsa-sha2 |
 | Server offers `publickey,password` | Password auth exists as a fallback | Different failure; check the username |
 
-<!-- ADD IMAGE: annotated ssh -vvv output with the Offering public key line and the rejection highlighted -->
+![Annotated SSH output](images/gen-1-terminal.png)
 
 ## Cause 1: your client is offering the wrong key, or none
 
@@ -145,7 +145,7 @@ Never reach for `chmod 777` to make this go away. It won't: sshd will keep ignor
 
 On the server, `sudo journalctl -u ssh -n 50` (or `/var/log/auth.log`) is where sshd says the quiet part out loud, with lines like `Authentication refused: bad ownership or modes for directory /home/ubuntu`. The client never sees that. Only the server log does.
 
-<!-- ADD IMAGE: sshd auth log showing the bad ownership or modes refusal line -->
+![Identify and correct the issue](images/gen-2-flow.png)
 
 ## Cause 4: you're logging in as the wrong user
 
@@ -196,7 +196,7 @@ ssh -T git@github.com
 
 If that greets you by name, SSH is fine and your problem is repository access or a wrong remote URL. If it denies you, add the contents of `~/.ssh/id_ed25519.pub` to your account's SSH keys and try again. Two more traps worth knowing: an HTTPS remote won't use your key at all (`git remote -v` will show it), and a deploy key authorized on one repository won't work for another. Once you're back in, our notes on [deleting and renaming Git branches](https://www.kloudbean.com/blog/git-delete-and-rename-branch/) cover the cleanup that usually follows a stalled push.
 
-<!-- ADD IMAGE: the SSH keys page of a Git host account with a newly added ed25519 key -->
+![Newly added ed25519 key](images/gen-3-terminal.png)
 
 ## Keep a second way in before you need one
 
@@ -230,9 +230,20 @@ The honest part: no host fixes step 5 for you, ours included. Support can hand y
 
 For the concepts underneath the error, read [SSH key authentication](https://www.kloudbean.com/blog/ssh-key-authentication/) and, when you need to reach a service that isn't publicly exposed, [what an SSH tunnel is](https://www.kloudbean.com/blog/what-is-an-ssh-tunnel/). Keys are credentials, so [secrets management](https://www.kloudbean.com/blog/secrets-management/) applies to them the same as API tokens.
 
-**Manage server access without depending on SSH.** Kloudbean gives you servers, SSH keys, cron jobs, and team permissions in one dashboard, with plans from $8/mo. Check current details at [kloudbean.com/pricing](https://www.kloudbean.com/pricing/) or start at [kloudbean.com](https://www.kloudbean.com/).
+<!-- cta:start -->
+**Fewer mysteries on the next deploy.**
 
-SSH key management · Cron from the UI · Subusers and access control · Free SSL · Automatic backups
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
+
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

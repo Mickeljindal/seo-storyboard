@@ -60,7 +60,7 @@ Nextcloud has a better option that many people don't realize exists: it can use 
 
 On a managed platform you create a bucket and point Nextcloud at it:
 
-![The Kloudbean console S3 Buckets screen: create an object storage bucket for Nextcloud's primary file store](../assets/console/s3-buckets.png)
+![The Kloudbean console S3 Buckets screen: create an object storage bucket for Nextcloud's primary file store](../assets/console-real/shots/storage_bucket_step_3.png)
 
 The config lives in Nextcloud's `config.php` and looks roughly like this:
 
@@ -92,9 +92,9 @@ With the storage decision made, the rest is a short sequence. Nextcloud runs on 
 4. **Point your files at object storage** using the config above.
 5. **Add your domain and free SSL.** Logins and file transfers must run over HTTPS. This is not optional for anything private.
 
-![The Kloudbean console Launch Database screen: create a managed MariaDB or MySQL for Nextcloud metadata](../assets/console/launch-database.png)
+![The Kloudbean console Launch Database screen: create a managed MariaDB or MySQL for Nextcloud metadata](../assets/console-real/shots/psql_launch_step_1.png)
 
-<!-- ADD IMAGE: The Nextcloud files web interface with folders, sharing icons, and the upload button -->
+![Enable two-factor authentication for a user](images/gen-3-panel.png)
 
 ## The performance fixes almost everyone misses
 
@@ -155,11 +155,21 @@ For a privacy-conscious team, or anyone tired of per-seat Drive and Dropbox fees
 
 Where it isn't the answer: if you just need personal file sync for one person and never want to see a server, a consumer cloud is simpler and fine. The moment files become *team* files that matter, and the seat count starts to sting, owning them looks wise. Nextcloud is one of a handful of tools that pay off when you run them yourself; our [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup shows where it sits, and if code is next, [self-hosting GitLab](https://www.kloudbean.com/blog/self-host-gitlab/) follows the same own-it logic, as does [self-hosting Vaultwarden](https://www.kloudbean.com/blog/self-host-vaultwarden/) for the passwords that unlock everything else.
 
----
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-**One answer to "where are our files?"** Stand up your own Drive at [kloudbean.com](https://www.kloudbean.com/). A small server, a managed database, and an object-storage bucket is the whole recipe. Start on a free trial, with free migration help if you're moving off Drive or Dropbox. See plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-S3-compatible object storage · Managed MariaDB · Free SSL · Automatic backups · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

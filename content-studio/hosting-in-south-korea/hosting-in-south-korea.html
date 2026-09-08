@@ -127,7 +127,21 @@ ping -c 5 us-app.example.com        # US region:     well over 100 ms</code></pr
   <p>My honest default: if a meaningful share of your users or your personal data is Korean, host the core in a Seoul region and stop overthinking it. The cases where staying out of Korea wins are real but narrow, and they're usually about an existing system you can't easily move, not about a fresh choice.</p>
 
   <!-- ADD IMAGE: a simple data-inventory sketch. Two columns, "holds Korean personal data -> Korea region" and "no personal data -> edge or anywhere", with a few example rows. src -> images/data-inventory.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A data-inventory sketch: each part of your stack sorted into "personal data, keep in Korea" versus "no personal data, put on the edge."</em><small>This one sort decides most of the residency question.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #1
+Create a side-by-side comparison table for a technical blog post titled "Hosting in South Korea: Latency, Data Residency, and the PIPA Question".
+
+What it must show: A data-inventory sketch: each part of your stack sorted into "personal data, keep in Korea" versus "no personal data, put on the edge."
+Also: This one sort decides most of the residency question.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-comparison.png" alt="A data-inventory sketch: each part of your stack sorted into &quot;personal data, keep in Korea&quot; versus &quot;no personal data, put on the edge.&quot;">
+    <figcaption>Data Residency Requirements</figcaption>
+  </figure>
 
   <h2>The mistakes that quietly erase the win</h2>
   <p>Most Korea-hosting regret isn't exotic. It's a small default that cancels the thing you moved for.</p>
@@ -140,10 +154,56 @@ ping -c 5 us-app.example.com        # US region:     well over 100 ms</code></pr
   <p>You can stand up a raw cloud instance in a Seoul region and own the OS, the database, the patching, the SSL, and the backups. Or you can use a managed platform that provisions the region and runs that layer for you, so you pick where the server lives and get on with your app. Either way, the principles above decide the outcome: put Korean personal data in a Korea region, keep backups there too, and don't let an overseas dependency undo your latency. The same region-choice logic shows up in adjacent problems, from <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">pinning a managed database to a region</a> to keeping an AI workload's data in-country when you <a href="https://www.kloudbean.com/blog/self-host-an-llm/">self-host a model</a>.</p>
   <p>Kloudbean is one managed option here: it can provision servers across major clouds' regions, Seoul included, and run the server, stack, free SSL, backups, and patching for you, with managed databases you can pin to a region and lock to your app server's IP. Handy to know, but secondary to the point of this page, which is that the latency and residency reasoning above is what should drive your region choice wherever you land.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Pick the region for the physics and the law, then build.</p>
-    <p style="margin:0">If you'd rather not run the server, SSL, and backups yourself, Kloudbean can provision a managed server and database in a Seoul region across major clouds, with free migration assistance and plans from $8/mo (check current pricing on the pricing page). It's aligned with data-residency needs; the app-level PIPA work stays yours. Details at <a href="https://www.kloudbean.com/">kloudbean.com</a> and <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">You built the app. Give it a real home.</p>
+    <p class="kbcta-ai-description">Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

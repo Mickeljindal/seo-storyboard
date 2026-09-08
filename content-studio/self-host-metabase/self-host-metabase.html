@@ -116,6 +116,13 @@
   <p>Fair's fair: hosted Metabase is lower effort, and for a small team that never wants to see a server it's a reasonable trade. Once ownership, residency, or the per-seat bill matter, self-hosting wins.</p>
 
   <!-- To add your own screenshot here, replace this whole figure with a real figure/img/figcaption. Image path: src -> images/your-file.png -->
+  <!-- IMAGE CAPTURE [third-party-ui] #1
+SCREENSHOT NEEDED (do not generate this one).
+This slot shows another product's own interface, so an AI image would be inaccurate and a reader could tell.
+Capture: A Metabase dashboard your team actually uses, running on your own domain.
+Note: Proof it's live and yours. Optional author shot.
+Crop to 16:9, keep text legible at 1200px wide, and blur or fake any real credentials, tokens, IPs or customer data.
+-->
   <figure class="img-slot"><span><b>Add image</b><em>A Metabase dashboard your team actually uses, running on your own domain.</em><small>Proof it's live and yours. Optional author shot.</small></span></figure>
 
   <h2>The mistake almost everyone makes: leaving Metabase on H2</h2>
@@ -160,7 +167,7 @@ MB_JETTY_PORT=3000</code></pre>
   <h3>Step 1: Launch a managed PostgreSQL for the application database</h3>
   <p>Open the <strong>DBS</strong> section and hit <strong>Launch Database</strong>. Pick PostgreSQL, name it <code>metabase</code>, create it. A minute or two later it's provisioned, running right next to your app, and already being backed up. This is the database that holds every dashboard and user.</p>
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen used to provision a managed PostgreSQL as the Metabase application database">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean console Launch Database screen used to provision a managed PostgreSQL as the Metabase application database">
     <figcaption>DBS then Launch Database: a managed PostgreSQL becomes Metabase's application database.</figcaption>
   </figure>
   <p>PostgreSQL is Metabase's recommended application database, and it's what I'd pick. All-in on MySQL? That's supported too; see <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> and <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL</a>.</p>
@@ -168,24 +175,38 @@ MB_JETTY_PORT=3000</code></pre>
   <h3>Step 2: Add the application that runs the Metabase JAR</h3>
   <p>Add an application to host the Metabase Java process, with <code>java -Xmx2g -jar metabase.jar</code> as its start step. Running a long-lived JVM or Node process on a managed server follows the same shape as <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploying an app to a managed cloud</a>.</p>
   <figure>
-    <img src="../assets/console/add-application.png" alt="The Kloudbean console Add Application screen where the Metabase Java app is added to the server">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="The Kloudbean console Add Application screen where the Metabase Java app is added to the server">
     <figcaption>Add Application: this hosts the Metabase JAR as a long-running Java process.</figcaption>
   </figure>
 
   <!-- To add your own screenshot here, replace this whole figure with a real figure/img/figcaption. Image path: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Your start command showing java -Xmx2g -jar metabase.jar as the app's run step.</em><small>Makes the heap setting concrete. Optional.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #2
+Create a realistic terminal / command-line screenshot for a technical blog post titled "How to Self-Host Metabase in Production (Without the H2 Trap)".
+
+What it must show: Your start command showing java -Xmx2g -jar metabase.jar as the app's run step.
+Also: Makes the heap setting concrete. Optional.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-terminal.png" alt="Your start command showing java -Xmx2g -jar metabase.jar as the app's run step.">
+    <figcaption>Java command with memory limit</figcaption>
+  </figure>
 
   <h3>Step 3: Set the MB_DB env vars (and the heap)</h3>
   <p>Open <strong>Runtime Configuration</strong> then <strong>Environment Variables</strong> and paste in the <code>MB_DB_</code> block from earlier, pointing at the managed PostgreSQL from step 1. This is the step that takes Metabase off H2. Save, then restart the app so it reads the new config at boot.</p>
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables screen where the Metabase MB_DB variables are set to use managed PostgreSQL">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean console Environment Variables screen where the Metabase MB_DB variables are set to use managed PostgreSQL">
     <figcaption>Runtime Configuration then Environment Variables: the MB_DB values live here, never in your code or repo.</figcaption>
   </figure>
 
   <h3>Step 4: Put SSL in front of the Metabase UI</h3>
   <p>Never leave a BI login page on plain HTTP. Add a domain for Metabase and turn on free SSL, so HTTPS terminates in front and port 3000 stays internal. Your team logs in over an encrypted connection, and the raw port isn't sitting open on the internet.</p>
   <figure>
-    <img src="../assets/console/ssl-certificate.png" alt="The Kloudbean console SSL certificate screen used to serve the Metabase UI over HTTPS">
+    <img src="../assets/console-real/shots/le_ssl_step_1.png" alt="The Kloudbean console SSL certificate screen used to serve the Metabase UI over HTTPS">
     <figcaption>Free SSL in front of Metabase: HTTPS for the login and dashboards, with port 3000 off the public internet.</figcaption>
   </figure>
 
@@ -201,7 +222,21 @@ java -jar metabase.jar load-from-h2 /path/to/metabase.db</code></pre>
   <p>When it finishes, start Metabase with the <code>MB_DB_</code> vars still pointing at Postgres. It comes up with every dashboard and user intact. If you'd rather not hand-run this on production data, Kloudbean's free migration assistance can handle it.</p>
 
   <!-- To add your own screenshot here, replace this whole figure with a real figure/img/figcaption. Image path: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Terminal showing load-from-h2 completing and Metabase booting against Postgres.</em><small>A real terminal shot beats a paragraph here.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #3
+Create a realistic terminal / command-line screenshot for a technical blog post titled "How to Self-Host Metabase in Production (Without the H2 Trap)".
+
+What it must show: Terminal showing load-from-h2 completing and Metabase booting against Postgres.
+Also: A real terminal shot beats a paragraph here.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-terminal.png" alt="Terminal showing load-from-h2 completing and Metabase booting against Postgres.">
+    <figcaption>Metabase booting against Postgres</figcaption>
+  </figure>
 
   <h2>Connecting your data sources</h2>
   <p>With the application database sorted, point Metabase at the data you want to see. In the admin panel you add a database as a data source (Postgres, MySQL, and plenty of others), and Metabase reads from it to build charts. A few habits keep this safe:</p>
@@ -226,11 +261,56 @@ java -jar metabase.jar load-from-h2 /path/to/metabase.db</code></pre>
   <h2>Where this fits your stack</h2>
   <p>Metabase is one piece of a stack you own end to end: a Java app on your managed server, state in managed PostgreSQL, reading your other managed databases internally, behind free SSL and backups. One dashboard, one server, one bill. Weighing other tools to run yourself? The <a href="https://www.kloudbean.com/blog/best-self-hosted-tools/">best self-hosted tools</a> roundup is good company, and if your app leans on Supabase, <a href="https://www.kloudbean.com/blog/self-host-supabase/">self-hosting Supabase</a> follows the same own-your-data logic.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Own your analytics, keep the keys.</p>
-    <p style="margin:0 0 .6em">Run Metabase on a managed server with managed PostgreSQL as its application database, free SSL in front, an internal connection to your data, and automatic backups, so your dashboards are genuinely yours. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Managed PostgreSQL &#183; Automatic backups &#183; Free SSL &#183; Free migration &#183; Free trial</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">Prototype to production, without the babysitting.</p>
+    <p class="kbcta-ai-description">Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

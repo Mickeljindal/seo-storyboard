@@ -40,7 +40,7 @@ The part people underestimate is that the round trip doesn't happen once. Loadin
 
 Rough, typical numbers make it concrete, and the table further down lays them out. Within a region you're usually in single digits to low tens of milliseconds. Seoul across the Pacific to a US region lands well over 100 ms, often 120 to 180 depending on which US coast you hit. Approximate physics floors, not benchmarks, and real networks add a bit on top.
 
-<!-- ADD IMAGE: a two-row latency diagram. Row 1, user in Seoul to a Seoul region: short green hop, ~5 to 30 ms round trip, feels instant. Row 2, user in Seoul to a US region: long purple hop across the Pacific (~10,000 km), ~120 to 180 ms round trip, feels sluggish. Note underneath: every round trip pays the distance again (DNS, TLS handshake, each DB query, each API call). Brand navy/purple/green. -->
+![Data Residency Requirements](images/gen-1-comparison.png)
 
 *Latency is set by distance, and a real page makes many round trips, so the gap between a Seoul region and a US region multiplies under normal use.*
 
@@ -120,9 +120,21 @@ You can stand up a raw cloud instance in a Seoul region and own the OS, the data
 
 Kloudbean is one managed option here: it can provision servers across major clouds' regions, Seoul included, and run the server, stack, free SSL, backups, and patching for you, with managed databases you can pin to a region and lock to your app server's IP. Handy to know, but secondary to the point of this page, which is that the latency and residency reasoning above is what should drive your region choice wherever you land.
 
----
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-**Pick the region for the physics and the law, then build.** If you'd rather not run the server, SSL, and backups yourself, Kloudbean can provision a managed server and database in a Seoul region across major clouds, with free migration assistance and plans from $8/mo (check current pricing on the pricing page). It's aligned with data-residency needs; the app-level PIPA work stays yours. Details at [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

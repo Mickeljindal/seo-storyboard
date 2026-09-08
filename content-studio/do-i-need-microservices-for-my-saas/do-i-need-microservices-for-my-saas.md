@@ -123,9 +123,21 @@ Two honest limits before you file this away. No host fixes a data split. Once bi
 
 Meanwhile the boring version keeps working: one server running your app and API, one managed database beside it, backups and SSL handled, cron jobs from the UI, and a second server plus the built-in load balancer waiting for the day one component genuinely outgrows the rest. That day comes later than the conference talks suggest. Sometimes it never comes, and that's a perfectly good outcome.
 
----
+<!-- cta:start -->
+**Ship the app, not the infrastructure.**
 
-**Build the simple thing well.** A single managed server can run your app, API, and managed database together, with automatic backups, free SSL, and simple Git deploys. Add a server when a component genuinely needs its own. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+Pick from seven clouds, run your app on a managed server you control, and keep databases, storage, and deploys in the same dashboard instead of four separate vendors.
+
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

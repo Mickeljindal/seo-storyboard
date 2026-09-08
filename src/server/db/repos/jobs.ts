@@ -238,6 +238,51 @@ export async function countPendingJobs(): Promise<number> {
   }
 }
 
+/**
+ * Which of the given job types already have a pending or running job.
+ *
+ * Growth crawls are slow (Reddit's RSS backoff alone can push a community sweep
+ * past ten minutes). Without this, pressing "Run everything now" twice, or the
+ * Autopilot cycle firing mid-crawl, queues a second identical crawl that scrapes
+ * the same sources again and competes for the same rate limit.
+ */
+export async function jobTypesInFlight(types: string[]): Promise<Set<string>> {
+  if (!types.length) return new Set();
+  const db = await getDb();
+  try {
+    const rows = await db
+      .selectDistinct({ type: jobs.type })
+      .from(jobs)
+      .where(and(inArray(jobs.type, types), inArray(jobs.status, ["pending", "running"])));
+    return new Set(rows.map((r) => r.type));
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * Count jobs that are still going to produce something: waiting OR already
+ * claimed and executing.
+ *
+ * countPendingJobs() counts only `pending`, which is right for "should the
+ * drainer wake up" but wrong for "is anything happening". claimJobs flips a whole
+ * batch to `running` up front, so a long crawl leaves pending at 0 while four
+ * tasks are mid-flight. A UI built on the pending count therefore reports
+ * "Up to date" the instant work starts, which reads as nothing happened.
+ */
+export async function countActiveJobs(): Promise<number> {
+  const db = await getDb();
+  try {
+    const [r] = await db
+      .select({ c: count() })
+      .from(jobs)
+      .where(inArray(jobs.status, ["pending", "running"]));
+    return Number(r?.c ?? 0);
+  } catch {
+    return 0;
+  }
+}
+
 /** Clear finished jobs older than N days (housekeeping). */
 export async function purgeFinishedJobs(): Promise<void> {
   const db = await getDb();

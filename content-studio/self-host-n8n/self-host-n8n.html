@@ -81,6 +81,13 @@
   <p>On a self-hosted box, that same trio costs exactly what the server costs. Add ten more like them and it still costs what the server costs. The executions you couldn't easily predict simply stop being a billing input. That's the move, in one paragraph.</p>
 
   <!-- To add your own screenshot here, replace this whole figure with a real <figure><img ...><figcaption>...</figcaption></figure>. Image path: src -> images/your-file.png -->
+  <!-- IMAGE CAPTURE [third-party-ui] #1
+SCREENSHOT NEEDED (do not generate this one).
+This slot shows another product's own interface, so an AI image would be inaccurate and a reader could tell.
+Capture: The n8n workflow editor with a real automation: a schedule trigger feeding a couple of nodes into a Slack or HTTP action.
+Note: Shows what "an execution" actually is. Optional author shot.
+Crop to 16:9, keep text legible at 1200px wide, and blur or fake any real credentials, tokens, IPs or customer data.
+-->
   <figure class="img-slot"><span><b>Add image</b><em>The n8n workflow editor with a real automation: a schedule trigger feeding a couple of nodes into a Slack or HTTP action.</em><small>Shows what "an execution" actually is. Optional author shot.</small></span></figure>
 
   <h2>The other reason people move: the data</h2>
@@ -100,7 +107,7 @@
   <p>By default n8n stores everything in a SQLite file. Fine for testing. Wrong for anything you depend on, because it handles concurrent executions poorly and a single file is a fragile place to keep your automation history and credentials. For production you want <strong>PostgreSQL</strong> behind it, and on a managed platform that's a one-click launch:</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen used to give n8n a managed PostgreSQL instead of the default SQLite file">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean console Launch Database screen used to give n8n a managed PostgreSQL instead of the default SQLite file">
     <figcaption>Launch Database: give n8n a managed Postgres so its history and credentials live in a real, backed-up store.</figcaption>
   </figure>
 
@@ -110,13 +117,20 @@
   <p>You don't have to hand-install anything. Add an application, choose n8n, and the platform stands it up on your server. The stack, the web layer, and a free SSL certificate come ready, so you're not configuring a reverse proxy by hand.</p>
 
   <figure>
-    <img src="../assets/console/add-application.png" alt="The Kloudbean console Add Application screen where n8n is deployed in one click onto your own server">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="The Kloudbean console Add Application screen where n8n is deployed in one click onto your own server">
     <figcaption>Add Application: launch n8n in one click, then point it at your managed Postgres and set two variables.</figcaption>
   </figure>
 
   <p>Four moves and you're done: launch a small server, deploy n8n in one click, give it managed Postgres, and reach it at <code>n8n.yourdomain.com</code> over HTTPS. Because n8n is so light, it can share that server with your other tools, which is the whole idea behind <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">hosting multiple apps on one server</a>.</p>
 
   <!-- To add your own screenshot here, replace this whole figure with a real <figure><img ...><figcaption>...</figcaption></figure>. Image path: src -> images/your-file.png -->
+  <!-- IMAGE CAPTURE [third-party-ui] #2
+SCREENSHOT NEEDED (do not generate this one).
+This slot shows another product's own interface, so an AI image would be inaccurate and a reader could tell.
+Capture: The n8n editor open on your own domain, right after the one-click deploy.
+Note: The payoff shot, your automation home self-hosted.
+Crop to 16:9, keep text legible at 1200px wide, and blur or fake any real credentials, tokens, IPs or customer data.
+-->
   <figure class="img-slot"><span><b>Add image</b><em>The n8n editor open on your own domain, right after the one-click deploy.</em><small>The payoff shot, your automation home self-hosted.</small></span></figure>
 
   <h2>The two settings everyone trips on</h2>
@@ -127,7 +141,7 @@
   </ul>
 
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables screen where the n8n encryption key and webhook URL are set">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean console Environment Variables screen where the n8n encryption key and webhook URL are set">
     <figcaption>Runtime Configuration then Environment Variables: the encryption key and webhook URL belong here, before you build anything real.</figcaption>
   </figure>
 
@@ -144,7 +158,21 @@ DB_POSTGRESDB_PASSWORD=a-strong-password</code></pre>
   <p>Both the key and the webhook URL live in environment variables, not in the UI or the code. There's a fuller mental model in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>. Set them once and you'll skip the two most common self-hosted n8n headaches.</p>
 
   <!-- To add your own screenshot here, replace this whole figure with a real <figure><img ...><figcaption>...</figcaption></figure>. Image path: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>n8n settings or a terminal showing the Postgres connection succeeding and the encryption key loaded.</em><small>Confirms the two settings took effect.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #3
+Create a realistic terminal / command-line screenshot for a technical blog post titled "Self-Host n8n: The Cost Math That Changes Minds".
+
+What it must show: n8n settings or a terminal showing the Postgres connection succeeding and the encryption key loaded.
+Also: Confirms the two settings took effect.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-terminal.png" alt="n8n settings or a terminal showing the Postgres connection succeeding and the encryption key loaded.">
+    <figcaption>Confirms settings took effect</figcaption>
+  </figure>
 
   <h2>Scaling past one box: queue mode</h2>
   <p>Most people never need this, and I'd rather you know that than over-build on day one. A single n8n process handles a surprising amount. But if you genuinely push high volume, n8n has a <strong>queue mode</strong>: the main instance hands executions to a shared queue, and separate worker processes pick them up and run them in parallel. That queue runs on <strong>Redis</strong>, which you can add as a <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a> instance, and the workers can spread across cores or servers. So the growth path is real without changing tools: one process to start, workers plus Redis when the volume actually demands it. Don't reach for it early. Reach for it when a single process starts falling behind.</p>
@@ -152,11 +180,56 @@ DB_POSTGRESDB_PASSWORD=a-strong-password</code></pre>
   <h2>The honest part</h2>
   <p>Self-hosting shifts a little responsibility onto you, and it's fair to name it. You own the n8n app: its occasional updates, and making sure its database is backed up. The platform keeps the server underneath healthy, which means the OS, the web stack, SSL, and server-level backups. It's a Linux app, which is exactly what n8n is built for, running on your box under your control. In return you get unlimited executions and data that never leaves your server. For anyone running real automation volume, that's barely a trade. Keep an eye on <a href="https://www.kloudbean.com/blog/server-backups-guide/">backups</a> and you're set.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Unlimited executions. One flat bill.</p>
-    <p style="margin:0 0 .6em">Launch n8n in one click, give it a managed Postgres, and run every workflow you want on a server you own. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">One-click n8n · Managed PostgreSQL · Unlimited executions · Automatic backups · Free trial</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">Take it off localhost for good.</p>
+    <p class="kbcta-ai-description">Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

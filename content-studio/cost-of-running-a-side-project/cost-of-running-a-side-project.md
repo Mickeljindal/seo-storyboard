@@ -11,7 +11,7 @@ secondary_keywords:
   - free tier hosting cold start
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 8 — Pricing, Cost & SaaS Consolidation
+cluster: 8 - Pricing, Cost & SaaS Consolidation
 ---
 
 ![The real cost of running a side project, broken down line by line](images/hero.png)
@@ -30,7 +30,7 @@ For a typical side project, somewhere between free and about the price of a coup
 
 So why does the fear persist? Because pricing pages are confusing on purpose, and because the loudest cost stories online are the disasters. Nobody writes a viral thread about the app that quietly cost four dollars a month for two years.
 
-<!-- ADD IMAGE: a simple side project running (the app dashboard, or your own hosting bill showing a small monthly figure). Blur any account details. -->
+![From request to cost](images/gen-1-flow.png)
 
 ## The "$0" that isn't free: the free-tier trap
 
@@ -64,7 +64,7 @@ Add the real lines together and a live side project sits in the single digits to
 
 Only if your app stores data, and even then it's small. You've got two sane options. Run the database on the same small server as the app to keep the bill at zero extra, which is totally fine for a side project. Or launch a small managed database so patching and backups are handled for you. That second option costs a few dollars, and for data you'd be sad to lose, it's cheap insurance.
 
-![The Kloudbean console launching a small managed database for a side project](../assets/console/launch-database.png)
+![The Kloudbean console launching a small managed database for a side project](../assets/console-real/shots/psql_launch_step_1.png)
 
 Kloudbean runs six managed engines if you go that route: PostgreSQL, MySQL, MariaDB, Redis, Elasticsearch, and MongoDB. If your project is stateless or just calls an external API, skip it. That line disappears. More on the choice in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
 
@@ -78,7 +78,7 @@ This is the big translucent block in that diagram, and it's the one that actuall
 
 Honestly? For a side project, the goal was never $0. It's a bill so small and so predictable you forget it exists, plus a setup you never have to nurse. Chasing a true zero usually means paying in weekends instead of dollars, and your weekends are worth a lot more than three dollars a month. If you want to see that math laid out in full, we did it in [the real cost of an unmanaged VPS](https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/).
 
-<!-- ADD IMAGE: a simple sketch or photo showing time as the real cost (a late-night laptop, or a small chart of hours spent vs dollars saved). -->
+![Time vs dollars saved](images/gen-2-graph.png)
 
 ## A setup that stays cheap (and boring)
 
@@ -92,17 +92,27 @@ Cheap and boring is the goal. Boring means it doesn't wake you up. Here's a shap
 
 On Kloudbean that's all one dashboard and one predictable bill. The server, the database, storage, SSL, and backups sit together instead of scattered across four accounts you'll forget about. There's a free trial to start, and free migration help if you're moving something over. Most side projects, honestly, never outgrow this.
 
-<!-- ADD IMAGE: the add-server screen showing small sizes and their prices, so readers see the cheap options up front. Console screenshot: add-server.png fits here. -->
+![Selecting initial server configuration](images/gen-3-flow.png)
 
 ## When it's actually worth paying more
 
 When the project stops being just for you. The moment real users depend on it, or it starts earning, the small step from a sleepy free tier to an always-on server pays for itself in one avoided bad first impression. That's not spending for the sake of it. It's matching a still-small cost to the fact that the thing now matters. And a managed setup earns its few extra dollars the day you'd rather improve the project than patch its operating system. If you're weighing hosting styles, [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) and [cloud hosting pricing explained](https://www.kloudbean.com/blog/cloud-hosting-pricing-explained/) both go deeper.
 
----
+<!-- cta:start -->
+**Ship the app, not the infrastructure.**
 
-**Ship it without the bill anxiety.** Run your side project always-on on one small server, app and database together, with free SSL and automatic backups, on a single dashboard and one predictable bill. Start free at [kloudbean.com](https://www.kloudbean.com/); sizes and plans on [pricing](https://www.kloudbean.com/pricing/).
+Pick from seven clouds, run your app on a managed server you control, and keep databases, storage, and deploys in the same dashboard instead of four separate vendors.
 
-Always-on server · Managed databases · Free SSL · Automatic backups · Free migration · Free trial
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

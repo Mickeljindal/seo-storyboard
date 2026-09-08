@@ -66,7 +66,7 @@ use appdb
 db.getUsers()
 ```
 
-<!-- ADD IMAGE: a mongosh session running db.getUsers() in admin and in appdb side by side, proving where the user actually lives -->
+![One line](images/gen-1-flow.png)
 
 ## Test the credentials with mongosh before you touch app code
 
@@ -142,7 +142,7 @@ db.grantRolesToUser("appuser", [ { role: "readWrite", db: "appdb" } ])
 
 Give the application a user with `readWrite` on its own database and nothing more. Don't hand your app a root or cluster-admin account because it's convenient during debugging, then forget to change it. A least-privilege user limits the blast radius of a leaked credential, and it makes errors more informative, since an over-privileged user succeeds at things that should have failed loudly in staging.
 
-<!-- ADD IMAGE: the two errors side by side in a terminal, authentication failed next to not authorized, to make the distinction visual -->
+![Differences at a glance](images/gen-2-terminal.png)
 
 ## The .env causes: invisible characters and stale values
 
@@ -207,15 +207,26 @@ Look back at the causes and a pattern shows up. Almost every one traces to a con
 
 Wherever you run it, the discipline is the same: one canonical connection string per environment, stored as config.
 
-<!-- ADD IMAGE: the managed database connection details panel, with host, port, user and database shown so the reader sees a supplied URI rather than a hand-typed one -->
+![Ensure correct connection to the managed database](images/gen-3-panel.png)
 
 ## For the next time
 
 Once you're authenticating cleanly, the next questions are about the connection itself. [Connecting Mongoose to MongoDB](https://www.kloudbean.com/blog/connect-mongoose-to-mongodb/) covers the driver options, connection events, and models. [Managed MongoDB hosting](https://www.kloudbean.com/blog/managed-mongodb-hosting/) covers running the database itself, indexing, and migrating an existing one. For connection stability under load, read [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/). And for keeping credentials out of your repo, [secrets management](https://www.kloudbean.com/blog/secrets-management/) is the companion piece to this one.
 
-**Stop hand-building MongoDB connection strings.** Launch a managed MongoDB, copy the connection details from the dashboard, and set them as runtime config for your app. See [kloudbean.com](https://www.kloudbean.com/) or check current plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**One click to a real database.**
 
-One-click managed MongoDB · Automatic backups · IP allow-listing · Free SSL · Git deploys
+Seven managed engines, provisioned and patched for you, with access controlled and backups running automatically. Your schema, your queries, and your data stay exportable with the standard tools.
+
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -90,7 +90,7 @@
   <p>Compute is the server itself, its CPU cores and memory. It's usually the biggest line, and it's the one you control most directly by picking a size. Bigger box, bigger number. The good news is it's <strong>predictable</strong>: choose a size, know the rate, and it doesn't move unless you resize. A traffic spike doesn't change it. Get this line right first, because it sets the bulk of your bill on purpose.</p>
 
   <figure>
-    <img src="../assets/console/add-server.png" alt="The Kloudbean console: choose a server size and see the compute rate before you provision">
+    <img src="../assets/console-real/shots/launch_server_step_1.png" alt="The Kloudbean console: choose a server size and see the compute rate before you provision">
     <figcaption>Compute is the lever you control: pick a size, see the monthly rate, and it stays put until you resize.</figcaption>
   </figure>
 
@@ -98,7 +98,21 @@
   <p>Storage comes in two flavours. <strong>Disk</strong> attached to the server (OS, your app, working files) is a modest line that scales with how much you provision. <strong>Object storage</strong> (buckets for media, uploads, backups) is cheap per gigabyte and scales with how much you keep. For most apps this is a few dollars, a rounding error next to compute. It only grows into something you notice if you're hoarding media or large datasets, and even then it climbs gently. If you serve a lot of files, <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a> is the piece doing that work.</p>
 
   <!-- ADD IMAGE: replace this slot with an annotated screenshot of a real provider pricing page, arrows pointing at the compute, storage, and transfer lines; set src -> images/annotated-pricing-page.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>An annotated pricing page with arrows on the compute, storage, and transfer lines so readers can spot each piece.</em><small>A real provider pricing page works well here.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #1
+Create a side-by-side comparison table for a technical blog post titled "Cloud Hosting Pricing, Explained: What You're Actually Paying For".
+
+What it must show: An annotated pricing page with arrows on the compute, storage, and transfer lines so readers can spot each piece.
+Also: A real provider pricing page works well here.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-comparison.png" alt="An annotated pricing page with arrows on the compute, storage, and transfer lines so readers can spot each piece.">
+    <figcaption>Choose the right pricing model</figcaption>
+  </figure>
 
   <h3>Bandwidth (egress): the line that surprises people</h3>
   <p>This is the one that catches everyone. <strong>Egress</strong> is data leaving your hosting: every page served, image loaded, video streamed, file downloaded. Data coming <em>in</em> is usually free. Data going <em>out</em> is often metered, and because it scales with your <em>traffic</em>, it can quietly balloon precisely when your app gets popular. A media-heavy site can watch egress dwarf its storage. The mental model is short:</p>
@@ -119,7 +133,7 @@ so:  more traffic  &#8594;  bigger number, and you find out at month-end</code><
   <p>Each line is you paying to <em>not</em> build and babysit that thing. On managed hosting, a lot of this (SSL, patching, base backups) is folded into the plan rather than billed à la carte. That's what "managed" buys, and it's why comparing a managed plan to a bare server on price alone is a category error. One number includes the work. The other doesn't. There's a fuller version of that argument in <a href="https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/">managed vs unmanaged hosting</a> and <a href="https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/">the real cost of an unmanaged VPS</a>.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console: launching a managed database as a priced add-on">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean console: launching a managed database as a priced add-on">
     <figcaption>A managed database is a line item, and it's you buying back the patching, backups, and 2am pages you'd otherwise own.</figcaption>
   </figure>
 
@@ -128,7 +142,21 @@ so:  more traffic  &#8594;  bigger number, and you find out at month-end</code><
   <p>That's not an argument against metered pricing. It's an argument for knowing which model you're on before the app takes off, and for reading the transfer line before you sign up rather than after the invoice.</p>
 
   <!-- ADD IMAGE: replace this slot with a chart of monthly cost tracking a traffic curve, showing the bill rising with visitors; set src -> images/cost-tracks-traffic.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A simple chart of a metered bill climbing in lockstep with a rising traffic curve.</em><small>Drives home why the total is only knowable after the month.</small></span></figure>
+  <!-- IMAGE GENERATE [graph] #2
+Create a clean line chart / time-series graph for a technical blog post titled "Cloud Hosting Pricing, Explained: What You're Actually Paying For".
+
+What it must show: A simple chart of a metered bill climbing in lockstep with a rising traffic curve.
+Also: Drives home why the total is only knowable after the month.
+
+Label both axes. Draw the trend the description implies. Add a dashed red threshold line only if a limit is being hit. Legible axis labels, no 3D, no gradient clutter.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-graph.png" alt="A simple chart of a metered bill climbing in lockstep with a rising traffic curve.">
+    <figcaption>Metered pricing scales with usage</figcaption>
+  </figure>
 
   <h2>How to read a pricing page without getting fooled</h2>
   <p>Five minutes with a pricing page, in this order, and you'll know your real number before you commit:</p>
@@ -160,17 +188,76 @@ so:  more traffic  &#8594;  bigger number, and you find out at month-end</code><
   <p>Metered earns its place when scale is genuinely spiky or unknown: a launch you can't size, a batch job that runs twice a month, an app that might get ten users or ten thousand. There, paying only for what you use is the honest deal. But for the workhorse app that hums along at a known size? Flat. Every time. The peace of a predictable invoice is a real feature, and it's underrated.</p>
 
   <!-- ADD IMAGE: replace this slot with a screenshot of a single unified monthly bill or dashboard showing compute, database, and storage in one place; set src -> images/one-dashboard-bill.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>One dashboard showing the whole stack (server, database, storage) on a single predictable bill.</em><small>Shows the "one number" payoff of a flat plan.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #3
+Create a left-to-right architecture / flow diagram for a technical blog post titled "Cloud Hosting Pricing, Explained: What You're Actually Paying For".
+
+What it must show: One dashboard showing the whole stack (server, database, storage) on a single predictable bill.
+Also: Shows the "one number" payoff of a flat plan.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-flow.png" alt="One dashboard showing the whole stack (server, database, storage) on a single predictable bill.">
+    <figcaption>From server to storage</figcaption>
+  </figure>
 
   <h2>How Kloudbean keeps the bill readable</h2>
   <p>This is where the decoding pays off, whoever you host with. Kloudbean leans hard into the predictable side: a flat plan for the server, with the whole stack (app, managed database, object storage, load balancer, static sites) living on one dashboard and one bill instead of scattered across a dozen metered line items you reconcile at month-end. SSL is free. Backups, patching, and a Shorewall plus Fail2ban baseline are handled, so they're not separate invoices or separate chores. You still own the app and the data, and it's a Linux stack underneath, so nothing's locked in a box you can't open.</p>
   <p>You also see the compute rate before you provision, which is the whole point of this article: know the number, then click. And the parts that scale with success sit on a plan rather than a meter, so a good traffic day is good news, not an anxious glance at a dashboard. If your goal is trimming an existing bill rather than sizing a new one, <a href="https://www.kloudbean.com/blog/how-to-cut-your-cloud-bill/">how to cut your cloud bill</a> is the practical companion, and if you're weighing free options first, <a href="https://www.kloudbean.com/blog/free-app-hosting-options/">free app hosting options</a> and <a href="https://www.kloudbean.com/blog/is-free-hosting-worth-it/">is free hosting worth it</a> come at cost from the other end.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Know the number, then click.</p>
-    <p style="margin:0 0 .6em">See your compute rate before you provision, with the whole stack on one predictable bill, at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Predictable plans · Free SSL · Automatic backups · One dashboard · Free migration · Free trial</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">Prototype to production, without the babysitting.</p>
+    <p class="kbcta-ai-description">Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

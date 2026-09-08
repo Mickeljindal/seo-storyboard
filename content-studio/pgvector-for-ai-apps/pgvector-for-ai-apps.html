@@ -39,7 +39,21 @@
   <p>Vector search is just finding the nearest points to a query point. You embed the user's question into the same space, then ask the database for the rows whose vectors sit closest, measured with a distance function, most often cosine distance. That's the whole idea.</p>
 
   <!-- ADD IMAGE: a 2D scatter plot showing embedding clusters (support questions grouped, product names grouped). Swap for a real diagram: src -> images/embedding-space.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A simple 2D scatter showing similar sentences clustering together in embedding space.</em><small>Makes the "similar things sit close" idea visual.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #1
+Create a left-to-right architecture / flow diagram for a technical blog post titled "pgvector: Use Postgres as a Vector Database for AI Apps".
+
+What it must show: A simple 2D scatter showing similar sentences clustering together in embedding space.
+Also: Makes the "similar things sit close" idea visual.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-flow.png" alt="A simple 2D scatter showing similar sentences clustering together in embedding space.">
+    <figcaption>Similar sentences cluster closely</figcaption>
+  </figure>
 
   <h2>Do you actually need a dedicated vector database?</h2>
   <p>Here's my honest position, and it'll annoy a few people: most apps adding AI search do not need a dedicated vector database. Pinecone, Weaviate, Milvus, Qdrant, and the rest are genuinely good, and at very large scale or extreme query volume they pull ahead. But "very large scale" is bigger than most teams assume. If you're holding well under a few million vectors, and most apps are, Postgres with pgvector handles it comfortably.</p>
@@ -137,7 +151,7 @@ ORDER BY embedding &lt;=&gt; '[0.011, -0.043, 0.080, ...]'
 LIMIT 5;</code></pre>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed PostgreSQL database, the engine that runs pgvector">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean console launching a managed PostgreSQL database, the engine that runs pgvector">
     <figcaption>pgvector runs on standard PostgreSQL. Launch a managed Postgres, then enable the extension on it.</figcaption>
   </figure>
 
@@ -153,7 +167,21 @@ LIMIT 5;</code></pre>
   <p>Try doing that cleanly across two systems. You can't, not without fetching IDs from one and re-querying the other. That's a big part of why vectors in Postgres feel calmer. The app wiring is the same as any database, a <code>DATABASE_URL</code> in an env var; the full walkthrough is in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">how to add a managed database to your app</a>.</p>
 
   <!-- ADD IMAGE: a psql session running the nearest-neighbour query and returning ranked rows. Swap for a real screenshot: src -> images/psql-vector-query.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A psql session running the ORDER BY distance query and showing ranked results.</em><small>Proof the query works end to end.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #2
+Create a realistic terminal / command-line screenshot for a technical blog post titled "pgvector: Use Postgres as a Vector Database for AI Apps".
+
+What it must show: A psql session running the ORDER BY distance query and showing ranked results.
+Also: Proof the query works end to end.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-terminal.png" alt="A psql session running the ORDER BY distance query and showing ranked results.">
+    <figcaption>Proof the query works end to end</figcaption>
+  </figure>
 
   <h2>Indexing pgvector for speed: HNSW or IVFFlat?</h2>
   <p>By default, that <code>ORDER BY embedding &lt;=&gt; ...</code> query does an exact search. It compares the query vector against every row and returns the true nearest neighbours. For a few thousand rows that's genuinely fine, and the results are exact. Don't add an index before you need one.</p>
@@ -182,7 +210,21 @@ USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);</code></pre>
   <p>My default is HNSW. It gives excellent recall out of the box and stays fast as the table grows, and the extra memory is usually a fair trade. IVFFlat is lighter and builds faster, but it wants to be built after you've loaded data (it trains on the existing rows), and you have to pick a sensible <code>lists</code> value. One rule that saves headaches: build the index once real data is in, not on an empty table.</p>
 
   <!-- ADD IMAGE: EXPLAIN ANALYZE output before and after adding the HNSW index, showing the speedup. Swap for a real screenshot: src -> images/explain-hnsw.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>EXPLAIN ANALYZE for the same query before and after the HNSW index.</em><small>Shows the sequential scan turning into an index scan.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #3
+Create a side-by-side comparison table for a technical blog post titled "pgvector: Use Postgres as a Vector Database for AI Apps".
+
+What it must show: EXPLAIN ANALYZE for the same query before and after the HNSW index.
+Also: Shows the sequential scan turning into an index scan.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-comparison.png" alt="EXPLAIN ANALYZE for the same query before and after the HNSW index.">
+    <figcaption>Sequential scan vs. Index scan</figcaption>
+  </figure>
 
   <h2>Can I use pgvector for RAG?</h2>
   <p>Yes, and it's the most common reason people install it. Retrieval-augmented generation (RAG) is how you get an LLM to answer from <em>your</em> content instead of guessing. pgvector is the retrieval half. The flow is short:</p>
@@ -210,7 +252,7 @@ USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);</code></pre>
   <p>One honest note, because I won't oversell it: enabling the pgvector extension depends on your specific Postgres setup and version, so check availability for your instance rather than assuming it's turned on. Kloudbean doesn't sell a separate "vector database" product, and it doesn't need to. Run one managed Postgres, keep your app data and your embeddings together, and back the whole thing up as a unit.</p>
 
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean console storing the Postgres DATABASE_URL as an environment variable for a pgvector-backed app">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean console storing the Postgres DATABASE_URL as an environment variable for a pgvector-backed app">
     <figcaption>One database, one connection string. Store <code>DATABASE_URL</code> as an env var, never in code.</figcaption>
   </figure>
 
@@ -220,13 +262,71 @@ DATABASE_URL=postgresql://appuser:s3cret@10.0.0.5:5432/appdb</code></pre>
   <p>From there it's ordinary Postgres work. Your ORM connects the usual way (here's <a href="https://www.kloudbean.com/blog/connect-prisma-to-a-managed-database/">connecting Prisma to a managed database</a>), you handle load with <a href="https://www.kloudbean.com/blog/database-connection-pooling/">connection pooling</a>, and you cache the hot reads. Redis and Postgres do different jobs, so if you're weighing them, see <a href="https://www.kloudbean.com/blog/when-to-use-redis-vs-postgres/">when to use Redis vs Postgres</a>. Still choosing an engine? <a href="https://www.kloudbean.com/blog/mysql-vs-postgresql/">MySQL vs PostgreSQL</a> covers it (short version for AI work: Postgres, because pgvector).</p>
 
   <!-- ADD IMAGE: your app's chat UI answering from retrieved chunks, with the source documents cited. Swap for a real screenshot: src -> images/rag-answer.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>An app answering a question using chunks retrieved from pgvector, with sources listed.</em><small>Shows the payoff: grounded answers from your own data.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #4
+Create a left-to-right architecture / flow diagram for a technical blog post titled "pgvector: Use Postgres as a Vector Database for AI Apps".
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Keep your vectors where your data already lives.</p>
-    <p style="margin:0 0 .6em">Run a managed PostgreSQL for your app data and your embeddings together, with automatic backups, IP allow-listing, and free migration help. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">Managed PostgreSQL · Automatic backups · Free migration · Free trial · Simple Git deploy</p>
+What it must show: An app answering a question using chunks retrieved from pgvector, with sources listed.
+Also: Shows the payoff: grounded answers from your own data.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-4-flow.png" alt="An app answering a question using chunks retrieved from pgvector, with sources listed.">
+    <figcaption>Flow of data retrieval for AI app</figcaption>
+  </figure>
+
+<div class="kbcta-db-wrap">
+  <div class="kbcta-db-overlay"></div>
+  <div class="kbcta-db-content">
+    <div class="kbcta-db-eyebrow">MANAGED DATABASES &middot; SEVEN ENGINES</div>
+    <p class="kbcta-db-heading">A database you can dump and take with you.</p>
+    <p class="kbcta-db-description">Launch MySQL, MariaDB, PostgreSQL, Redis, Memcached, MongoDB, or Elasticsearch in a click, reachable from your app server with automatic backups from minute one. Standard connection strings, standard dumps, no proprietary format.</p>
+    <ul class="kbcta-db-features">
+      <li>&#10003; Seven managed engines</li>
+      <li>&#10003; One-click launch</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Controlled access</li>
+      <li>&#10003; Standard connection strings</li>
+      <li>&#10003; Free migration assistance</li>
+    </ul>
+    <div class="kbcta-db-buttons">
+      <a class="kbcta-db-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-db-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-db: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-db-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#04202B;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-db-wrap *{box-sizing:border-box}
+.kbcta-db-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #04202B 0%, #073947 55%, rgba(14,116,144,.62) 100%);pointer-events:none}
+.kbcta-db-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-db-content{position:relative;z-index:3;max-width:700px}
+.kbcta-db-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-db-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-db-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-db-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-db-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-db-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-db-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#064454;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-db-btn:hover,.kbcta-db-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-db-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-db-link:hover,.kbcta-db-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-db-wrap{padding:36px 24px}
+  .kbcta-db-heading{font-size:31px}
+  .kbcta-db-description{font-size:16px}
+  .kbcta-db-features li{white-space:normal}
+  .kbcta-db-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-db-btn{width:100%}
+  .kbcta-db-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

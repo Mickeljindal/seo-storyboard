@@ -126,7 +126,21 @@ node dist/main.js</code></pre>
   <div class="note"><b>The gotcha that trips up half of all first NestJS deploys.</b> The Nest CLI (<code>@nestjs/cli</code>) lives in <code>devDependencies</code>. If you optimize too early and run <code>npm ci --omit=dev</code> <em>before</em> building, the build fails with <code>sh: nest: not found</code> because the tool that compiles your app was never installed. Install everything, build, and only then prune dev deps if you want a leaner runtime. Build first. Prune later, or not at all.</div>
 
   <!-- ADD IMAGE: terminal running npm run build then node dist/main.js, showing the "Nest application successfully started" boot line. Swap for a real screenshot: src -> images/nest-build-terminal.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Terminal running npm run build, then node dist/main.js, with the Nest boot log ending in "Nest application successfully started".</em><small>Makes the compile-then-run flow concrete.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #1
+Create a realistic terminal / command-line screenshot for a technical blog post titled "How to Deploy a NestJS App to Production".
+
+What it must show: Terminal running npm run build, then node dist/main.js, with the Nest boot log ending in "Nest application successfully started".
+Also: Makes the compile-then-run flow concrete.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-terminal.png" alt="Terminal running npm run build, then node dist/main.js, with the Nest boot log ending in &quot;Nest application successfully started&quot;.">
+    <figcaption>Compile-then-run flow</figcaption>
+  </figure>
 
   <h2>Reading config from environment variables with @nestjs/config</h2>
   <p>Your database URL, JWT secret, third-party API keys, and the public app URL differ between your laptop and production. They belong in environment variables, read at runtime, never hard-coded and never committed to Git. NestJS has a first-party module for exactly this: <code>@nestjs/config</code>.</p>
@@ -187,14 +201,28 @@ pm2 start dist/main.js -i max --name my-nest-api</code></pre>
   <p>Start with a single instance. Turn on clustering when your metrics ask for it. And mind the one trap that bites people: the moment you run more than one instance, anything you kept in process memory (an in-memory cache, a local rate-limiter, a Map of sessions) stops being shared. Each worker has its own copy. Move that state into managed Redis and every instance sees the same thing. If you genuinely outgrow a single box, autoscaling and Kubernetes exist for enterprise setups, but the honest truth is most NestJS APIs never need them.</p>
 
   <!-- ADD IMAGE: pm2 list output showing the Nest app online with its restart count. Swap for a real screenshot: src -> images/pm2-list.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>pm2 list showing the NestJS app online, its uptime, and restart count.</em><small>Optional. Makes the process-manager point tangible.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "How to Deploy a NestJS App to Production".
+
+What it must show: pm2 list showing the NestJS app online, its uptime, and restart count.
+Also: Optional. Makes the process-manager point tangible.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="pm2 list showing the NestJS app online, its uptime, and restart count.">
+    <figcaption>Uptime and restart count</figcaption>
+  </figure>
 
   <h2>Deploy your NestJS app from Git</h2>
   <p>Concepts done. Here's the actual path on <a href="https://www.kloudbean.com/">Kloudbean</a>, where the process manager, reverse proxy, and SSL are already configured so you're only bringing the app.</p>
   <p>Click <strong>Add Server</strong>, choose a cloud provider (there are seven: AWS, Amazon Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud), pick <strong>Node.js</strong> as the stack, choose a location near your users, and size it. 2 GB is a comfortable start for a small API. A few minutes later the box is ready with Node, PM2, Nginx, a firewall, and SSL, none of which you configured by hand.</p>
   <p>Next, add the application. If you didn't attach one while provisioning, open <strong>Applications</strong> and <strong>Add Application</strong>, then pick the Node stack. Running your Nest API next to a front end or a worker? Multiple apps per server is a first-class feature here, not a hack.</p>
   <figure>
-    <img src="../assets/console/add-application.png" alt="The Kloudbean Add Application screen: adding a Node.js app to an existing server for the NestJS API">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="The Kloudbean Add Application screen: adding a Node.js app to an existing server for the NestJS API">
     <figcaption>Add Application: give your NestJS API its own slot on the server, with room for a front end or worker beside it.</figcaption>
   </figure>
   <p>Now connect Git. In <strong>Git Deployment</strong>, link GitHub (OAuth or an SSH key), paste the repository URL, choose a branch, and clone. Then set the runtime configuration, which is where the build step from earlier becomes real fields:</p>
@@ -207,19 +235,33 @@ pm2 start dist/main.js -i max --name my-nest-api</code></pre>
     <li><strong>Start command:</strong> <code>node dist/main.js</code> (or <code>npm run start:prod</code>).</li>
   </ul>
   <figure>
-    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Git Deployment tab: connect the repository, choose a branch, and set install, build, and start commands for the NestJS app">
+    <img src="../assets/console-real/shots/git_connect_step_4.png" alt="The Kloudbean Git Deployment tab: connect the repository, choose a branch, and set install, build, and start commands for the NestJS app">
     <figcaption>Git Deployment: connect the repo, pick a branch, and set install / build / start. The build command is where nest build runs.</figcaption>
   </figure>
   <p>Hit <strong>Pull &amp; Deploy</strong>. The console pulls the code, runs <code>npm ci</code>, compiles with <code>nest build</code>, and starts <code>dist/main.js</code> under PM2, behind the proxy. The whole thing streams as <strong>live build logs</strong>, so you watch install, compile, and boot scroll past in real time. When you turn on automated deployment, every <code>git push</code> to your branch repeats this on its own. That's the CI/CD loop the big platforms sell, running on a server you own, and if you want just that piece we broke it down in <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a>.</p>
 
   <!-- ADD IMAGE: Build & Deployment History with a deploy open and live logs streaming the nest build step. Swap for a real screenshot: src -> images/build-logs.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Build and Deployment History with a deploy expanded, live logs streaming the npm ci and nest build steps.</em><small>Shows the live-logs payoff moment.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #3
+Create a realistic terminal / command-line screenshot for a technical blog post titled "How to Deploy a NestJS App to Production".
+
+What it must show: Build and Deployment History with a deploy expanded, live logs streaming the npm ci and nest build steps.
+Also: Shows the live-logs payoff moment.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-terminal.png" alt="Build and Deployment History with a deploy expanded, live logs streaming the npm ci and nest build steps.">
+    <figcaption>Live logs of npm ci and nest build</figcaption>
+  </figure>
 
   <h2>Connecting a managed database (TypeORM or Prisma)</h2>
   <p>Almost every NestJS API talks to a database, and the connection should come from an environment variable, not a hard-coded string. Both common data layers read one: <code>DATABASE_URL</code>.</p>
   <p>Launch a managed engine from <strong>Launch Database</strong>. Kloudbean runs seven (PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, and MongoDB), provisioned, backed up, and reachable over the local network. For most NestJS APIs that's managed PostgreSQL or MySQL, with Redis alongside for caching or sessions once you cluster. Take the credentials and set them under <strong>Environment Variables</strong> in the app, using the <strong>Paste .env Content</strong> tab to drop your whole file in at once.</p>
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean Environment Variables editor with a paste-dot-env tab, holding DATABASE_URL and secrets for the NestJS app">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean Environment Variables editor with a paste-dot-env tab, holding DATABASE_URL and secrets for the NestJS app">
     <figcaption>Environment Variables: paste your .env, convert to key/value, save. DATABASE_URL and secrets reach the app at runtime, never through Git.</figcaption>
   </figure>
   <p>On the code side, wiring is short. With <strong>TypeORM</strong> through <code>@nestjs/typeorm</code>:</p>
@@ -259,11 +301,56 @@ npx prisma migrate deploy</code></pre>
   <h2>What you own, and what's handled</h2>
   <p>Kloudbean runs NestJS on Linux managed cloud: the Node runtime, PM2, Nginx, SSL, and backups are provisioned and maintained on whichever of the seven clouds you choose. If you need Windows Server that is a Premium or Enterprise conversation, though .NET on Linux is standard. NestJS is a Node framework, so it's squarely in the sweet spot either way. "Managed" means the platform keeps the server and its stack healthy while you own the application: your modules, your data, your config (the port, the env vars, the build and start commands). Because it's a standard Linux box running standard compiled Node, you can move hosts whenever you like, with no per-app tax as you add more. Deploying a plain Express service instead of Nest? See <a href="https://www.kloudbean.com/blog/deploy-express-app/">deploy an Express app</a>. Want the production concerns for Node in general (crash-restart, cluster mode, SIGTERM) in more depth? That's <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app to managed cloud</a>. And if you want the framework-agnostic mental model behind all of this, start at <a href="https://www.kloudbean.com/blog/how-to-deploy-any-app/">how to deploy an app</a>.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Ship your NestJS API on a server you own.</p>
-    <p style="margin:0 0 .6em">Connect a repo, set <code>npm run build</code> and <code>node dist/main.js</code>, add your env vars, and deploy. PM2, Nginx, and SSL are already wired. Coming from a per-service platform bill? Weigh it in <a href="https://www.kloudbean.com/blog/heroku-alternative-for-modern-apps/">the Heroku alternative for modern apps</a>. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; sizes on <a href="https://www.kloudbean.com/pricing/">pricing</a> from $8/mo, Enterprise custom.</p>
-    <p style="margin:0">Git deploy with live logs · PM2 process manager · Free auto-renewing SSL · Seven managed databases · Automatic backups · Free migration · Free trial</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">Take it off localhost for good.</p>
+    <p class="kbcta-ai-description">Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

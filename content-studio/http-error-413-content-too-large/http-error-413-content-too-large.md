@@ -157,15 +157,20 @@ The boundary stays put. Certificates, patches, backups and the stack come with t
 
 The neighbouring objections: [415 Unsupported Media Type](https://www.kloudbean.com/blog/http-error-415-unsupported-media-type/) for the wrong content type, [431 Request Header Fields Too Large](https://www.kloudbean.com/blog/http-error-431-request-header-fields-too-large/) when it is the headers rather than the body, and [408 Request Timeout](https://www.kloudbean.com/blog/http-error-408-request-timeout/) when the upload was slow rather than large. When a proxy error hides behind a browser message, [ERR_BLOCKED_BY_RESPONSE](https://www.kloudbean.com/blog/err-blocked-by-response/). For the upload architecture, [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). On the proxy layer, [nginx as a reverse proxy for Node](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). And if the request failed after reaching your code rather than before, [500 Internal Server Error](https://www.kloudbean.com/blog/http-error-500-internal-server-error/).
 
----
+<!-- cta:start -->
+**Deploys that tell you what broke.**
 
-### Stop guessing which limit rejected the upload.
+Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.
 
-Managed servers across seven clouds with the reverse proxy and runtime managed together, runtime configuration editable in the UI, and application plus server logs in one dashboard. S3-compatible object storage built in for direct uploads. Free SSL issued and renewed. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
 
-Managed proxy · Runtime config in the UI · S3-compatible storage · App and server logs · Free SSL
-
----
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

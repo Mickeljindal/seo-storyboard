@@ -102,11 +102,20 @@ Fair credit: Render's Git-based deploys and clean service model are genuinely pl
 
 Context and companions: [Render vs Railway vs Kloudbean](https://www.kloudbean.com/blog/render-vs-railway-vs-kloudbean/) for the model comparison, [Render cold starts](https://www.kloudbean.com/blog/render-cold-starts-fix/) and [free Postgres expiry](https://www.kloudbean.com/blog/render-free-database-expiry/) for the two triggers, plus [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/), [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/), and [how to migrate hosting with zero downtime](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/).
 
-## Move to a server that never sleeps
+<!-- cta:start -->
+**Move it once. Own it after.**
 
-Run your Node app and worker always-on under PM2 with managed PostgreSQL that doesn't expire, all in one dashboard on a flat plan from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-No spin-down · Managed Postgres with backups, no expiry · Free migration · GitHub deploys · Flat from $8/mo
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

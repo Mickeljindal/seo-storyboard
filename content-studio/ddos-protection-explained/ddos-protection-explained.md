@@ -46,7 +46,7 @@ Attacks split into two broad families, and they're stopped in completely differe
 
 Volumetric attacks are the loud ones you see in headlines, measured in gigabits or terabits per second. Application-layer attacks are quieter and, honestly, trickier. They mimic real users, so a firewall waving traffic through can't tell the difference. A flood of legit-looking requests to an expensive endpoint (a search, a login, a report) can take down an app on far less traffic than a volumetric attack needs. Sneaky is worse than loud here.
 
-<!-- ADD IMAGE: a traffic graph, a normal baseline then a sharp wall of requests when the attack starts -->
+![Normal traffic then a flood of requests](images/gen-1-graph.png)
 
 ## How the defense actually works: filter at the edge
 
@@ -75,9 +75,9 @@ Real DDoS protection is a stack, not a switch. Each layer catches something the 
 
 A quick clarification, because people mix these up. A [load balancer](https://www.kloudbean.com/blog/cloud-load-balancer-explained/) spreads traffic across app instances for performance and availability. It is not DDoS mitigation on its own, though it's part of how traffic reaches your origin. Don't count on it to filter a flood.
 
-![The Kloudbean console: a load balancer distributing traffic across app instances](../assets/console/flb-load-balancer.png)
+![The Kloudbean console: a load balancer distributing traffic across app instances](../assets/console-real/shots/flb_launch_step_2.png)
 
-<!-- ADD IMAGE: an edge or WAF dashboard showing blocked requests climbing while origin traffic stays flat -->
+![Blocked requests increase while origin stays stable](images/gen-2-flow.png)
 
 ## The mistake worth avoiding
 
@@ -89,7 +89,7 @@ Three mistakes come up again and again. They're worth naming, because each one f
 
 **"We'll deal with it if it happens."** The worst time to add an edge is during the attack. Pointing your DNS at a new edge takes time to propagate while you're already down, and you're making config decisions in a panic. Put the edge up before you need it. That single choice, made on a calm afternoon, is the biggest lever you have.
 
-![The Kloudbean console: your origin server, the thing that should sit behind edge protection](../assets/console/add-server.png)
+![The Kloudbean console: your origin server, the thing that should sit behind edge protection](../assets/console-real/shots/launch_server_step_1.png)
 
 ## If you're being attacked right now
 
@@ -100,7 +100,7 @@ Landed here mid-attack? A few calm moves, in order.
 - **Tighten rate limits temporarily.** Clamp down on requests per IP to choke abusive sources, and loosen it again once things calm.
 - **Don't panic-upgrade the server.** It won't win the flooding contest, and you'll just pay more for a box that still falls over. The help is upstream, not behind you.
 
-<!-- ADD IMAGE: toggling an "under attack" mode or a stricter rate-limit rule during an incident -->
+![Activate during an attack to protect your service](images/gen-3-panel.png)
 
 ## The cheapest version of this that actually holds
 
@@ -116,11 +116,20 @@ If it helps to know where that lands on Kloudbean specifically: step three is al
 
 And the honest limit, which you should be suspicious of any provider not stating. Nobody stops every DDoS attack. A large enough volumetric flood is an edge and upstream-capacity problem, and no origin server, ours included, absorbs one no matter how big you size it. What a host can do is give you a real edge to hide behind and a hardened box underneath. What no host can do is make that decision for you on a quiet afternoon, which is the day the decision is cheap. Whether you'd rather run that stack yourself is the wider [managed vs unmanaged](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) question, and it gets loud on the day you're under fire.
 
----
+<!-- cta:start -->
+**The server layer, hardened for you.**
 
-**Put the edge up before the flood.** Front your app with Cloudflare's edge, run on tier-1 cloud capacity, and let the built-in firewall and Fail2ban handle the small stuff, all from one dashboard. Start at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+The platform keeps the server, stack, SSL, and patching current, with automatic backups running. Application-level security stays yours, and that split is deliberate rather than hidden.
 
-Cloudflare edge add-on · Tier-1 cloud capacity · Shorewall firewall + Fail2ban · Free SSL · Free trial
+- Shorewall firewall
+- Fail2ban
+- OS patching handled
+- Free SSL
+- IP access control
+- Automatic backups
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -131,7 +131,21 @@ def get_product(product_id):
   <p>Two habits are baked in. Values are JSON-serialized in and parsed out, because Redis stores strings and bytes, not your language's objects. And every write uses <code>setex</code>, so there's a TTL from second one. Why cache-aside by default? It fails safe: if Redis is down, every request becomes a miss that falls through to the database, so the app slows down instead of falling over.</p>
 
   <!-- ADD IMAGE: replace with a real screenshot. src -> images/redis-monitor.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>redis-cli MONITOR streaming live GET and SETEX calls as the app serves traffic.</em><small>Shows cache hits and writes happening in real time.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #1
+Create a realistic terminal / command-line screenshot for a technical blog post titled "Redis Caching: A Practical Guide to What to Cache and How".
+
+What it must show: redis-cli MONITOR streaming live GET and SETEX calls as the app serves traffic.
+Also: Shows cache hits and writes happening in real time.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-terminal.png" alt="redis-cli MONITOR streaming live GET and SETEX calls as the app serves traffic.">
+    <figcaption>Cache hits and writes in real time</figcaption>
+  </figure>
 
   <h2>Setting a Redis TTL that isn't a guess</h2>
   <p>A TTL (time to live) is how long a key survives before Redis deletes it. <code>SETEX key 300 value</code> means it's gone in 300 seconds unless something rewrites it. The TTL is your safety net: even if your invalidation logic has a bug, a five-minute TTL means a key is stale for at most five minutes. No TTL means stale until the server reboots. Match it to how fresh the data must be, not a number that feels tidy:</p>
@@ -146,7 +160,21 @@ def get_product(product_id):
   <p>Unsure? Go shorter. A short TTL fails safe, at worst a few seconds of staleness and a slightly higher miss rate. A long TTL with no invalidation is how users end up staring at data that changed ten minutes ago.</p>
 
   <!-- ADD IMAGE: replace with a real screenshot. src -> images/redis-ttl.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>redis-cli running TTL product:42 and showing the seconds left on the key.</em><small>Handy for confirming your expiry actually got set.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #2
+Create a realistic terminal / command-line screenshot for a technical blog post titled "Redis Caching: A Practical Guide to What to Cache and How".
+
+What it must show: redis-cli running TTL product:42 and showing the seconds left on the key.
+Also: Handy for confirming your expiry actually got set.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-terminal.png" alt="redis-cli running TTL product:42 and showing the seconds left on the key.">
+    <figcaption>Checking TTL for product:42</figcaption>
+  </figure>
 
   <h2>Cache invalidation and cache stampede: the hard part</h2>
   <p>There's an old joke that the two hard problems in computing are naming things, cache invalidation, and off-by-one errors. It lands because invalidation is the part that bites. Cache invalidation is genuinely the hard part, and anyone who says otherwise hasn't shipped a cache that mattered. The read path is easy; the bug shows up on writes. A user edits their profile, you update the Postgres row, but the old value still sits in Redis with minutes left on its TTL. Until it expires, every read is stale and the user swears the save button is broken.</p>
@@ -210,7 +238,21 @@ async function allow(userId) {
   <p>The first request in a window creates the key and sets a 60-second expiry; every request increments. Past 100, return a 429 until the window rolls over and the key expires. Sliding-window and token-bucket variants exist, but a fixed window covers most needs in four lines.</p>
 
   <!-- ADD IMAGE: replace with a real screenshot. src -> images/rate-limit-429.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>An HTTP 429 Too Many Requests response once the INCR count passes the limit.</em><small>Optional: show the rate key in redis-cli next to it.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #3
+Create a realistic terminal / command-line screenshot for a technical blog post titled "Redis Caching: A Practical Guide to What to Cache and How".
+
+What it must show: An HTTP 429 Too Many Requests response once the INCR count passes the limit.
+Also: Optional: show the rate key in redis-cli next to it.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-terminal.png" alt="An HTTP 429 Too Many Requests response once the INCR count passes the limit.">
+    <figcaption>Redis rate limiting in action</figcaption>
+  </figure>
 
   <h3>Redis as a session store</h3>
   <p>A Redis session store is the same idea applied to login state. Many frameworks keep sessions in a local file or memory on one server. Fine until you run a second server, then a session lives on a box the user doesn't hit next and they get logged out at random. Point the store at Redis and every server shares one. Usually a one-line change:</p>
@@ -231,7 +273,7 @@ SESSION_ENGINE = "django.contrib.sessions.backends.cache"</code></pre>
     <li><strong>Launch a managed Redis.</strong> Open the DBS section, hit Launch Database, and pick Redis. Name it, create it. A minute or two later it's provisioned, secured, and being backed up. No config files, no <code>apt install</code>.</li>
   </ol>
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed Redis instance alongside MySQL, MariaDB, PostgreSQL, Memcached, Elasticsearch, and MongoDB">
+    <img src="../assets/console-real/shots/redis_launch_step_1.png" alt="The Kloudbean console launching a managed Redis instance alongside MySQL, MariaDB, PostgreSQL, Memcached, Elasticsearch, and MongoDB">
     <figcaption>DBS then Launch Database: Redis is one of seven managed engines, provisioned and backed up on your server.</figcaption>
   </figure>
 
@@ -249,7 +291,7 @@ REDIS_URL=redis://:your-strong-password@10.0.0.6:6379/0
     <li><strong>Store it as an environment variable.</strong> Open Runtime Configuration then Environment Variables and add <code>REDIS_URL</code>. It lives here, never in source, so it stays out of Git and you can rotate the password without touching code.</li>
   </ol>
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean console environment variables screen holding REDIS_URL for the app to read at runtime">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean console environment variables screen holding REDIS_URL for the app to read at runtime">
     <figcaption>Runtime Configuration then Environment Variables: REDIS_URL sits here, read by your app at boot.</figcaption>
   </figure>
 
@@ -284,11 +326,55 @@ maxmemory-policy allkeys-lru</code></pre>
   <h2>How Redis caching fits the rest of your stack</h2>
   <p>Caching is one layer. Your app reads and writes a real database, caches hot reads in Redis, keeps sessions there, and rate-limits its endpoints with the same instance. Because app and Redis sit side by side in the same account, connection reuse stays cheap, the same reason <a href="https://www.kloudbean.com/blog/database-connection-pooling/">connection pooling</a> is gentler on an always-on server than on serverless. One dashboard, one server, one bill, and the fast layer right where it belongs.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Put the fast layer next to your app.</p>
-    <p style="margin:0 0 .6em">Launch a managed Redis in a click, connect it with one <code>REDIS_URL</code>, and let cache-aside lift the repeat load off your database. Sessions, rate limiting, and caching from a single managed instance right next to your app. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">One-click Redis · IP allow-listing · Automatic backups · Free migration assistance · Free trial · Simple Git deploy</p>
+<div class="kbcta-db-wrap">
+  <div class="kbcta-db-overlay"></div>
+  <div class="kbcta-db-content">
+    <div class="kbcta-db-eyebrow">MANAGED DATABASES &middot; SEVEN ENGINES</div>
+    <p class="kbcta-db-heading">Managed, backed up, and still yours.</p>
+    <p class="kbcta-db-description">Launch MySQL, MariaDB, PostgreSQL, Redis, Memcached, MongoDB, or Elasticsearch in a click, reachable from your app server with automatic backups from minute one. Standard connection strings, standard dumps, no proprietary format.</p>
+    <ul class="kbcta-db-features">
+      <li>&#10003; Seven managed engines</li>
+      <li>&#10003; One-click launch</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Controlled access</li>
+      <li>&#10003; Standard connection strings</li>
+      <li>&#10003; Free migration assistance</li>
+    </ul>
+    <div class="kbcta-db-buttons">
+      <a class="kbcta-db-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-db-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-db: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-db-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#04202B;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-db-wrap *{box-sizing:border-box}
+.kbcta-db-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #04202B 0%, #073947 55%, rgba(14,116,144,.62) 100%);pointer-events:none}
+.kbcta-db-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-db-content{position:relative;z-index:3;max-width:700px}
+.kbcta-db-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-db-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-db-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-db-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-db-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-db-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-db-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#064454;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-db-btn:hover,.kbcta-db-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-db-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-db-link:hover,.kbcta-db-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-db-wrap{padding:36px 24px}
+  .kbcta-db-heading{font-size:31px}
+  .kbcta-db-description{font-size:16px}
+  .kbcta-db-features li{white-space:normal}
+  .kbcta-db-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-db-btn{width:100%}
+  .kbcta-db-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

@@ -86,13 +86,13 @@ My honest take: if you're not sure, you're probably relational, and Postgres is 
 
 Here's the whole point of the exercise: instead of four Google products with four billing meters, you run your backend as a server you own with a database next to it, all from one dashboard. Step one is the database. Open the DBS section, launch a managed PostgreSQL or MongoDB, name it, and a minute or two later it's provisioned, secured, and already being backed up.
 
-![The Kloudbean console Launch Database screen with managed PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, and MongoDB](../assets/console/launch-database.png)
+![The Kloudbean console Launch Database screen with managed PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, and MongoDB](../assets/console-real/shots/psql_launch_step_1.png)
 
 Then you deploy the app server that replaces your Cloud Functions and client-side data logic. Add an application, connect a Git repo, set the runtime, and Kloudbean builds and deploys it with live build logs. Your API and your database sit on the same server, talking over the local network, which is exactly the setup you want.
 
-![The Kloudbean console Add Application screen for deploying a Node, Python, or other app server next to the managed database](../assets/console/add-application.png)
+![The Kloudbean console Add Application screen for deploying a Node, Python, or other app server next to the managed database](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
-<!-- ADD IMAGE: Your Firebase console on the Firestore data tab, the collection you're about to export. -->
+![Before moving to your own backend](images/gen-1-flow.png)
 
 Once both are up, your connection lives in an environment variable, never in code, the same way our guide to [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) walks through. For Postgres or Mongo it looks like this:
 
@@ -106,7 +106,7 @@ MONGODB_URI=mongodb://appuser:s3cret@10.0.0.5:27017/appdb
 
 Because the whole backend lives in one place, there's no cross-vendor glue to maintain. If you want the architecture reasoning in full, we wrote it up in [running the app, API, and database on one server](https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/).
 
-<!-- ADD IMAGE: The finished shape, your app server and managed database on one server, behind free SSL, backed up. -->
+![One hop per box](images/gen-2-flow.png)
 
 ## Moving your data off Firestore, realistically
 
@@ -124,7 +124,7 @@ gcloud firestore export gs://your-bucket/firestore-backup
 
 A common mistake I'd steer you away from: trying to lift-and-shift Firestore one-to-one into Postgres, keeping the exact same denormalized shape. You'll import a pile of duplicated JSON blobs and inherit every sync headache you were trying to escape, just in a new database. If you're moving to relational, model it relationally. Do the design. That's the whole reason you're moving. And if the export-transform-import dance isn't how you want to spend a week, Kloudbean's **free migration assistance** can help you plan and run it.
 
-<!-- ADD IMAGE: Before and after, one denormalized Firestore document beside the normalized tables it becomes in Postgres. -->
+![Denormalization impact](images/gen-3-comparison.png)
 
 ## The cost shape: per-operation billing vs a flat server
 
@@ -142,11 +142,20 @@ Here's my actual opinion, for what it's worth: Firebase is one of the best place
 
 Two things worth saying plainly, because a guide that only flatters one side isn't a guide. First, when you leave Firebase you take on the two features it gave you for free: authentication and realtime. On your own stack you implement auth (a framework library, or managed Supabase which bundles it) and, if you need live updates, you build them with WebSockets or Postgres LISTEN/NOTIFY. That's a real cost of ownership, and for some apps it's the deciding reason to stay put. Second, Kloudbean runs Linux stacks: Node, PHP, Python, Ruby, Java, and their databases. "Managed" here means the server, stack, SSL, backups, and patching are handled while your application and your data stay yours to export anytime. It isn't a drop-in clone of Firebase's client SDKs. It's the other model: you own the backend, and nothing traps you in it.
 
-## Own your backend. Ditch the per-operation meter.
+<!-- cta:start -->
+**Bring the app. Keep the deploy flow.**
 
-Run a managed PostgreSQL or MongoDB next to your app server, on one dashboard, on infrastructure you control. Start at [kloudbean.com](https://www.kloudbean.com/); check current plans on [pricing](https://www.kloudbean.com/pricing/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-Managed Postgres & MongoDB · App hosting · Automatic backups · Free SSL · Free migration · Free trial
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

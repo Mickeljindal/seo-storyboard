@@ -71,7 +71,7 @@ Infrastructure territory: network segregation and isolation, whitelist-only fire
 
 Organisation territory, and no provider should claim it: identifying which systems are critical, cybersecurity governance and the risk register, HR security including screening and awareness training, record-level data classification, application-layer masking logic, application security code work such as session management and input validation, commissioning penetration tests, and engaging NCA for formal assessment. Security operations centre work sits in between, since detection can be built into the infrastructure while investigation and response need people; Kloudbean handles SOC and SIEM engagements collaboratively, scoped with the client rather than sold as a fixed package.
 
-## Where Kloudbean fits
+## The infrastructure work a managed platform can carry
 
 For regulated workloads, Kloudbean runs managed enterprise engagements on a dedicated cloud account, including Google Cloud's Dammam region (me-central2) for in-Kingdom residency. On those engagements we build and maintain the infrastructure-layer controls listed above and deliver evidence as managed reports. Two honest notes: this is an enterprise engagement model rather than something you switch on from a self-serve plan, and certification remains an assessment of your organisation, with us supplying the technical foundation and the evidence rather than a certificate.
 

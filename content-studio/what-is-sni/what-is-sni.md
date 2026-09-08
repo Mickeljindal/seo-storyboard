@@ -142,11 +142,21 @@ Where it does become visible is at the edge. Cloudflare is available as a paid a
 
 For the wider picture, [SSL and TLS explained](https://www.kloudbean.com/blog/ssl-tls-explained/) covers the handshake, termination, and why certificates expire. For diagnosis, [fixing SSL certificate errors](https://www.kloudbean.com/blog/fix-ssl-certificate-errors/) handles validity and chain problems, [ERR_SSL_PROTOCOL_ERROR](https://www.kloudbean.com/blog/err-ssl-protocol-error/) handles handshake failures, and [Cloudflare 525](https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/) handles edge-to-origin TLS. On the DNS half of the privacy story, [DNS lookups](https://www.kloudbean.com/blog/fix-slow-dns-lookup/), and for HTTPS redirect loops caused by TLS termination, [ERR_TOO_MANY_REDIRECTS](https://www.kloudbean.com/blog/err-too-many-redirects/).
 
-## Certificates you never have to think about.
+<!-- cta:start -->
+**Ship the app, not the infrastructure.**
 
-Free SSL issued and renewed automatically for every application and domain on your server, across seven clouds, with managed databases and automatic backups, from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
 
-Free SSL, auto-renewed · 7 clouds · Many apps per server · Automatic backups · Flat from $8/mo
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

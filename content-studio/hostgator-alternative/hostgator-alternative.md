@@ -37,7 +37,7 @@ Nobody emails to say "you've outgrown this." You collect symptoms, and on HostGa
 
 One of these is a papercut. Three or four together is your site asking for its own room, and that's when an alternative to HostGator stops being a maybe.
 
-<!-- ADD IMAGE: A cPanel resource-usage meter showing CPU or entry-process usage near the limit, or a resource-limit warning email. This is the warning readers see right before they search for an alternative. -->
+![Immediate warning to the user](images/gen-1-flow.png)
 
 ### Is HostGator hosting really unlimited?
 
@@ -71,7 +71,7 @@ A fair side-by-side. HostGator wins a couple of rows on purpose, and I've kept t
 
 Read the last two rows plainly. HostGator is cheaper for year one, and buying domain plus hosting in one checkout is a genuine convenience. The managed-cloud trade is a flatter bill and a server whose limits you set. That's the HostGator vs managed cloud decision in a line.
 
-<!-- ADD IMAGE: A renewal notice showing the intro rate next to the standard renewal rate, with the checkout add-ons totaled. Blur the account details, keep the two numbers readable. -->
+![Compare rates and add-ons](images/gen-2-flow.png)
 
 ## The HostGator alternative that doesn't become a second job
 
@@ -89,27 +89,27 @@ The move is calmer than it sounds, no terminal marathon required. People looking
 
 Provider first, then region, then size. Seven clouds are on the list, including AWS, Google Cloud and DigitalOcean. That's your dedicated box, with CPU and RAM that belong to you, not a slice you share with strangers, and you can resize later.
 
-![Choosing the cloud provider, region and size when launching a Kloudbean server](../assets/console/add-server.png)
+![Choosing the cloud provider, region and size when launching a Kloudbean server](../assets/console-real/shots/launch_server_step_1.png)
 
 ### 2. Add your application
 
 Add the app you're moving. One-click covers WordPress and WooCommerce, plus Laravel, Magento, Drupal and Joomla. Building something else? Node.js, Python, Ruby, and Java run here as first-class citizens, and static sites host free, which a PHP-only shared plan rarely offers.
 
-![The application list in Kloudbean, mid-way through adding a new one](../assets/console/add-application.png)
+![The application list in Kloudbean, mid-way through adding a new one](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 ### 3. Bring your site across
 
 Two ways. If it's a WordPress or PHP site, free migration assistance moves it for you, files and database included. If your code lives in Git, connect the repo and let managed CI/CD build and deploy on every push, with live build logs. Details are in the [Git deploy guide](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-![The deployment settings, with the repository connected and auto-deploy enabled](../assets/console/git-deployment.png)
+![The deployment settings, with the repository connected and auto-deploy enabled](../assets/console-real/shots/git_connect_step_4.png)
 
 ### 4. Confirm backups and staging
 
 Automatic backups are on by default, and you can restore when you need to. Anyone who has watched a plugin update take a site down already knows why. Staging is there for WordPress and Laravel, so you test risky changes on a copy first. The [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/) covers restores.
 
-![The backup list in Kloudbean, with restore points ready to roll back to](../assets/console/manage-backups.png)
+![The backup list in Kloudbean, with restore points ready to roll back to](../assets/console-real/shots/app_backup_step_2.png)
 
-<!-- ADD IMAGE: A before and after page-load comparison, HostGator shared plan versus your own server under the same traffic. Real numbers from your own migration land harder than a mockup. -->
+![HostGator Shared Plan vs Your Own Server](images/gen-3-comparison.png)
 
 ## Keep your domain, just point DNS
 
@@ -141,7 +141,7 @@ Prefer to move the data yourself first? A plan with SSH lets you export and impo
 
 > **Coming from HostGator?** You keep your site and your domain. You get assistance moving files and database, a certificate once DNS points over, and backups from day one. The thing you leave behind is the fine print, not your content.
 
-<!-- ADD IMAGE: The HostGator cPanel Zone Editor with two A records, root and www, pointing at a server IP. Show the Type, Name, Record, and TTL columns so readers can copy the exact fields. -->
+![Setting up DNS for HostGator alternative](images/gen-4-flow.png)
 
 ## The honest trade-offs
 
@@ -149,13 +149,20 @@ Fair cuts both ways. Kloudbean isn't a domain registrar, so you point DNS instea
 
 Weighing other budget hosts too? The same logic runs through our [Bluehost alternative](https://www.kloudbean.com/blog/bluehost-alternative/), [SiteGround alternative](https://www.kloudbean.com/blog/siteground-alternative/), and [GoDaddy alternative](https://www.kloudbean.com/blog/godaddy-alternative/) pieces, with a WordPress-specific walkthrough in [managed WordPress hosting](https://www.kloudbean.com/blog/managed-wordpress-hosting/).
 
----
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-**Real resources. No asterisk.**
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-Keep your domain and move the hosting to your own managed server. Try it at [kloudbean.com](https://www.kloudbean.com/); the tiers are on [pricing](https://www.kloudbean.com/pricing/).
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
 
-Your own dedicated resources · 7 clouds · 7 managed databases · Git deploy · Staging · Automatic backups · Free SSL · Free migration · Free trial
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## HostGator alternative FAQ
 
@@ -178,12 +185,12 @@ Yes, and it's the most common move we see. WordPress and WooCommerce are prebuil
 If you're hitting resource caps, wincing at the renewal, or fighting the upsells, then for you, yes. You get dedicated CPU and RAM instead of a capped shared slice, plus managed databases, Git deploy, and staging. If your site is tiny and still on its intro rate, HostGator is cheaper today, so there's no rush.
 
 **Is Kloudbean a domain registrar?**
-No, and it doesn't pretend to be. Kloudbean is managed cloud hosting, not a place to register domains. Keep your domain wherever it is, including at HostGator, and point its DNS at your server. Your registration and email stay put.
+No, and that split is deliberate. Kloudbean is managed cloud hosting, not a place to register domains. Keep your domain wherever it is, including at HostGator, and point its DNS at your server. Your registration and email stay put.
 
 **Do I need to be a sysadmin to run a managed cloud server?**
 No, that's the whole point of managed cloud. The platform handles the OS, stack, SSL, patching, and backups, so you get a dedicated server without the chores. You have root and SSH if you want them, but you're never required to touch either.
 
 **Is Kloudbean more expensive than HostGator?**
-In year one, HostGator's intro price is usually lower. Kloudbean starts from $8/mo, priced by server size, with no promo-to-renewal jump and SSL and backups included rather than upsold. Once HostGator renews, the gap narrows or flips. Check current pricing on the pricing page before you decide.
+In year one, HostGator's intro price is usually lower. Kloudbean starts from $8/mo, priced by server size, with no promo-to-renewal jump and SSL and backups included rather than upsold. Once HostGator renews, the gap narrows or flips. Read the pricing page for today's figures before committing.
 
 *By Kloudbean Platform · When unlimited isn't*

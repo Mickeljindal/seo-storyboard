@@ -195,11 +195,20 @@ The honest boundary: nobody else can define your state machine or decide which f
 
 For neighbouring status codes, [400 Bad Request](https://www.kloudbean.com/blog/400-bad-request/), [401 Unauthorized](https://www.kloudbean.com/blog/http-error-401-unauthorized/), [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/), and [429 Too Many Requests](https://www.kloudbean.com/blog/429-too-many-requests/), which covers the backoff and jitter referenced above. On the validators reused for optimistic locking, [304 Not Modified](https://www.kloudbean.com/blog/304-not-modified/). For the database side, [PostgreSQL performance tuning](https://www.kloudbean.com/blog/postgresql-performance-tuning/) and [connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/). And for the atomic operations behind idempotency keys, [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/) and [caching patterns](https://www.kloudbean.com/blog/redis-caching-patterns/).
 
-## The database and the cache your API depends on
+<!-- cta:start -->
+**Deploys that tell you what broke.**
 
-Managed PostgreSQL, MySQL, MariaDB, and Redis in the same dashboard as your application, with automatic backups and locked to your app server's IP, from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.
 
-Managed databases · Managed Redis · Automatic backups · Flat from $8/mo
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

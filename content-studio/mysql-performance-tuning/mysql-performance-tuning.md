@@ -31,7 +31,7 @@ mysqldumpslow -s t -t 10 /var/log/mysql/slow.log
 
 That's your ranked to-do list. Sort by total time, not just per-query time, so you also catch the query that's quick on its own but runs ten thousand times a minute.
 
-<!-- ADD IMAGE: a mysqldumpslow ranking with the worst repeat offender at the top, Query_time and Rows_examined visible -->
+![mysqldumpslow output comparison](images/gen-1-comparison.png)
 
 ## Read the EXPLAIN plan: the type column does most of the talking
 
@@ -98,7 +98,7 @@ EXPLAIN ANALYZE
 SELECT * FROM orders WHERE user_id = 42 AND created_at > NOW() - INTERVAL 30 DAY;
 ```
 
-<!-- ADD IMAGE: an EXPLAIN plan with callouts on the type field, the rows estimate, and the Extra column showing Using filesort -->
+![Identify performance bottlenecks](images/gen-2-panel.png)
 
 ## MySQL performance tuning, ranked by payoff
 
@@ -153,7 +153,7 @@ On a dedicated database box a common guideline is to give the buffer pool a larg
 
 That's worth knowing before you launch, not after. When MySQL is one of seven managed engines you provision in a click (alongside MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB), the plan you pick at launch is the buffer pool decision, made under a different name.
 
-![The Kloudbean console launching a managed MySQL database, where the plan you choose is what sizes the InnoDB buffer pool](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed MySQL database, where the plan you choose is what sizes the InnoDB buffer pool](../assets/console-real/shots/mysql_launch_step_1.png)
 
 You can watch whether the pool is doing its job. If reads keep hitting disk while the box has spare CPU, your working set no longer fits, and more RAM is the honest answer:
 
@@ -165,7 +165,7 @@ SHOW STATUS LIKE 'Innodb_buffer_pool_read%';
 SHOW ENGINE INNODB STATUS\G
 ```
 
-<!-- ADD IMAGE: Innodb_buffer_pool_reads climbing against Innodb_buffer_pool_read_requests, showing the working set spilling to disk -->
+![Before indexing → After indexing](images/gen-4-graph.png)
 
 ## Connections and the "Too many connections" wall
 
@@ -187,7 +187,7 @@ SHOW VARIABLES LIKE 'max_connections';
 
 One practical detail: keep the pool size in the same environment variable that holds your connection string, not in code. On a managed database that means resizing the pool is a config change and a restart, not a deploy, which matters at 2am when you're trying to stop a connection storm rather than ship a release.
 
-![The Kloudbean console environment variables screen holding the MySQL connection string and pool size outside the codebase](../assets/console/env-vars.png)
+![The Kloudbean console environment variables screen holding the MySQL connection string and pool size outside the codebase](../assets/console-real/shots/nodespm_env_step_1.png)
 
 The full reasoning, with pool sizing math, is in [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/).
 
@@ -197,7 +197,7 @@ Sometimes the answer really is more hardware. If CPU sits pinned near 100 percen
 
 The reason this section comes last is the graph below. Read CPU and RAM next to your slow query log findings, because the two answers look nothing alike. Slow pages while CPU idles is a query or index problem, and no amount of plan is going to help. Pinned CPU after you've already indexed is the honest case for a bigger box.
 
-![The Kloudbean console server health view showing CPU and RAM, the reading that decides between tuning a query and resizing the server](../assets/console/server-health.png)
+![The Kloudbean console server health view showing CPU and RAM, the reading that decides between tuning a query and resizing the server](../assets/console-real/shots/server_health_step_2.png)
 
 But tune queries and indexes first. Bad SQL scales badly no matter the hardware. A missing index that scans five million rows scans them a bit faster on a bigger box, then falls over at ten million. Doubling your server to paper over an N+1 loop is the most expensive way to not fix a bug. For read-heavy workloads, a [managed Redis cache](https://www.kloudbean.com/blog/redis-caching-guide/) in front of your hottest reads often buys more headroom than a bigger database will.
 
@@ -215,17 +215,26 @@ Tuning isn't a project you finish. Traffic grows, a feature adds a query, someon
 | 6 | CPU pinned after the queries are already tuned | Server health graphs | The platform. Resize up, self-serve, no rebuild. |
 | 7 | Data is wrong or gone | Whether you have ever tested a restore | Shared. Backups run on a schedule; proving they restore is on you. |
 
-<!-- ADD IMAGE: the same query timed before and after the index, going from seconds to milliseconds -->
+![Before and after a resize](images/gen-1-comparison.png)
 
 Two honest notes on that last column. No host fixes a missing index, ours included. A managed MySQL patches the engine, backs it up, and locks it to your app server's IP, and it will still cheerfully scan five million rows on your behalf at any plan size, forever. Managed means the box is looked after, not that your schema is.
 
 And resizing is a one-way street for disk. You can size a server up yourself, but you can't shrink a disk afterwards, so grow in steps instead of jumping to a number you're guessing at. On the backup half, [server backups](https://www.kloudbean.com/blog/server-backups-guide/) covers the restore drill, and [managed MySQL hosting](https://www.kloudbean.com/blog/managed-mysql-hosting/) covers what's handled for you versus what stays yours.
 
----
+<!-- cta:start -->
+**Managed, backed up, and still yours.**
 
-**Make MySQL earn its keep.** Managed MySQL on Kloudbean gives you a real box locked to your app server's IP, automatic backups, and one-click provisioning, so the only thing left to tune is your own queries. Start free at [kloudbean.com](https://www.kloudbean.com/) and see plans on [pricing](https://www.kloudbean.com/pricing/).
+Seven managed engines, provisioned and patched for you, with access controlled and backups running automatically. Your schema, your queries, and your data stay exportable with the standard tools.
 
-Managed MySQL and MariaDB · Automatic backups · Resize as you grow · Free migration · Free trial
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

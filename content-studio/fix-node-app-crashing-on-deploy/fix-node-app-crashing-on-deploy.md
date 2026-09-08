@@ -75,11 +75,20 @@ Most of the pain here is a deploy that fails quietly. Kloudbean deploys from a G
 
 This guide is a map to the specific fixes. Dig into [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) (the top cause), [Cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/), [ECONNREFUSED](https://www.kloudbean.com/blog/fix-econnrefused-node/), [EADDRINUSE](https://www.kloudbean.com/blog/fix-eaddrinuse-port-already-in-use-node/), [PM2 restart loops](https://www.kloudbean.com/blog/pm2-app-keeps-restarting/), and [heap out of memory](https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/). For a build that runs on every push, see [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-## Deploy with logs you can actually read
+<!-- cta:start -->
+**Read the log, fix it, ship again.**
 
-Push to GitHub, watch the build run with live logs, set env vars per environment, and run always-on under PM2 next to a managed database, so deploy crashes are visible and the environment gaps are handled. Flat pricing from $8/mo. Start at [kloudbean.com](https://www.kloudbean.com/).
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-Live build logs · Env vars per environment · Always-on Node under PM2 · Managed database · Flat from $8/mo
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

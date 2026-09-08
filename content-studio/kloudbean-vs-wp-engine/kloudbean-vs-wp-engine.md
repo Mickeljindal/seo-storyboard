@@ -50,7 +50,7 @@ Every enclosure has a price, and it's rarely the monthly bill. It's the shape of
 
 **Anything that isn't WordPress has no home.** This is the big one. The moment your project needs a small **Node API** for a mobile app, a nightly **Python job** that crunches data, a **database** that isn't WordPress's MySQL, or a bit of **object storage** for uploads that shouldn't bloat the media library, the WordPress-shaped host has nowhere to put it. So it goes elsewhere.
 
-<!-- ADD IMAGE: A screenshot of the sprawl: separate browser tabs for your WordPress host, your API host, your database provider, and your file storage, all open at once. -->
+![One place, mixed stack](images/gen-2-flow.png)
 
 ## The moment the assumption cracks
 
@@ -62,13 +62,13 @@ The WordPress part is still great. It's everything around it that got complicate
 
 This is the exact seam Kloudbean is built along. The premise is different from the ground up: your WordPress site is welcome, and it's treated as one kind of app among many rather than the whole point. So when that Node API shows up, it gets a home on the same platform. You set its environment, connect it to a database, and deploy it right next to the WordPress site.
 
-![The Kloudbean console: setting environment variables for a non-WordPress app that lives alongside your WordPress sites](../assets/console/env-vars.png)
+![The Kloudbean console: setting environment variables for a non-WordPress app that lives alongside your WordPress sites](../assets/console-real/shots/nodespm_env_step_1.png)
 
 The nightly Python job runs there too. The extra database is a managed one you launch in the same console: MySQL, MariaDB, PostgreSQL, Redis, Elasticsearch, or MongoDB. The object storage is an S3-compatible bucket a click away. A load balancer is built in, sitting there for the day you need it. And because the platform is genuinely multi-cloud, you choose where each server lives: AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, or UpCloud.
 
 None of that comes at WordPress's expense. Kloudbean still runs managed WordPress and WooCommerce with staging, automatic backups, and free SSL. You're not trading WordPress quality for range. You get the WordPress essentials, plus a home for everything the project grows into. If you want the deeper WordPress-specific angle, the [Kloudbean vs Kinsta comparison](https://www.kloudbean.com/blog/kloudbean-vs-kinsta/) covers the pure-WordPress scope question, and there are focused guides on [speeding up WordPress](https://www.kloudbean.com/blog/speed-up-wordpress/) and [secure WordPress hosting](https://www.kloudbean.com/blog/secure-wordpress-hosting/) too.
 
-<!-- ADD IMAGE: Your WordPress site and a Node app listed together under one Kloudbean server, on the cloud you picked. -->
+![Selecting the right cloud platform](images/gen-3-flow.png)
 
 ## Walled garden vs open platform, side by side
 
@@ -99,11 +99,20 @@ Underneath, the managed deal is the same on both. These are Linux stacks. The pl
 
 <!-- ADD IMAGE: The cloud picker: choosing which of the 7 providers a new WordPress server lands on. -->
 
----
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-**Keep WordPress. Lose the walls.** Run managed WordPress and everything that grows around it in one console, on the cloud you choose. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-Managed WordPress & WooCommerce · WP staging · Node & Python apps · 6 managed databases · S3 + GCS storage · Built-in load balancer · 7 clouds · Free migration · Free trial
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

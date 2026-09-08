@@ -47,7 +47,7 @@
     <li><strong>Per-request billing suits spiky, low-volume work.</strong> A cron job, a webhook handler, a side project with bursty traffic: paying only for the commands you run, and nothing while idle, is a great deal. Scale-to-zero cost is real money saved for the right workload.</li>
     <li><strong>Global edge replication puts data near users.</strong> Upstash can replicate across regions so an edge function reads from something nearby. For a genuinely global, read-heavy, latency-critical app, that's a hard problem solved for you.</li>
   </ul>
-  <p>So if your workload is serverless, spiky, or edge-first, honestly, stay on Upstash. It fits. The rest is for the other case: an app that's always running, on a server.</p>
+  <p>A serverless, spiky, or edge-first workload has different operational constraints from an always-running server application. This guide covers the latter case, where Redis can live alongside the application stack and its operating costs are easier to predict.</p>
 
   <h2>Serverless Redis vs an always-on managed Redis</h2>
   <p>Here's the same Redis, reached two different ways. The left shape is what makes Upstash brilliant for functions. The right shape is what makes an always-on managed Redis better for a persistent server.</p>
@@ -209,7 +209,7 @@ redis-cli -u "$OLD_REDIS_URL" --rdb ./dump.rdb
 # then load dump.rdb into the new instance, or migrate key-by-key with MIGRATE.</code></pre>
   <p>Repoint <code>REDIS_URL</code>, redeploy, and you're on the new cache. If you'd rather not do it by hand, Kloudbean includes free migration assistance and a free trial, so you can move and test first.</p>
 
-  <h2>The honest limits</h2>
+  <h2>Where an edge-oriented Redis model still fits</h2>
   <p>To keep this straight: Kloudbean Redis is an always-on, single-instance managed Redis on <strong>Linux</strong>. It has no serverless or per-request tier, no HTTP or REST API, and no global edge replication across regions. Those are Upstash's territory, and if you need them, use Upstash. "Managed" means Kloudbean provisions, patches, and backs up the instance, while the keys and data stay yours to export anytime. The win it's offering is narrow and real: a low-latency Redis in the same account, right next to your app, at a predictable server-based price, in one dashboard with your app. For an always-on app, that's usually the trade you want.</p>
 
   <div class="cta">

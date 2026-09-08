@@ -124,26 +124,40 @@ certbot --nginx -d yourdomain.com   # then remember to renew it later</code></pr
   <p>That's satisfying if server work is your thing. If it isn't, it's a wall of chores between you and a running app. With Kloudbean managing a droplet, the same first hour is a form. And this is the screen where the "not either/or" point stops being abstract: you pick DigitalOcean as the cloud provider, on the same infrastructure you'd have rented directly.</p>
 
   <figure>
-    <img src="../assets/console/add-server.png" alt="Kloudbean Add Server screen showing DigitalOcean among the cloud provider choices when provisioning a managed server">
+    <img src="../assets/console-real/shots/launch_server_step_1.png" alt="Kloudbean Add Server screen showing DigitalOcean among the cloud provider choices when provisioning a managed server">
     <figcaption>Adding a server in Kloudbean: pick DigitalOcean (or AWS, Google Cloud, Linode, Vultr, UpCloud, Lightsail) as the provider. Same DO infrastructure, provisioned and managed for you.</figcaption>
   </figure>
 
   <p>Then deploying your code is connecting a repo instead of scripting it by hand.</p>
 
   <figure>
-    <img src="../assets/console/git-deployment.png" alt="Kloudbean console Deploy Code and Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy">
+    <img src="../assets/console-real/shots/git_connect_step_4.png" alt="Kloudbean console Deploy Code and Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy">
     <figcaption>Deploy Code, then Git Deployment: connect GitHub, set the runtime and install/build/start commands, Pull and Deploy. Auto-deploy on push after that.</figcaption>
   </figure>
 
   <p>The database lands on the same server too, which is the honest answer to the "managed DigitalOcean hosting" question. Instead of standing up Postgres by hand or paying for DO's managed database as a separate product across the network, you launch one on the box.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="Kloudbean Launch Database screen for creating a managed Postgres instance next to the application">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="Kloudbean Launch Database screen for creating a managed Postgres instance next to the application">
     <figcaption>Launch a managed database (Postgres, MySQL, MariaDB, Redis, MongoDB, or Elasticsearch) next to the app, reached over the local network. More on that in the <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">app, API, and database on one server</a> guide.</figcaption>
   </figure>
 
   <!-- ADD IMAGE: swap this slot for a real screenshot. src -> images/droplet-terminal.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A raw droplet SSH session mid-setup (apt, ufw, certbot) next to the DigitalOcean control panel, to show the hands-on side fairly.</em><small>Keeps the comparison honest by showing what raw droplet work looks like. Author supplies.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #1
+Create a realistic terminal / command-line screenshot for a technical blog post titled "DigitalOcean vs Kloudbean: Which Should Host Your App?".
+
+What it must show: A raw droplet SSH session mid-setup (apt, ufw, certbot) next to the DigitalOcean control panel, to show the hands-on side fairly.
+Also: Keeps the comparison honest by showing what raw droplet work looks like. Author supplies.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-terminal.png" alt="A raw droplet SSH session mid-setup (apt, ufw, certbot) next to the DigitalOcean control panel, to show the hands-on side fairly.">
+    <figcaption>SSH into a new Droplet and install essentials</figcaption>
+  </figure>
 
   <h2>The part that outlasts setup</h2>
   <p>Setup is the part everyone compares, and it's the part that matters least six months in. A server isn't a one-time build. It's a standing responsibility. And the droplets that get people into trouble are almost never hacked in some clever way. It's an expired SSL certificate that took the site down on a Sunday. A disk that filled up with logs nobody rotated. A security update that sat unapplied for the better part of a year because everything seemed fine. Boring failures, every one, and all of them the kind that stay invisible until the exact moment they aren't.</p>
@@ -161,10 +175,55 @@ certbot --nginx -d yourdomain.com   # then remember to renew it later</code></pr
   <h2>Where this approach runs out</h2>
   <p>Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and frameworks like React, Vue, Angular, Laravel, Django, and WordPress. Windows Server is a Premium and Enterprise option rather than a standard one, though .NET itself runs on Linux here. Standalone managed Kubernetes is also enterprise or custom rather than a default. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you still own your application and your data. That split is the whole point: you keep the app, someone else keeps the box healthy. And because it's standard Linux and standard code underneath, you can leave for a raw droplet, or anywhere else, whenever you want.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Same infrastructure. Someone else keeps it healthy.</p>
-    <p style="margin:0">Run a managed server on DigitalOcean (or six other clouds) at <a href="https://www.kloudbean.com/">kloudbean.com</a>. One-click deploy, managed databases, free SSL, automatic backups, free migration, and a free trial. The full deploy walkthrough is <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">here</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+<div class="kbcta-move-wrap">
+  <div class="kbcta-move-overlay"></div>
+  <div class="kbcta-move-content">
+    <div class="kbcta-move-eyebrow">MIGRATE &middot; FLAT, PREDICTABLE PRICING</div>
+    <p class="kbcta-move-heading">A rehoming, not a rewrite.</p>
+    <p class="kbcta-move-description">Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.</p>
+    <ul class="kbcta-move-features">
+      <li>&#10003; Free migration assistance</li>
+      <li>&#10003; Free trial</li>
+      <li>&#10003; Seven cloud providers</li>
+      <li>&#10003; Flat monthly price</li>
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Git deploy</li>
+    </ul>
+    <div class="kbcta-move-buttons">
+      <a class="kbcta-move-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-move-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-move: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-move-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#0A0730;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-move-wrap *{box-sizing:border-box}
+.kbcta-move-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #0A0730 0%, #1B0F5A 58%, rgba(79,26,243,.55) 100%);pointer-events:none}
+.kbcta-move-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.28) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-move-content{position:relative;z-index:3;max-width:700px}
+.kbcta-move-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-move-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-move-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-move-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-move-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-move-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-move-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#2A0E7A;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-move-btn:hover,.kbcta-move-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-move-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-move-link:hover,.kbcta-move-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-move-wrap{padding:36px 24px}
+  .kbcta-move-heading{font-size:31px}
+  .kbcta-move-description{font-size:16px}
+  .kbcta-move-features li{white-space:normal}
+  .kbcta-move-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-move-btn{width:100%}
+  .kbcta-move-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

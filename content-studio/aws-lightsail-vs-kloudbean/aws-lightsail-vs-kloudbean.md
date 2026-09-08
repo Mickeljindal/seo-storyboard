@@ -75,10 +75,10 @@ Neither column below is wrong. The left is what you sign up for with a raw Light
 
 Notice there are no prices or region counts in that table. Those change, and Lightsail's bundle prices are their own thing. The point isn't the sticker. It's which of those two lists you want to own.
 
-![Kloudbean Add Server screen showing seven cloud providers including AWS Lightsail, plus a region picker, when provisioning a managed server](../assets/console/add-server-region.png)
+![Kloudbean Add Server screen showing seven cloud providers including AWS Lightsail, plus a region picker, when provisioning a managed server](../assets/console-real/shots/selecting_server_location.png)
 *Adding a server in Kloudbean. Pick your cloud (AWS Lightsail sits right there among the seven providers) and a region, then Kloudbean provisions the OS, stack, firewall, and free SSL. Same Lightsail box underneath, managed for you.*
 
-<!-- ADD IMAGE: The AWS Lightsail bundle picker in the AWS console, next to Kloudbean's Add Server screen, so readers see both sides fairly. -->
+![Raw VPS or Managed Stack](images/gen-1-comparison.png)
 
 ## Does Kloudbean actually run on AWS Lightsail?
 
@@ -86,7 +86,7 @@ Yes. When you add a server, choose AWS Lightsail as the cloud provider, pick a s
 
 What does "managed" mean here, concretely? Kloudbean runs the server, the web stack, SSL, patching, and backups. You own your application code and your data. That boundary is the important bit, so I'll be blunt about it: this is not a black box that hides your app from you. It's your app, on a standard Linux server, that someone else keeps healthy. If you want the longer version, we spell it out in [what a managed server actually is](https://www.kloudbean.com/blog/what-is-a-managed-server/).
 
-![Kloudbean dashboard showing servers, applications, managed databases, object storage and load balancers in one place](../assets/console/dashboard.png)
+![Kloudbean dashboard showing servers, applications, managed databases, object storage and load balancers in one place](../assets/console-real/shots/dashboard.png)
 *One dashboard for the whole stack: servers, applications, managed databases, object storage, and load balancers, whatever cloud they sit on. This is the Lightsail control panel experience most people actually wanted.*
 
 ## What the managed layer adds on top of Lightsail
@@ -103,7 +103,7 @@ And it isn't just a PHP or WordPress box. You can run WordPress, WooCommerce, La
 
 There's one more thing a raw Lightsail box can't give you: you're not married to AWS. Because Kloudbean runs on seven clouds, you can start on Lightsail today and move the same setup to DigitalOcean, Google Cloud, Linode, Vultr, or UpCloud later, behind one console, without relearning everything. You keep Lightsail if you love it. You keep the exit if you don't. That's a big part of what makes a real [managed cloud host](https://www.kloudbean.com/blog/best-managed-cloud-hosting/) worth the money.
 
-<!-- ADD IMAGE: A simple diagram or screenshot of an app, a managed database, and object storage all running on one Lightsail-backed server. -->
+![Stack running on one box](images/gen-2-flow.png)
 
 ## When raw Lightsail is enough, and when the managed layer pays off
 
@@ -121,11 +121,20 @@ Kloudbean runs Linux web stacks: PHP, Node, Python, Ruby, Java, and their databa
 
 Because it's standard Linux and standard code underneath, none of this locks you in. You can move to a raw Lightsail box you manage yourself, or to any other host, whenever you want. The exit door is part of the design.
 
----
+<!-- cta:start -->
+**Bring the app. Keep the deploy flow.**
 
-**Keep Lightsail's simple box. Drop the sysadmin homework.**
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-Run a managed stack on AWS Lightsail (or six other clouds) at [kloudbean.com](https://www.kloudbean.com/). One dashboard, one-click managed databases, a built-in load balancer, automatic backups, free SSL, simple Git deploy, free migration, and a free trial. Standard plans start from $8/mo, with custom Enterprise pricing on request. Check current numbers on [pricing](https://www.kloudbean.com/pricing/).
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

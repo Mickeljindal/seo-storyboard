@@ -114,11 +114,21 @@ Kloudbean runs your Node app always-on under PM2, so the process management abov
 
 PM2 depth and the specific crash causes are covered next door. Start with the [PM2 process manager guide](https://www.kloudbean.com/blog/pm2-process-manager-guide/), then the error guides this article points to: [EADDRINUSE](https://www.kloudbean.com/blog/fix-eaddrinuse-port-already-in-use-node/), [Cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/), [ECONNREFUSED](https://www.kloudbean.com/blog/fix-econnrefused-node/), and [heap out of memory](https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/). For clean releases, see [zero-downtime deployments](https://www.kloudbean.com/blog/zero-downtime-deployments/).
 
-## Let PM2 be someone else's job
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-Run your Node app always-on under managed PM2 with env vars and logs in one console and GitHub deploys, so a restart loop is visible and fixable instead of silent. Flat pricing from $8/mo. Start at [kloudbean.com](https://www.kloudbean.com/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Managed PM2 · Logs in the console · Env vars per app · GitHub deploys · Flat from $8/mo
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -171,15 +171,21 @@ The boundary is unchanged. TLS, patching, backups and the stack itself are handl
 
 On getting files onto the server before any of this, [FTP versus SFTP](https://www.kloudbean.com/blog/ftp-vs-sftp/). If tar is doing backup duty, [the server backups guide](https://www.kloudbean.com/blog/server-backups-guide/) and [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/) for where they belong. For the package-manager question, [identifying your distribution and release](https://www.kloudbean.com/blog/check-ubuntu-version/). To stop shipping archives by hand, [auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/). And if a deploy went in and the app then failed to start, [503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
 
----
+<!-- cta:start -->
+**Ship the app, not the infrastructure.**
 
-### Stop hand-shipping tarballs to your server.
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
 
-Managed servers across seven clouds with Git-based deploys and live build logs, a patched stack, application and server logs in one dashboard, S3-compatible object storage, and automatic backups. Free SSL issued and renewed. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
 
-Git deploys · Patched stack · Object storage · Automatic backups · Free SSL
-
----
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

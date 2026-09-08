@@ -151,11 +151,20 @@ One honest note in the same spirit as the rest of this article: one-click stagin
 
 Once you have chosen: [deploy Django](https://www.kloudbean.com/blog/deploy-django-app/), [deploy Flask](https://www.kloudbean.com/blog/deploy-flask-app/), or [deploy FastAPI](https://www.kloudbean.com/blog/deploy-fastapi-app/). On the process layer, [Gunicorn versus Uvicorn](https://www.kloudbean.com/blog/gunicorn-vs-uvicorn/). On the database underneath, [MySQL versus PostgreSQL](https://www.kloudbean.com/blog/mysql-vs-postgresql/) and [adding a managed database](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). On configuration, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). And on background work, [Celery with Redis](https://www.kloudbean.com/blog/celery-with-redis/).
 
-## Whichever you picked, it deploys the same way.
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-Managed Python hosting for Flask, Django, and FastAPI across seven clouds, with one-click managed databases, free SSL, automatic backups, cron from the UI, and Git deploys with live build logs. From $8/mo, with free migration assistance. Start at [kloudbean.com](https://www.kloudbean.com/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-Flask · Django · FastAPI · 6 managed databases · Free SSL · Flat from $8/mo
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

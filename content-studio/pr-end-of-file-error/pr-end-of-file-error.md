@@ -106,9 +106,20 @@ The boundary is the usual one. TLS, patching, backups and the stack itself are h
 
 For the Chromium versions of the same two failures, [ERR_CONNECTION_RESET](https://www.kloudbean.com/blog/err-connection-reset/) and [ERR_SSL_PROTOCOL_ERROR](https://www.kloudbean.com/blog/err-ssl-protocol-error/), which also covers the plain-HTTP-on-an-HTTPS-port case. When the handshake completes and the identity is refused instead, [fixing SSL certificate errors](https://www.kloudbean.com/blog/fix-ssl-certificate-errors/). For the mechanics underneath all of it, [SSL and TLS explained](https://www.kloudbean.com/blog/ssl-tls-explained/) and [what SNI is](https://www.kloudbean.com/blog/what-is-sni/). If a CDN sits in front, [Cloudflare 525](https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/) is the same failure between the edge and your origin. And if you have not identified your browser's code yet, [this site can't be reached](https://www.kloudbean.com/blog/this-site-cant-be-reached/) maps them to layers.
 
-**Close the server half and stop guessing.** Managed servers across seven clouds with free SSL issued and renewed from a publicly trusted authority, TLS configuration maintained for you, and Shorewall plus Fail2ban configured by default with bans visible in the dashboard. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Deploys that tell you what broke.**
 
-Free SSL, renewed · Maintained TLS · Visible bans · Server metrics · One dashboard
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
+
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

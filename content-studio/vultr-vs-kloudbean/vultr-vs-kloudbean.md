@@ -31,7 +31,7 @@ Credit where it's due. Vultr is an independent, self-funded cloud that launched 
 
 But a Vultr instance is an empty Linux box. That's its strength and its chore list in one sentence. Everything above the kernel is yours: the web server, the runtime, the database, the firewall, the TLS certificate and its renewal, the backups, the deploys, the monitoring. Not just on setup day. Every day after, until you automate it well or it bites you. Vultr hands you excellent raw material. It doesn't hand you a managed stack, and it never claimed to.
 
-<!-- ADD IMAGE: A Vultr control panel instance list beside a terminal running apt and certbot. Shows the hands-on raw side fairly. -->
+![Raw cloud access](images/gen-1-terminal.png)
 
 ## Vultr vs managed hosting: who owns which job
 
@@ -53,7 +53,7 @@ A VPS is an empty Linux box, so the comparison is really a list of chores and wh
 
 Neither column is wrong. The left is what you take on with a raw VPS, and plenty of engineers do it well and enjoy every minute. The right is what a managed layer folds into the price. The choice is which of those lists you want to own. The screen where "not either/or" stops being abstract is where you pick your cloud, with Vultr sitting right there among the options.
 
-![Kloudbean Add Server screen showing Vultr among the cloud provider choices when provisioning a managed server](../assets/console/add-server.png)
+![Kloudbean Add Server screen showing Vultr among the cloud provider choices when provisioning a managed server](../assets/console-real/shots/launch_server_step_1.png)
 
 *Adding a server in Kloudbean: pick Vultr (or AWS, Lightsail, Google Cloud, Linode, DigitalOcean, UpCloud) and a region. Same Vultr infrastructure, provisioned and managed for you.*
 
@@ -82,13 +82,13 @@ The instances that get teams into trouble are almost never hacked in some clever
 
 I'll take a side here. A raw Vultr box is the right tool when running the server is part of the project and you'll keep up with it. The common mistake isn't picking Vultr. It's picking a VPS and treating it like it's managed: set up once, patched never, backed up "eventually" because the snapshot schedule was the thing you meant to configure and didn't. If the box is just where your product lives, paying so you never think about the patch cadence is the better trade. We put real numbers on that in [the real cost of an unmanaged VPS](https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/), and break down the whole choice in [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/).
 
-<!-- ADD IMAGE: A terminal showing a failed certbot renew and a low disk-space warning. The boring failures that take a raw box down. -->
+![Low disk-space warning](images/gen-2-terminal.png)
 
 ## Is Vultr good for production?
 
 Yes, with an asterisk. Vultr's infrastructure is production-grade: solid instances, fast networking, snapshots and backups available as building blocks. Plenty of serious workloads run on it. But production isn't a fast box. It's the day-2 operations around the box: patching on a schedule, renewing certificates before they expire, watching disk and memory, restoring a backup you've actually tested. Vultr gives you the raw material for a production system. Whether you get a production system depends on who does that ongoing work, and how consistently.
 
-![Kloudbean server health screen showing CPU, memory, and disk usage for a managed server on Vultr](../assets/console/server-health.png)
+![Kloudbean server health screen showing CPU, memory, and disk usage for a managed server on Vultr](../assets/console-real/shots/server_health_step_2.png)
 
 *Managed monitoring in Kloudbean: CPU, memory, and disk on the Vultr server, watched for you. On a raw box you wire this up and remember to check it.*
 
@@ -104,7 +104,7 @@ And there's a bonus a raw instance can't hand you. You're not married to Vultr. 
 
 The managed layer is more than a nicer control panel. It's one dashboard for the whole stack: servers, applications, seven managed database engines (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB), built-in S3-compatible and Google Cloud Storage buckets, a built-in Flexible Load Balancer you switch on when you need it, managed CI/CD from Git with live build logs, staging for WordPress and Laravel, and per-user access control. On a raw VPS you install and secure the database yourself. On Kloudbean you launch a managed engine on the same box, locked to your app server's IP and backed up automatically. There's a walk-through in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), and the whole-market view in the pillar, [best managed cloud hosting](https://www.kloudbean.com/blog/best-managed-cloud-hosting/).
 
-<!-- ADD IMAGE: The Launch Database screen creating a managed engine on a Vultr server. Shows the database landing on the same box, backed up. -->
+![Managed engine on same box, backed up](images/gen-3-flow.png)
 
 ## A fair word on cost
 
@@ -112,17 +112,26 @@ A raw Vultr instance is cheaper than a managed server, and it should be. You're 
 
 The rule of thumb: if your schedule is tighter than your budget, managed wins; if your budget is tighter, or the ops are genuinely fun for you, the raw Vultr box wins. The Linode and DigitalOcean versions of this same trade live in [Linode vs Kloudbean](https://www.kloudbean.com/blog/linode-vs-kloudbean/) and [DigitalOcean vs Kloudbean](https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/).
 
-<!-- ADD IMAGE: One dashboard listing servers, apps, and managed databases across clouds. The piece a raw Vultr instance was never meant to give you. -->
+![One hop per box](images/gen-4-flow.png)
 
 ## Where the simple version breaks
 
 Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and frameworks like React, Vue, Angular, Laravel, Django, and WordPress. The distinction worth knowing: .NET on Linux is standard, Windows Server is not. For general users it isn't a swap for standalone managed Kubernetes or autoscaling, which are enterprise or custom options rather than defaults. Baseline security is a configured firewall (Shorewall) plus brute-force protection (Fail2ban) and free auto-renewing SSL, with an optional extra layer available if you want it. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you still own your application and your data. That division of labor is the whole point. And because it's standard Linux and standard code underneath, you can leave for a raw Vultr box, or anywhere else, whenever you want.
 
----
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-**Vultr's speed. Without the pager.**
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-Run a managed server on Vultr (or six other clouds) at [kloudbean.com](https://www.kloudbean.com/). Seven managed databases, free SSL, automatic backups, a built-in load balancer, free migration, and a free trial. Compare plans on [pricing](https://www.kloudbean.com/pricing/).
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

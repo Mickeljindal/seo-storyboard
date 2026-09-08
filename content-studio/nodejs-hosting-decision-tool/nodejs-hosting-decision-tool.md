@@ -43,7 +43,7 @@ Which is a question worth asking a host directly, because "always-on" is not a u
 
 This is the question that separates the picks most sharply, so it's worth being concrete. On a managed cloud the database is provisioned in the same dashboard as the app, one of seven engines (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB), allow-listed so only your app server's IP can connect, with automatic backups from the start. That's one bill and one hop. The alternative shape, app on one vendor and database on another, is perfectly workable and it does mean every query crosses a network boundary you're paying for twice.
 
-![The Kloudbean console deploying a Node.js app from GitHub with a managed database in the same dashboard](../assets/console/add-application.png)
+![The Kloudbean console deploying a Node.js app from GitHub with a managed database in the same dashboard](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 *The always-on shape: the Node app deploys from GitHub, with its managed database one click away in the same dashboard.*
 
@@ -76,11 +76,21 @@ So use the tree for what it is: a fast way to eliminate four categories that don
 
 The full prose version of this decision is [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/). For head-to-heads, [Render vs Railway vs Kloudbean](https://www.kloudbean.com/blog/render-vs-railway-vs-kloudbean/). For the hands-on side, [deploy a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/).
 
----
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-**If the tree pointed you at a managed cloud, start here.** Deploy your Node app from GitHub, run it always-on under PM2, and keep a managed PostgreSQL, MySQL, MongoDB, or Redis in the same dashboard, at a price you know upfront. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Deploy from GitHub · Always-on, no cold starts · Managed database included · Flat pricing from $8/mo · Free migration · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

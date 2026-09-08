@@ -89,11 +89,20 @@ Two limits on the managed side to know before you decide, rather than after. The
 
 For the same managed-versus-raw decision against another cloud, [DigitalOcean vs Kloudbean](https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/), and the broader principle in [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/). For how the pieces work, [how cloud hosting works](https://www.kloudbean.com/blog/how-cloud-hosting-works/); for pricing models, [cloud hosting pricing explained](https://www.kloudbean.com/blog/cloud-hosting-pricing-explained/). For the GCP region behind in-Kingdom hosting, [the Dammam region guide](https://www.kloudbean.com/blog/gcp-dammam-region-guide/), and for managed-platform options generally, [managed-cloud alternatives](https://www.kloudbean.com/blog/cloudways-alternatives/).
 
-## Google Cloud's foundation, without operating Google Cloud.
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-Run on GCP (and six other clouds) with one-click servers, managed databases, automatic backups, free SSL, and predictable pricing, all from one dashboard. Compare the models in [cloud hosting pricing explained](https://www.kloudbean.com/blog/cloud-hosting-pricing-explained/), or start at [kloudbean.com](https://www.kloudbean.com/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-Managed on GCP · Seven clouds · One dashboard · Predictable pricing · No object-storage egress
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

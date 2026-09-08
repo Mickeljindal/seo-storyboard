@@ -86,11 +86,20 @@ Which is why the debate deserves about a minute of your day. Get the layer right
 
 For the front-server role Nginx so often plays, [reverse proxy explained](https://www.kloudbean.com/blog/reverse-proxy-explained/) and, for Node specifically, [an Nginx reverse proxy for Node](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). The bigger picture is in [how cloud hosting works](https://www.kloudbean.com/blog/how-cloud-hosting-works/), and if this is really a question of how much infrastructure you want to run yourself, [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) is the honest fork.
 
-## Let the platform tune the web server, and go build.
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-On Kloudbean your app runs behind a managed, properly tuned Nginx layer with TLS and static handling sorted, so you're not configuring web servers by hand. Managed servers on seven clouds, Git deploys, free SSL. Start at [kloudbean.com](https://www.kloudbean.com/), or see the model in [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-Managed, tuned Nginx layer · TLS and static handling · Git deploys · You build, not benchmark
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

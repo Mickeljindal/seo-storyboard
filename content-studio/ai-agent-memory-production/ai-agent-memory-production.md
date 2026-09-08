@@ -178,11 +178,21 @@ That's the shape Kloudbean is built around, which is why it kept showing up in t
 
 Now the part no host fixes, ours very much included. The memory logic is yours. Nobody else decides how long a conversation lives, writes the rolling summary that keeps your prompt from growing forever, or deletes a row you never wired a delete for. If your "forget this user" path misses the Redis key, it misses it on every platform in existence, and a managed database will happily back up the copy you thought you'd erased. Infrastructure gives the stores a home and keeps them restorable. Retention is a decision, and decisions don't come with the server. One scope note while we're being precise: full network isolation in a private VPC is part of the Enterprise package, so on a standard plan IP allow-listing is your access model, not a private network.
 
-## Give your agent's memory a home that stays put
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-**Run your agent on an always-on server with managed Postgres and Redis, automatic backups, and free SSL, all in one dashboard and deployed straight from Git.** Keep short-term context, durable history, and (where available) pgvector embeddings without juggling three providers. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Managed Postgres + pgvector · Managed Redis · Always-on Node and Python · Automatic backups · Free SSL · Git deploy · IP allow-listing
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

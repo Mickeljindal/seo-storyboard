@@ -66,7 +66,7 @@ Every staging workflow is three moves: clone, test, push. Get these straight and
 
 *Clone and test are safe. On the push back to live, code is safe to move, but pushing the staging database overwrites the live one. That is the edge to watch.*
 
-<!-- ADD IMAGE: A WordPress admin showing the environment badge switch from Live to Staging. -->
+![Switching environments for testing](images/gen-1-comparison.png)
 
 ## The gotcha nobody warns you about: pushing the database
 
@@ -109,37 +109,46 @@ Now the practical part: how to create a WordPress staging site without wiring an
 
 The shape of it: launch WordPress as an application on a managed server, then create a staging copy from the app's staging screen. Kloudbean spins up a separate copy on the same stack as production, so it catches the environment-specific issues local dev on your laptop would miss. You make your changes on staging, verify them, then push back.
 
-![The Kloudbean staging screen: create a WordPress staging copy of a live site and push tested changes back to production](../assets/console/staging.png)
+![Create a staging copy of your site from the Kloudbean dashboard](../assets/console-real/shots/staging_step_1.png)
+
+![Manage the staging environment and push changes to production](../assets/console-real/shots/staging_step_2.png)
 
 *Create a staging copy of a live WordPress site, test on it, then push changes back, all from one screen.*
 
 Because WordPress is a first-class stack here (alongside WooCommerce), the app comes tuned and hardened, with free auto-renewing SSL and a managed MySQL or MariaDB database that's secured, kept off the public internet, and backed up. Adding the application is a few clicks, not an afternoon.
 
-![The Kloudbean Add Application screen with WordPress selected, the starting point for adding a staging environment](../assets/console/add-application.png)
+![The Kloudbean Add Application screen with WordPress selected, the starting point for adding a staging environment](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 *Add WordPress (or WooCommerce) as an application. From there, its staging copy is one click away.*
 
 When you push, you choose what moves. And I'll repeat the honest caveat here, because a slick button doesn't change the underlying reality: pushing files (your plugin, theme, and code changes) is the safe, everyday move. Pushing the database overwrites the live one. That's not a Kloudbean quirk. It's how WordPress data works everywhere, on every host and every staging plugin. On an active store, push your tested code and leave the live database alone unless you're certain nothing new landed since you cloned.
 
-<!-- ADD IMAGE: The push-to-live step showing the files-only versus files-plus-database choice. -->
+![Push-to-live impact on your site](images/gen-2-comparison.png)
 
 Take a backup first, regardless. Automatic backups are on by default, and a restore is self-serve from the same dashboard, so a bad push is a quick rollback rather than a support ticket and a cold sweat.
 
-![The Kloudbean backups screen showing automatic backups and self-serve restore for a WordPress site before a push to live](../assets/console/manage-backups.png)
+![The Kloudbean backups screen showing automatic backups and self-serve restore for a WordPress site before a push to live](../assets/console-real/shots/app_backup_step_2.png)
 
 *Take a fresh backup before any push to live. Restores are self-serve if a change misbehaves.*
 
 Everything sits in one dashboard next to your other apps, databases, and storage, with one login and one bill. If you're moving an existing site over first, the safe pattern is in our [zero-downtime migration](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/) guide, and the wider setup is covered in [managed WordPress hosting](https://www.kloudbean.com/blog/managed-wordpress-hosting/). If you're still weighing where to run all this, the [best managed cloud hosting](https://www.kloudbean.com/blog/best-managed-cloud-hosting/) rundown lays out the options plainly.
 
-<!-- ADD IMAGE: A pre-push checklist: test on staging, back up live, push files not database, verify live. -->
+![Test on staging, back up live, push files not database, verify live](images/gen-3-comparison.png)
 
----
+<!-- cta:start -->
+**WordPress, without the server admin.**
 
-**Rehearse the risky stuff. Then ship it.**
+The stack, the patching, SSL, and backups are handled, so your work stays on the site rather than the box. Staging is one click, and the managed database sits right next to the app.
 
-Built-in WordPress staging, plus the backups and managed database that make pushing to live a non-event. Start at [kloudbean.com](https://www.kloudbean.com/), and check current plans on [pricing](https://www.kloudbean.com/pricing/).
+- Managed WordPress stack
+- One-click staging
+- Managed MySQL and MariaDB
+- Automatic backups
+- Free SSL
+- Built-in load balancer
 
-One-click WordPress staging · Automatic backups · Free auto-renewing SSL · Managed MySQL & MariaDB · Free migration · Free trial
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

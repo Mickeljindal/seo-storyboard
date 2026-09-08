@@ -55,7 +55,7 @@ Both build tools produce the same kind of artifact, so use whichever your projec
 
 Use the committed wrapper (`./mvnw` or `./gradlew`), not a globally installed Maven or Gradle. It pins the build-tool version, so CI matches your laptop and you dodge a whole genre of "works locally, breaks on the build server" tickets. Build in CI from Git, not by hand. More on that below.
 
-<!-- ADD IMAGE: a terminal running the build to BUILD SUCCESS, with the target JAR path visible. -->
+![Target JAR path visible](images/gen-1-terminal.png)
 
 ## Run it: java -jar and an embedded server
 
@@ -71,7 +71,7 @@ java -Xmx512m -Dspring.profiles.active=prod -jar target/myapp-1.0.0.jar
 
 The JVM boots, Spring wires up your beans, the embedded Tomcat starts, and you'll see the familiar "Tomcat started on port 8080" line. No `CATALINA_HOME`, no `server.xml`, no WAR to drop anywhere. One rule: match the Java version you built against. A JAR compiled for Java 17 needs a Java 17 (or newer) runtime, or it throws `UnsupportedClassVersionError` on startup.
 
-<!-- ADD IMAGE: the startup logs showing the Spring banner and the embedded Tomcat binding its port. -->
+![Spring banner to Tomcat binding](images/gen-2-flow.png)
 
 ## Externalize config: application.properties vs environment variables
 
@@ -110,7 +110,7 @@ The mapping people forget:
 
 Profiles are the other half. Put production overrides in `application-prod.yml`, set `SPRING_PROFILES_ACTIVE=prod`, and Spring layers that file on top of the defaults. Forget to activate it and your app runs with dev settings in production, which is how a service ends up pointing at a laptop database on launch day. More on keeping secrets out of Git in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
-<!-- ADD IMAGE: the environment variables panel with the SPRING_ values entered, so secrets live outside the JAR. -->
+![Spring Boot config process](images/gen-3-flow.png)
 
 ## The port and the reverse proxy
 
@@ -140,7 +140,7 @@ Treat `512m` as illustrative, not a recommendation; size it to your app and your
 
 Watching real memory beats guessing. A managed server shows the JVM's actual usage, so you size the heap and the box against real numbers, not vibes.
 
-![The Kloudbean server health view showing CPU, RAM, and disk usage for a server running a Java app](../assets/console/server-health.png)
+![The Kloudbean server health view showing CPU, RAM, and disk usage for a server running a Java app](../assets/console-real/shots/server_health_step_2.png)
 
 *Server health: watch real RAM and CPU, then set a heap that fits the box instead of guessing.*
 
@@ -191,7 +191,7 @@ Size it against your database, and remember the math changes when you run more t
 
 Two rules that aren't optional. Lock the database to your app server's IP, not a public port, so only your app reaches it. And never hardcode credentials in `application.properties`; they belong in the environment, where you rotate a password without a code change.
 
-![The Kloudbean console Launch Database screen with managed PostgreSQL, MySQL, MariaDB, Redis, and more](../assets/console/launch-database.png)
+![The Kloudbean console Launch Database screen with managed PostgreSQL, MySQL, MariaDB, Redis, and more](../assets/console-real/shots/psql_launch_step_1.png)
 
 *Launch Database: a managed Postgres or MySQL, provisioned and backed up, locked to your app server's IP. Feed its details into your SPRING_DATASOURCE_ variables.*
 
@@ -203,7 +203,7 @@ Here's where it comes together. A managed server hands you the pieces already as
 
 Create a server, choose a cloud (Kloudbean runs seven: AWS, Amazon Lightsail, Google Cloud, DigitalOcean, Vultr, Akamai Linode, and UpCloud), pick a size, then add your application. A single JVM service is comfortable on a small box to start; resize later if the numbers say so.
 
-![The Kloudbean Add Application screen for adding a Java Spring Boot app to a server](../assets/console/add-application.png)
+![The Kloudbean Add Application screen for adding a Java Spring Boot app to a server](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 *Add Application: your Spring Boot service gets its own space on the server, with its runtime and config kept separate.*
 
@@ -221,13 +221,13 @@ java -Xmx512m -jar target/myapp-1.0.0.jar
 
 Trigger a deploy and the build log streams live, so you watch the dependencies download, the compile, and the JAR get built instead of guessing why it failed. Turn on automated deployment and every push to that branch builds and ships itself, with a recorded history of what went out. Same continuous-deploy loop the big platforms sell, on a server you own. Full setup in [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-![The Kloudbean Git Deployment tab with the repository, branch, and the Maven build and java -jar start commands for a Spring Boot app](../assets/console/git-deployment.png)
+![The Kloudbean Git Deployment tab with the repository, branch, and the Maven build and java -jar start commands for a Spring Boot app](../assets/console-real/shots/git_connect_step_4.png)
 
 *Git Deployment: connect the repo, set the build and start commands and the port, then deploy and watch the build log stream.*
 
 Set your environment variables in the console (the `SPRING_DATASOURCE_*` values, `SPRING_PROFILES_ACTIVE=prod`, and any keys), point a domain, and turn on the free auto-renewing certificate. The proxy is already terminating TLS, so your JVM never thinks about certificates.
 
-<!-- ADD IMAGE: the deployment history showing a successful build and the commit that shipped. -->
+![Successful build and commit](images/gen-4-flow.png)
 
 ## Where Spring Boot deploys usually go wrong
 
@@ -243,13 +243,21 @@ Most failed Java deploys aren't Java problems. They're config and memory problem
 
 Notice what's not on that list: your business logic. It's almost never the endpoints. So when a deploy breaks, resist the urge to reread controllers. Read the startup logs, find the one line that names the real cause, fix that, and ship again. Faster, and usually right.
 
----
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-**Your Spring Boot app, live on a server you own.**
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Deploy the JAR from Git with live build logs, wire in a managed Postgres or MySQL, and get a reverse proxy with free auto-renewing SSL, no hand-rolled config. Start at [kloudbean.com](https://www.kloudbean.com/); sizes and plans (from $8/mo, Enterprise custom) are on [pricing](https://www.kloudbean.com/pricing/).
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
 
-Managed Java runtime · Git deploy with live build logs · Managed PostgreSQL and MySQL · Reverse proxy and free SSL · Free migration · Free trial
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

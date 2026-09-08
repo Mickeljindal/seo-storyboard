@@ -45,7 +45,7 @@ Credit where it's due. There are workloads where Upstash is the better tool, ful
 - **Per-request billing suits spiky, low-volume work.** A cron job, a webhook handler, a side project with bursty traffic: paying only for the commands you run, and nothing while idle, is a great deal. Scale-to-zero cost is real money saved for the right workload.
 - **Global edge replication puts data near users.** Upstash can replicate across regions so an edge function reads from something nearby. For a genuinely global, read-heavy, latency-critical app, that's a hard problem solved for you.
 
-So if your workload is serverless, spiky, or edge-first, honestly, stay on Upstash. It fits. The rest is for the other case: an app that's always running, on a server.
+A serverless, spiky, or edge-first workload has different operational constraints from an always-running server application. This guide covers the latter case, where Redis can live alongside the application stack and its operating costs are easier to predict.
 
 ## Serverless Redis vs an always-on managed Redis
 
@@ -186,7 +186,7 @@ redis-cli -u "$OLD_REDIS_URL" --rdb ./dump.rdb
 
 Repoint `REDIS_URL`, redeploy, and you're on the new cache. If you'd rather not do it by hand, Kloudbean includes free migration assistance and a free trial, so you can move and test first.
 
-## The honest limits
+## Where an edge-oriented Redis model still fits
 
 To keep this straight: Kloudbean Redis is an always-on, single-instance managed Redis on **Linux**. It has no serverless or per-request tier, no HTTP or REST API, and no global edge replication across regions. Those are Upstash's territory, and if you need them, use Upstash. "Managed" means Kloudbean provisions, patches, and backs up the instance, while the keys and data stay yours to export anytime. The win it's offering is narrow and real: a low-latency Redis in the same account, right next to your app, at a predictable server-based price, in one dashboard with your app. For an always-on app, that's usually the trade you want.
 

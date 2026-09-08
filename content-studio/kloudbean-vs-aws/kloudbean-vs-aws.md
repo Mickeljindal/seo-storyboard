@@ -141,8 +141,20 @@ That's the shape of a managed cloud vs AWS decision for most small teams: not le
 Is AWS better than Kloudbean? Wrong question. AWS is better at being a deep, self-operated toolbox for teams with the skills and the need. Kloudbean is better at getting a small team to production and keeping it there without a dedicated ops hire. Pick the one that matches who's actually going to run it. And if you start on Kloudbean and later hit a real reason to move to raw AWS, your code and data come with you, so choosing simple now doesn't lock you in. That reversibility is the quiet reason starting managed is a safe first move. If you're still upstream of this decision and wondering whether you need AWS at all, [do I need AWS to launch a SaaS](https://www.kloudbean.com/blog/do-i-need-aws-to-launch-a-saas/) tackles that question head-on.
 
 <div class="cta">
-Ship on a managed stack, or wire up raw cloud yourself. If you'd rather have a managed server, a managed database, backups, and SSL across your choice of cloud without operating it all, that's what Kloudbean is for. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
-</div>
+<!-- cta:start -->
+**Move it once. Own it after.**
+
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
+
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

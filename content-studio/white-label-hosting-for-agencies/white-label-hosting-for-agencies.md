@@ -27,7 +27,7 @@ White-label hosting for agencies is how you keep that curtain closed. The term g
 
 Picture two layers. The front one is your brand, and it's the only layer your client interacts with. The back one is the managed infrastructure, which you operate but they never really see. White-label is about keeping the front layer entirely yours.
 
-<!-- ADD IMAGE: facade diagram. The client sees the agency brand card in front (their site, your reports, your invoice, your support); the managed infrastructure card (servers, SSL, backups, databases) sits behind it, operated by you, invisible to them. -->
+![Isolated app per client](images/gen-1-flow.png)
 *Diagram: the client sees your brand and deals with you. The managed infrastructure runs behind that facade, operated by you, invisible to them.*
 
 ## What is white-label hosting for agencies?
@@ -50,7 +50,7 @@ Most modern agencies want the white-label experience sitting on top of managed c
 
 If you want that comparison in full, there's a dedicated piece on [reseller hosting versus managed cloud](https://www.kloudbean.com/blog/reseller-hosting-vs-managed-cloud/).
 
-<!-- ADD IMAGE: the Add Application screen, running each client's site as its own isolated app from one dashboard you control (../assets/console/add-application.png) -->
+![From request to email](images/gen-2-flow.png)
 
 ## What can you actually put your brand on?
 
@@ -58,13 +58,13 @@ This is where I'd steer you away from the marketing fog, because it's the questi
 
 > **Honest about the tech:** a managed platform is not the same as a "put your logo on our control panel" product, and you should be wary of anyone who blurs that line. The dependable way to keep the host invisible is simple: you run the infrastructure from your own account, and clients get scoped, view-only access to just their site (or no direct access at all). The white-label part, your brand and your relationship, is the layer you present. The plumbing stays behind it.
 
-<!-- ADD IMAGE: an example client-facing touchpoint under your brand, like a monthly site report or care-plan email with your logo (author-supplied) -->
+![Support and Security Trade-offs](images/gen-3-comparison.png)
 
 ## Do my clients ever see the underlying host?
 
 With this done well, not in any way that matters to them. Your client's touchpoints are all yours. You're the one logging in to deploy their site, manage the server, and handle updates.
 
-![The Kloudbean console: deploy and manage client sites that you present under your own brand](../assets/console/git-deployment.png)
+![The Kloudbean console: deploy and manage client sites that you present under your own brand](../assets/console-real/shots/git_connect_step_4.png)
 
 What keeps this clean underneath is **scoped access**. With subusers and User Access Control, you decide exactly what any given login can see and do. Give a client view-only on their own site, and they never encounter another client's name or the guts of the platform. The infrastructure is invisible by design, which is what keeps the relationship centered on you. If you're running many clients this way, pair this with real per-client isolation (its own app, its own database), covered in [how agencies host 20+ client apps](https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/).
 
@@ -96,9 +96,20 @@ There's no universal yes here. But my honest bias: if you intend to keep and gro
 
 The boundary, stated plainly: this is managed Linux hosting underneath. The platform owns the upkeep of the servers, the stack, SSL, and backups. Your clients' sites and data stay theirs and yours. White-label changes whose name is on the experience, not who owns the work. Your clients' content is always their own, and the relationship stays entirely yours. Store their media and off-server backups in [durable backups](https://www.kloudbean.com/blog/server-backups-guide/) and object storage, and the handover on the day a client leaves is clean.
 
-**Be the host your clients see. Skip the data center.** Run client sites under your brand, on infrastructure you don't babysit, from one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**One login. Every client app.**
 
-One dashboard · Per-client isolation · Scoped client access (UAC) · Staging · Automatic backups · Free migration · Free trial
+Consolidate the dashboards: isolated apps on managed servers, per-client databases, per-app backups you can restore individually, and permissions scoped per resource and action.
+
+- One dashboard
+- Per-client isolation
+- Subusers and access control
+- Per-app backups
+- Git deploys
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

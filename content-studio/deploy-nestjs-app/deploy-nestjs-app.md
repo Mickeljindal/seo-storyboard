@@ -65,7 +65,7 @@ node dist/main.js
 
 > **The gotcha that trips up half of all first NestJS deploys.** The Nest CLI (`@nestjs/cli`) lives in `devDependencies`. If you optimize too early and run `npm ci --omit=dev` *before* building, the build fails with `sh: nest: not found` because the tool that compiles your app was never installed. Install everything, build, and only then prune dev deps if you want a leaner runtime. Build first. Prune later, or not at all.
 
-<!-- ADD IMAGE: terminal running npm run build then node dist/main.js, showing the "Nest application successfully started" boot line -->
+![Compile-then-run flow](images/gen-1-terminal.png)
 
 ## Reading config from environment variables with @nestjs/config
 
@@ -154,7 +154,7 @@ pm2 start dist/main.js -i max --name my-nest-api
 
 Start with a single instance. Turn on clustering when your metrics ask for it. And mind the one trap that bites people: the moment you run more than one instance, anything you kept in process memory (an in-memory cache, a local rate-limiter, a Map of sessions) stops being shared. Each worker has its own copy. Move that state into managed Redis and every instance sees the same thing. If you genuinely outgrow a single box, autoscaling and Kubernetes exist for enterprise setups, but the honest truth is most NestJS APIs never need them.
 
-<!-- ADD IMAGE: pm2 list output showing the Nest app online with its restart count -->
+![Uptime and restart count](images/gen-2-flow.png)
 
 ## Deploy your NestJS app from Git
 
@@ -164,7 +164,7 @@ Click **Add Server**, choose a cloud provider (there are seven: AWS, Amazon Ligh
 
 Next, add the application. If you didn't attach one while provisioning, open **Applications** and **Add Application**, then pick the Node stack. Running your Nest API next to a front end or a worker? Multiple apps per server is a first-class feature here, not a hack.
 
-![The Kloudbean Add Application screen: adding a Node.js app to an existing server for the NestJS API](../assets/console/add-application.png)
+![The Kloudbean Add Application screen: adding a Node.js app to an existing server for the NestJS API](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 Now connect Git. In **Git Deployment**, link GitHub (OAuth or an SSH key), paste the repository URL, choose a branch, and clone. Then set the runtime configuration, which is where the build step from earlier becomes real fields:
 
@@ -175,11 +175,11 @@ Now connect Git. In **Git Deployment**, link GitHub (OAuth or an SSH key), paste
 - **Build command:** `npm run build` (this runs `nest build` into `dist/`).
 - **Start command:** `node dist/main.js` (or `npm run start:prod`).
 
-![The Kloudbean Git Deployment tab: connect the repository, choose a branch, and set install, build, and start commands for the NestJS app](../assets/console/git-deployment.png)
+![The Kloudbean Git Deployment tab: connect the repository, choose a branch, and set install, build, and start commands for the NestJS app](../assets/console-real/shots/git_connect_step_4.png)
 
 Hit **Pull & Deploy**. The console pulls the code, runs `npm ci`, compiles with `nest build`, and starts `dist/main.js` under PM2, behind the proxy. The whole thing streams as **live build logs**, so you watch install, compile, and boot scroll past in real time. When you turn on automated deployment, every `git push` to your branch repeats this on its own. That's the CI/CD loop the big platforms sell, running on a server you own, and if you want just that piece we broke it down in [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-<!-- ADD IMAGE: Build and Deployment History with a deploy open and live logs streaming the nest build step -->
+![Live logs of npm ci and nest build](images/gen-3-terminal.png)
 
 ## Connecting a managed database (TypeORM or Prisma)
 
@@ -187,7 +187,7 @@ Almost every NestJS API talks to a database, and the connection should come from
 
 Launch a managed engine from **Launch Database**. Kloudbean runs seven (PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, and MongoDB), provisioned, backed up, and reachable over the local network. For most NestJS APIs that's managed PostgreSQL or MySQL, with Redis alongside for caching or sessions once you cluster. Take the credentials and set them under **Environment Variables** in the app, using the **Paste .env Content** tab to drop your whole file in at once.
 
-![The Kloudbean Environment Variables editor with a paste-dot-env tab, holding DATABASE_URL and secrets for the NestJS app](../assets/console/env-vars.png)
+![The Kloudbean Environment Variables editor with a paste-dot-env tab, holding DATABASE_URL and secrets for the NestJS app](../assets/console-real/shots/nodespm_env_step_1.png)
 
 On the code side, wiring is short. With **TypeORM** through `@nestjs/typeorm`:
 
@@ -243,11 +243,21 @@ The File Manager opens them too. Either way, fix the one line the trace points a
 
 Kloudbean runs NestJS on Linux managed cloud: the Node runtime, PM2, Nginx, SSL, and backups are provisioned and maintained on whichever of the seven clouds you choose. If you need Windows Server that is a Premium or Enterprise conversation, though .NET on Linux is standard. NestJS is a Node framework, so it's squarely in the sweet spot either way. "Managed" means the platform keeps the server and its stack healthy while you own the application: your modules, your data, your config (the port, the env vars, the build and start commands). Because it's a standard Linux box running standard compiled Node, you can move hosts whenever you like, with no per-app tax as you add more. Deploying a plain Express service instead of Nest? See [deploy an Express app](https://www.kloudbean.com/blog/deploy-express-app/). Want the production concerns for Node in general (crash-restart, cluster mode, SIGTERM) in more depth? That's [deploy a Node app to managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/). And if you want the framework-agnostic mental model behind all of this, start at [how to deploy an app](https://www.kloudbean.com/blog/how-to-deploy-any-app/).
 
-## Ship your NestJS API on a server you own
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-Connect a repo, set `npm run build` and `node dist/main.js`, add your env vars, and deploy. PM2, Nginx, and SSL are already wired. Coming from a per-service platform bill? Weigh it in [the Heroku alternative for modern apps](https://www.kloudbean.com/blog/heroku-alternative-for-modern-apps/). Start at [kloudbean.com](https://www.kloudbean.com/); sizes on [pricing](https://www.kloudbean.com/pricing/) from $8/mo, Enterprise custom.
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Git deploy with live logs · PM2 process manager · Free auto-renewing SSL · Seven managed databases · Automatic backups · Free migration · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

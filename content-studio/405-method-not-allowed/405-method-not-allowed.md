@@ -154,11 +154,20 @@ The honest boundary: nobody else can decide which verbs your routes accept or ha
 
 The header side of the preflight problem, [fixing CORS errors](https://www.kloudbean.com/blog/fix-cors-error-node-production/). On redirects converting methods, [302 vs 301](https://www.kloudbean.com/blog/302-found-vs-301-redirect/). Neighbouring status codes: [400 Bad Request](https://www.kloudbean.com/blog/400-bad-request/), [422 Unprocessable Entity](https://www.kloudbean.com/blog/http-422-unprocessable-entity/), [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/), and [409 Conflict](https://www.kloudbean.com/blog/409-conflict-error/). For the proxy layer, [the nginx reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). And on the WordPress API, [the WP REST API guide](https://www.kloudbean.com/blog/wp-rest-api-guide/).
 
-## Requests that reach your application
+<!-- cta:start -->
+**Deploys that tell you what broke.**
 
-Managed servers with nginx routing configured rather than left to location-block ordering, SSH access for real diagnostics, and managed WordPress with the REST API working, from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-Managed nginx · SSH access · Managed WordPress · One dashboard · Flat from $8/mo
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

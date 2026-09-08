@@ -149,11 +149,20 @@ The limit worth stating: no platform can index your tables for you, and none of 
 
 The same word pointing the other way is [408 Request Timeout](https://www.kloudbean.com/blog/http-error-408-request-timeout/), which means the request never finished arriving rather than the response never coming back. Worth reading if your logs carry both, because nginx treats 408 largely as a log-only status and a load balancer in front can report it as a 502. For the neighbouring gateway errors, [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/), [503 after a deploy](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/), and [500 Internal Server Error](https://www.kloudbean.com/blog/http-error-500-internal-server-error/) for the case where the app answered but threw, plus [Cloudflare error codes](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/) when a proxy is involved. If instead the caller stopped waiting before your proxy did, that is logged as [499 client closed request](https://www.kloudbean.com/blog/nginx-499-client-closed-request/), which is the same slow endpoint seen from the other end. On the query side, [MySQL](https://www.kloudbean.com/blog/mysql-performance-tuning/) and [PostgreSQL performance tuning](https://www.kloudbean.com/blog/postgresql-performance-tuning/), plus [connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/). To move slow work out of the request, [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/) and [Celery with Redis](https://www.kloudbean.com/blog/celery-with-redis/). And for the proxy layer itself, [the nginx reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/).
 
-## Limits that already agree with each other
+<!-- cta:start -->
+**Fewer mysteries on the next deploy.**
 
-Managed servers with nginx and PHP-FPM configured together, managed databases and Redis in the same dashboard, visible server metrics, and a resize when you need more capacity. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-Managed servers · Tuned nginx and PHP-FPM · Managed databases and Redis · Server metrics · One dashboard
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

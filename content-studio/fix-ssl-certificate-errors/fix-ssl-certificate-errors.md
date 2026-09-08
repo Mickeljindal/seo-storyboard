@@ -28,7 +28,7 @@ An SSL certificate error is the browser being strict about HTTPS, and it hands y
 
 Before the error list, one picture that explains half of them. Your certificate isn't trusted on its own. It's signed by an intermediate certificate authority, which is signed by a root the browser already trusts. That's a chain, and the browser walks it from your site up to a root it recognizes. Break any link and trust collapses.
 
-<!-- ADD IMAGE: the chain-of-trust diagram. Four boxes left to right (Browser, Your certificate/leaf, Intermediate CA, Root CA/trusted) joined by chain links, with the link between the leaf and the intermediate drawn broken in red and labelled chain breaks here. A dashed arc notes browsers may auto-fetch the missing link but strict clients won't. -->
+![Certificate chain and notAfter date](images/gen-1-terminal.png)
 *Diagram: the chain of trust, browser to leaf certificate to intermediate CA to trusted root, with the leaf-to-intermediate link snapped. A missing intermediate is the "unable to verify the first certificate" error.*
 
 Two of the scariest errors are really just this chain going wrong: a missing middle link (incomplete chain) or a root nobody trusts (self-signed). Keep the picture in mind and they stop being mysterious. Here's the whole error list, and honestly, the vast majority of real SSL pain is two of them: a certificate that expired, and a chain that's missing its middle. Handle those two and you've handled most of what ever goes wrong.
@@ -96,13 +96,24 @@ Read it like this. If `-showcerts` returns a single certificate, your chain is p
 
 Here's the part that quietly deletes four of the six errors above. On managed hosting, the certificate is auto-provisioned for your domain, the full chain is installed correctly, modern protocols are configured, and renewal is automatic. On Kloudbean that's free, auto-renewing Let's Encrypt SSL, and it checks that your domain resolves before it issues, so the "not valid yet" and authority errors don't get a chance to appear. Expiry, chain, authority, and issuance timing all stop being your problem.
 
-![The Kloudbean console: an application served over HTTPS with auto-provisioned, auto-renewing SSL and the full chain installed](../assets/console/add-application.png)
+![The Kloudbean console: an application served over HTTPS with auto-provisioned, auto-renewing SSL and the full chain installed](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 That leaves exactly one on your side of the line: mixed content, because only you know which assets your pages load. It's a Linux and web-server stack underneath, and "managed" means the platform keeps the padlock green (issuing, chaining, and renewing the cert) while you make sure your own pages request everything over HTTPS. Decode the specific message, apply its fix, and the scary red screen goes back to a quiet padlock.
 
-**A green padlock you never have to renew.** Serve your site with free, auto-provisioning, auto-renewing SSL and the full chain installed for you, on [kloudbean.com](https://www.kloudbean.com/). Most of these errors never occur. Plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**The server layer, hardened for you.**
 
-One-line feature recap: Free auto-renewing SSL · Full chain installed · Custom domains · Free migration · Free trial
+Every server ships with a Shorewall firewall and Fail2ban, free auto-renewing SSL, automatic backups, and OS patching handled. Add IP access control or a Basic Auth gate when a site should not be public.
+
+- Shorewall firewall
+- Fail2ban
+- OS patching handled
+- Free SSL
+- IP access control
+- Automatic backups
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

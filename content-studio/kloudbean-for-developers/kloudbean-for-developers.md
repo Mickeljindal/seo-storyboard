@@ -84,11 +84,21 @@ For larger organizations Kloudbean is designed to work like an in-house infrastr
 
 Start with [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/) for the decision framework and [deploy a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) for the hands-on path. Production essentials: [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/), [health checks](https://www.kloudbean.com/blog/nodejs-health-checks/), [graceful shutdown](https://www.kloudbean.com/blog/graceful-shutdown-nodejs/), and [structured logging](https://www.kloudbean.com/blog/structured-logging-nodejs/). Data: [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) and [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). Moving in: [from Heroku](https://www.kloudbean.com/blog/migrate-heroku-to-kloudbean/), [from Render](https://www.kloudbean.com/blog/migrate-render-to-kloudbean/), [from Railway](https://www.kloudbean.com/blog/migrate-railway-to-kloudbean/), or [an API off Vercel](https://www.kloudbean.com/blog/migrate-vercel-api-to-kloudbean/).
 
-## Try it against your own app
+<!-- cta:start -->
+**Ship the app, not the infrastructure.**
 
-Launch a server on your choice of seven clouds, deploy from GitHub with live build logs, add a managed database locked to your app server's IP, and keep a flat bill from $8/mo with no egress metering. Free trial and free migration assistance. Start at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Pick from seven clouds, run your app on a managed server you control, and keep databases, storage, and deploys in the same dashboard instead of four separate vendors.
 
-7 clouds · 7 managed DB engines · Always-on under PM2 · S3-compatible storage · Built-in load balancer · Flat from $8/mo
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

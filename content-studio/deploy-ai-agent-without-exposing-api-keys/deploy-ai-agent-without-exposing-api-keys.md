@@ -59,7 +59,7 @@ const res = await fetch("https://api.openai.com/v1/chat/completions", {
 
 To close it: drop the `NEXT_PUBLIC_` / `VITE_` prefix so the key stops shipping to the client, move the provider call to a server route, and have the browser call that route instead. The frontend now sends a plain request to `/api/chat` and never sees a key at all. That's the fix, and it's the next section.
 
-<!-- ADD IMAGE: Browser DevTools Network tab showing an Authorization: Bearer header exposed on a client-side request. -->
+![Inspecting the leaked header](images/gen-1-panel.png)
 
 ## The fix: put the model behind your own backend
 
@@ -131,7 +131,7 @@ Once the call is server-side, the key belongs in an environment variable, loaded
 
 So `.env` goes in `.gitignore`, and the real values live wherever you run the app. Locally that's a `.env` file you never commit. In production you set them on the server, outside the codebase entirely. On Kloudbean that's a dashboard screen: you set `OPENAI_API_KEY` there and it's injected into the app's environment at runtime, so the value never enters the repo the Git deploy pulls from. The practical benefit isn't the screen, it's that the key and the code now live in two different places, which is what makes the next section painless. If you want the full treatment, our guides on [secrets management](https://www.kloudbean.com/blog/secrets-management/) and [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) go deeper than I can here.
 
-![Setting an API key as an environment variable in the Kloudbean dashboard so it stays on the server and out of the codebase](../assets/console/env-vars.png)
+![Setting an API key as an environment variable in the Kloudbean dashboard so it stays on the server and out of the codebase](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ## When a key leaks anyway, rotate it fast
 
@@ -196,11 +196,21 @@ The host rows are the ones a deployment choice actually settles, which is why th
 
 Where that stops: managed covers the server, the stack, SSL, backups, and patching. Your agent's code, your auth, your quotas, and your data stay yours. And you don't need a private network for any of this. A VPC is part of the Enterprise package, it isn't the default on a standard plan, and an API key kept server-side behind an authenticated endpoint is safe without one. Anyone selling you network isolation as the answer to a leaked key is solving a different problem. If your agent also needs somewhere durable for chat history or user data, see [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
 
----
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-**Give your agent's key a server to live on.** Run your Node or Python backend always-on, set your provider keys as environment variables in the dashboard so they never reach the browser or your repo, and get free SSL, a Shorewall firewall, and IP Access Control from the start. One dashboard for the app, the keys, and the database behind it. Start free at [kloudbean.com](https://www.kloudbean.com/) · see plans on [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Server-side env vars · Server-side Node & Python · Free SSL · Shorewall + Fail2ban · IP allow-listing · Automatic backups · Free migration
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -23,7 +23,7 @@ None of that work belongs on the request path. Leave it there and things break i
 
 The fix is old and boring and it works. Hand the slow work to a queue and return right away. The user gets a response in milliseconds. A separate process does the real work a moment later, retries if it fails, and no one's browser is held hostage while it happens.
 
-<!-- ADD IMAGE: App log showing a request that blew past the 30s worker timeout and returned a 504, the exact failure this article prevents. -->
+![Worker task exceeds timeout](images/gen-1-flow.png)
 
 ## Celery with Redis: how the pieces fit together
 
@@ -103,7 +103,7 @@ celery -A app worker --loglevel=info --concurrency=4
 
 > **Web app and worker are two separate processes.** Your app server (gunicorn, uvicorn) handles requests and enqueues jobs. The worker runs them. They never share memory, only the broker URL. So the worker has to be running for anything to happen. If nobody starts it, jobs just pile up in Redis and go nowhere.
 
-<!-- ADD IMAGE: Terminal screenshot of the Celery worker booting: the startup banner, the broker line, the registered task list, and four ready processes. -->
+![Real replies, not pseudo-code](images/gen-2-terminal.png)
 
 ## Celery Beat: periodic tasks on a schedule
 
@@ -195,7 +195,7 @@ Everything you pass to a task gets serialized into Redis and sits there until a 
 
 A queue you can't see is a queue you can't trust. **Flower** is the usual answer, a small web dashboard that shows active workers, task rates, and which jobs succeeded, failed, or retried. Run it next to your worker (`celery -A app flower`) and put it behind auth. Beyond that, watch queue length in Redis. A number that only climbs means your workers can't keep up, and it's the earliest warning you'll get.
 
-<!-- ADD IMAGE: Flower dashboard showing active workers, task throughput, and a mix of succeeded and retried tasks. -->
+![Task throughput increases](images/gen-3-graph.png)
 
 ## Deploy Celery and Redis on Kloudbean
 
@@ -203,7 +203,7 @@ Here's the part the tutorials skip: where does this actually run? On Kloudbean i
 
 1. **Launch a managed Redis.** Open the DBS section and hit Launch Database. Redis is one of the managed engines, so it's provisioned, secured, backed up, and reachable only from your whitelisted app server's IP in a minute or two.
 
-![The Kloudbean console launching a managed Redis, the broker for Celery, from the list of managed database engines](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed Redis, the broker for Celery, from the list of managed database engines](../assets/console-real/shots/redis_launch_step_1.png)
 
 2. **Set the broker URL as an environment variable.** Open Runtime Configuration then Environment Variables and add your Redis connection. Both the app and the worker read the same value.
 
@@ -215,7 +215,7 @@ CELERY_BROKER_URL=redis://:sup3r-secret@10.0.0.6:6379/0
 CELERY_RESULT_BACKEND=redis://:sup3r-secret@10.0.0.6:6379/1
 ```
 
-![The Kloudbean console Environment Variables screen, where CELERY_BROKER_URL is stored safely instead of in code](../assets/console/env-vars.png)
+![The Kloudbean console Environment Variables screen, where CELERY_BROKER_URL is stored safely instead of in code](../assets/console-real/shots/nodespm_env_step_1.png)
 
 That `10.0.0.6` is an internal address, and the password rides in the URL. Because it's an env var, you rotate it without touching code. There's a fuller treatment in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
@@ -224,7 +224,7 @@ That `10.0.0.6` is an internal address, and the password rides in the URL. Becau
 
 ![The Kloudbean console cron jobs screen, an alternative to Celery Beat for simple recurring schedules](../assets/console/cron-jobs.png)
 
-<!-- ADD IMAGE: The worker running as a supervised long-lived process on the server, with its logs streaming. -->
+![Long-lived process on server](images/gen-4-flow.png)
 
 ## Keep Redis and your tasks secure
 
@@ -239,13 +239,20 @@ A broker holds your pending work, and sometimes that work carries sensitive argu
 
 A task queue rarely travels alone. The worker writes to a database, so a [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) usually sits next to Redis. The same Redis often caches your hot reads. And if part of your platform is a Node service instead of Python, the pattern is identical for a [Node app](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) with a queue like BullMQ, also backed by Redis. One dashboard, one server, one bill, and the slow work living where it belongs.
 
----
+<!-- cta:start -->
+**A database you can dump and take with you.**
 
-**Move the slow work off the request.**
+Seven managed engines, provisioned and patched for you, with access controlled and backups running automatically. Your schema, your queries, and your data stay exportable with the standard tools.
 
-Launch managed Redis as your Celery broker, deploy your Python app beside it, and run your worker on the same server. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
 
-One-click managed Redis · Automatic backups · Free migration assistance · Free trial · Simple Git deploy
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

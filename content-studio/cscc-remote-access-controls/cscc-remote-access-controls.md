@@ -83,11 +83,21 @@ Three things in this group no host fixes, ours included. Where your engineers ph
 
 For the framework overview see [NCA CSCC explained](https://www.kloudbean.com/blog/nca-cscc-compliance-guide/), and for the gap list [the critical systems hosting checklist](https://www.kloudbean.com/blog/critical-systems-hosting-checklist/). The database side of access control is in [CSCC 2-2-1-8](https://www.kloudbean.com/blog/database-private-access-control/), and session logging in [CSCC 18-month log retention](https://www.kloudbean.com/blog/cscc-log-retention-immutable-logs/). On the networking concepts, [what is a VPC](https://www.kloudbean.com/blog/what-is-a-vpc/), and for residency [data residency in Saudi Arabia](https://www.kloudbean.com/blog/data-residency-saudi-arabia/).
 
-## One door, logged, with no route from outside
+<!-- cta:start -->
+**Build the infrastructure half properly.**
 
-Kloudbean runs managed enterprise engagements with VPN-enforced remote access, direct SSH from the internet blocked, a dedicated bastion for privileged access, MFA, quarterly access reviews, and private-only databases, on in-Kingdom infrastructure where required. Start a conversation at [kloudbean.com](https://www.kloudbean.com/).
+On managed enterprise engagements Kloudbean builds and maintains the infrastructure controls, with evidence delivered as managed reports and in-Kingdom hosting available. The policy, staffing, and application-layer work remains yours, which is the honest boundary.
 
-VPN-only access · Bastion host · No public SSH · MFA · Quarterly access reviews · In-Kingdom available
+- In-Kingdom (Dammam) available
+- Centralised logging
+- Immutable log storage
+- Private database access
+- MFA and least privilege
+- Automatic backups
+- Evidence as managed reports
+
+[Start free](https://console.kloudbean.com/register) · [Talk to a cloud expert](https://calendly.com/kloudbean)
+<!-- cta:end -->
 
 ## FAQ
 

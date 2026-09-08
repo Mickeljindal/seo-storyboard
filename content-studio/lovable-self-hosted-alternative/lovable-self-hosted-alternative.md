@@ -54,7 +54,7 @@ Of everything you take ownership of, data is the one that matters most and gets 
 
 So ask the question that should drive the whole decision: *where does my data live, and can I get all of it out, today, without asking anyone?* If the honest answer is "I'm not totally sure" or "I'd have to figure it out," that's your signal. Self-hosting gives that question a reassuring answer. The database sits on your server, you can back it up on your terms, export it whenever you like, query it directly to answer a support question, and carry it with you if you change hosts. On a managed server you launch a real [Postgres or MySQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), connect it through environment variables, and it's yours, readable and portable. The full mechanics are in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
 
-![Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance you own](../assets/console/launch-database.png)
+![Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance you own](../assets/console-real/shots/psql_launch_step_1.png)
 
 ## What owning it actually gets you
 
@@ -81,7 +81,7 @@ Being straight about the money: owning isn't automatically cheaper. At tiny scal
 
 The mechanics are the same clean flow any Lovable deploy uses, and the [step-by-step guide](https://www.kloudbean.com/blog/deploy-lovable-app-to-your-own-server/) covers every field. In short: sync your Lovable project to GitHub, then on a platform like [Kloudbean](https://www.kloudbean.com/), launch a server and open **Application Administration, Deploy Code**.
 
-![Kloudbean Deploy Code / Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy](../assets/console/git-deployment.png)
+![Kloudbean Deploy Code / Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy](../assets/console-real/shots/git_connect_step_4.png)
 
 Connect the repo, set the runtime fields, launch a managed database so your data lives on your server, add your environment variables, attach your domain with a free Let's Encrypt certificate, and switch on auto-deploy. That's it. The app now runs on a server you own, with your data and your domain, redeploying when you push. If you built with more than one tool, the [tool-agnostic deploy guide](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) covers Cursor, Bolt, and v0 too.
 
@@ -95,7 +95,20 @@ Being straight one more time: managed hosting is not the fully DIY, run-every-la
 
 Kloudbean runs Linux web stacks: Node and the modern web toolkit (React, Next.js, Vue) that Lovable produces, plus PHP, Python, Ruby, and Java. Linux handles .NET. Windows Server is a Premium and Enterprise arrangement. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and automatic backups; you own and maintain the application itself. That division (you own the app and data, the platform keeps the server healthy) is precisely the "self-hosted without the sysadmin work" arrangement most Lovable builders actually want.
 
-**Built in a tool. Owned by you.** Own your app at [kloudbean.com](https://www.kloudbean.com/). One-click databases · automatic backups · IP allow-listing · assisted migration · Git deploy. Plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Move it once. Own it after.**
+
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
+
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

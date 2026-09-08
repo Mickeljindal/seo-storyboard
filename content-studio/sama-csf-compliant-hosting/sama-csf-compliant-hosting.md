@@ -73,11 +73,21 @@ What the infrastructure half buys is that the technical controls and their evide
 
 Financial institutions in the Kingdom also fall under the NCA frameworks: start with [the NCA CSCC guide](https://www.kloudbean.com/blog/nca-cscc-compliance-guide/) for critical systems and [NCA ECC compliant hosting](https://www.kloudbean.com/blog/nca-ecc-compliant-hosting/) for the baseline. For the personal-data side, [PDPL compliant hosting](https://www.kloudbean.com/blog/pdpl-compliance-hosting/). The residency question runs through [data residency in Saudi Arabia](https://www.kloudbean.com/blog/data-residency-saudi-arabia/) and [the GCP Dammam region guide](https://www.kloudbean.com/blog/gcp-dammam-region-guide/), and the managed-database angle is in [managed databases with Saudi data sovereignty](https://www.kloudbean.com/blog/managed-databases-saudi-data-sovereignty/).
 
-## Build the infrastructure half your SAMA assessment needs.
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-On managed engagements Kloudbean delivers the operations-and-technology controls the framework describes, in-Kingdom on the Dammam region, with evidence as managed reports that feed your own assessment. Start the conversation at [kloudbean.com](https://www.kloudbean.com/), and see the wider picture in [cloud hosting in Saudi Arabia](https://www.kloudbean.com/blog/cloud-hosting-saudi-arabia/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Operations-and-technology controls · In-Kingdom Dammam region · Evidence as managed reports · Governance stays yours
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

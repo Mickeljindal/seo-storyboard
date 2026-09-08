@@ -32,7 +32,7 @@ Think about what actually happened. You didn't rewrite anything. You gave the sa
 
 It helps to see it. The app answers on the new domain, but four things in and around it still hold the old preview URL, and each one is its own separate break.
 
-<!-- ADD IMAGE: bespoke SVG. The same app now at app.yourdomain.com (loads fine), with four parts still pointing at old-preview.app, each flagged as a break point: the frontend API base (calls 404), the CORS allow-list (browser blocks it), the cookie domain (login drops), and the OAuth redirect URI (sign-in fails). -->
+![Ensure your app can authenticate with Kloudbean](images/gen-3-panel.png)
 
 Vibe-coded apps hit this harder than most, because the builder wires everything to the preview URL to get you a working demo fast. It's one more item on the [last mile of vibe coding](https://www.kloudbean.com/blog/last-mile-of-vibe-coding/), the gap those tools leave for you to finish. If your app never worked in production at all, that's a different problem, covered in [why your AI app works locally but not in production](https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/).
 
@@ -50,7 +50,7 @@ Start here. Find the thing on your screen in the left column, and the middle col
 | ERR_TOO_MANY_REDIRECTS | Conflicting http/https or www/apex redirect rules | Force one canonical https host |
 | An https error right after pointing DNS | The certificate is still provisioning | Wait a few minutes, then check the config |
 
-<!-- ADD IMAGE: the browser Network tab after the domain switch, showing requests still going to the old preview URL instead of the new domain. -->
+![Comparison of error messages](images/gen-2-comparison.png)
 
 ## CORS: your API still only trusts the old origin
 
@@ -90,7 +90,7 @@ fetch('/api/users')
 
 And now the honest anti-pattern, because it's the reason this drags on. The builder rarely hardcodes the URL once. It hardcodes it in a dozen places: the API base, the redirect after login, share links, the sitemap, Open Graph tags, the reset-password email. So the app half-works on the new domain, and every spot you miss is a silent failure that only shows up when a specific user hits that specific path. Don't fix them one bug report at a time. Grep the whole codebase for the old hostname and replace every hit in one pass. If you're unsure how build-time versus runtime variables behave, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) sorts it out.
 
-<!-- ADD IMAGE: the dashboard environment variables screen with the app URL variable set to the new custom domain, ready for a rebuild. -->
+![the dashboard environment variables screen with the app URL variable set to the new custom domain, ready for a rebuild.](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ## HTTPS: mixed content and redirect loops
 
@@ -151,9 +151,20 @@ That split is also the honest line between what a platform does and what you do.
 
 The second category is not something any host fixes, and I'd rather be straight about that than imply otherwise. Nothing on our side knows your API's allow-list, your cookie's `Domain` attribute, or which of your six providers still has the preview URL registered, because those strings live in your code and in other companies' dashboards. A platform claiming to handle that would be guessing at your security config, which you would not want. So: grep the codebase for the old hostname, work through the providers one at a time, and keep the old URL registered until the cutover is done. Ten unglamorous minutes, and it's finished properly.
 
-**Give your app a real address without the day of whack-a-mole.** Add a custom domain with free SSL provisioned automatically, set the app's URLs as environment variables in the dashboard, and rebuild in one Git push when something needs to change. One dashboard, one account. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Read the log, fix it, ship again.**
 
-Custom domain + free SSL · Environment variables in the dashboard · Git deploy (rebuild in one push) · Free migration · Free trial
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
+
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

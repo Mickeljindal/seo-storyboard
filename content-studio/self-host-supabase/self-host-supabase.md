@@ -61,7 +61,7 @@ My honest take: if you're prototyping, none of this matters yet and you should s
 | **You maintain** | Almost nothing | Stack updates and database backups |
 | **Best for** | Prototypes, small apps, hands-off teams | Data ownership, residency, cost at scale |
 
-<!-- ADD IMAGE: Your Supabase Cloud usage page, the meter that got you looking at self-hosting. -->
+![From cloud to self-hosted](images/gen-1-flow.png)
 
 ## The honest tradeoff nobody mentions
 
@@ -73,11 +73,11 @@ A managed platform softens that a lot, but it doesn't erase it. On Kloudbean the
 
 The fastest way to a running Supabase you own is the one-click app. Add an application, pick Supabase, and the platform provisions the whole stack on your server. No `docker-compose` wrangling, no assembling services by hand.
 
-![The Kloudbean console Add Application screen where Supabase can be deployed in one click onto your own server](../assets/console/add-application.png)
+![The Kloudbean console Add Application screen where Supabase can be deployed in one click onto your own server](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 There's a second path. If you actually want a plain, standalone **managed PostgreSQL** for your own app (not the full Supabase bundle), Kloudbean runs that as its own product, backed up and locked to your app server's IP. That's the route many people take when they realize they used Supabase mostly for its database. The [add a managed database](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) guide walks through it, and there's a dedicated [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) page too.
 
-<!-- ADD IMAGE: Supabase Studio running on your own domain, showing the table editor with your project's tables. -->
+![Live on your server vs. hosted](images/gen-2-comparison.png)
 
 ## The keys that actually matter
 
@@ -90,7 +90,7 @@ This is the step people skip, and it's the one that gets them hacked. Supabase i
 
 These go in your environment variables on the server, never in code that could land in a Git repo:
 
-![The Kloudbean console Environment Variables screen where Supabase secrets are stored safely instead of in the code repository](../assets/console/env-vars.png)
+![The Kloudbean console Environment Variables screen where Supabase secrets are stored safely instead of in the code repository](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ```bash
 # Change every one of these before real data goes in
@@ -108,7 +108,7 @@ Set them, save, restart the stack so it picks them up. Boring work. Also the sin
 
 Not starting fresh? Because Supabase is Postgres underneath, bringing your Cloud project over is an ordinary database migration, not a special export format. You dump the Cloud database and load it into your own instance:
 
-![The Kloudbean console Launch Database screen used when migrating Supabase Postgres data to a database you own](../assets/console/launch-database.png)
+![The Kloudbean console Launch Database screen used when migrating Supabase Postgres data to a database you own](../assets/console-real/shots/psql_launch_step_1.png)
 
 ```bash
 # Export from your Supabase Cloud project (it's just Postgres)
@@ -120,7 +120,7 @@ psql "postgresql://postgres:PASSWORD@postgres-123456.kloudbeansite.com:5432/post
 
 Tables, rows, and relationships come across intact, because it's the same engine on both ends. Storage files (your uploads) move separately: copy them into your self-hosted Storage bucket. Do it while the Cloud project is still live, verify row counts and a few real queries on the new instance, then flip your app's URL over. Keep the Cloud project around until the new one is serving real traffic.
 
-<!-- ADD IMAGE: Terminal showing pg_dump finishing and psql loading the rows into your own instance. -->
+![Loading rows into your instance](images/gen-3-terminal.png)
 
 ## Your database is the whole ballgame
 
@@ -140,11 +140,21 @@ The decision isn't ideological. It's about whether ownership and predictable cos
 
 Worth calling out, because it catches people by surprise. If you built your app with **Lovable**, there's a strong chance it already uses Supabase for its database and auth. That makes this article your natural next step: instead of staying tied to a hosted Supabase project, you can move the backend onto infrastructure you own and take the frontend with it. We wrote the specifics up in [the Lovable self-hosted alternative](https://www.kloudbean.com/blog/lovable-self-hosted-alternative/) and [moving a Lovable app off Vercel](https://www.kloudbean.com/blog/move-lovable-app-off-vercel/). And if you're weighing other tools to run yourself, the [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup and the sibling [self-host n8n](https://www.kloudbean.com/blog/self-host-n8n/) guide are good company, and [self-hosting Penpot](https://www.kloudbean.com/blog/self-host-penpot/) is another one-click app worth a look if design is on your list. For a Firebase-style, document-based take on the same backend job, [self-hosting Appwrite](https://www.kloudbean.com/blog/self-host-appwrite/) is the alternative to compare.
 
----
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-**Own the backend, keep the keys.** Launch Supabase in one click on a server you control, with the OS, SSL, and server backups handled and your data in your region. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-One-click Supabase · Managed PostgreSQL · Automatic backups · Free migration · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

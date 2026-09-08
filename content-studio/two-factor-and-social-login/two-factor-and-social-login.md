@@ -79,11 +79,21 @@ Same bar for both doors: a second factor, sane session cookies, and social login
 
 Authentication is who you are; for what each person is allowed to do once in, see the [subusers and access-control guide](https://www.kloudbean.com/blog/subuser-and-uac-guide/). Keep the secrets behind your login safe with [secrets management](https://www.kloudbean.com/blog/secrets-management-guide/), harden the session further with the [security headers guide](https://www.kloudbean.com/blog/security-headers-guide/), and restrict who can even reach an admin login with [IP allowlisting](https://www.kloudbean.com/blog/ip-allowlisting-guide/). The overview is [secure and compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 
-## Sign in strong, from the first click.
+<!-- cta:start -->
+**Own the server. Skip the server admin.**
 
-Log in to Kloudbean with Google, GitHub, or LinkedIn, with HttpOnly session cookies by default and MFA on console and VPN for enterprise engagements. A hardened account layer for the whole stack you run. [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/) covers the platform difference; [kloudbean.com](https://www.kloudbean.com/) is where you start.
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
 
-Social login (Google, GitHub, LinkedIn) · HttpOnly sessions · Enterprise MFA · One dashboard
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

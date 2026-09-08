@@ -155,10 +155,21 @@ Anywhere that runs your language and lets you set environment variables. That is
 Kloudbean is one managed option here. It runs your Node or Python backend on a managed server, gives you a managed database, and lets you keep secrets as environment variables, so the API-key discipline above is built into the workflow rather than bolted on afterward. If you later decide to self-host a model, managed GPU servers are a separate path on the same platform, so that door stays open. But treat that as a footnote to the real point: an app that calls the OpenAI API is a web app, and you should host it like one.
 
 <div class="cta">
-  <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Shipping an app that calls a model API?</p>
-  <p style="margin:0 0 .5em">It is a normal web app, so host it like one. Kloudbean runs your Node or Python backend on a managed server, with a managed database, free SSL, and environment variables for your API keys. If you later self-host a model, managed GPU servers are there too.</p>
-  <p style="margin:0">Managed servers · Managed databases · Free SSL · Environment variables for secrets · Managed GPU when you need it. See <a href="https://www.kloudbean.com/">kloudbean.com</a> and <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-</div>
+<!-- cta:start -->
+**Take it off localhost for good.**
+
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

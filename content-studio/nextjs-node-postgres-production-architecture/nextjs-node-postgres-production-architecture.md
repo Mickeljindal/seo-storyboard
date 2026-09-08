@@ -130,9 +130,20 @@ On a managed platform that list is close to the default rather than a project. K
 
 Three things stay yours no matter how much of this you hand over, and they're the three most likely to break your launch. A missing index will be slow on any host. A pool sized wrong will exhaust any Postgres. And your app crashing on boot is not something any host fixes, ours included, because a managed server starts the process you gave it faithfully, including the broken one, and restarts it just as faithfully. Managed means the floor is solid. The building is still your work. The frontend step-by-step is in [deploying a Next.js app to your own server](https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/), and the AI-app variant of this architecture is in [the AI app reference architecture](https://www.kloudbean.com/blog/ai-app-reference-architecture/).
 
----
+<!-- cta:start -->
+**Managed, backed up, and still yours.**
 
-**Keep the architecture, skip the wiring.** A managed server for your Next.js and Node API, a managed PostgreSQL beside it, with free SSL and automatic backups from one dashboard. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+Seven managed engines, provisioned and patched for you, with access controlled and backups running automatically. Your schema, your queries, and your data stay exportable with the standard tools.
+
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

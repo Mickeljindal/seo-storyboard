@@ -131,23 +131,81 @@ curl -vI https://example.com</code></pre>
   <p>Read it like this. If <code>-showcerts</code> returns a single certificate, your chain is probably incomplete, because a healthy server sends the leaf and at least one intermediate. A <code>notAfter</code> date in the past means it's expired. If the <code>subject</code> or its subject-alternative names don't include the exact host you typed, that's your name mismatch. And <code>curl</code> failing with a certificate error while a browser stays happy is the classic fingerprint of a missing intermediate. Two minutes here beats an afternoon of guessing.</p>
 
   <!-- IMAGE SLOT: replace with a real figure + img (src -> images/openssl-chain.png) + figcaption -->
-  <figure class="img-slot"><span><b>Add image</b><em>A terminal showing openssl s_client output, with the certificate chain and the notAfter date highlighted.</em><small>Shows readers exactly what a healthy chain versus a broken one looks like.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #1
+Create a realistic terminal / command-line screenshot for a technical blog post titled "SSL Certificate Errors, Decoded: Fix Each One by the Message You See".
+
+What it must show: A terminal showing openssl s_client output, with the certificate chain and the notAfter date highlighted.
+Also: Shows readers exactly what a healthy chain versus a broken one looks like.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-terminal.png" alt="A terminal showing openssl s_client output, with the certificate chain and the notAfter date highlighted.">
+    <figcaption>Certificate chain and notAfter date</figcaption>
+  </figure>
 
   <h2>Why most of this never happens on managed SSL</h2>
   <p>Here's the part that quietly deletes four of the six errors above. On managed hosting, the certificate is auto-provisioned for your domain, the full chain is installed correctly, modern protocols are configured, and renewal is automatic. On Kloudbean that's free, auto-renewing Let's Encrypt SSL, and it checks that your domain resolves before it issues, so the "not valid yet" and authority errors don't get a chance to appear. Expiry, chain, authority, and issuance timing all stop being your problem.</p>
 
   <figure>
-    <img src="../assets/console/add-application.png" alt="The Kloudbean console: an application served over HTTPS with auto-provisioned, auto-renewing SSL and the full chain installed">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="The Kloudbean console: an application served over HTTPS with auto-provisioned, auto-renewing SSL and the full chain installed">
     <figcaption>Auto-provisioned, auto-renewing SSL with the complete chain, so the expiry, chain, and authority errors simply don't occur.</figcaption>
   </figure>
 
   <p>That leaves exactly one on your side of the line: mixed content, because only you know which assets your pages load. It's a Linux and web-server stack underneath, and "managed" means the platform keeps the padlock green (issuing, chaining, and renewing the cert) while you make sure your own pages request everything over HTTPS. Decode the specific message, apply its fix, and the scary red screen goes back to a quiet padlock.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A green padlock you never have to renew.</p>
-    <p style="margin:0 0 .6em">Serve your site with free, auto-provisioning, auto-renewing SSL and the full chain installed for you, on <a href="https://www.kloudbean.com/">kloudbean.com</a>. Most of these errors never occur. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Free auto-renewing SSL · Full chain installed · Custom domains · Free migration · Free trial</p>
+<div class="kbcta-sec-wrap">
+  <div class="kbcta-sec-overlay"></div>
+  <div class="kbcta-sec-content">
+    <div class="kbcta-sec-eyebrow">SECURITY &middot; HARDENED BY DEFAULT</div>
+    <p class="kbcta-sec-heading">The server layer, hardened for you.</p>
+    <p class="kbcta-sec-description">Every server ships with a Shorewall firewall and Fail2ban, free auto-renewing SSL, automatic backups, and OS patching handled. Add IP access control or a Basic Auth gate when a site should not be public.</p>
+    <ul class="kbcta-sec-features">
+      <li>&#10003; Shorewall firewall</li>
+      <li>&#10003; Fail2ban</li>
+      <li>&#10003; OS patching handled</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; IP access control</li>
+      <li>&#10003; Automatic backups</li>
+    </ul>
+    <div class="kbcta-sec-buttons">
+      <a class="kbcta-sec-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-sec-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-sec: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-sec-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-sec-wrap *{box-sizing:border-box}
+.kbcta-sec-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-sec-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-sec-content{position:relative;z-index:3;max-width:700px}
+.kbcta-sec-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-sec-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-sec-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-sec-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-sec-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-sec-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-sec-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-sec-btn:hover,.kbcta-sec-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-sec-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-sec-link:hover,.kbcta-sec-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-sec-wrap{padding:36px 24px}
+  .kbcta-sec-heading{font-size:31px}
+  .kbcta-sec-description{font-size:16px}
+  .kbcta-sec-features li{white-space:normal}
+  .kbcta-sec-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-sec-btn{width:100%}
+  .kbcta-sec-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

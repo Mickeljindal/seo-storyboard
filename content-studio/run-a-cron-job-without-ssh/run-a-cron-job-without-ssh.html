@@ -134,7 +134,21 @@ env -i /bin/sh -c 'cd /var/www/app &amp;&amp; php artisan schedule:run'</code></
   <p>Nine times out of ten the culprit is one of those four: PATH, working directory, a missing variable, or the timezone. It's almost never the schedule itself.</p>
 
   <!-- ADD IMAGE: a terminal tailing a cron log file, showing one successful run and one failure with a stack trace. Swap for a real screenshot: src -> images/cron-log-tail.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A log file being tailed, showing one clean cron run and one that failed with an error.</em><small>Makes the "capture the output" point concrete: silent jobs hide exactly this.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #1
+Create a left-to-right architecture / flow diagram for a technical blog post titled "How to Run a Cron Job Without SSH (and Actually Understand Cron)".
+
+What it must show: A log file being tailed, showing one clean cron run and one that failed with an error.
+Also: Makes the "capture the output" point concrete: silent jobs hide exactly this.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-flow.png" alt="A log file being tailed, showing one clean cron run and one that failed with an error.">
+    <figcaption>From log tail to error capture</figcaption>
+  </figure>
 
   <h2>Cron for Laravel, Django, Node, and a plain URL</h2>
   <p>Each framework has a preferred shape for scheduled work. The ones you'll actually hit:</p>
@@ -181,7 +195,21 @@ cron.schedule('*/5 * * * *', () =&gt; runCleanup());</code></pre>
   <p>System cron, or a platform scheduler, runs independently of your app. It fires once, on time, whether the app is up or not. My honest take: if a duplicate or missed run would cost real money, charge a card twice, double-send an email, corrupt a report, don't put it in-process. In-process schedulers are fine for lightweight, idempotent work on a single instance, and nice when you can't touch the server. For anything that must run exactly once, use real cron. If you're weighing how app processes stay alive at all, <a href="https://www.kloudbean.com/blog/deploy-express-app/">deploying an Express app</a> covers the process-management side.</p>
 
   <!-- ADD IMAGE: a simple before/after showing an in-process scheduler resetting on deploy versus system cron continuing to fire. Swap for a real screenshot: src -> images/inprocess-vs-cron.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>In-process schedule resetting on every deploy, next to a system cron that keeps firing on time.</em><small>The core reason billing and email jobs belong in system cron.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "How to Run a Cron Job Without SSH (and Actually Understand Cron)".
+
+What it must show: In-process schedule resetting on every deploy, next to a system cron that keeps firing on time.
+Also: The core reason billing and email jobs belong in system cron.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="In-process schedule resetting on every deploy, next to a system cron that keeps firing on time.">
+    <figcaption>In-process vs. system cron</figcaption>
+  </figure>
 
   <h2>How to schedule a cron job without SSH on Kloudbean</h2>
   <p>Everything above is real cron knowledge you can use anywhere. The friction is the SSH step: shell access, editing a file by hand, no window into whether it ran. A managed dashboard removes that. On Kloudbean, cron jobs have lived in the UI since 2024, scheduled per application with no terminal.</p>
@@ -196,25 +224,84 @@ cron.schedule('*/5 * * * *', () =&gt; runCleanup());</code></pre>
   <p>The only prerequisite is an app to attach them to: launch a server, deploy, then schedule jobs against it.</p>
 
   <figure>
-    <img src="../assets/console/add-application.png" alt="Adding an application in the Kloudbean console before attaching cron jobs to it">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="Adding an application in the Kloudbean console before attaching cron jobs to it">
     <figcaption>Cron jobs attach to an application, so you add the app first. Deploy it, then schedule tasks against it from the same dashboard.</figcaption>
   </figure>
 
   <p>If your code ships from Git, connect the repo so deploys are automatic and let the scheduled command run against whatever's live. That half is covered in <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a>. And because the box underneath is a real, patched, backed-up machine rather than an opaque function, the cron behaves like cron always has, just without the terminal. New to the phrase "managed server"? Here's <a href="https://www.kloudbean.com/blog/what-is-a-managed-server/">what a managed server actually includes</a>.</p>
 
   <!-- ADD IMAGE: your own Cron Jobs list with two or three real jobs added, showing the schedule and command columns. Swap for a real screenshot: src -> images/my-cron-list.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Your own cron list with a couple of real jobs added, schedule and command visible.</em><small>Shows the "one readable list instead of a hidden crontab" payoff on a real account.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #3
+Create a realistic terminal / command-line screenshot for a technical blog post titled "How to Run a Cron Job Without SSH (and Actually Understand Cron)".
+
+What it must show: Your own cron list with a couple of real jobs added, schedule and command visible.
+Also: Shows the "one readable list instead of a hidden crontab" payoff on a real account.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-terminal.png" alt="Your own cron list with a couple of real jobs added, schedule and command visible.">
+    <figcaption>Real cron jobs visible here</figcaption>
+  </figure>
 
   <div class="note"><b>Rule of thumb:</b> schedule the smallest, most idempotent command you can, capture its output, and pick a cadence that comfortably outlasts the job's own runtime. A task that runs in 20 seconds is safe every 5 minutes. A task that takes 6 minutes is not.</div>
 
   <h2>What is yours and what is not</h2>
   <p>Cron is wonderfully dumb, and that's a feature. It runs a command at a set time. It doesn't know whether the command succeeded, won't retry a failed run, and can't recover one missed while the server was down. If you need retries, dead-letter handling, or fan-out across a fleet, that's a job queue's job (Celery, Sidekiq, BullMQ), not cron's. Reach for cron when the task is "run this on this cadence," which is most scheduled work. Reach for a queue when you need delivery guarantees.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Schedule tasks without touching a terminal.</p>
-    <p style="margin:0 0 .6em">Add cron jobs from the dashboard, pick the cadence, paste a command or a URL, and let a managed server run them on time. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, or see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">Cron jobs in the UI &middot; No SSH &middot; Managed servers &middot; Git deploys &middot; Automatic backups &middot; Free migration &middot; Free trial</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">You built the app. Give it a real home.</p>
+    <p class="kbcta-ai-description">Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

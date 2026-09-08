@@ -138,15 +138,20 @@ The line stays where it always is. The platform owns the server, the stack, TLS,
 
 The rest of the 5xx family starts with [500 Internal Server Error](https://www.kloudbean.com/blog/http-error-500-internal-server-error/) when your app runs and throws, and [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/) when the proxy cannot get an answer at all. At the edge, [Cloudflare's 5xx codes](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/). The closest neighbours to a 505 are [400 Bad Request](https://www.kloudbean.com/blog/400-bad-request/) for a malformed request and [431 Request Header Fields Too Large](https://www.kloudbean.com/blog/http-error-431-request-header-fields-too-large/) when the headers, not the version, are the problem. For the layer that usually emits a 505, [nginx as a reverse proxy](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/) and [nginx versus Apache](https://www.kloudbean.com/blog/nginx-vs-apache/). And when nothing connects at all, [this site can't be reached](https://www.kloudbean.com/blog/this-site-cant-be-reached/).
 
----
+<!-- cta:start -->
+**Deploys that tell you what broke.**
 
-### Stop debugging the wrong box.
+Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.
 
-Managed servers across seven clouds with a patched reverse proxy configured to talk the right HTTP version upstream, application and server logs in one dashboard so you can see which layer answered, free SSL issued and renewed, staging for WordPress and Laravel, and automatic backups. Standard plans from $8/mo, and free migration assistance if you are moving something that already works. Start at [kloudbean.com](https://www.kloudbean.com/) or check current [pricing](https://www.kloudbean.com/pricing/).
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
 
-Managed proxy · App and server logs · Free SSL · Staging · Automatic backups · Seven clouds
-
----
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

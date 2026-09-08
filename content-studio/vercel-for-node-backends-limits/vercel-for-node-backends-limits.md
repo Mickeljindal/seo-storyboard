@@ -65,11 +65,21 @@ The genuinely fair part: if you love Vercel for your Next.js frontend, keep it t
 
 Moving a backend off serverless is mostly about the model, not the language. See [a Vercel alternative for full-stack apps](https://www.kloudbean.com/blog/vercel-alternative-for-full-stack-apps/) for the split, [the best Vercel alternative for databases](https://www.kloudbean.com/blog/best-vercel-alternative-for-databases/) for the data side, and [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) for why a persistent process helps. To place it against everything else, read [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/) and the framework-specific [deploy an Express app](https://www.kloudbean.com/blog/deploy-express-app/) guide.
 
-## Give your backend a persistent home
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-Run an always-on Node.js backend under PM2 with real background workers, WebSockets, managed Redis, and a managed database in one dashboard, on flat pricing from $8/mo with no egress metering. Keep your frontend wherever you like. Start at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Always-on Node · Workers + queues · WebSockets on a real process · Managed database · Flat from $8/mo · No egress metering
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

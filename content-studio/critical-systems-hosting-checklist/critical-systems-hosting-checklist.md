@@ -126,11 +126,21 @@ The rest of the calendar has no provider-shaped answer, and you should be suspic
 
 Start with [NCA CSCC explained](https://www.kloudbean.com/blog/nca-cscc-compliance-guide/) for the framework, then the deep dives on [log retention](https://www.kloudbean.com/blog/cscc-log-retention-immutable-logs/), [backup and DR](https://www.kloudbean.com/blog/cscc-backup-disaster-recovery/), and [database access control](https://www.kloudbean.com/blog/database-private-access-control/). For the baseline and adjacent frameworks see [NCA ECC compliant hosting](https://www.kloudbean.com/blog/nca-ecc-compliant-hosting/) and [PDPL compliance hosting](https://www.kloudbean.com/blog/pdpl-compliance-hosting/), plus [data residency in Saudi Arabia](https://www.kloudbean.com/blog/data-residency-saudi-arabia/) and [the security headers guide](https://www.kloudbean.com/blog/security-headers-guide/).
 
-## Work the gap list with someone who has built it
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-Kloudbean runs managed enterprise engagements covering the infrastructure rows above: segregated networks, VPN and bastion access, encryption in transit and at rest, documented patch cadence, immutable logging with 18-month retention, tested backups, and multi-zone resilience, on in-Kingdom infrastructure where required. Start a conversation at [kloudbean.com](https://www.kloudbean.com/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Network isolation · MFA and bastion access · Immutable logs · Tested restores · Multi-zone HA · In-Kingdom available
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

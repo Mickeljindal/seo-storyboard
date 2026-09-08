@@ -41,7 +41,21 @@
   <p>This is not the same job as uptime monitoring. Uptime answers "is it up." Observability answers "what is it doing, and why." You want both, and they're separate. For the availability side (health checks, the 99.9% math, load-balancer probes) see <a href="https://www.kloudbean.com/blog/uptime-monitoring/">uptime monitoring</a>. This page is about behaviour and cost: how you monitor an AI application once it's already serving traffic.</p>
 
   <!-- To add an image here, replace this whole figure with a real one: <figure><img src -> images/metrics-panel.png alt="p95 TTFT and cost over 24 hours"></figure> -->
-  <figure class="img-slot"><span><b>Add image</b><em>A metrics panel for one AI feature: p95 time to first token and total latency over the last 24 hours, with a cost line on the same timeline.</em><small>A real dashboard shot or a clean mockup both work.</small></span></figure>
+  <!-- IMAGE GENERATE [graph] #1
+Create a clean line chart / time-series graph for a technical blog post titled "AI App Observability: What to Measure, and How to Log Without Storing People's Prompts".
+
+What it must show: A metrics panel for one AI feature: p95 time to first token and total latency over the last 24 hours, with a cost line on the same timeline.
+Also: A real dashboard shot or a clean mockup both work.
+
+Label both axes. Draw the trend the description implies. Add a dashed red threshold line only if a limit is being hit. Legible axis labels, no 3D, no gradient clutter.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-graph.png" alt="A metrics panel for one AI feature: p95 time to first token and total latency over the last 24 hours, with a cost line on the same timeline.">
+    <figcaption>Latency increases over the last 24 hours</figcaption>
+  </figure>
 
   <h2>The signals that actually matter for an AI app</h2>
   <p>A generic dashboard of CPU, memory, and request count tells you almost nothing about an AI feature. The server can look bored while the feature is slow, expensive, and quietly failing. These are the signals that carry real information, and the decision each one drives.</p>
@@ -177,7 +191,21 @@
   <p>If you want the shorter version of this discipline aimed at one app type, <a href="https://www.kloudbean.com/blog/host-ai-chatbot-in-production/">hosting an AI chatbot in production</a> has a section on it. This is the long version. And when you log who called the model, log the caller and the route, never the key itself; <a href="https://www.kloudbean.com/blog/deploy-ai-agent-without-exposing-api-keys/">deploying an AI agent without exposing API keys</a> covers keeping the credential out of both your client and your logs.</p>
 
   <!-- To add an image here, replace this whole figure with a real one: <figure><img src -> images/log-line.png alt="a structured log line with no prompt field"></figure> -->
-  <figure class="img-slot"><span><b>Add image</b><em>A single structured log line expanded in a console, showing reqId, route, model, tokens_in, tokens_out, ttft_ms, and status, with no prompt field present.</em><small>Highlight the absence of prompt and completion fields.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #2
+Create a realistic terminal / command-line screenshot for a technical blog post titled "AI App Observability: What to Measure, and How to Log Without Storing People's Prompts".
+
+What it must show: A single structured log line expanded in a console, showing reqId, route, model, tokens_in, tokens_out, ttft_ms, and status, with no prompt field present.
+Also: Highlight the absence of prompt and completion fields.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-terminal.png" alt="A single structured log line expanded in a console, showing reqId, route, model, tokens_in, tokens_out, ttft_ms, and status, with no prompt field present.">
+    <figcaption>Real log line expanded</figcaption>
+  </figure>
 
   <h2>One request id, from your app to the model and back</h2>
   <p>A single AI request rarely touches just the model. It hits your app, maybe a retrieval step, the model call, sometimes a tool or a second model. When it's slow or wrong, you need to know which of those hops was the culprit. That's tracing, and the trick is boring and powerful: assign one request id at the edge and attach it to every log line and every downstream call.</p>
@@ -196,7 +224,21 @@
   <p>The most useful distinction here is slow versus broken. Slow usually means model latency, which is often not your fault and not something a page at 3am will fix; alert on it only when it regresses against its own baseline, not on an absolute number. Broken means your code or config: a timeout you set too low, a bad deploy, retrieval pointing at the wrong index, a spend cap you never wired up. For triaging the broken side, <a href="https://www.kloudbean.com/blog/why-ai-apps-fail-in-production/">why AI apps fail in production</a> walks the common failure paths. This page is about seeing them coming; that one is about fixing them. And route the pure availability alerts (is the process even answering) through your <a href="https://www.kloudbean.com/blog/uptime-monitoring/">uptime monitoring</a> instead of your model dashboard, so a provider being slow doesn't look like your app being down.</p>
 
   <!-- To add an image here, replace this whole figure with a real one: <figure><img src -> images/alert-429.png alt="an alert on a climbing 429 rate"></figure> -->
-  <figure class="img-slot"><span><b>Add image</b><em>An alert firing on a climbing provider 429 rate next to a flat internal error rate, showing slow versus broken at a glance.</em><small>Two lines, one climbing, one flat, makes the point instantly.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #3
+Create a side-by-side comparison table for a technical blog post titled "AI App Observability: What to Measure, and How to Log Without Storing People's Prompts".
+
+What it must show: An alert firing on a climbing provider 429 rate next to a flat internal error rate, showing slow versus broken at a glance.
+Also: Two lines, one climbing, one flat, makes the point instantly.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-comparison.png" alt="An alert firing on a climbing provider 429 rate next to a flat internal error rate, showing slow versus broken at a glance.">
+    <figcaption>Comparing visibility and impact</figcaption>
+  </figure>
 
   <h2>Where this usually breaks</h2>
   <p>Three failure modes show up again and again, and all three are self-inflicted.</p>
@@ -216,12 +258,56 @@
   <p>Steps 1 and 2 are where the hosting choice stops being incidental, which is why it came up above rather than here for the first time. An always-on Node or Python process on Kloudbean gives the request id something to live inside, its stdout stream is readable in the same console as your deployment history and live build logs, and a managed Postgres beside the app is somewhere to keep step 3's aggregates on your own retention rules.</p>
   <p>Now the honest part, and it applies to us as firmly as to anyone. No host writes your instrumentation. Nothing about the infrastructure wraps your model call to record TTFT, picks your p95 threshold, or decides not to log the prompt. Kloudbean is not a built-in APM and won't pretend to be one: you get a process that stays alive, a log stream, and a place to write data. Steps 1 through 5 are commits in your repo, and if you never wrap the model call, the best-run server in the world hands you CPU graphs and a shrug. Two scope notes so nothing here reads bigger than it is. An immutable, searchable account-wide audit trail with CSV export, plus managed alert policies and longer retention, are part of the Enterprise package rather than a standard-plan toggle. And if you want long-horizon charts, external APM tools connect the ordinary way, which stays your call, not ours. What you measure and what you refuse to store is the part that was always going to be yours. If you're still mapping everything an AI builder leaves unfinished, <a href="https://www.kloudbean.com/blog/last-mile-of-vibe-coding/">the last mile of vibe coding</a> is the wider checklist this page sits inside.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">See what your AI app is doing, without hoarding prompts.</p>
-    <p style="margin:0 0 .6em">Run your AI app on an always-on server that streams your logs to the console, with a managed Postgres for the metrics you choose to keep. Instrument once, watch cost and latency without collecting a single raw prompt you'd rather not be holding.</p>
-    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Always-on Node and Python · Streamed logs in the console · Live build logs · Managed Postgres for your own metrics · Automatic backups · Free SSL · Git deploy · IP allow-listing</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">Prototype to production, without the babysitting.</p>
+    <p class="kbcta-ai-description">Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

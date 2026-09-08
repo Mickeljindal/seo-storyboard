@@ -43,7 +43,21 @@ LIMIT 10;</code></pre>
   <p>That's your ranked to-do list; the top query is where a fix buys the most. Sort by total time too (roughly <code>calls</code> times <code>mean_exec_time</code>) to catch the query that's quick on its own but runs ten thousand times a minute. Those add up to more pain than the slow report nobody runs.</p>
 
   <!-- Author: replace this slot with a real screenshot. src -> images/pg-stat-statements.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A pg_stat_statements result sorted by mean_exec_time, with the worst query highlighted.</em><small>Blur any real table or column names before publishing.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #1
+Create a side-by-side comparison table for a technical blog post titled "PostgreSQL Performance Tuning for App Developers".
+
+What it must show: A pg_stat_statements result sorted by mean_exec_time, with the worst query highlighted.
+Also: Blur any real table or column names before publishing.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-comparison.png" alt="A pg_stat_statements result sorted by mean_exec_time, with the worst query highlighted.">
+    <figcaption>Highlighting performance bottlenecks</figcaption>
+  </figure>
 
   <h2>Read the query plan with EXPLAIN and EXPLAIN ANALYZE</h2>
   <p>Now ask Postgres how it plans to run that query. <code>EXPLAIN</code> shows the plan and cost estimate without running it. <code>EXPLAIN ANALYZE</code> runs it and prints real timings and row counts beside the estimates. Use <code>ANALYZE</code> when you can: the gap between estimated and actual rows is usually the whole story.</p>
@@ -140,7 +154,21 @@ Execution Time: 0.068 ms</code></pre>
   <p>Same eleven rows, but Postgres went straight to them. This is the highest-leverage move in <strong>Postgres query optimization</strong>, and it's why the method starts with measurement. You can't index what you haven't found.</p>
 
   <!-- Author: replace this slot with a real screenshot. src -> images/explain-analyze-annotated.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>An annotated EXPLAIN ANALYZE plan pointing at Seq Scan, actual time, and Rows Removed by Filter.</em><small>Callout arrows help readers find each field.</small></span></figure>
+  <!-- IMAGE GENERATE [panel] #2
+Create a clean settings / configuration panel UI mockup for a technical blog post titled "PostgreSQL Performance Tuning for App Developers".
+
+What it must show: An annotated EXPLAIN ANALYZE plan pointing at Seq Scan, actual time, and Rows Removed by Filter.
+Also: Callout arrows help readers find each field.
+
+A white card with a small uppercase section label, then labelled rows. Highlight the row that carries the point with a violet border. Optional green check line at the bottom confirming the result.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-panel.png" alt="An annotated EXPLAIN ANALYZE plan pointing at Seq Scan, actual time, and Rows Removed by Filter.">
+    <figcaption>Identify inefficiencies with EXPLAIN ANALYZE</figcaption>
+  </figure>
 
   <h2>The PostgreSQL performance tuning order of operations</h2>
   <p>Not every lever is worth the same. Some take five minutes and cut a query by 99 percent. Others take an afternoon and buy you 10. Here's how I rank them by payoff against effort, for an app not yet at web scale.</p>
@@ -194,7 +222,21 @@ LIMIT 10;</code></pre>
   <p><code>VACUUM ANALYZE</code> reclaims space and refreshes stats in one go. Its heavy cousin <code>VACUUM FULL</code> rewrites the whole table and takes an exclusive lock, so save that for a real emergency, not a routine tune-up.</p>
 
   <!-- Author: replace this slot with a real screenshot. src -> images/dead-tuples.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>pg_stat_user_tables showing n_dead_tup climbing on a busy table, then dropping after a vacuum.</em><small>A before and after pair tells the story well.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #3
+Create a side-by-side comparison table for a technical blog post titled "PostgreSQL Performance Tuning for App Developers".
+
+What it must show: pg_stat_user_tables showing n_dead_tup climbing on a busy table, then dropping after a vacuum.
+Also: A before and after pair tells the story well.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-comparison.png" alt="pg_stat_user_tables showing n_dead_tup climbing on a busy table, then dropping after a vacuum.">
+    <figcaption>Impact of dead tuples on performance</figcaption>
+  </figure>
 
   <h2>Connections and pooling</h2>
   <p>Every Postgres connection is a real operating-system process with its own memory. That's robust, but connections aren't cheap, and Postgres was never built for thousands of them. <code>max_connections</code> is finite, often near 100, and blow past it and you get the error everyone eventually meets:</p>
@@ -204,7 +246,7 @@ LIMIT 10;</code></pre>
 
   <p>Both of those settings, the connection string and the pool size, belong in environment variables rather than in your code, because the right pool size differs between your laptop and production. On Kloudbean they live in the console's runtime config, so you change the pool ceiling and restart without touching the repo or opening an SSH session.</p>
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean console environment variables screen holding the PostgreSQL connection string safely out of code">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean console environment variables screen holding the PostgreSQL connection string safely out of code">
     <figcaption>Runtime configuration then Environment Variables: the connection string and pool size live here, never in your repo.</figcaption>
   </figure>
 
@@ -226,7 +268,7 @@ RESET work_mem;</code></pre>
   <p>Sometimes the answer really is more hardware. If CPU sits pinned near 100 percent, RAM is exhausted so the cache can't hold your working set, or you're I/O bound after the queries are already tuned, the box is the bottleneck. On managed PostgreSQL you resize for more CPU and RAM without rebuilding anything, and backups and patching keep running.</p>
   <p>You need two views side by side to make that call honestly: your <code>pg_stat_statements</code> output and the actual CPU and RAM on the box. Slow queries while CPU sits idle is a query or index problem, and a bigger server will not help. Pinned CPU after the queries are already tuned is the real signal to resize. Kloudbean's server health view is what I'd keep open next to the query stats, and vertical resize up is self-serve when the numbers say so. One caveat before you jump: scaling disk down again isn't supported, so grow deliberately rather than in a panic.</p>
   <figure>
-    <img src="../assets/console/server-health.png" alt="The Kloudbean console server health view showing CPU and RAM usage to decide between tuning and resizing">
+    <img src="../assets/console-real/shots/server_health_step_2.png" alt="The Kloudbean console server health view showing CPU and RAM usage to decide between tuning and resizing">
     <figcaption>Server health: correlate slow queries with real CPU and RAM before you decide to tune or to resize.</figcaption>
   </figure>
   <p>But tune queries and indexes first. Bad SQL scales badly no matter the hardware. A missing index that scans five million rows scans them faster on a bigger box, then falls over again at ten million. Doubling your server to hide an N+1 loop is the most expensive way to not fix a bug. For read-heavy workloads, a <a href="https://www.kloudbean.com/blog/redis-caching-guide/">managed Redis cache</a> in front of your hottest reads often buys more headroom than a bigger database.</p>
@@ -252,7 +294,7 @@ RESET work_mem;</code></pre>
   </table>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed PostgreSQL database with automatic backups and IP allow-listing">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean console launching a managed PostgreSQL database with automatic backups and IP allow-listing">
     <figcaption>DBS then Launch Database: managed PostgreSQL, provisioned with automatic backups running, locked to your app server's IP.</figcaption>
   </figure>
 
@@ -260,11 +302,55 @@ RESET work_mem;</code></pre>
 
   <p>One row deserves a nudge. Backups run automatically, but a backup you've never restored is a hope, not a plan. Take an on-demand backup before your next risky migration and restore it somewhere harmless once, so you know the mechanism works before you need it at 3am. Here's how <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups</a> work. And if you're still wiring the app up, <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploying a Node app to a managed cloud</a> walks that path.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Make Postgres earn its keep.</p>
-    <p style="margin:0 0 .6em">Managed PostgreSQL on Kloudbean gives you a real box locked to your app server's IP, automatic backups, and one-click provisioning, so the only thing left to tune is your own queries. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> and see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Managed PostgreSQL · Automatic backups · Resize as you grow · Free migration · Free trial</p>
+<div class="kbcta-db-wrap">
+  <div class="kbcta-db-overlay"></div>
+  <div class="kbcta-db-content">
+    <div class="kbcta-db-eyebrow">MANAGED DATABASES &middot; SEVEN ENGINES</div>
+    <p class="kbcta-db-heading">Managed, backed up, and still yours.</p>
+    <p class="kbcta-db-description">Seven managed engines, provisioned and patched for you, with access controlled and backups running automatically. Your schema, your queries, and your data stay exportable with the standard tools.</p>
+    <ul class="kbcta-db-features">
+      <li>&#10003; Seven managed engines</li>
+      <li>&#10003; One-click launch</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Controlled access</li>
+      <li>&#10003; Standard connection strings</li>
+      <li>&#10003; Free migration assistance</li>
+    </ul>
+    <div class="kbcta-db-buttons">
+      <a class="kbcta-db-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-db-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-db: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-db-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#04202B;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-db-wrap *{box-sizing:border-box}
+.kbcta-db-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #04202B 0%, #073947 55%, rgba(14,116,144,.62) 100%);pointer-events:none}
+.kbcta-db-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-db-content{position:relative;z-index:3;max-width:700px}
+.kbcta-db-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-db-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-db-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-db-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-db-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-db-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-db-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#064454;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-db-btn:hover,.kbcta-db-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-db-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-db-link:hover,.kbcta-db-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-db-wrap{padding:36px 24px}
+  .kbcta-db-heading{font-size:31px}
+  .kbcta-db-description{font-size:16px}
+  .kbcta-db-features li{white-space:normal}
+  .kbcta-db-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-db-btn{width:100%}
+  .kbcta-db-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

@@ -29,7 +29,7 @@ Every serious cloud runs on a shared responsibility model, and it's worth intern
 
 **The number-one misconception:** "our host is compliant, so we're compliant." No host makes you compliant. It supplies the infrastructure controls an auditor wants to see, and you supply everything above the app boundary. Read the right column as your homework.
 
-<!-- ADD IMAGE: a one-page shared-responsibility matrix you can share with an auditor or a client -->
+![Who secures what in a cloud environment](images/gen-1-comparison.png)
 
 ## Defense in depth: the layers a platform should give you
 
@@ -47,7 +47,7 @@ Under the edge sits the firewall on the server itself. Every Kloudbean server sh
 
 Want an extra layer? BitNinja is available as an added security option on Premium and Enterprise. Treat it as a bonus, not the baseline. The firewall and Fail2ban are the floor, and they're already under your feet.
 
-![The Kloudbean console firewall settings showing Shorewall and Fail2ban enabled by default, with BitNinja as an added option](../assets/console/firewall.png)
+![The Kloudbean console firewall settings showing Shorewall and Fail2ban enabled by default, with BitNinja as an added option](../assets/console-real/shots/app_ip_whitelisting.png)
 
 ### Encryption in transit: free, auto-renewing SSL
 
@@ -55,7 +55,7 @@ Every byte between a visitor and your app should be encrypted, always, no except
 
 One boundary worth stating. Encryption in transit is the platform's job, and it's handled. Encryption at rest for the fields you consider sensitive, a national ID, a card token, is an app-level decision you make in your own code. The platform protects the pipe. You decide what deserves an extra lock inside the payload.
 
-![The Kloudbean console SSL certificate screen with free, auto-renewing HTTPS enabled for a domain](../assets/console/ssl-certificate.png)
+![The Kloudbean console SSL certificate screen with free, auto-renewing HTTPS enabled for a domain](../assets/console-real/shots/le_ssl_step_1.png)
 
 ### Least-privilege access: subusers, UAC, and 2FA
 
@@ -63,7 +63,7 @@ Most incidents you'll ever read about aren't exotic zero-days. They're a leaked 
 
 Layer identity on top. Two-factor authentication means a stolen password alone isn't enough to get in. Social login (Google, GitHub, LinkedIn) leans on providers that already do hard identity work. And sessions use HttpOnly cookies, so a cross-site scripting bug can't read the session token out of JavaScript. None of it is flashy. All of it closes the doors attackers use most.
 
-![The Kloudbean console subusers and User Access Control screen assigning least-privilege, per-resource permissions](../assets/console/subusers-uac.png)
+![The Kloudbean console subusers and User Access Control screen assigning least-privilege, per-resource permissions](../assets/console-real/shots/uac_resources_access.png)
 
 ### Lock the doors you rarely use
 
@@ -73,19 +73,19 @@ Admin panels, staging sites, and internal dashboards don't need to greet the who
 
 The most common self-inflicted wound in hosting is a database with a public IP and a weak password. Scanners find it in hours. So keep internal services internal. On Kloudbean your database runs right next to your app, and IP Access Control lets you whitelist your app server's IP so only that server can connect; everything else is refused. The app reaches it on the inside; the public internet can't. For admin work you tunnel in through the server rather than exposing a port to the world. On Enterprise you can go further and put the database on a private network (VPC).
 
-<!-- ADD IMAGE: network topology showing the app whitelisted to reach the database, public internet blocked from the database -->
+![Isolating the database from the public internet](images/gen-2-panel.png)
 
 ### Backups: the first step of resilience
 
 People file backups under "recovery," but they belong in any honest security conversation. Ransomware, a bad migration, a fat-fingered delete: what saves you is a clean, recent, restorable copy. Kloudbean backs up automatically. The step almost everyone skips is testing a restore before they actually need one. Do it once, so the path is proven. You do not have backups until you have completed a restore. There's more on cadence and retention in the [guide to server backups and restore testing](https://www.kloudbean.com/blog/server-backups-guide/).
 
-![The Kloudbean console backups screen showing automatic, restorable server and application backups](../assets/console/manage-backups.png)
+![The Kloudbean console backups screen showing automatic, restorable server and application backups](../assets/console-real/shots/app_backup_step_2.png)
 
 ### Audit trail: proof of who did what
 
 When something changes, compliance and incident response ask the same question: who did that, and when? An audit trail answers it. Kloudbean's Audit Trail, on Enterprise, is an immutable, searchable, account-wide log of activity with CSV export, built with compliance in mind. For a SOC 2 review or a post-incident timeline, that log is the difference between "we think" and "we can show you." It's the layer that turns a pile of good controls into evidence an auditor accepts.
 
-<!-- ADD IMAGE: the audit trail view with a searchable, timestamped activity log and a CSV export button (Enterprise) -->
+![From activity to CSV export](images/gen-3-flow.png)
 
 ## Your side of the line: what no host can do for you
 
@@ -97,7 +97,7 @@ Now the right column of that table, because this is where audits are won or lost
 - **Your access hygiene.** Least-privilege only works if you actually use it. Remove people when they leave, review who has what, and turn on 2FA for everyone, not just admins.
 - **Your data decisions.** What you collect, how long you keep it, who you share it with, and whether you have consent are legal and product choices. No infrastructure control makes them for you.
 
-<!-- ADD IMAGE: a terminal showing an npm audit or pip-audit run flagging a vulnerable dependency -->
+![Patch your code](images/gen-4-terminal.png)
 
 ## How GDPR, PCI DSS, and SOC 2 map to shared responsibility
 
@@ -142,11 +142,20 @@ If you do nothing else this week, do these.
 
 That is the short version. The full, categorized audit, with the reasoning behind each item and a map of what the platform covers versus what you own, is in the [server security audit checklist](https://www.kloudbean.com/blog/security-audit-checklist/). And for proving your controls actually held, an [immutable audit trail](https://www.kloudbean.com/blog/audit-trail-for-compliance/) is what turns them into evidence.
 
----
+<!-- cta:start -->
+**Close the doors you keep forgetting.**
 
-**A hardened base, on day one.** Ship on infrastructure that arrives secured, so you can spend your effort on the app-level controls only you can own. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/), and always verify current details there.
+Every server ships with a Shorewall firewall and Fail2ban, free auto-renewing SSL, automatic backups, and OS patching handled. Add IP access control or a Basic Auth gate when a site should not be public.
 
-Firewall + Fail2ban baseline · Free auto-renewing SSL · Subusers + UAC · 2FA · Automatic backups · Audit trail (Enterprise)
+- Shorewall firewall
+- Fail2ban
+- OS patching handled
+- Free SSL
+- IP access control
+- Automatic backups
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

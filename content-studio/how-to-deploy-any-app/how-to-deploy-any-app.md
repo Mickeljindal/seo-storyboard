@@ -109,39 +109,39 @@ Theory's done. Here's the model made real, on a managed server, with the actual 
 
 From the dashboard, click **Add Server**. You choose a cloud provider (Kloudbean runs seven: AWS, Amazon Lightsail, Google Cloud, DigitalOcean, Vultr, Akamai Linode, and UpCloud), a location near your users, an application stack (Node, Next.js, React, Vue, Angular, Laravel, Django, Flask, FastAPI, Ruby, Java, WordPress, and more), and a size. Picking the stack here preloads the right runtime, so you're not installing Node or PHP by hand. A few minutes later the server is provisioned and ready.
 
-![The Kloudbean Add Server page: choosing a cloud provider, framework, location, and server size](../assets/console/add-server.png)
+![The Kloudbean Add Server page: choosing a cloud provider, framework, location, and server size](../assets/console-real/shots/launch_server_step_1.png)
 
 ### Add your application
 
 If you chose a framework while provisioning, your app slot is already there. Need another (a second project, an API beside your front end, a tool like n8n)? Go to **Applications, Add Application** and pick the stack. Multiple apps per server is a first-class feature here, not a workaround, which is exactly how you run a front end, an API, and a worker on one box.
 
-![The Kloudbean Add Application screen: adding another app to an existing server and choosing its stack](../assets/console/add-application.png)
+![The Kloudbean Add Application screen: adding another app to an existing server and choosing its stack](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 ### Connect Git and set the runtime
 
 Deploys come from Git, which is what you want: the repo is the source of truth, not a folder on your laptop. In **Code Delivery, Git Deployment**, connect GitHub (OAuth or an SSH key), paste the repo URL, choose a branch, and clone. Then set the runtime config: the app directory, the port your app listens on, the runtime version, and your install, build, and start commands. Those fields are moves one through three from the diagram, made explicit.
 
-![The Kloudbean Git Deployment tab: repository URL, branch selection, and clone](../assets/console/git-deployment.png)
+![The Kloudbean Git Deployment tab: repository URL, branch selection, and clone](../assets/console-real/shots/git_connect_step_4.png)
 
-<!-- ADD IMAGE: the runtime configuration panel showing App Directory, Port, runtime version, and the Install / Build / Start commands. -->
+![Define your app's runtime settings](images/gen-1-panel.png)
 
 ### Set environment variables
 
 In **Runtime Configuration, Environment Variables**, add your database URL, API keys, and public app URL. There's a **Paste .env Content** tab so you can drop your whole file in and convert it to key/value. Set them, save, and they're available to the process at runtime without ever touching your code.
 
-![The Kloudbean Environment Variables editor with a paste-dot-env tab and a key/value list](../assets/console/env-vars.png)
+![The Kloudbean Environment Variables editor with a paste-dot-env tab and a key/value list](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ### Add a database, then deploy
 
 Move your data off any local file before you have users, not after. Open **Launch Database** and create a managed engine (Kloudbean runs seven: MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB), then feed its credentials into your environment variables. Now click **Pull & Deploy**. Behind the scenes it pulls the code, installs dependencies, runs the build, starts the process under a supervisor, and puts it behind the proxy. That's moves one, two, three, five, and six, in one button.
 
-![The Kloudbean Launch Database screen: creating a managed PostgreSQL, MySQL, or other engine](../assets/console/launch-database.png)
+![The Kloudbean Launch Database screen: creating a managed PostgreSQL, MySQL, or other engine](../assets/console-real/shots/psql_launch_step_1.png)
 
 ### Point your domain, then watch it build
 
 Add your custom domain in the app's domain settings, point its DNS at the server, and install a free auto-renewing SSL certificate. Every deploy shows up in **Build & Deployment History** with live logs, so you can watch pull, install, build, and start stream past. Turn on automated deployment and every `git push` ships itself. That's the CI/CD loop the big platforms sell, on a box you own. Automating the deploy earns its keep almost immediately, even solo, while automating the test run only pays off once you have tests worth running, which is the whole split in [whether you actually need CI/CD](https://www.kloudbean.com/blog/do-i-need-cicd/). If you want just that piece, see [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-<!-- ADD IMAGE: Build & Deployment History with a deploy open and live logs streaming the pull, install, build, and start steps. -->
+![Each step of a deployment](images/gen-2-flow.png)
 
 ## When your first deploy breaks (it probably will)
 
@@ -172,11 +172,21 @@ Two things worth saying plainly. First, Kloudbean runs **Linux** stacks: Node, P
 
 Second, "managed" is a division of labor, not magic. The platform provisions the server, the stack, the process manager, the proxy, SSL, and backups. You still own your application: its logic, its data, its security decisions. That's the right split and a genuinely good deal, but it isn't the same as "nothing to think about." You still write the code and decide where the data goes.
 
----
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-**You learned the model. Now ship the app.** Deploy from Git onto a managed server you own, with the process manager, reverse proxy, SSL, and backups handled for you. Start at [kloudbean.com](https://www.kloudbean.com/); sizes and plans on [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Seven clouds, one dashboard · Git deploy with live logs · Free auto-renewing SSL · Managed databases · Automatic backups · Free migration · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

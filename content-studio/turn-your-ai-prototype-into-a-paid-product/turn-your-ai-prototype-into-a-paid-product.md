@@ -51,7 +51,7 @@ This is the big one, so start here. A common trap we see: the prototype stores e
 
 A product keeps data in a managed database that lives separately from the app, so deploys never touch it. Usually that is PostgreSQL or MySQL, managed so backups and patching are not your job. My blunt take: SQLite is great in development and wrong in production for anything with users. Moving to a managed database early is the single highest-value thing you can do, and [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) is not the scary part people expect. If your prototype leans on Supabase, [whether you actually need Supabase](https://www.kloudbean.com/blog/do-i-need-supabase/) is worth a read before you commit.
 
-<!-- ADD IMAGE: real console screenshot of launching a managed PostgreSQL or MySQL database, separate from the app server. Shows data living somewhere a redeploy cannot wipe. -->
+![States post-initial payment](images/gen-1-flow.png)
 
 *The prototype keeps the key in the browser and the data on the same box it deploys over. The product moves both to where they belong.*
 
@@ -67,7 +67,7 @@ If the plan is to make money from an AI app, at some point money has to change h
 
 One firm rule: never handle raw card numbers yourself. Let Stripe or a similar processor carry that weight and the compliance that comes with it. Treat charging money as a feature you build and test like any other, not a switch you flip on launch day.
 
-<!-- ADD IMAGE: your billing flow showing more than checkout: a failed payment, a cancellation, and an upgrade. The states that matter are the ones after the first successful charge. -->
+![Continuous deployment pipeline](images/gen-2-flow.png)
 
 ## Rate limits, or one user drains your budget
 
@@ -110,11 +110,21 @@ Before you put a price on it, run down this list. Tick every box and you have cl
 
 A deeper, more granular version is in the [AI app production readiness checklist](https://www.kloudbean.com/blog/ai-app-production-readiness-checklist/). You do not need all of this to keep building. You do need it before you ask someone to trust you with their data and their card.
 
----
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-**Ready to run it like a product, not a demo?** Kloudbean gives you a managed server, managed databases with automatic backups, environment config, and Git deploys from one dashboard, so the app you built with AI can go always-on without you turning into a full-time sysadmin. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-*Managed PostgreSQL and MySQL · Automatic backups · Free SSL · Git deploys · Always-on processes · One dashboard*
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

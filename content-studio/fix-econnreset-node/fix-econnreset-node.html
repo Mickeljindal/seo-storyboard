@@ -59,7 +59,21 @@
   </table>
 
   <!-- ADD IMAGE: annotated terminal screenshot of a read ECONNRESET stack trace with code, errno and syscall circled. src -> images/econnreset-stack.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Terminal: a real <code>read ECONNRESET</code> stack trace, with <code>code</code>, <code>errno</code> and <code>syscall</code> circled.</em><small>The syscall field is the part readers skip. Make it obvious.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #1
+Create a realistic terminal / command-line screenshot for a technical blog post titled "ECONNRESET in Node.js: What It Means and How to Fix It".
+
+What it must show: Terminal: a real read ECONNRESET stack trace, with code, errno and syscall circled.
+Also: The syscall field is the part readers skip. Make it obvious.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-terminal.png" alt="Terminal: a real read ECONNRESET stack trace, with code, errno and syscall circled.">
+    <figcaption>Real error encountered during Node.js session</figcaption>
+  </figure>
 
   <h2>So who reset the connection?</h2>
   <p>This is the whole diagnosis. A reset always has an author, and there are only a few candidates. Work down them in this order.</p>
@@ -114,7 +128,21 @@ const agent = new http.Agent({
   <p>That correlation is only as easy as your access to both timelines. It's the reason Kloudbean runs Node apps as persistent processes under PM2 with app and build logs streaming in the console beside deployment history: a restart reads as a restart, at a timestamp you can line up against the reset burst, instead of appearing as an unexplained network incident. On a setup where you have neither, this cause is the one people misdiagnose longest.</p>
 
   <!-- ADD IMAGE: diagram of the four reset authors, client, proxy, server process, database, with an RST arrow from each. src -> images/who-reset-it.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Diagram: the four candidates that can send the RST (client, proxy or load balancer, app process, database) with an arrow from each back to your app.</em><small>This is the article's core idea. Worth a real illustration.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "ECONNRESET in Node.js: What It Means and How to Fix It".
+
+What it must show: Diagram: the four candidates that can send the RST (client, proxy or load balancer, app process, database) with an arrow from each back to your app.
+Also: This is the article's core idea. Worth a real illustration.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="Diagram: the four candidates that can send the RST (client, proxy or load balancer, app process, database) with an arrow from each back to your app.">
+    <figcaption>Identify the source of the RST</figcaption>
+  </figure>
 
   <h3>4. The body was too big for the peer</h3>
   <p>Send an upload or a JSON payload past a limit and some peers respond with a status code, while others just stop reading and reset the connection. From your side that's a <code>write ECONNRESET</code> partway through a large request, and it reproduces reliably with the same file, which is the giveaway. It's a size problem, not a flake.</p>
@@ -193,7 +221,21 @@ function shouldRetry(err, method) {
   <p>Also worth checking on the database side: whether the server-side idle or wait timeout is shorter than your pool's, which is the same rule from earlier applied to whatever you're connecting to. <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">Managed PostgreSQL hosting</a> covers where those settings live. And while you're changing connection settings, resist the urge to widen access to make a reset stop. A reset is not a permission problem, so opening the database to a broader address range fixes nothing and costs you something. Keep the allow-list to your app server's IP.</p>
 
   <!-- ADD IMAGE: screenshot of live streaming app logs beside deployment history, showing a restart lined up with a reset burst. src -> images/live-logs.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Screenshot: live app logs next to deployment history, with a process restart lined up against a burst of resets.</em><small>Shows the correlation trick rather than describing it.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #3
+Create a left-to-right architecture / flow diagram for a technical blog post titled "ECONNRESET in Node.js: What It Means and How to Fix It".
+
+What it must show: Screenshot: live app logs next to deployment history, with a process restart lined up against a burst of resets.
+Also: Shows the correlation trick rather than describing it.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-flow.png" alt="Screenshot: live app logs next to deployment history, with a process restart lined up against a burst of resets.">
+    <figcaption>Deployment history with process restart</figcaption>
+  </figure>
 
   <h2>What the reset already proved, and what that leaves you</h2>
   <p>Come back to the one fact from the top, because it's the most useful thing on this page. A reset can only arrive on a connection that existed. So before you touch anything, ECONNRESET has already told you the following, and you can stop checking all of it:</p>
@@ -211,11 +253,55 @@ function shouldRetry(err, method) {
   <h2>More on ECONNRESET in Node.js</h2>
   <p>The sibling error, when nothing was listening at all: <a href="https://www.kloudbean.com/blog/fix-econnrefused-node/">ECONNREFUSED in Node.js</a>. Connection layer: <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>. Restart half: <a href="https://www.kloudbean.com/blog/graceful-shutdown-nodejs/">graceful shutdown in Node.js</a> and <a href="https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/">Node app crashing on deploy</a>. And to make any of this findable later, <a href="https://www.kloudbean.com/blog/structured-logging-nodejs/">structured logging in Node.js</a>.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">See the restart, and you've found the reset.</p>
-    <p style="margin:0 0 .6em">Run your Node app on Kloudbean with live app and build logs, deployment history, persistent processes under PM2, and managed databases in the same dashboard. Deploy from GitHub, from $8/mo. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or check <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">Live logs · Deployment history · Managed databases · Automatic backups · Free SSL · GitHub deploys</p>
+<div class="kbcta-fix-wrap">
+  <div class="kbcta-fix-overlay"></div>
+  <div class="kbcta-fix-content">
+    <div class="kbcta-fix-eyebrow">DEPLOY &middot; LOGS THAT TELL YOU WHY</div>
+    <p class="kbcta-fix-heading">Fewer mysteries on the next deploy.</p>
+    <p class="kbcta-fix-description">Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.</p>
+    <ul class="kbcta-fix-features">
+      <li>&#10003; Live build logs</li>
+      <li>&#10003; Deployment history</li>
+      <li>&#10003; Logs viewer</li>
+      <li>&#10003; Managed process restarts</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Git deploy</li>
+    </ul>
+    <div class="kbcta-fix-buttons">
+      <a class="kbcta-fix-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-fix-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-fix: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-fix-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-fix-wrap *{box-sizing:border-box}
+.kbcta-fix-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-fix-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-fix-content{position:relative;z-index:3;max-width:700px}
+.kbcta-fix-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-fix-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-fix-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-fix-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-fix-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-fix-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-fix-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-fix-btn:hover,.kbcta-fix-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-fix-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-fix-link:hover,.kbcta-fix-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-fix-wrap{padding:36px 24px}
+  .kbcta-fix-heading{font-size:31px}
+  .kbcta-fix-description{font-size:16px}
+  .kbcta-fix-features li{white-space:normal}
+  .kbcta-fix-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-fix-btn{width:100%}
+  .kbcta-fix-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

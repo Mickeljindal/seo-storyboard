@@ -73,7 +73,7 @@ Make it concrete with commonly-seen big-cloud figures (roughly, as typically pri
 
 Look at the split. The storage you thought you were paying for is $2. The egress you weren't thinking about is $90, more than 97% of the bill. Push the traffic up (a post goes viral, a video library gets busy, a download takes off) and egress runs into the hundreds or thousands while the storage line barely moves. The advertised per-gigabyte price told you almost nothing about what you'd actually pay.
 
-<!-- ADD IMAGE: a simple bar chart, a short storage bar next to a tall egress bar for the same files -->
+![same files, different costs](images/gen-1-graph.png)
 
 ## Why the big clouds charge for it in the first place
 
@@ -96,7 +96,7 @@ Run the same 1,000 GB scenario against a store that doesn't bill egress and the 
 
 The bucket behaves identically. Same S3 API, same tools, same objects. The only difference is that the bandwidth-out meter isn't running, so the bill reflects what you store rather than how popular you got. For anything media-heavy or download-heavy, that's the difference between a rounding error and a real line item.
 
-<!-- ADD IMAGE: a cloud bill or cost breakdown with the data-transfer-out line circled next to a tiny storage line -->
+![Cost Breakdown for Downloading Files](images/gen-2-comparison.png)
 
 ## When egress bites hardest
 
@@ -124,15 +124,31 @@ My honest advice: treat data-transfer-out as a first-class number, not a footnot
 
 Two things no storage product fixes, and that includes ours. A bucket that doesn't meter egress doesn't make your application's bandwidth free, so read what your compute plan covers as a separate question. And nothing on the storage side rescues an app that ships a 4MB hero image to every visitor: right-sizing images and compressing files is your code's job, and it's still the highest-leverage change available whatever the transfer rate is. Zero egress removes a variable from the bill. It doesn't remove the bytes.
 
-![The Kloudbean console showing S3-compatible buckets in one dashboard with the rest of the stack](../assets/console/s3-buckets.png)
+![Open S3 Object Storage](../assets/console-real/shots/storage_bucket_step_1.png)
 
-![The Kloudbean console showing S3-compatible buckets in one dashboard with the rest of the stack](../assets/console/s3-buckets.png)
+![Create a new bucket](../assets/console-real/shots/storage_bucket_step_2.png)
 
----
+![Name the bucket and set its access](../assets/console-real/shots/storage_bucket_step_3.png)
 
-**Keep your files and your stack in one place.** Kloudbean gives you S3-compatible object storage in the same dashboard as your servers, managed databases, and apps, with no egress fees on your object storage. Standard S3 API, public and private buckets, objects you can export anytime. Start free at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+![The bucket is ready for objects](../assets/console-real/shots/storage_bucket_step_4.png)
 
-S3-compatible buckets · No egress fees · Managed databases · One dashboard · Free trial
+![The Kloudbean console showing S3-compatible buckets in one dashboard with the rest of the stack](../assets/console-real/shots/storage_bucket_step_3.png)
+
+<!-- cta:start -->
+**Take it off localhost for good.**
+
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

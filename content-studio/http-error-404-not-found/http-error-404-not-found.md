@@ -72,11 +72,20 @@ Step 1 belongs to you either way, and it's the one people waste the most hours o
 
 The production-only version of this is explored in [why my app works locally but not in production](https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/), and the import-side of case sensitivity is in [fixing cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/). For deploying front ends, [deploy a static site](https://www.kloudbean.com/blog/deploy-static-site/) and [deploy a Next.js app](https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/). A neighbouring status code with a similar "the server answered" logic is [405 method not allowed](https://www.kloudbean.com/blog/405-method-not-allowed/).
 
-## Deploy where the routing is already wired.
+<!-- cta:start -->
+**Deploys that tell you what broke.**
 
-On Kloudbean the web server is configured for your stack, so single-page-app fallbacks and front-controller rewrites are handled, and the common deploy-time 404s don't appear. Git deploys, free SSL, managed servers on seven clouds. Start at [kloudbean.com](https://www.kloudbean.com/), or compare options in [best managed cloud hosting](https://www.kloudbean.com/blog/best-managed-cloud-hosting/).
+Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.
 
-Routing configured for your stack · SPA fallback handled · Git deploys · Free SSL
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

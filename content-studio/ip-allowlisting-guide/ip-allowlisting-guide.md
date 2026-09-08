@@ -73,11 +73,21 @@ What a platform can remove is the friction that makes people skip allowlisting i
 
 Allowlisting is one access control among several. To gate an app behind a password prompt instead of, or alongside, an address rule, the [Basic Auth gate guide](https://www.kloudbean.com/blog/basic-auth-gate-guide/). For the host firewall underneath, [Fail2ban and Shorewall](https://www.kloudbean.com/blog/fail2ban-and-shorewall-guide/); for the application layer, [what a WAF does](https://www.kloudbean.com/blog/what-a-waf-does/). To keep a service off the public internet entirely, [what a VPC is](https://www.kloudbean.com/blog/what-is-a-vpc/). And the overview that ties the layers together is [secure and compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 
-## Lock sensitive surfaces to the addresses you trust.
+<!-- cta:start -->
+**One dashboard for the whole stack.**
 
-Kloudbean's IP Access Control lets you allow and deny by address and CIDR range, so admin panels and staging stay reachable only from your office and VPN. It sits on top of baseline firewall and brute-force protection. Compare the security story in [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/), or start at [kloudbean.com](https://www.kloudbean.com/).
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
 
-IP Access Control · CIDR allow and deny · Baseline hardening
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

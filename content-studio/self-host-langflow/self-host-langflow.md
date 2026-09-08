@@ -33,7 +33,7 @@ So who's it for? People who want to prototype and run LLM pipelines without hand
 
 And the reason to run Langflow yourself, rather than on someone else's platform, is simple: the flows carry your prompts, your documents, and your provider keys. Self-hosting keeps all of that on infrastructure you control.
 
-<!-- ADD IMAGE: The Langflow canvas with a RAG flow wired up (document loader, embed node, vector store, retriever, prompt, model). Author screenshot. -->
+![Wiring up RAG flow on your server](images/gen-1-terminal.png)
 
 ## The architecture nobody explains up front
 
@@ -67,7 +67,7 @@ Make it concrete. You want a support bot that answers using your own help articl
 
 Now the payoff. None of that needed a GPU on the Langflow server. The embeddings and the final answer came from a model API (or your own Ollama on another box). Langflow just moved text between steps and did the vector search in Postgres. When the flow works, you publish it as an endpoint and your support widget calls it. That's a production RAG feature, built visually, running on a small server you own, with your documents and keys never touring the internet.
 
-<!-- ADD IMAGE: The published RAG endpoint answering a real support question, or the flow's API view in Langflow. Author screenshot. -->
+![Langflow API request path](images/gen-2-flow.png)
 
 ## How to self-host Langflow on a server you own
 
@@ -77,13 +77,13 @@ Langflow is not a one-click app on Kloudbean, and that's fine, because it's an o
 
 Spin up a server on the cloud and region you want. Around 2 GB of RAM is a sensible start for Langflow itself. The platform handles the OS, the stack, and free SSL, so you're not hand-patching Linux.
 
-![The Kloudbean console Add Server screen: choose a cloud and size a small server for Langflow](../assets/console/add-server.png)
+![The Kloudbean console Add Server screen: choose a cloud and size a small server for Langflow](../assets/console-real/shots/launch_server_step_1.png)
 
 ### 2. Launch a managed PostgreSQL (and turn on pgvector)
 
 Create a managed PostgreSQL for Langflow's saved flows, then enable the vector extension so the same database can hold your embeddings. Two jobs, one database, one thing to back up.
 
-![The Kloudbean console Launch Database screen with PostgreSQL selected for Langflow](../assets/console/launch-database.png)
+![The Kloudbean console Launch Database screen with PostgreSQL selected for Langflow](../assets/console-real/shots/psql_launch_step_1.png)
 
 ```sql
 -- in your managed PostgreSQL, once
@@ -94,7 +94,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 Your model provider keys and the database URL belong in the server's environment, never pasted into a flow or committed to Git. This is the step that keeps the keys yours.
 
-![The Kloudbean console Environment Variables screen: model provider API keys and the Langflow database URL live on your server](../assets/console/env-vars.png)
+![The Kloudbean console Environment Variables screen: model provider API keys and the Langflow database URL live on your server](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ```bash
 # On your server, in the app's environment
@@ -150,9 +150,21 @@ So the decision cue is short. Kicking tyres on an idea, or you'd rather not trac
 
 Nearby pieces if you're building the rest of it: pair it with [your own Ollama and Open WebUI](https://www.kloudbean.com/blog/self-host-ollama-open-webui/) to keep the model private, lean on [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) for flows and pgvector both, and since Langflow is light it'll [share one server with your other apps](https://www.kloudbean.com/blog/host-multiple-apps-one-server/). Wire [the wider AI app](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) around it, let [automatic backups](https://www.kloudbean.com/blog/server-backups-guide/) cover the database, and browse the [self-hosted tools hub](https://www.kloudbean.com/blog/best-self-hosted-tools/) for the rest.
 
-**Build the AI backend. Keep the keys, the docs, and the flows.** Run Langflow on a small managed server with a managed PostgreSQL and pgvector for embeddings, IP allow-listing, free SSL, and automatic backups. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-Managed server · Managed PostgreSQL + pgvector · Automatic backups · Free SSL · Free trial
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

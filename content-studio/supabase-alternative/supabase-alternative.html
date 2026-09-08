@@ -42,7 +42,21 @@
   <p><strong>You need the database beside your other apps.</strong> If your API, a background worker, and a cache all want to talk to the same database in the same account, a hosted DB reached across the public internet adds latency and one more vendor. Owning the database lets you park it next to everything else that uses it.</p>
 
   <!-- ADD IMAGE: your current Supabase project dashboard, for context on what you're starting from before the move. Swap for a real screenshot: src -> images/supabase-project.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The Supabase project you're starting from, so readers can see the before state.</em><small>Your own Supabase dashboard screenshot. Author supplies.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #1
+Create a left-to-right architecture / flow diagram for a technical blog post titled "Supabase Alternative: How to Own Your Postgres, Two Honest Paths".
+
+What it must show: The Supabase project you're starting from, so readers can see the before state.
+Also: Your own Supabase dashboard screenshot. Author supplies.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-flow.png" alt="The Supabase project you're starting from, so readers can see the before state.">
+    <figcaption>Before state</figcaption>
+  </figure>
 
   <h2>The part people miss: Supabase is Postgres</h2>
   <p>This is the insight the whole decision turns on. Supabase didn't invent a new database. It runs plain PostgreSQL and adds auth, storage, realtime, and functions as services around it. Your tables, your rows, your schema, your indexes: all standard Postgres. That's why the "Supabase vs managed Postgres" question is friendlier than it looks. You're not comparing two databases. You're comparing the same database with a BaaS wrapper against the same database on infrastructure you own.</p>
@@ -104,7 +118,7 @@
   <p>Start by launching the database. Open the databases section, choose PostgreSQL, name it, create it. A minute or two later it's provisioned, secured, and already being backed up, locked to your app server's IP rather than open to the internet.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean Launch Database screen with managed PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, and MongoDB">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean Launch Database screen with managed PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, and MongoDB">
     <figcaption>Launch a managed PostgreSQL from the console. Same Postgres your app already speaks, provisioned and backed up, on infrastructure you own.</figcaption>
   </figure>
 
@@ -123,7 +137,21 @@ DATABASE_URL=postgresql://appuser:s3cret@10.0.0.5:5432/appdb</code></pre>
   <p>The <code>--no-owner --no-privileges</code> flags save you from role errors, since the ownership on Supabase won't match your new database's users. After the restore, set <code>DATABASE_URL</code> in your app's environment (not in the source) and redeploy. Your ORM won't notice the difference. Prisma, Drizzle, Django, Laravel, Rails: they all just read the new connection string and carry on. The full walkthrough, with the migrate commands per framework, is in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>.</p>
 
   <!-- ADD IMAGE: a terminal mid-migration showing pg_dump then psql running, with the row counts matching after import. Swap for a real screenshot: src -> images/pg-dump-restore.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A terminal mid-migration: pg_dump then psql, with row counts matching after the import.</em><small>Shows the dump-and-restore actually completing. Author supplies.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #2
+Create a realistic terminal / command-line screenshot for a technical blog post titled "Supabase Alternative: How to Own Your Postgres, Two Honest Paths".
+
+What it must show: A terminal mid-migration: pg_dump then psql, with row counts matching after the import.
+Also: Shows the dump-and-restore actually completing. Author supplies.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-terminal.png" alt="A terminal mid-migration: pg_dump then psql, with row counts matching after the import.">
+    <figcaption>Real dump and restore process</figcaption>
+  </figure>
 
   <p>What did you give up? The Supabase auth and storage APIs, if you were using them. That's the honest tradeoff. Auth becomes your framework's own auth (or a library), and files go to object storage. If you barely touched those, you won't miss them. If you leaned on them heavily, read on, because Path B keeps them.</p>
 
@@ -132,14 +160,28 @@ DATABASE_URL=postgresql://appuser:s3cret@10.0.0.5:5432/appdb</code></pre>
   <p>On Kloudbean, self-hosted Supabase is a one-click app. You add it the same way you'd add any application, on a managed server on the cloud of your choice. You keep the Supabase API surface your code already calls, and the whole thing sits on your server, in your account, backed up on your schedule.</p>
 
   <figure>
-    <img src="../assets/console/add-application.png" alt="The Kloudbean Add Application screen where self-hosted Supabase can be launched as a one-click app on a managed server">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="The Kloudbean Add Application screen where self-hosted Supabase can be launched as a one-click app on a managed server">
     <figcaption>Self-hosted Supabase runs as a one-click app on a managed server you own. Same Supabase surface, your infrastructure underneath.</figcaption>
   </figure>
 
   <p>The tradeoff here is the mirror image of Path A. You keep every Supabase feature, and in exchange you're now running the Supabase stack yourself (on a managed server, so the OS, firewall, SSL, and backups are handled, but the Supabase services are yours to operate). For a lot of teams that's a fair deal: full features, full ownership, predictable server pricing. The deeper how-to lives in the <a href="https://www.kloudbean.com/blog/self-host-supabase/">self-host Supabase</a> guide.</p>
 
   <!-- ADD IMAGE: the self-hosted Supabase Studio dashboard running on your own domain, to prove the full experience is intact. Swap for a real screenshot: src -> images/supabase-studio.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Self-hosted Supabase Studio open on your own domain, showing the table editor and auth still fully intact.</em><small>Proves you kept the whole experience. Author supplies.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #3
+Create a side-by-side comparison table for a technical blog post titled "Supabase Alternative: How to Own Your Postgres, Two Honest Paths".
+
+What it must show: Self-hosted Supabase Studio open on your own domain, showing the table editor and auth still fully intact.
+Also: Proves you kept the whole experience. Author supplies.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-comparison.png" alt="Self-hosted Supabase Studio open on your own domain, showing the table editor and auth still fully intact.">
+    <figcaption>Experience intact with full auth and table editor</figcaption>
+  </figure>
 
   <h2>Path A or Path B: which one fits you?</h2>
   <p>No universal winner. It depends on how much of Supabase you actually use. Here's the honest split.</p>
@@ -161,7 +203,7 @@ DATABASE_URL=postgresql://appuser:s3cret@10.0.0.5:5432/appdb</code></pre>
   <p>Here's why the destination matters as much as the path. Moving your Postgres to a random second host just swaps one bill for another. The point of leaving a BaaS is to own the stack, and that's easier when the database isn't off on its own island. On Kloudbean, the database is one tab in a dashboard that also runs your app servers, object storage, static sites, a load balancer, and Git deploys.</p>
 
   <figure>
-    <img src="../assets/console/dashboard.png" alt="The Kloudbean dashboard showing servers, applications, and managed databases managed from one place">
+    <img src="../assets/console-real/shots/dashboard.png" alt="The Kloudbean dashboard showing servers, applications, and managed databases managed from one place">
     <figcaption>One dashboard for the whole stack: servers, apps, and managed databases in the same place, on the cloud you picked.</figcaption>
   </figure>
 
@@ -175,7 +217,21 @@ DATABASE_URL=postgresql://appuser:s3cret@10.0.0.5:5432/appdb</code></pre>
   </ul>
 
   <!-- ADD IMAGE: the S3-compatible object storage buckets screen, for the files that used to live in Supabase Storage. Swap for a real screenshot: src -> images/object-storage.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The object storage buckets screen, where files that lived in Supabase Storage go.</em><small>Or use the real ../assets/console/s3-buckets.png shot. Author supplies.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #4
+Create a left-to-right architecture / flow diagram for a technical blog post titled "Supabase Alternative: How to Own Your Postgres, Two Honest Paths".
+
+What it must show: The object storage buckets screen, where files that lived in Supabase Storage go.
+Also: Or use the real ../assets/console-real/shots/storage_bucket_step_3.png shot. Author supplies.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-4-flow.png" alt="The object storage buckets screen, where files that lived in Supabase Storage go.">
+    <figcaption>From client to cloud</figcaption>
+  </figure>
 
   <p>Fewer logins, one bill, and a stack you can actually see. That's the difference between renting a backend and owning one. For the pricing shape of all this, the honest breakdown is in <a href="https://www.kloudbean.com/blog/cloud-hosting-pricing-explained/">cloud hosting pricing explained</a>, and the bigger buyer's view is the pillar, <a href="https://www.kloudbean.com/blog/best-managed-cloud-hosting/">best managed cloud hosting</a>.</p>
 
@@ -187,11 +243,55 @@ DATABASE_URL=postgresql://appuser:s3cret@10.0.0.5:5432/appdb</code></pre>
   <p>A guide that only sells one side isn't worth much, so here's the fine print. Kloudbean runs Linux stacks: Node, PHP, Python, Ruby, Java, and the frameworks on top, plus standard databases like Postgres. It isn't a Windows or .NET host. "Managed" means the platform runs the server, the stack, SSL, patching, and backups; your app code, your schema, and your data stay yours to export whenever you like. On compliance, treat it as shared responsibility: the platform provides infrastructure controls, and your application-level compliance is still your job.</p>
   <p>And the most honest limit of all: if Supabase is serving you well and the cost is comfortable, you don't need to move. An alternative is for when the fit changes, not a verdict on the tool. When that day comes, the fact that it's Postgres underneath is what makes leaving painless. Free migration assistance can handle Path A for you if you'd rather not run <code>pg_dump</code> yourself.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Own your Postgres. Keep what you liked about Supabase.</p>
-    <p style="margin:0 0 .6em">Migrate to a managed PostgreSQL you control, or self-host Supabase on a server you own, both on infrastructure across seven clouds from one dashboard. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; check current plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Managed PostgreSQL · One-click Supabase · Automatic backups · Free migration · Free trial · Seven clouds</p>
+<div class="kbcta-move-wrap">
+  <div class="kbcta-move-overlay"></div>
+  <div class="kbcta-move-content">
+    <div class="kbcta-move-eyebrow">MIGRATE &middot; FLAT, PREDICTABLE PRICING</div>
+    <p class="kbcta-move-heading">Move it once. Own it after.</p>
+    <p class="kbcta-move-description">Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.</p>
+    <ul class="kbcta-move-features">
+      <li>&#10003; Free migration assistance</li>
+      <li>&#10003; Free trial</li>
+      <li>&#10003; Seven cloud providers</li>
+      <li>&#10003; Flat monthly price</li>
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Git deploy</li>
+    </ul>
+    <div class="kbcta-move-buttons">
+      <a class="kbcta-move-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-move-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-move: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-move-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#0A0730;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-move-wrap *{box-sizing:border-box}
+.kbcta-move-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #0A0730 0%, #1B0F5A 58%, rgba(79,26,243,.55) 100%);pointer-events:none}
+.kbcta-move-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.28) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-move-content{position:relative;z-index:3;max-width:700px}
+.kbcta-move-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-move-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-move-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-move-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-move-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-move-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-move-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#2A0E7A;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-move-btn:hover,.kbcta-move-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-move-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-move-link:hover,.kbcta-move-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-move-wrap{padding:36px 24px}
+  .kbcta-move-heading{font-size:31px}
+  .kbcta-move-description{font-size:16px}
+  .kbcta-move-features li{white-space:normal}
+  .kbcta-move-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-move-btn{width:100%}
+  .kbcta-move-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

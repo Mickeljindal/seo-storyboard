@@ -58,13 +58,13 @@ Whichever model you're on, the same underlying things get charged. There are rea
 
 Compute is the server itself, its CPU cores and memory. It's usually the biggest line, and it's the one you control most directly by picking a size. Bigger box, bigger number. The good news is it's **predictable**: choose a size, know the rate, and it doesn't move unless you resize. A traffic spike doesn't change it. Get this line right first, because it sets the bulk of your bill on purpose.
 
-![The Kloudbean console: choose a server size and see the compute rate before you provision](../assets/console/add-server.png)
+![The Kloudbean console: choose a server size and see the compute rate before you provision](../assets/console-real/shots/launch_server_step_1.png)
 
 ### Storage: usually small, occasionally not
 
 Storage comes in two flavours. **Disk** attached to the server (OS, your app, working files) is a modest line that scales with how much you provision. **Object storage** (buckets for media, uploads, backups) is cheap per gigabyte and scales with how much you keep. For most apps this is a few dollars, a rounding error next to compute. It only grows into something you notice if you're hoarding media or large datasets, and even then it climbs gently. If you serve a lot of files, [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/) is the piece doing that work.
 
-<!-- ADD IMAGE: an annotated pricing page with arrows on the compute, storage, and transfer lines so readers can spot each piece. -->
+![Choose the right pricing model](images/gen-1-comparison.png)
 
 ### Bandwidth (egress): the line that surprises people
 
@@ -91,7 +91,7 @@ Beyond the raw server, you pay for the managed services you bolt on:
 
 Each line is you paying to *not* build and babysit that thing. On managed hosting, a lot of this (SSL, patching, base backups) is folded into the plan rather than billed à la carte. That's what "managed" buys, and it's why comparing a managed plan to a bare server on price alone is a category error. One number includes the work. The other doesn't. There's a fuller version of that argument in [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) and [the real cost of an unmanaged VPS](https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/).
 
-![The Kloudbean console: launching a managed database as a priced add-on](../assets/console/launch-database.png)
+![The Kloudbean console: launching a managed database as a priced add-on](../assets/console-real/shots/psql_launch_step_1.png)
 
 ## Why metered bills are so hard to predict
 
@@ -99,7 +99,7 @@ Here's the uncomfortable part. The two lines that scale with success, egress and
 
 That's not an argument against metered pricing. It's an argument for knowing which model you're on before the app takes off, and for reading the transfer line before you sign up rather than after the invoice.
 
-<!-- ADD IMAGE: a simple chart of a metered bill climbing in lockstep with a rising traffic curve. -->
+![Total cost only known after month ends](images/gen-2-graph.png)
 
 ## How to read a pricing page without getting fooled
 
@@ -132,7 +132,7 @@ I'll take a side here, because "it depends" is a cop-out. For a steady small-to-
 
 Metered earns its place when scale is genuinely spiky or unknown: a launch you can't size, a batch job that runs twice a month, an app that might get ten users or ten thousand. There, paying only for what you use is the honest deal. But for the workhorse app that hums along at a known size? Flat. Every time. The peace of a predictable invoice is a real feature, and it's underrated.
 
-<!-- ADD IMAGE: one dashboard showing the whole stack (server, database, storage) on a single predictable bill. -->
+![From server to storage](images/gen-3-flow.png)
 
 ## How Kloudbean keeps the bill readable
 
@@ -140,11 +140,21 @@ This is where the decoding pays off, whoever you host with. Kloudbean leans hard
 
 You also see the compute rate before you provision, which is the whole point of this article: know the number, then click. And the parts that scale with success sit on a plan rather than a meter, so a good traffic day is good news, not an anxious glance at a dashboard. If your goal is trimming an existing bill rather than sizing a new one, [how to cut your cloud bill](https://www.kloudbean.com/blog/how-to-cut-your-cloud-bill/) is the practical companion, and if you're weighing free options first, [free app hosting options](https://www.kloudbean.com/blog/free-app-hosting-options/) and [is free hosting worth it](https://www.kloudbean.com/blog/is-free-hosting-worth-it/) come at cost from the other end.
 
----
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-**Know the number, then click.** See your compute rate before you provision, with the whole stack on one predictable bill, at [kloudbean.com](https://www.kloudbean.com/). Plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Predictable plans · Free SSL · Automatic backups · One dashboard · Free migration · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

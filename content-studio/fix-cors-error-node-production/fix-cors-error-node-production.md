@@ -80,18 +80,27 @@ Straight answer: CORS is your application's responsibility, and no host "fixes" 
 
 CORS sits next to your other HTTP security settings. See the [security headers guide](https://www.kloudbean.com/blog/security-headers-guide/) for the broader picture, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) for the per-environment config that fixes the localhost mismatch, and [deploy an Express app](https://www.kloudbean.com/blog/deploy-express-app/) for the framework side. If a proxy is in the mix, [Nginx reverse proxy for Node](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/) covers the duplicate-header trap, and [custom domain and SSL](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/) covers getting your origins onto real HTTPS domains.
 
-## Set config per environment, and CORS stops surprising you
+<!-- cta:start -->
+**Read the log, fix it, ship again.**
 
-Run your Node API with environment variables set per environment in one console, so production trusts your real frontend origin instead of localhost. Deploy from GitHub on flat pricing from $8/mo. Start at [kloudbean.com](https://www.kloudbean.com/).
+Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.
 
-Env vars per environment · Always-on Node · Free SSL · GitHub deploys · Flat from $8/mo
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 
 **Why does CORS work on localhost but fail in production?**
 Locally your frontend and API are usually the same origin or behind a dev proxy, so CORS never triggers. In production they're on different domains, which is cross-origin, so the browser enforces the policy. If your allowed origin is hardcoded to localhost, it won't match the real frontend, and you get a CORS error. Drive allowed origins from an environment variable instead.
 
-**How do I fix "No Access-Control-Allow-Origin header is present"?**
+**How do I fix 'No Access-Control-Allow-Origin header is present'?**
 Configure your server to return that header with your frontend's production origin. In Express, use the `cors` package with an allowed-origins list from an environment variable. The request may already reach your API, but the browser blocks your code from reading the response until the header names an allowed origin.
 
 **Can I just set Access-Control-Allow-Origin to `*`?**

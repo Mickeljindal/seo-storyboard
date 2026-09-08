@@ -148,15 +148,15 @@ Four steps. None of them involve a VPC diagram.
 
 Open the DBS section and hit Launch Database. Pick PostgreSQL or MySQL (MariaDB, Redis, MongoDB, and more are here too), name it, create it. A minute or two later it's provisioned, secured with IP allow-listing, and already being backed up. You'll get the host, port, database name, username, and password.
 
-![The Kloudbean console Launch Database screen, choosing a managed PostgreSQL or MySQL engine](../assets/console/launch-database.png)
+![The Kloudbean console Launch Database screen, choosing a managed PostgreSQL or MySQL engine](../assets/console-real/shots/psql_launch_step_1.png)
 
-<!-- ADD IMAGE: an AWS Cost Explorer or billing view showing RDS split into separate instance, storage, IOPS, backup, and data transfer line items -->
+![Complexity of AWS RDS vs Managed Postgres](images/gen-1-comparison.png)
 
 ### 2. Store the connection string as an environment variable
 
 Go to Runtime Configuration, then Environment Variables, and add your `DATABASE_URL` (or the discrete `DB_HOST`, `DB_PORT`, and friends your framework reads). There's a Paste .env Content tab if you'd rather drop them all in at once. Credentials live here, in the environment, not in your source.
 
-![The Kloudbean environment variables editor, where the database connection string is stored safely instead of in code](../assets/console/env-vars.png)
+![The Kloudbean environment variables editor, where the database connection string is stored safely instead of in code](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ### 3. Import your existing data
 
@@ -166,9 +166,9 @@ Dump from RDS, restore into the new database, done. The commands are in the migr
 
 Redeploy so the app picks up the new `DATABASE_URL`, then do something real: sign up a test user, create a record, reload. From the server health view you can watch CPU, memory, and disk while traffic flows, so you can size correctly instead of guessing.
 
-![The Kloudbean server health view showing CPU, memory, and disk usage for the server running the app and its managed database](../assets/console/server-health.png)
+![The Kloudbean server health view showing CPU, memory, and disk usage for the server running the app and its managed database](../assets/console-real/shots/server_health_step_2.png)
 
-<!-- ADD IMAGE: a psql session connected to the new managed database after import, with the table list from a backslash-dt command -->
+![Table list after import](images/gen-2-terminal.png)
 
 ## Migrating your data off RDS
 
@@ -198,11 +198,20 @@ I'd be doing you a disservice if I pretended this alternative fits everyone. It 
 
 The trap is reaching for all of that on a project that will never need it. A common way this goes sideways: a team spins up RDS for an app with a few thousand users, configures a VPC and security groups they'll never revisit, and then gets a bill shaped by IOPS and egress they never chose deliberately. For that app, a single well-sized managed Postgres with nightly backups would have been simpler, cheaper, and easier to reason about. Match the tool to the workload, not to the biggest workload you can imagine.
 
----
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-**Get managed Postgres or MySQL live next to your app today.** Spin up a database, colocate it with your [Node or Python app](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/), locked to your app server's IP, and keep a bill you can actually predict. Start at [kloudbean.com](https://www.kloudbean.com/); sizes and plans are on [pricing](https://www.kloudbean.com/pricing/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-Managed Postgres and MySQL · Automatic backups · Free migration assistance · Free trial · Simple Git deploy
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

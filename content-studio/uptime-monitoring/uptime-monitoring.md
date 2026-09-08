@@ -15,7 +15,7 @@ Loading your own site once a day proves almost nothing. You're probably hitting 
 
 Monitoring is the smoke detector for your infrastructure. Here's the mindset that matters: if you learn about downtime from a user, your monitoring already failed, however pretty its graphs. The whole job is to be first.
 
-<!-- ADD IMAGE: inline SVG in the HTML: the four layers of uptime monitoring (external check, /health endpoint, app + database, resources) feeding one alert bell -->
+![Minute-by-minute URL performance](images/gen-1-graph.png)
 
 ## The four layers of uptime monitoring
 
@@ -34,7 +34,7 @@ curl -fsS -m 10 https://example.com/health || notify "site down"
 
 Start here. If you add one piece of monitoring today, make it an external check on your main URL.
 
-<!-- ADD IMAGE: an external uptime monitor dashboard showing an up/down history bar and a response-time graph for a monitored URL -->
+![From check failure to notification](images/gen-2-flow.png)
 
 ### Layer 2: health-check endpoints (the /health route)
 
@@ -72,7 +72,11 @@ The first two layers tell you the app is down now. Resource monitoring tells you
 
 This is the view Kloudbean puts in the console: CPU, memory, and disk over time, per server, so watching resources doesn't mean building a separate metrics stack first.
 
-![Server health metrics in the Kloudbean console showing CPU, memory, and disk usage over time](../assets/console/server-health.png)
+![Open Server Health monitoring](../assets/console-real/shots/server_health_step_1.png)
+
+![CPU, memory, and disk usage over time](../assets/console-real/shots/server_health_step_2.png)
+
+![Per-service resource breakdown](../assets/console-real/shots/server_health_step_3.png)
 *Resource monitoring in the Kloudbean console. Watching CPU, memory, and disk over time is how you catch a filling disk or a memory leak before it becomes downtime.*
 
 ### Layer 4: response time and error rate (slow is the new down)
@@ -99,7 +103,7 @@ So be deliberate about what wakes a human. Require a couple of consecutive failu
 
 Send the page-now list to a phone push or SMS, the rest to a Slack or email channel. If you're ignoring alerts, the answer is never a bigger dashboard. It's fewer, sharper ones.
 
-<!-- ADD IMAGE: a downtime alert landing in Slack or as a phone push, showing which check failed and when -->
+![Verify cert before it expires](images/gen-3-flow.png)
 
 ## How load balancers use health checks
 
@@ -109,7 +113,7 @@ That's also how zero-downtime deploys work: a new version only gets real traffic
 
 This is also the layer where the health check stops being a monitoring nicety and starts changing outcomes, which is why it matters where your balancer lives. On Kloudbean the Flexible Load Balancer is built into every account, off until you enable it, and it works with application pools, so routing around a sick instance is a switch rather than a project. Its access logs sit in the same place, which saves you correlating an outage across two vendors' timestamps. One app's pool can also span more than one cloud and more than one region, so a bad region stops being a single point of failure. The database primary still lives in one region, though, so plan that part deliberately.
 
-![The Flexible Load Balancer in the Kloudbean console distributing traffic across an application pool of healthy servers](../assets/console/flb-load-balancer.png)
+![The Flexible Load Balancer in the Kloudbean console distributing traffic across an application pool of healthy servers](../assets/console-real/shots/flb_launch_step_2.png)
 *A load balancer polls each server's health check and quietly drops any that fail. The health endpoint you built for monitoring becomes the switch that keeps traffic on the living instances.*
 
 ## What to watch for your specific stack
@@ -126,7 +130,7 @@ The four layers are the frame. The details depend on what you run. A few failure
 
 The certificate row deserves a callout, because it's the one row you can delete instead of monitoring. Expired SSL is one of the most common silent outages going, and an alert only tells you a date is coming. Auto-renewal removes the date. Kloudbean issues free SSL that renews itself, so the row stops needing a check at all. The database row matters too, because "the site is down" is often an exhausted pool rather than a dead database. How to size one is in [database connection pooling explained](https://www.kloudbean.com/blog/database-connection-pooling/).
 
-<!-- ADD IMAGE: an SSL certificate status view showing the active certificate and its expiry date -->
+![Response time for one URL](images/gen-1-graph.png)
 
 ## Detection is only half the job
 
@@ -146,11 +150,21 @@ Now the parts no host fixes, ours included. Layer 1 is not something a managed p
 
 Weighing where to run it? [DigitalOcean vs Kloudbean](https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/) covers the managed-versus-DIY tradeoff, and [what a managed server actually is](https://www.kloudbean.com/blog/what-is-a-managed-server/) covers the rest.
 
----
+<!-- cta:start -->
+**Own the server. Skip the server admin.**
 
-**Watch your servers from one place, and recover fast when it counts.** Server health metrics, a built-in load balancer with health-checked application pools, free auto-renewing SSL, and automatic backups, all on one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+Pick from seven clouds, run your app on a managed server you control, and keep databases, storage, and deploys in the same dashboard instead of four separate vendors.
 
-Server health metrics · Built-in load balancer · Free SSL · Automatic backups · Free migration · Free trial
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -25,6 +25,11 @@ import {
   Link2,
   Activity,
   ListChecks,
+  Flame,
+  History,
+  Share2,
+  Users,
+  Mail,
 } from "lucide-react";
 import { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -36,6 +41,7 @@ import { getAutopilotStatusFn } from "@/lib/autopilot.functions";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, kbd: "1" },
+  { to: "/command", label: "Command", icon: Sparkles, kbd: "/" },
   { to: "/activity", label: "Activity", icon: Activity, kbd: "A" },
   { to: "/how-it-works", label: "How it works", icon: Sparkles, kbd: "2" },
   { to: "/strategy", label: "Strategy", icon: Brain, kbd: "3" },
@@ -44,6 +50,7 @@ const NAV = [
   { to: "/engine", label: "Engine", icon: Cog, kbd: "6" },
   { to: "/publish-queue", label: "Publish Queue", icon: ShieldCheck, kbd: "Q" },
   { to: "/content-tracker", label: "Publish Tracker", icon: ListChecks, kbd: "B" },
+  { to: "/growth", label: "Growth", icon: Flame, kbd: "W" },
   { to: "/tools", label: "Tool Pages", icon: Wrench, kbd: "T" },
   { to: "/kloudgraph", label: "Competitor Graph", icon: Network, kbd: "G" },
   { to: "/internal-links", label: "Internal Links", icon: Link2, kbd: "I" },
@@ -51,6 +58,9 @@ const NAV = [
   { to: "/experience", label: "Experience Lessons", icon: Lightbulb, kbd: "X" },
   { to: "/reels", label: "Reels Studio", icon: Clapperboard, kbd: "R" },
   { to: "/studio", label: "Media Studio", icon: Film, kbd: "M" },
+  { to: "/social", label: "Social Publisher", icon: Share2, kbd: "Y" },
+  { to: "/crm", label: "CRM Contacts", icon: Users, kbd: "U" },
+  { to: "/email", label: "Vibe Emailing", icon: Mail, kbd: "@" },
   { to: "/raffle", label: "Idea Raffle", icon: Dices, kbd: "7" },
   { to: "/calendar", label: "Calendar", icon: CalendarDays, kbd: "8" },
   { to: "/keywords", label: "Keywords", icon: Search, kbd: "9" },
@@ -61,6 +71,7 @@ const NAV = [
   { to: "/conversions", label: "Conversions", icon: DollarSign, kbd: "V" },
   { to: "/entity", label: "Entity Distribution", icon: Globe, kbd: "E" },
   { to: "/settings", label: "Settings", icon: Settings, kbd: "S" },
+  { to: "/changelog", label: "Changelog", icon: History, kbd: "N" },
   { to: "/help", label: "Help & Docs", icon: BookOpen, kbd: "H" },
 ] as const;
 

@@ -80,7 +80,21 @@
   <p>Most load balancers also handle <strong>SSL termination</strong>, meaning the HTTPS connection ends at the balancer. It holds the certificate, decrypts the request, and passes it to a backend over the internal network. That's one place to manage and renew certificates instead of copying them onto every node. If you need encryption all the way to the backend, the balancer can re-encrypt on the way in, but for most setups terminating at the edge is clean and fast.</p>
 
   <!-- ADD IMAGE: swap this slot for a real screenshot. src -> images/health-check-status.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A health-check status view: each backend node listed with its pass or fail state and the last check time.</em><small>Shows the balancer actively watching the pool.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #1
+Create a left-to-right architecture / flow diagram for a technical blog post titled "What Is a Cloud Load Balancer? A Plain-English Explainer".
+
+What it must show: A health-check status view: each backend node listed with its pass or fail state and the last check time.
+Also: Shows the balancer actively watching the pool.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-fanout.png" alt="A health check status view: the balancer polling each backend node, one passing and one failing.">
+    <figcaption>The balancer polls each backend independently</figcaption>
+  </figure>
 
   <h2>The session gotcha that logs everyone out</h2>
   <p>This one bites people, so read it twice. Say a visitor logs in and their session gets stored <strong>on Server A</strong>. Their next request lands on <strong>Server B</strong>, which knows nothing about that session, so they suddenly look logged out. You get random, hard-to-reproduce logouts that only show up under load. Miserable to debug.</p>
@@ -108,18 +122,70 @@
   <p>Kloudbean's <strong>Flexible Load Balancer (FLB)</strong> is built into every account. It's off by default, but it isn't a separate product or a tier you have to buy up into. You enable it when you need it. You get virtual load balancers with application pools, SSL management at the balancer, and access logs so you can see what's flowing through.</p>
 
   <figure>
-    <img src="../assets/console/flb-load-balancer.png" alt="The Kloudbean console showing the Flexible Load Balancer distributing traffic across healthy backend nodes">
-    <figcaption>The Flexible Load Balancer sits in front and spreads each request across the healthy nodes in your pool.</figcaption>
+    <img src="../assets/console-real/shots/flb_launch_step_1.png" alt="Launch a Flexible Load Balancer">
+    <figcaption>Launch a Flexible Load Balancer</figcaption>
+  </figure>
+  <figure>
+    <img src="../assets/console-real/shots/flb_launch_step_2.png" alt="Configure the load balancer and its application pool">
+    <figcaption>Configure the load balancer and its application pool</figcaption>
+  </figure>
+  <figure>
+    <img src="../assets/console-real/shots/flb_launch_step_3.png" alt="The load balancer is provisioned and fronting your app">
+    <figcaption>The load balancer is provisioned and fronting your app</figcaption>
   </figure>
 
   <p>The division of labour is honest: the platform runs the balancer and watches your nodes with health checks, and you own the app and <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/"></a>keep it ready to run across several servers</a> with shared sessions and shared uploads. Add a second node when one isn't enough, and you've turned a single point of failure into something that survives a bad night. If you're weighing this against automatic scaling, read <a href="https://www.kloudbean.com/blog/autoscaling-explained/">autoscaling: do you actually need it</a>. For deeper cuts, see <a href="https://www.kloudbean.com/blog/scalable-wordpress-hosting/">scaling WordPress</a>, <a href="https://www.kloudbean.com/blog/database-read-replicas-scaling/">scaling the database with read replicas</a>, and keeping backends private inside <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">a VPC</a>.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Turn one box that can die into a pool that survives.</p>
-    <p style="margin:0 0 .6em">Enable a built-in load balancer in front of your app the day one server isn't enough. Health checks, SSL management, and access logs handled, on servers and databases you own.</p>
-    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> · compare plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Built-in Flexible Load Balancer · Health checks · SSL management · Access logs · 7 clouds · Free trial</p>
+<div class="kbcta-run-wrap">
+  <div class="kbcta-run-overlay"></div>
+  <div class="kbcta-run-content">
+    <div class="kbcta-run-eyebrow">MANAGED CLOUD &middot; ONE DASHBOARD</div>
+    <p class="kbcta-run-heading">Own the server. Skip the server admin.</p>
+    <p class="kbcta-run-description">Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.</p>
+    <ul class="kbcta-run-features">
+      <li>&#10003; Seven cloud providers</li>
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration assistance</li>
+    </ul>
+    <div class="kbcta-run-buttons">
+      <a class="kbcta-run-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-run-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-run: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-run-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-run-wrap *{box-sizing:border-box}
+.kbcta-run-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-run-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-run-content{position:relative;z-index:3;max-width:700px}
+.kbcta-run-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-run-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-run-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-run-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-run-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-run-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-run-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-run-btn:hover,.kbcta-run-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-run-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-run-link:hover,.kbcta-run-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-run-wrap{padding:36px 24px}
+  .kbcta-run-heading{font-size:31px}
+  .kbcta-run-description{font-size:16px}
+  .kbcta-run-features li{white-space:normal}
+  .kbcta-run-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-run-btn{width:100%}
+  .kbcta-run-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

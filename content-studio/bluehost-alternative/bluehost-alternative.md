@@ -39,7 +39,7 @@ Nobody emails you to say "you've graduated." You just start collecting symptoms.
 
 One of these is a papercut. Three or four together is your site asking for its own room. That's when an alternative to Bluehost stops being a maybe.
 
-<!-- ADD IMAGE: A Bluehost checkout or dashboard screen showing stacked add-on upsells like domain privacy, SiteLock, and backups. This is the upsell wall readers see right before they go looking for an alternative. -->
+![Before choosing an alternative](images/gen-1-flow.png)
 
 ### Why is Bluehost slow under load?
 
@@ -73,7 +73,7 @@ A fair side-by-side. Bluehost wins a couple of rows on purpose, and I've kept th
 
 Read the last two rows plainly. Bluehost is cheaper for year one, and the free first-year domain is a real convenience. Honest wins, so don't move for the sake of it. The managed-cloud trade is a flatter, more predictable bill and a server whose limits you set. That's the Bluehost vs managed cloud decision in a sentence.
 
-<!-- ADD IMAGE: A renewal notice showing the intro rate next to the standard renewal rate, with the add-ons totaled. Blur the account details, keep the two numbers readable. -->
+![Intro rate vs standard renewal](images/gen-2-flow.png)
 
 ## The Bluehost alternative: managed cloud without the sysadmin work
 
@@ -91,27 +91,27 @@ The move is calmer than it sounds, no terminal marathon required. It's the most 
 
 Pick where it runs, from any of seven providers, how close it sits to your visitors, and how much machine you want. That's your dedicated box, with CPU and RAM that belong to you, not a shared slice. Resize later, so don't overthink the first pick.
 
-![Server creation in the Kloudbean console, showing the provider and region options](../assets/console/add-server.png)
+![Server creation in the Kloudbean console, showing the provider and region options](../assets/console-real/shots/launch_server_step_1.png)
 
 ### 2. Add your application
 
 Add the app you're moving. PHP applications from WordPress to Magento launch without hand-building the stack. Building something else? Node.js, Python, Ruby, and Java run here as first-class citizens, and static sites host free. A beginner WordPress plan doesn't offer that range.
 
-![The Add Application screen, with WordPress among the one-click stacks](../assets/console/add-application.png)
+![The Add Application screen, with WordPress among the one-click stacks](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 ### 3. Bring your site across
 
 Two ways. If it's a WordPress or PHP site, free migration assistance moves it for you, files and database included. If your code lives in Git, connect the repo and let managed CI/CD build and deploy on every push, with live build logs in the console. More in the [Git deploy guide](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-![Connecting a GitHub repository so every push builds and deploys](../assets/console/git-deployment.png)
+![Connecting a GitHub repository so every push builds and deploys](../assets/console-real/shots/git_connect_step_4.png)
 
 ### 4. Confirm backups and staging
 
 Automatic backups are on by default, and you can restore when you need to. It matters most the first time an update goes sideways. Staging is there for WordPress and Laravel, so you test risky changes on a copy first. The [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/) covers how restores work.
 
-![Backup and restore settings, showing the retained restore points](../assets/console/manage-backups.png)
+![Backup and restore settings, showing the retained restore points](../assets/console-real/shots/app_backup_step_2.png)
 
-<!-- ADD IMAGE: A before and after page-load comparison, Bluehost shared plan versus your own server under the same traffic. Real numbers from your own migration land harder than a mockup. -->
+![Bluehost shared plan vs. own server](images/gen-3-comparison.png)
 
 ## Keep your domain, just point DNS
 
@@ -143,7 +143,7 @@ Once DNS points at the new box, request a free SSL certificate and you're on HTT
 
 > **Coming from Bluehost?** You keep your site and your domain. Migration assistance moves the files and database, SSL is issued once DNS resolves, and backups run from the start. You leave behind the shared ceiling and the upsell wall, not your content.
 
-<!-- ADD IMAGE: The Bluehost DNS zone editor with two A records, root and www, pointing at a server IP. Show the Type, Host, Points to, and TTL columns so readers can copy the exact fields. -->
+![Set up A records for root and www](images/gen-4-flow.png)
 
 ## The honest trade-offs
 
@@ -151,13 +151,20 @@ Straight talk, because fair cuts both ways. Kloudbean isn't a domain registrar, 
 
 Weighing this against other budget hosts too? The same logic runs through our [SiteGround alternative](https://www.kloudbean.com/blog/siteground-alternative/), [GoDaddy alternative](https://www.kloudbean.com/blog/godaddy-alternative/), and [Namecheap alternative](https://www.kloudbean.com/blog/namecheap-alternative/) pieces, and there's a WordPress-specific walkthrough in [managed WordPress hosting](https://www.kloudbean.com/blog/managed-wordpress-hosting/).
 
----
+<!-- cta:start -->
+**Bring the app. Keep the deploy flow.**
 
-**Past the beginner plan, without the sysadmin part.**
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-Keep your domain and move the hosting to your own managed server. Get started on [kloudbean.com](https://www.kloudbean.com/); what each tier covers is on [pricing](https://www.kloudbean.com/pricing/).
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
 
-Your own dedicated resources · 7 clouds · 7 managed databases · Git deploy · Staging · Automatic backups · Free SSL · Free migration · Free trial
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## Bluehost alternative FAQ
 
@@ -174,7 +181,7 @@ Yes, and it's the most common move we see. Both WordPress and WooCommerce launch
 If you're hitting slow pages, wincing at the renewal, or fighting the upsells, then for you, yes. You get dedicated CPU and RAM instead of a shared slice, plus managed databases, Git deploy, and staging. If your site is tiny and still on its intro rate, Bluehost is cheaper today.
 
 **Is Kloudbean a domain registrar?**
-No, and it doesn't pretend to be. Kloudbean is managed cloud hosting, not a place to register domains. Keep your domain wherever it is, including at Bluehost, and point its DNS at your server. Your registration and email stay put.
+No, and it does not try to be. Kloudbean is managed cloud hosting, not a place to register domains. Keep your domain wherever it is, including at Bluehost, and point its DNS at your server. Your registration and email stay put.
 
 **What about the free domain Bluehost gave me?**
 You keep it. The domain stays registered at Bluehost and you just point its DNS at the new server, so the registration and your email don't change. Remember it renews at the standard registrar rate, the same as if you stayed.

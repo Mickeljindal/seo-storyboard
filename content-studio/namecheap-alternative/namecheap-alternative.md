@@ -26,7 +26,7 @@ You rarely get a warning email that says "you've outgrown this." You get symptom
 
 One of these on its own is just annoying. Three or four together is your site telling you it needs its own room. That's the point where an alternative to Namecheap shared hosting stops being a nice-to-have.
 
-<!-- ADD IMAGE: A browser showing a 508 Resource Limit Is Reached page, or a slow load in the network tab. -->
+![Load time under the same traffic](images/gen-2-comparison.png)
 
 ## What actually changes when you move up
 
@@ -64,7 +64,7 @@ A fair, side-by-side look. Namecheap wins some rows on purpose, and I've left th
 
 Read that price row plainly. Namecheap is cheaper to start, and that's the honest trade. You move up when the cheap plan is costing you visitors and sleep, not before. For the same logic applied to the bargain-VPS end of the market, see [free tier vs cheap VPS](https://www.kloudbean.com/blog/free-tier-vs-cheap-vps/).
 
-<!-- ADD IMAGE: A before and after load-time comparison, shared plan versus your own server under the same traffic. -->
+![Point to your server IP](images/gen-3-flow.png)
 
 ## How to move off Namecheap shared hosting
 
@@ -74,7 +74,7 @@ The move is less dramatic than it sounds. Nothing here needs a terminal marathon
 
 Pick a cloud (AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, or UpCloud), choose a region close to your visitors, and pick a size. That's your own box, not a shared slice. You can resize it later, so don't overthink the first pick.
 
-![Launching a server on Kloudbean, with provider and region selected before size](../assets/console/add-server.png)
+![Launching a server on Kloudbean, with provider and region selected before size](../assets/console-real/shots/launch_server_step_1.png)
 
 *Launch a server: choose the cloud, the region, and a size you can resize later.*
 
@@ -82,7 +82,7 @@ Pick a cloud (AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, or 
 
 Add the app you're moving. The PHP stacks are one-click: WordPress, WooCommerce, Laravel, Magento, Drupal, Joomla. Running something else? Node.js, Python, Ruby, and Java all have a home here, and static sites host free.
 
-![Adding an application in Kloudbean and choosing its stack](../assets/console/add-application.png)
+![Adding an application in Kloudbean and choosing its stack](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 *Add your application: WordPress in a click, or bring your Node, Python, Ruby, or Java app.*
 
@@ -90,7 +90,7 @@ Add the app you're moving. The PHP stacks are one-click: WordPress, WooCommerce,
 
 Two ways. If it's a WordPress or PHP site, the free migration assistance can move it for you, files and database included. If it's a codebase in Git, connect the repo and let managed CI/CD build and deploy it on every push, with live build logs so you can watch it happen. No more dragging files over FTP and praying.
 
-![Pointing a Kloudbean application at a GitHub branch for automatic deploys](../assets/console/git-deployment.png)
+![Pointing a Kloudbean application at a GitHub branch for automatic deploys](../assets/console-real/shots/git_connect_step_4.png)
 
 *Connect GitHub and deploy on push, with live build logs. More in the [Git deploy guide](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).*
 
@@ -98,7 +98,7 @@ Two ways. If it's a WordPress or PHP site, the free migration assistance can mov
 
 Backups are on by default, not a checkbox you'll forget. You can see them, and you can restore from one when you need it. If you've ever lost a site to a bad update on shared hosting, you already know why this matters. The full picture is in the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/).
 
-![Where backups are listed and restores are triggered in the Kloudbean console](../assets/console/manage-backups.png)
+![Where backups are listed and restores are triggered in the Kloudbean console](../assets/console-real/shots/app_backup_step_2.png)
 
 *Automatic backups you can actually see and restore, not a paid afterthought.*
 
@@ -133,11 +133,20 @@ Not on WordPress? Moving off shared hosting isn't a PHP-only story. Node.js, Pyt
 
 Straight talk, because the fair-comparison bit cuts both ways. Kloudbean isn't a domain registrar, and it isn't a $2 shared plan. If all you need is a parked domain and a single static page, Namecheap is cheaper and completely fine, and you should stay. Kloudbean is Linux managed cloud, starting from $8/mo, for apps that have outgrown the cheap slice and need real resources. Managed means the server, stack, SSL, backups, and patching are handled for you, while your code and your data stay yours to take anywhere. It's Linux only, so no Windows or .NET here.
 
----
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-**Room to grow, minus the sysadmin part.** Keep your domain at Namecheap and move the hosting to your own managed server. Start at [kloudbean.com](https://www.kloudbean.com/) and compare tiers on [pricing](https://www.kloudbean.com/pricing/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-Your own server resources · 7 clouds · Managed databases · Git deploy · Staging · Automatic backups · Free migration · Free trial
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

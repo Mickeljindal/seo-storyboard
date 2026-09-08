@@ -43,7 +43,7 @@ So classify before you change anything. Here's the order that finds the problem 
 
 My honest opinion, after seeing a lot of these: nine times out of ten it's the IP allow-list or a missing environment variable, not your code. Check those two before you touch a line.
 
-<!-- ADD IMAGE: teaching diagram of the connection path. Laptop with a whitelisted IP and a deployed app server with an unlisted IP both point at the database IP allow-list gate. The laptop passes and reaches the managed database, the server is refused at the gate. Shows why it works locally but not in production. -->
+![Ensure your app server's IP is allowed](images/gen-1-panel.png)
 
 ## The error-to-cause map
 
@@ -71,7 +71,7 @@ The fix is quick: add the app server's public IP to the database allow-list. On 
 
 One warning, because the temptation is real. When you're tired and the error won't budge, opening the database to the whole internet (allowing `0.0.0.0/0`) makes it vanish instantly. Don't. You've just put your database on the open internet where automated scanners will find it, and you've traded a quick allow-list entry for an exposed database and a much worse night later. Whitelist the one IP that needs in. That's the whole job.
 
-<!-- ADD IMAGE: the database access control / IP allow-list screen with the app server's IP added to the list. -->
+![Real replies, not pseudo-code](images/gen-2-terminal.png)
 
 ## ECONNREFUSED, connection refused, or a timeout: is anything even listening?
 
@@ -90,7 +90,7 @@ nc -zv your-db-host 5432      # refused = wrong host/port; hangs = allow-list or
 
 If it refuses immediately, fix the host or port. If it hangs, it's the allow-list or firewall, so go add the server's IP. And if your app connects fine at first and only fails once traffic climbs, that's a different animal (connection exhaustion under load), which [why AI apps fail in production](https://www.kloudbean.com/blog/why-ai-apps-fail-in-production/) covers.
 
-<!-- ADD IMAGE: a terminal showing the reachability check, one result that refuses immediately and one that hangs, side by side. -->
+![Copy connection info from dashboard](images/gen-3-flow.png)
 
 ## ENOTFOUND or getaddrinfo: the name doesn't resolve
 
@@ -106,7 +106,7 @@ The most common mistake is using the wrong identity entirely: people try their h
 
 A few more things throw the same error: the database name is wrong, the user exists but has no rights on that database, or the password has special characters that aren't URL-encoded inside a `DATABASE_URL` string. An `@` or a `#` in a raw password will break the URL and look like a bad password. Encode it, or set the fields separately, then check the panel value against what your app is actually sending.
 
-<!-- ADD IMAGE: the database panel showing the master user, host, and port fields you copy connection details from. -->
+![Production DATABASE_URL set](images/gen-4-flow.png)
 
 ## too many connections: you ran out of slots
 
@@ -158,9 +158,20 @@ Six of seven rows are configuration, which is why "my app can't connect to the d
 
 Now read the column again, because it also marks the limits. No platform can guess which IP deserves to be trusted, so the allow-list entry is a security decision that stays yours, and it's exactly why the `0.0.0.0/0` shortcut is so tempting and so bad. No host stops your code opening a connection per request either. That last row will take down a database on any provider, at any size, and pooling is the only real answer. And private networking inside a VPC is an Enterprise feature here, so on a standard plan don't design around it. The allow-list plus real credentials plus SSL is the lock you've got, and it's genuinely enough when you use it.
 
-**Launch a database your deployed app can actually reach, in one dashboard, with the allow-list one click away.** Run your app and its managed database together on Kloudbean: whitelist your server's IP, copy the host and master user from the panel, and connect. Automatic backups and free SSL come standard. Start at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Managed, backed up, and still yours.**
 
-One-click databases · IP allow-listing · Master user in the panel · Automatic backups · Free SSL · Free migration · Simple Git deploy
+Seven managed engines, provisioned and patched for you, with access controlled and backups running automatically. Your schema, your queries, and your data stay exportable with the standard tools.
+
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

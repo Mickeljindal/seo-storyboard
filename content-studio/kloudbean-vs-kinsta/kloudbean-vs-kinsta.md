@@ -62,13 +62,13 @@ Kinsta runs on one cloud, and which one is their decision, not yours. It was Goo
 
 Here's where the platform side shows. On Kloudbean you launch a managed database in the same console as everything else, then wire it to your app with a connection string:
 
-![The Kloudbean console launching a managed database next to your apps](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed database next to your apps](../assets/console-real/shots/psql_launch_step_1.png)
 
 Seven engines are on offer: MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch and MongoDB. Alongside them, apps in many languages, S3-compatible and GCS object storage, and a built-in load balancer, all under one login. Adding an app is the same flow as adding a site:
 
-![The Kloudbean console adding an application](../assets/console/add-application.png)
+![The Kloudbean console adding an application](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
-<!-- ADD IMAGE: the object storage view, showing an S3-compatible bucket created next to the apps and databases -->
+![From app to storage](images/gen-1-flow.png)
 
 ### Will you still get real WordPress hosting on Kloudbean?
 
@@ -82,7 +82,7 @@ Premium managed hosting isn't the cheapest corner of the market. That's true of 
 
 Two practical things decide a lot of hosting moves. First, support. Kinsta's reputation here is strong, and that's a real feature, not a slogan. When a site is down, fast and knowledgeable help is worth money, so if hand-holding support is your top priority, weigh it seriously. Kloudbean's answer is managed infrastructure with support behind it. Second, migration. Moving a WordPress site between managed hosts is usually straightforward: copy the files and database, point the domain, re-issue SSL. For a non-WordPress app it's basically a redeploy, connect the repo, set environment variables, attach the database, cut over. Neither host holds your code hostage, and Kloudbean offers free migration assistance to take the first move off your hands.
 
-<!-- ADD IMAGE: a short migration checklist or the moment a migrated site goes live on the new host -->
+![Switching to Kloudbean or Kinsta](images/gen-2-comparison.png)
 
 ## Kloudbean vs Kinsta: the quick read
 
@@ -94,11 +94,20 @@ No big table needed. Here it is in a breath.
 
 Same managed promise underneath both: Linux stacks where the platform handles the server, the stack, SSL, and backups, and you keep your application and its data. What differs is reach. Seven clouds, seven managed databases, many languages, and built-in storage and load balancing means you're far less likely to hit a wall you'd have to change hosts to get past. If you want the wider field, the [Cloudways alternatives](https://www.kloudbean.com/blog/cloudways-alternatives/) guide and the [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/) head-to-head cover the neighbours.
 
----
+<!-- cta:start -->
+**Bring the app. Keep the deploy flow.**
 
-**WordPress, apps, and databases, on the cloud you choose.** Run them all managed and in one place at [kloudbean.com](https://www.kloudbean.com/), no single-provider lock-in. See options on [pricing](https://www.kloudbean.com/pricing/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-7 clouds · Managed WordPress + apps · 7 managed databases · Built-in load balancer · Free migration · Free trial
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

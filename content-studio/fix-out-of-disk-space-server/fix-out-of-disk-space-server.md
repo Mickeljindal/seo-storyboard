@@ -33,7 +33,7 @@ Almost everything on a Linux box assumes it can write. Logs, temp files, session
 
 One quirk worth knowing: ext4 reserves a slice of the filesystem for the root user (5% by default). That's a deliberate escape hatch, and it's why you usually still have a working root shell while the disk is effectively full for your app.
 
-<!-- ADD IMAGE: Terminal screenshot of df -h with the root filesystem at 100% Use%, so readers recognise the exact output. -->
+![Root filesystem nearly full](images/gen-1-terminal.png)
 
 ## Step 1: df -h, to confirm you're out of bytes and where
 
@@ -132,7 +132,7 @@ Two things never to do on a production box under pressure. Don't wipe a log dire
 
 The rule that keeps you out of trouble: identify the file, work out which process owns it, then act. If you can't identify it, leave it alone, and take a snapshot or backup before touching anything you're unsure about. On a Kloudbean server that's an on-demand backup from the dashboard, taken before the cleanup rather than after you've discovered the file mattered. Also resist the urge to "fix permissions" while you're in there. `chmod 777` on a log or upload directory turns a capacity incident into a security one.
 
-<!-- ADD IMAGE: Output of lsof +L1 showing a deleted log file still held open by a running process, with the size column visible. -->
+![One line](images/gen-2-flow.png)
 
 ## The usual culprits, and the safe fix for each
 
@@ -228,7 +228,7 @@ sudo journalctl --vacuum-time=2d           # journal-stored dumps
 
 Then go find out why it's crashing, because the dumps are a symptom.
 
-<!-- ADD IMAGE: du -xh --max-depth=1 output walked down two levels, with the offending directory highlighted. -->
+![Identify and resolve disk usage issues](images/gen-3-flow.png)
 
 ## An honest opinion: your server isn't too small
 
@@ -266,13 +266,20 @@ If a row in that table says "your config" or "your code", changing hosts won't h
 
 [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/) for moving uploads off local disk, [server backups](https://www.kloudbean.com/blog/server-backups-guide/) before you delete anything you're unsure about, [uptime monitoring](https://www.kloudbean.com/blog/uptime-monitoring/) so you hear about a filling disk early, [structured logging in Node.js](https://www.kloudbean.com/blog/structured-logging-nodejs/) for keeping log volume sane, and [why a Node app crashes on deploy](https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/), since ENOSPC is a common hidden cause. Then the [server hardening checklist](https://www.kloudbean.com/blog/server-hardening-checklist/) and [vertical vs horizontal scaling](https://www.kloudbean.com/blog/vertical-vs-horizontal-scaling/) for when resizing genuinely is the right call.
 
----
+<!-- cta:start -->
+**Fewer mysteries on the next deploy.**
 
-**Stop storing growth on your app server.**
-Put uploads in S3-compatible object storage, keep automatic backups, and watch your servers from one dashboard. Managed servers from $8/mo at [kloudbean.com](https://www.kloudbean.com/), pricing on the [pricing page](https://www.kloudbean.com/pricing/).
-*Object storage · Automatic backups · Managed servers · Free SSL · Free migration · Free trial*
+Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.
 
----
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

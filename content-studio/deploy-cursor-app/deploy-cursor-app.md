@@ -79,7 +79,7 @@ const api = axios.create({ baseURL: "http://localhost:3000/api" });
 const api = axios.create({ baseURL: import.meta.env.VITE_API_URL ?? "/api" });
 ```
 
-<!-- ADD IMAGE: Browser DevTools Network tab showing the failed request to http://localhost:3000 from the deployed site. -->
+![From LB to DB](images/gen-1-flow.png)
 
 ### 3. Know that frontend env vars bake in at build time
 
@@ -115,7 +115,7 @@ npm ci && npx prisma generate && npx prisma migrate deploy && npm run build
 
 Use `migrate deploy`, not `migrate dev`. The `dev` variant is interactive and can try to reset the database, which is not what you want anywhere near production. Kloudbean runs seven managed engines (Postgres, MySQL, MariaDB, Redis, Memcached, MongoDB, Elasticsearch), so if your app already speaks Mongo or MySQL you're not forced to rewrite it. More on the setup in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) and the [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) guide.
 
-<!-- ADD IMAGE: Terminal running `npx prisma migrate deploy`, creating tables on the managed database. -->
+![Real terminal output for Prisma migration deploy](images/gen-3-terminal.png)
 
 ### Send uploads to object storage, not the disk
 
@@ -131,11 +131,11 @@ Repo cleaned up? Good. The rest is a short path through the console, and there's
 
 Sign in to the [Kloudbean](https://www.kloudbean.com/) console and click **Add Server**. Pick your **Cloud Provider** (AWS, DigitalOcean, Linode, Vultr, GCP, UpCloud, or Lightsail), choose **Node.js** as the application, pick the datacenter closest to your users, and give a Node build a couple of gigs of headroom on the server size. **Launch Now** provisions it in a few minutes with the stack ready.
 
-![Kloudbean Add Server screen: choosing cloud provider, Node.js application, datacenter, and server size](../assets/console/add-server.png)
+![Kloudbean Add Server screen: choosing cloud provider, Node.js application, datacenter, and server size](../assets/console-real/shots/launch_server_step_1.png)
 
 Open the app, go to **Application Administration → Deploy Code**, and you're on the Git Deployment screen. This is where the whole thing happens.
 
-![Kloudbean console Deploy Code / Git Deployment screen: connect a repo, then set App Directory, port, and build and start commands](../assets/console/git-deployment.png)
+![Kloudbean console Deploy Code / Git Deployment screen: connect a repo, then set App Directory, port, and build and start commands](../assets/console-real/shots/git_connect_step_4.png)
 
 Connect GitHub over OAuth (or drop in the SSH key it shows you), paste the repository URL, pick the branch, and hit **Clone Repository**. Then the runtime fields, which are the part that matters:
 
@@ -146,11 +146,11 @@ Connect GitHub over OAuth (or drop in the SSH key it shows you), paste the repos
 
 Click **Pull & Deploy**. Kloudbean pulls the code, pins your Node version, installs, builds, and puts it on the web. Then wire up the database and secrets:
 
-![Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance](../assets/console/launch-database.png)
+![Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance](../assets/console-real/shots/psql_launch_step_1.png)
 
 In **Runtime Configuration → Environment Variables** there's a **Paste .env Content** tab. Drop your local `.env` in, **Convert to Key/Value**, and swap the dev values for the real ones, especially the database connection string pointing at the instance you just launched.
 
-![Kloudbean environment variables editor with a paste .env content tab and key value list](../assets/console/env-vars.png)
+![Kloudbean environment variables editor with a paste .env content tab and key value list](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ```
 DATABASE_URL=postgres://kb_user:generated-pass@postgres-123456.kloudbeansite.com:5432/kb_appdb
@@ -162,7 +162,7 @@ SESSION_SECRET=a-long-random-string
 
 Last, add your custom domain under **Domain Aliases**, point its DNS at the server, and install a free **Let's Encrypt** certificate so it's HTTPS and renews itself. Turn on **automated deployment** and every push to your branch builds and ships on its own, with the build log streaming live in the console. From then on, shipping is just `git push`. That's the same auto-deploy loop the per-app platforms rent you, except it's [running on a server you own](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-<!-- ADD IMAGE: Your Cursor app live on its custom domain with the SSL padlock in the address bar. -->
+![Performance and Security Trade-offs](images/gen-5-comparison.png)
 
 ## One app, or two?
 
@@ -172,7 +172,7 @@ Built a **single full-stack app**, like a Next.js project where the pages and AP
 
 Built a **separate frontend and backend**, say a Vite React SPA and a standalone Express API? You've got two good options. Simplest: build the frontend and let your Node server serve those static files, so it stays one app on one domain. Or run them as two applications on the same server, the API on `api.yourapp.com` and the client on `app.yourapp.com`, which you add from **Applications → Add Application**. Same box, same bill. Mirror whatever you already do locally: one dev server means one app, two dev servers means two. The mechanics of stacking apps are in [hosting multiple apps on one server](https://www.kloudbean.com/blog/host-multiple-apps-one-server/).
 
-<!-- ADD IMAGE: The Applications list on one server, API on api.yourapp.com and client on app.yourapp.com. -->
+![One line](images/gen-6-flow.png)
 
 ## Do you actually need Docker for this?
 
@@ -196,9 +196,21 @@ One less obvious cause with AI-built TypeScript projects: the build fails becaus
 
 Kloudbean runs Linux stacks: Node, plus PHP, Python, Ruby, and Java, with the frameworks on top (React, Next.js, Vue, Laravel, Django, WordPress). That's essentially everything Cursor builds for the web. If you had Cursor write a classic Windows or .NET app that expects IIS and SQL Server, that's a port, not a deploy, and this isn't the platform for it. "Managed" means the server, the stack, SSL, backups, and patching are handled. Your code and your data stay yours. You can move hosts whenever you like, because underneath it's a normal Linux box running normal code. No slot to rent, no per-app tax as you grow.
 
-## Ship it
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-You did the hard part in the editor. Get your Cursor app live at [kloudbean.com](https://www.kloudbean.com/), with a free trial and your first migration done for you. Want the tool-agnostic version that covers Lovable, Bolt, v0, and Replit too? That's the [deploy an AI-built app](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) guide. Server sizes and plans are on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

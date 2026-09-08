@@ -53,7 +53,7 @@ Honestly, round-robin is fine for the large majority of apps. Don't agonize over
 
 Most load balancers also handle **SSL termination**, meaning the HTTPS connection ends at the balancer. It holds the certificate, decrypts the request, and passes it to a backend over the internal network. That's one place to manage and renew certificates instead of copying them onto every node. If you need encryption all the way to the backend, the balancer can re-encrypt on the way in, but for most setups terminating at the edge is clean and fast.
 
-<!-- ADD IMAGE: A health-check status view, each backend node listed with its pass or fail state and the last check time. -->
+![Backend nodes monitored](images/gen-1-flow.png)
 
 ## The session gotcha that logs everyone out
 
@@ -83,15 +83,29 @@ People blur these constantly. A **CDN** caches your content at locations around 
 
 Kloudbean's **Flexible Load Balancer (FLB)** is built into every account. It's off by default, but it isn't a separate product or a tier you have to buy up into. You enable it when you need it. You get virtual load balancers with application pools, SSL management at the balancer, and access logs so you can see what's flowing through.
 
-![The Kloudbean console showing the Flexible Load Balancer distributing traffic across healthy backend nodes](../assets/console/flb-load-balancer.png)
+![Launch a Flexible Load Balancer](../assets/console-real/shots/flb_launch_step_1.png)
+
+![Configure the load balancer and its application pool](../assets/console-real/shots/flb_launch_step_2.png)
+
+![The load balancer is provisioned and fronting your app](../assets/console-real/shots/flb_launch_step_3.png)
 
 The division of labour is honest: the platform runs the balancer and watches your nodes with health checks, and you own the app and [keep it ready to run across several servers](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) with shared sessions and shared uploads. Add a second node when one isn't enough, and you've turned a single point of failure into something that survives a bad night. If you're weighing this against automatic scaling, read [autoscaling: do you actually need it](https://www.kloudbean.com/blog/autoscaling-explained/). For deeper cuts, see [scaling WordPress](https://www.kloudbean.com/blog/scalable-wordpress-hosting/), [scaling the database with read replicas](https://www.kloudbean.com/blog/database-read-replicas-scaling/), and keeping backends private inside [a VPC](https://www.kloudbean.com/blog/what-is-a-vpc/).
 
----
+<!-- cta:start -->
+**Own the server. Skip the server admin.**
 
-**Turn one box that can die into a pool that survives.** Enable a built-in load balancer in front of your app the day one server isn't enough. Health checks, SSL management, and access logs handled, on servers and databases you own. Start free at [kloudbean.com](https://www.kloudbean.com/) · compare plans on [pricing](https://www.kloudbean.com/pricing/).
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
 
-Built-in Flexible Load Balancer · Health checks · SSL management · Access logs · 7 clouds · Free trial
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

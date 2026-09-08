@@ -40,7 +40,7 @@ Your SQLite database is a file on that local disk, usually something like `app.d
 
 That's what an ephemeral filesystem means: scratch space that's fine to write to while the instance lives, and certain to vanish when the instance is replaced. Redeploys replace it. So do scale events and, on many platforms, ordinary restarts. Below, the same redeploy on two setups: one where the data sits on that scratch disk, one where it lives outside the app.
 
-<!-- ADD IMAGE: your host's deploy log at the moment a new build swaps in, next to the timestamp your data went empty -->
+![One line](images/gen-1-flow.png)
 
 ## It worked locally, so the timing throws you off
 
@@ -120,11 +120,20 @@ A managed database clears all three by definition, which is the whole reason the
 
 Now the part no host fixes, and I'd rather say it than let you find out. If your SQLite file is already gone from a disk that got replaced, there's nothing for anyone to restore. Not us either. The platform was told that disk was scratch space, so it never kept a copy, and backups protect a managed database from the moment you create it rather than retroactively covering last week. Managed covers the server, the stack, SSL, patching, and the backup schedule. Choosing what your app writes and where is your call, and it always was. That's the one decision this whole article is asking you to make on purpose instead of by default.
 
-## Stop losing data on every deploy
+<!-- cta:start -->
+**One click to a real database.**
 
-**Stop losing data on every deploy. Give it a home outside the app.** Run your app on an always-on server and add a managed Postgres or MySQL that survives every redeploy, with automatic backups, free SSL, IP allow-listing, and Git deploys, all in one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/) from $8/mo; see plans on [pricing](https://www.kloudbean.com/pricing/).
+Launch MySQL, MariaDB, PostgreSQL, Redis, Memcached, MongoDB, or Elasticsearch in a click, reachable from your app server with automatic backups from minute one. Standard connection strings, standard dumps, no proprietary format.
 
-Managed Postgres + MySQL · Survives redeploys · Automatic backups · Free SSL · IP allow-listing · Git deploy · Free migration · Free trial
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

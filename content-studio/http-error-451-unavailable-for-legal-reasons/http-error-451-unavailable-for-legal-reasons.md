@@ -107,9 +107,20 @@ The boundary is the usual one, and it's wider than normal here. The managed part
 
 Its most-confused neighbour is [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/), which covers ordinary permission refusals. When a resource is deliberately and permanently gone rather than legally restricted, [410 Gone](https://www.kloudbean.com/blog/error-410-gone/) is the honest code. On authentication rather than authorisation, [401 Unauthorized](https://www.kloudbean.com/blog/http-error-401-unauthorized/), and for rate limiting, [429 Too Many Requests](https://www.kloudbean.com/blog/429-too-many-requests/). For the decision that actually matters here, [data residency explained](https://www.kloudbean.com/blog/data-residency-explained/) and [GDPR compliant hosting](https://www.kloudbean.com/blog/gdpr-compliant-hosting/), with the shared-responsibility picture in [secure and compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/). And on response headers generally, [the security headers guide](https://www.kloudbean.com/blog/security-headers-guide/).
 
-**Choose the jurisdiction before it chooses you.** Managed servers across seven cloud providers with a choice of regions, so where your workload and its data live is a decision you make deliberately. IP access control by address or CIDR, Cloudflare available as an add-on, free SSL issued and renewed, and free migration assistance. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Fewer mysteries on the next deploy.**
 
-Seven providers · Region choice · IP access control · Free SSL · One dashboard
+Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.
+
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

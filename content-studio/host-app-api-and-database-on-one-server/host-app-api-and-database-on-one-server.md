@@ -117,7 +117,7 @@ One clarification, because people mix these up. Deciding whether your React fron
 
 Running the whole stack on one server doesn't mean running the server by hand. The managed platform handles the OS, the web stack, the process manager that keeps your app alive, SSL, and backups, including the database. You own the application and the data; the platform keeps the box healthy. That split is what makes "everything on one server" practical for people who'd rather build than administer Linux. You get the simplicity and ownership of a single machine without inheriting the grind of a bare one.
 
-## The honest limits
+## What this one-server layout should not carry
 
 Kloudbean runs **Linux** web stacks (Node, PHP, Python, and frameworks like React, Next.js, Vue, Laravel, and Django) with managed databases on the same server. It isn't for Windows, .NET, or IIS workloads. Two honest points about the architecture itself. First, one server is, until you scale, a single point of failure, which is exactly why managed backups matter and why you add a load balancer or move the database out when uptime demands it. Second, "one server" is the right default for most apps but not all; a genuinely global, latency-critical, or very high-traffic app will eventually want a distributed setup. For the large middle of real apps, one owned box holding the whole stack is the simplest thing that fully works.
 

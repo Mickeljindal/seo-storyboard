@@ -72,7 +72,7 @@ Then reload with `sudo systemctl restart ssh`. Keep your current session open an
 
 Why block root specifically? Because "root" is the one username every attacker already knows. Force logins through a normal account that uses `sudo`, and a bot now has to guess both a valid username and a key it can't have. Skip it and your auth log fills with root password attempts all day. That's not paranoia. That's Tuesday.
 
-<!-- ADD IMAGE: a terminal showing a key-based SSH login working, with password auth and root login switched off. -->
+![Password auth and root login disabled](images/gen-1-terminal.png)
 
 ### 3. Turn on a firewall and default to deny
 
@@ -91,7 +91,7 @@ sudo ufw enable
 
 The most common self-inflicted breach is a database listening on a public IP with a weak password. Postgres on 5432, MySQL on 3306, Redis on 6379, Mongo on 27017, all wide open because someone bound it to 0.0.0.0 and forgot. Scanners find those in hours. Lock your database to your app server's IP so only that server can connect, and keep it off the public internet entirely. If it doesn't need a public port, it shouldn't have one.
 
-![The Kloudbean console firewall settings, showing the Shorewall firewall and Fail2ban enabled by default](../assets/console/firewall.png)
+![The Kloudbean console firewall settings, showing the Shorewall firewall and Fail2ban enabled by default](../assets/console-real/shots/app_ip_whitelisting.png)
 
 *On a managed platform the firewall is already on. Kloudbean ships a Shorewall firewall and Fail2ban enabled from the first minute, so default-deny isn't a step you have to remember.*
 
@@ -113,7 +113,7 @@ Least privilege is the quiet principle behind half of good security. Nobody and 
 
 Why it matters: blast radius. If an app running as root gets popped, the attacker owns the machine. If that same app runs as a limited `www-data`-style user, they're stuck with far less to steal or wreck. You can't prevent every break-in. You can stop one from becoming total.
 
-<!-- ADD IMAGE: app running as a dedicated non-root service user, with one sudo-capable account per person. -->
+![Least-privilege layout](images/gen-2-terminal.png)
 
 ### 6. Close unused services and delete default accounts
 
@@ -146,7 +146,7 @@ A sudden flood of failed logins is a brute-force attempt in progress. A disk qui
 
 One thing here is a security decision dressed up as a convenience: who has to log into the server just to read a log. On Kloudbean you view application logs in the UI, under **Application Administration**, then **Logs Viewer**, with separate tabs for **Web Requests Logs** (the web server access logs for every request served), **App Info** (`app.info.log`), and **App Errors** (`app.error.log`), plus a search box for locating one error. So a developer chasing a 503 reads the App Errors tab and gets their answer. No shell account, no key issued, nothing added to your SSH surface. That's least privilege in practice, and it's the version people actually stick to, because the secure path is also the faster one. The files remain at `/home/admin/hosted-sites/<app_system_user>/app-logs` for anyone who wants them directly, but nobody needs root on a box to read a stack trace.
 
-![The Kloudbean console server health view showing CPU, memory, and disk usage over time](../assets/console/server-health.png)
+![The Kloudbean console server health view showing CPU, memory, and disk usage over time](../assets/console-real/shots/server_health_step_2.png)
 
 *Server health at a glance: CPU, memory, and disk. On a managed dashboard the graphs and alerts are already wired up, so you're watching trends instead of building a monitoring stack from scratch.*
 
@@ -180,7 +180,7 @@ Access control comes with tools too. Subusers and User Access Control give each 
 
 Now the honest boundary. The platform hardens the server. You still own app-level security: your dependencies and their CVEs, your code, your auth logic, and your secrets. Run `npm audit` or `pip-audit`, set your [HTTP security headers](https://www.kloudbean.com/blog/security-headers-guide/), and keep keys out of Git. That's the shared-responsibility model, laid out in full in the guide to [secure, compliant hosting and who secures what](https://www.kloudbean.com/blog/secure-compliant-hosting/). Managed is worth it because that baseline is genuinely tedious to run yourself, which is the argument in [what a managed server actually is](https://www.kloudbean.com/blog/what-is-a-managed-server/) and [the real cost of an unmanaged VPS](https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/).
 
-<!-- ADD IMAGE: a two-column split: server baseline the platform handles vs app-level security you own. -->
+![Responsibility split for server security](images/gen-3-comparison.png)
 
 ## The five-minute version, if you only do a handful
 
@@ -194,11 +194,20 @@ If the whole list feels like a lot, collapse it to three: patch the box, switch 
 - Move every secret into environment variables; scrub keys from Git history.
 - Restore one backup on purpose, to prove the path works.
 
----
+<!-- cta:start -->
+**Patched, firewalled, and backed up.**
 
-**Skip the baseline grind. Ship on a server that arrives hardened.** Launch on infrastructure where the firewall, Fail2ban, free SSL, backups, and patching are already handled, so your effort goes to the app-level security only you can own. Start at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/), and verify current details there.
+The platform keeps the server, stack, SSL, and patching current, with automatic backups running. Application-level security stays yours, and that split is deliberate rather than hidden.
 
-Shorewall firewall + Fail2ban baseline · Free auto-renewing SSL · Automatic backups · Managed patching · IP Access Control · Subusers + UAC · Free migration · Free trial
+- Shorewall firewall
+- Fail2ban
+- OS patching handled
+- Free SSL
+- IP access control
+- Automatic backups
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -69,6 +69,9 @@ export async function runJobRunnerOnce(
  */
 export function ensureJobRunner(): boolean {
   if (isDisabled()) return false;
+  // Unattended background work means a dropped outbound socket would otherwise
+  // take the whole server down with it. See process-guard.ts.
+  void import("./process-guard").then((m) => m.installProcessGuard()).catch(() => {});
   if (g.__seoJobRunner) {
     // Already running — give it an immediate nudge so freshly-enqueued jobs
     // don't wait for the next interval tick.

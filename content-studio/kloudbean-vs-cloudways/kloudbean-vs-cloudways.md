@@ -44,7 +44,7 @@ If your entire need is one managed WordPress or PHP site on a good cloud, you'll
 
 This is the one line in the whole comparison that isn't a matter of taste. Cloudways runs on DigitalOcean, Vultr, Linode, AWS, and Google Cloud. Kloudbean runs on those same five, plus AWS Lightsail and UpCloud. Seven total. So any cloud you could pick on Cloudways, you can pick on Kloudbean, with two more on the table. You provision by choosing the provider first:
 
-![The Kloudbean console launching a server across AWS, Lightsail, GCP, Linode, Vultr, DigitalOcean, or UpCloud](../assets/console/add-server.png)
+![The Kloudbean console launching a server across AWS, Lightsail, GCP, Linode, Vultr, DigitalOcean, or UpCloud](../assets/console-real/shots/launch_server_step_1.png)
 
 ### Languages: the whole ecosystem, not just PHP
 
@@ -58,15 +58,15 @@ On a PHP-centric host, the database is usually the MySQL or MariaDB sitting besi
 
 Kloudbean includes S3-compatible object storage and managed Google Cloud Storage buckets, so big files live off your server instead of bloating it. And the Flexible Load Balancer is built into every account, off by default, ready when you need to spread traffic across nodes. No separate product, no separate login. Background on both: [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/) and [how a cloud load balancer works](https://www.kloudbean.com/blog/cloud-load-balancer-explained/).
 
-<!-- ADD IMAGE: the object storage view with an S3-compatible bucket, or the Flexible Load Balancer panel, showing both live in the same console -->
+![Automated backup to S3-compatible bucket](images/gen-1-flow.png)
 
 ### Deploys: managed CI/CD with live build logs
 
 Connect a Git repo and Kloudbean builds and deploys on every push, streaming the build logs into the console so you can watch it happen (and see exactly where it fails). That's a step past a plain Git pull. Details in [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-![The Kloudbean console showing a Git deployment with live build logs](../assets/console/git-deployment.png)
+![The Kloudbean console showing a Git deployment with live build logs](../assets/console-real/shots/git_connect_step_4.png)
 
-<!-- ADD IMAGE: the managed databases panel with the six engines (MySQL, MariaDB, PostgreSQL, Redis, Elasticsearch, MongoDB) -->
+![Seven engines in order](images/gen-2-flow.png)
 
 ### Team and enterprise: UAC, audit trail, Kubernetes
 
@@ -101,11 +101,20 @@ Both are managed layers over cloud infrastructure, so they price in a similar sh
 
 Same caveats apply to both, kept short. Both are Linux hosting: PHP, Node, Python, Ruby, Java, Go, and their databases. Kloudbean also runs .NET on Linux, and Windows Server is available on its premium and enterprise plans rather than as a standard option. And "managed" means the server, stack, SSL, and backups are handled, while your application code and its data stay yours. One Kloudbean-specific note for general readers: autoscaling is an enterprise and custom feature, not something standard accounts flip on. So if automatic scaling is central to your plan, that's an enterprise conversation, not a default. Want the wider field first? See [Cloudways alternatives](https://www.kloudbean.com/blog/cloudways-alternatives/).
 
----
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-**Your whole stack, one dashboard, seven clouds.** Run apps in any language, seven managed database engines, object storage, and a load balancer, all managed, all in one place. Start free at [kloudbean.com](https://www.kloudbean.com/), compare options on [pricing](https://www.kloudbean.com/pricing/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-7 clouds · One dashboard for your whole stack · 7 managed database engines · Built-in load balancer · Free migration · Free trial
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

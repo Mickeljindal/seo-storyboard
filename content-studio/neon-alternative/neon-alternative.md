@@ -66,7 +66,7 @@ Look at the pattern, not the score. The right column isn't a worse Neon. It's a 
 
 **One dashboard, and you own it.** The same console runs your app, the database, backups, and object storage. It's standard Postgres underneath, so your schema and data stay yours to export whenever you like.
 
-<!-- ADD IMAGE: the one-dashboard overview showing the app server and its managed Postgres together in one account -->
+![Easier management with a single account](images/gen-1-comparison.png)
 
 ## The connection story: no pooler dance
 
@@ -110,17 +110,17 @@ The switch is less dramatic than it sounds. Five steps, most of it a plain dump 
 
 1. **Launch a managed PostgreSQL.** Open the DBS section, hit Launch Database, pick PostgreSQL, name it, create it. A minute or two later it's provisioned, in your account, and already being backed up.
 
-![The Kloudbean console launching a managed PostgreSQL database, provisioned, patched, and backed up in your account](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed PostgreSQL database, provisioned, patched, and backed up in your account](../assets/console-real/shots/psql_launch_step_1.png)
 
 2. **Put your app in the same account.** Deploy your Node or Python app in the same account so it and the database sit together, one dashboard for both. Connect a GitHub repo and managed CI/CD builds and deploys on every push. If your app is Next.js, [deploy a Next.js app to your own server](https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/) walks the app side end to end.
 3. **Set DATABASE_URL as an environment variable.** In Runtime Configuration, add the connection string. Never in code, never in Git. Rotate it later without touching source.
 
-![The Kloudbean console showing the Postgres connection string stored as an environment variable, not in code](../assets/console/env-vars.png)
+![The Kloudbean console showing the Postgres connection string stored as an environment variable, not in code](../assets/console-real/shots/nodespm_env_step_1.png)
 
 4. **Import your data and run migrations.** Dump from Neon with `pg_dump`, load with `psql`, then run your ORM's migrate command (`npx prisma migrate deploy`, `alembic upgrade head`) if there's anything new to apply.
 5. **Repoint and verify.** Point `DATABASE_URL` at the new host, redeploy, then do something real. Sign up a test user, reload, confirm the row is still there. If it won't connect, it's almost always a typo in the string or the wrong variable name.
 
-<!-- ADD IMAGE: a response-time graph after the switch, flat and steady, with none of the periodic cold-start spikes a scaled-to-zero database shows -->
+![No cold-start spikes after switching to Neon](images/gen-2-graph.png)
 
 ## Migrating off Neon
 
@@ -138,7 +138,7 @@ psql "$NEW_DATABASE_URL" < neondb.sql
 
 Point `DATABASE_URL` at the new database, redeploy, done. One thing to check: if your app used Neon's serverless driver (`@neondatabase/serverless`) for edge functions, swap it back to a standard `pg` client and a normal pool, since you're talking to a persistent server now, not a serverless endpoint over HTTP. For a production database you'd rather not cut over alone, the free migration assistance is there for exactly that.
 
-<!-- ADD IMAGE: a terminal running pg_dump against the Neon URL, then psql importing into the managed database -->
+![Real dump and load for managed PostgreSQL](images/gen-1-terminal.png)
 
 ## When Neon is still the right call
 
@@ -152,11 +152,20 @@ The database is one tile. On Kloudbean it sits in the same dashboard as everythi
 
 On pricing, standard plans start from $8/mo and Enterprise is custom, so a small project stays cheap and the number is easy to plan around. The honest boundary, once: these are Linux-based managed engines, and managed means the platform handles provisioning, patching, backups, and monitoring while your schema, queries, and data stay yours, exportable with a standard `pg_dump` anytime. Kloudbean doesn't offer database branching or scale-to-zero, and autoscaling Postgres is an enterprise or custom arrangement, not the serverless model Neon runs. Private networking (VPC), VPN and Kubernetes are Enterprise features too, not defaults on a standard plan.
 
----
+<!-- cta:start -->
+**Bring the app. Keep the deploy flow.**
 
-**Give your app a Postgres that's awake when your users are.** Launch an always-on managed PostgreSQL next to your app, in the same account, with automatic backups from minute one and a bill you can forecast. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-One-click PostgreSQL · Always-on, no cold starts · Automatic backups · Colocated with your app · Predictable pricing · Free migration · Free trial
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

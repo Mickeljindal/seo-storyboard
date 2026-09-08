@@ -146,11 +146,21 @@ The honest boundary: nothing a host does can fix antivirus software on a visitor
 
 For the refused and timed-out cases at other layers, [ECONNREFUSED](https://www.kloudbean.com/blog/fix-econnrefused-node/) and [Cloudflare error codes](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/), including the [521 guide](https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/) on restoring real visitor addresses and the [522 guide](https://www.kloudbean.com/blog/cloudflare-error-522-connection-timed-out/) for the silent-drop side of the same distinction. If you have not identified your Chrome code yet, [this site can't be reached](https://www.kloudbean.com/blog/this-site-cant-be-reached/) maps them all to a layer. On TLS, [fixing SSL certificate errors](https://www.kloudbean.com/blog/fix-ssl-certificate-errors/) and [SSL and TLS explained](https://www.kloudbean.com/blog/ssl-tls-explained/). When the server answers with nothing useful, [error 520](https://www.kloudbean.com/blog/cloudflare-error-520/) and [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/). And on the timeout side, [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/).
 
-## The server half, handled
+<!-- cta:start -->
+**Own the server. Skip the server admin.**
 
-Managed servers with maintained TLS configuration, free SSL issued and renewed, Shorewall and Fail2ban configured, and visible memory and load metrics. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
 
-Maintained TLS · Free SSL · Firewall configured · Server metrics · One dashboard
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -71,11 +71,21 @@ Being straight about the tradeoff: you pay for that server whether it's busy or 
 
 Cost-specific deep dives: [Heroku costs after the free tier](https://www.kloudbean.com/blog/heroku-cost-after-free-tier/) for per-piece billing, [why is my Railway bill so high](https://www.kloudbean.com/blog/why-is-my-railway-bill-so-high/) for metered billing, and [Render cold starts](https://www.kloudbean.com/blog/render-cold-starts-fix/) for what free actually costs. For choosing overall: [best managed Node.js hosting](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/) and [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/). On scaling spend later, see [vertical vs horizontal scaling](https://www.kloudbean.com/blog/vertical-vs-horizontal-scaling/).
 
-## One number, whole stack
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-Run your Node app and its worker always-on under PM2 with a managed database locked to your app server's IP, no egress metering, and SSL, firewall, and backups handled, on a flat plan from $8/mo. Free trial and free migration assistance. Start at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Flat from $8/mo · No egress metering · Managed database included in the dashboard · No cold starts · Free migration
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

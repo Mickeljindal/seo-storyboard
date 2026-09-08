@@ -39,7 +39,7 @@ Cloud Run is well built. The friction usually isn't the platform, it's running a
 
 None of that makes Cloud Run bad. It makes it a poor fit for one specific case: the app that's always in use.
 
-<!-- ADD IMAGE: A latency chart of a Cloud Run service after idle: the first request spikes on the cold start, then flattens once an instance is warm. -->
+![First request after idle](images/gen-1-graph.png)
 
 ## What Cloud Run genuinely does better
 
@@ -93,7 +93,7 @@ Here's the Cloud Run vs managed server comparison without the spin. Cloud Run wi
 | **Dashboard** | Several GCP services to wire together | One dashboard for the whole stack |
 | **Best fit** | Spiky, bursty, or infrequent workloads | Steady, always-on apps |
 
-<!-- ADD IMAGE: A simple cost sketch: a flat always-on server line versus a per-request line that spikes and dips with traffic. -->
+![Predictable vs Variable Pricing](images/gen-2-comparison.png)
 
 ## The always-on Google Cloud Run alternative: app and database in one dashboard
 
@@ -154,7 +154,7 @@ You connect your GitHub repo, set the install, build, and start commands, and ev
 
 The honest tradeoff: if shipping a specific container image is a hard requirement for you, Cloud Run's container-native model is genuinely better, and you should weigh that. Kloudbean's model is bring your code and we run the runtime, not bring your container.
 
-<!-- ADD IMAGE: Live build logs streaming during a Git push deploy: install, then build, then the app starting. -->
+![Push-to-deploy loop in action](images/gen-3-flow.png)
 
 ## How to move off Cloud Run to an always-on server
 
@@ -164,19 +164,19 @@ Moving a standard app over is a normal deploy, not a rewrite. Here's the path.
 
 In the console, add an application and pick your runtime (Node, Python, PHP, Ruby, Java, or a static site). This is your always-on process, the thing that stays warm and answers requests without a cold start.
 
-![The Kloudbean console Add Application screen: name the app and choose the runtime](../assets/console/add-application.png)
+![The Kloudbean console Add Application screen: name the app and choose the runtime](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 ### 2. Connect your Git repo and deploy
 
 Point Kloudbean at your GitHub repository and set the install, build, and start commands (the same ones your Dockerfile or Procfile already implies). Deploy, and watch the build logs live rather than pushing an image to a registry first.
 
-![The Kloudbean console Git Deployment tab: connect a repo, set the runtime, then Pull and Deploy](../assets/console/git-deployment.png)
+![The Kloudbean console Git Deployment tab: connect a repo, set the runtime, then Pull and Deploy](../assets/console-real/shots/git_connect_step_4.png)
 
 ### 3. Move your config into environment variables
 
 Your Cloud Run environment variables and anything you kept in Secret Manager become environment variables here, including `DATABASE_URL`. Nothing hard-coded, nothing committed to the repo.
 
-![The Kloudbean console environment variables screen: add keys and values the app reads at runtime](../assets/console/env-vars.png)
+![The Kloudbean console environment variables screen: add keys and values the app reads at runtime](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ### 4. Launch a managed database and import your data
 
@@ -188,11 +188,20 @@ Add your domain, get free SSL, and switch on deploy-on-push. Test on the tempora
 
 > **Where this comparison stops applying:** if your traffic is genuinely spiky or infrequent, if scale-to-zero is saving you real money, or if you're all-in on containers and want that exact image in production, Cloud Run is the better fit. Don't switch away from a strength you're actually using. Move only if you're running a steady, always-on app and paying for idle time, cold starts, and connection plumbing you never wanted.
 
----
+<!-- cta:start -->
+**Move it once. Own it after.**
 
-**Always-on, no cold starts, one dashboard.** Run your app on a managed server with the database right beside it at [kloudbean.com](https://www.kloudbean.com/). Free trial, and we'll handle your first migration. Plans on [pricing](https://www.kloudbean.com/pricing/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-Always-on managed server · App and managed database in one dashboard · 7 clouds incl. Google Cloud · Git push-to-deploy · Automatic backups · Free SSL · Free migration · Free trial
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

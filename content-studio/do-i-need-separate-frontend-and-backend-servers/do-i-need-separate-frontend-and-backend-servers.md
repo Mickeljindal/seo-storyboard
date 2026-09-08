@@ -128,9 +128,21 @@ Now the part no host touches. CORS is application config, not infrastructure. `S
 
 Which is the whole point. The split should follow a boundary you can name, and until you can name one, one server and one origin is the setup that lets you spend the week on the product instead of on preflight headers.
 
----
+<!-- cta:start -->
+**Own the server. Skip the server admin.**
 
-**Ship first, split later if you must.** If you want a managed server that can serve your front end and API together, and room to add more when you actually need it, that is what Kloudbean is for. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+Pick from seven clouds, run your app on a managed server you control, and keep databases, storage, and deploys in the same dashboard instead of four separate vendors.
+
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

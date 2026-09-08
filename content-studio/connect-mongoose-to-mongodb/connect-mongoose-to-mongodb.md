@@ -36,7 +36,7 @@ MONGODB_URI=mongodb://appuser:s3cret@10.0.0.5:27017/appdb?authSource=admin
 
 Read it apart once and it stops being cryptic. `appuser:s3cret` is the least-privilege user and password. `10.0.0.5:27017` is the internal host and the default MongoDB port. `/appdb` is the database to use. Anything after `?` is options. Get `authSource` wrong and the driver hunts for the user in the wrong database, which is why [MongoError: Authentication failed shows up even when the password is right](https://www.kloudbean.com/blog/fix-mongoerror-authentication-failed/). The reason it lives in an env var, and not in a config file you commit, is covered properly in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). Short version: secrets in code leak, and rotating a password shouldn't need a code change.
 
-<!-- ADD IMAGE: The app's Environment Variables panel with a MONGODB_URI row, value masked, so readers see where the connection string is stored instead of in code. -->
+![Store connection strings securely](images/gen-1-panel.png)
 
 ## mongoose.connect options that actually matter
 
@@ -158,7 +158,7 @@ const admins = await User.find({ role: 'admin' }).limit(50).lean();
 
 The `unique: true` on `email` is a schema hint, but the guarantee comes from the underlying index. Which is exactly why the next section matters.
 
-<!-- ADD IMAGE: A code editor showing a Mongoose schema on the left and a query using the model on the right, or a terminal running the query and printing a returned document. -->
+![Real replies, not pseudo-code](images/gen-2-terminal.png)
 
 ## Indexes, and why autoIndex is off in production
 
@@ -201,19 +201,19 @@ Here's the part that ties Mongoose to a real server. Your Node app runs on Kloud
 
 1. **Launch a managed MongoDB.** In the DBS section, choose MongoDB and create it. MongoDB is one of seven managed engines here, and it comes up provisioned, secured, and already being backed up. Copy the host, port, database, user, and password.
 
-![The Kloudbean console launching a managed MongoDB, one of seven managed database engines, provisioned and backed up automatically](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed MongoDB, one of seven managed database engines, provisioned and backed up automatically](../assets/console-real/shots/mongodb_launch_step_1.png)
 
 2. **Set MONGODB_URI as an environment variable.** Open Runtime Configuration, then Environment Variables, and add `MONGODB_URI` with the internal host. Use the Paste .env Content tab to drop it in. This is what your Mongoose `connect` reads.
 
-![The Kloudbean Environment Variables panel where MONGODB_URI is stored on the server instead of in application code](../assets/console/env-vars.png)
+![The Kloudbean Environment Variables panel where MONGODB_URI is stored on the server instead of in application code](../assets/console-real/shots/nodespm_env_step_1.png)
 
 3. **Deploy from Git.** Connect your GitHub repo and Kloudbean builds and deploys on every push, with live build logs and deployment history. Add your `syncIndexes` script as a deploy step so index changes ship with the code that needs them.
 
-![The Kloudbean Git deployment screen connecting a GitHub repo to build and deploy the Node app on every push](../assets/console/git-deployment.png)
+![The Kloudbean Git deployment screen connecting a GitHub repo to build and deploy the Node app on every push](../assets/console-real/shots/git_connect_step_4.png)
 
 Then verify. Redeploy so the app reads the new variable, hit an endpoint that writes and reads a document, and confirm it persists. If it won't connect, it's almost always the connection string, a wrong variable name, or the database being unreachable. The full runtime walkthrough is in [deploy a Node app to managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/), and the Express specifics are in [deploy an Express app](https://www.kloudbean.com/blog/deploy-express-app/).
 
-<!-- ADD IMAGE: The app's live log stream showing the line MongoDB connected right before the server prints that it is listening on its port. -->
+![Real-time log stream](images/gen-3-flow.png)
 
 ## Security: the parts you can't skip
 
@@ -241,9 +241,20 @@ You don't need to tune anything on launch day. But a few levers save you later, 
 
 A quick honest aside, because picking the wrong database is a slow, expensive mistake. MongoDB shines for flexible or nested documents, high write throughput, and shapes that don't fit neatly into rows. But if your data is deeply relational, orders that join to customers that join to invoices that join to line items, you'll spend your life hand-rolling joins that a relational database does for free. That's a job for Postgres or MySQL. If you're genuinely unsure, [when to use a NoSQL database](https://www.kloudbean.com/blog/when-to-use-a-nosql-database/) walks through the decision without cheerleading for either side. Pick the model that matches your data, not the one that's trendy.
 
----
+<!-- cta:start -->
+**A database you can dump and take with you.**
 
-**Ship your Mongoose app on a database you own.** Run your Node app and a managed MongoDB together at [kloudbean.com](https://www.kloudbean.com/). One-click MongoDB · Automatic backups · Env vars in the UI · Simple Git deploy · Free migration · Free trial. From $8/mo, sizes on [pricing](https://www.kloudbean.com/pricing/).
+Seven managed engines, provisioned and patched for you, with access controlled and backups running automatically. Your schema, your queries, and your data stay exportable with the standard tools.
+
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

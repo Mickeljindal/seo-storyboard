@@ -143,3 +143,33 @@ $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS articles_updated_at ON articles;
 CREATE TRIGGER articles_updated_at BEFORE UPDATE ON articles
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TABLE IF NOT EXISTS social_channels (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  platform text NOT NULL,
+  label text NOT NULL,
+  mode text NOT NULL DEFAULT 'webhook',
+  webhook_url text,
+  api_token text,
+  meta jsonb,
+  persona text,
+  enabled boolean NOT NULL DEFAULT true,
+  last_ok_at timestamptz,
+  last_error text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS social_posts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  body text NOT NULL,
+  link text,
+  image_url text,
+  channel_ids text[] DEFAULT '{}',
+  scheduled_at timestamptz,
+  status text NOT NULL DEFAULT 'draft',
+  results jsonb,
+  source text DEFAULT 'manual',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  posted_at timestamptz
+);
+CREATE INDEX IF NOT EXISTS idx_social_posts_status ON social_posts(status);
+CREATE INDEX IF NOT EXISTS idx_social_posts_sched ON social_posts(scheduled_at);

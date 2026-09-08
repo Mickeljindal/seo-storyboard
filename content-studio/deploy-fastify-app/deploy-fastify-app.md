@@ -47,7 +47,7 @@ This is the big difference from Express, and it trips up people moving over. A p
 
 *(Diagram: a single request path. A browser sends an HTTPS request on port 443 to a reverse proxy, which terminates TLS and sets X-Forwarded headers, then forwards to a Fastify app. If Fastify is bound to 127.0.0.1 the proxy is refused and the user gets a 502. If Fastify is bound to 0.0.0.0 on the assigned port it is reachable, logs JSON with pino to stdout, closes gracefully on SIGTERM, and talks to a managed database in the same account, over the local network. The fork that decides everything is which host Fastify binds.)*
 
-<!-- ADD IMAGE: a terminal showing the Fastify boot line, Server listening at http://0.0.0.0:3000, proving it is on all interfaces and not just loopback -->
+![Confirm the host fix worked](images/gen-1-terminal.png)
 
 ## A production-ready Fastify server, in one file
 
@@ -152,7 +152,7 @@ pm2 start server.js -i max --name my-fastify-api
 
 Start single, cluster when your metrics ask. One trap the moment you cluster: anything in process memory stops being shared. An in-memory cache, a local rate limiter, a `Map` of sessions now has one copy per worker, so a user hits worker A and their session lives on worker B. Move that state into managed Redis, and keep uploads in object storage, not the app disk. On choosing a supervisor, we compared the options in [PM2 vs systemd](https://www.kloudbean.com/blog/pm2-vs-systemd/). Founder opinion: most Fastify APIs never need Kubernetes or autoscaling. A right-sized box, then a bigger one, carries you a long way.
 
-<!-- ADD IMAGE: pm2 list output showing the Fastify app online with uptime and restart count -->
+![Live logs payoff moment](images/gen-4-terminal.png)
 
 ## Wiring in a managed database
 
@@ -173,7 +173,7 @@ Concepts done. Here is the path on [Kloudbean](https://www.kloudbean.com/), wher
 
 Click **Add Server**, pick a cloud (Kloudbean runs seven: AWS, Amazon Lightsail, Google Cloud, DigitalOcean, Vultr, Linode, and UpCloud), choose the **Node.js** stack, a region near your users, and a size. 2 GB is a comfortable start for a single API. Running your Fastify API next to a front end or a worker? Add each under **Applications**, **Add Application**. Multiple apps per server is first-class here, not a workaround.
 
-![The Kloudbean Add Application screen: adding a Fastify Node.js app to a server and choosing its stack](../assets/console/add-application.png)
+![The Kloudbean Add Application screen: adding a Fastify Node.js app to a server and choosing its stack](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 Now connect Git. In **Git Deployment**, link GitHub, paste the repository URL, choose a branch, and clone. Then fill the runtime config, where the earlier decisions become fields:
 
@@ -184,13 +184,13 @@ Now connect Git. In **Git Deployment**, link GitHub, paste the repository URL, c
 
 Hit **Pull & Deploy** and the build log streams live, so you watch clone, install, and boot scroll past. Turn on automated deployment and every push ships itself, with the deploy recorded. That is the continuous-deploy loop the big platforms sell, on a box you own, detailed in [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-![The Kloudbean Git Deployment tab: repository URL, branch, and the install, build, and start commands for a Fastify app](../assets/console/git-deployment.png)
+![The Kloudbean Git Deployment tab: repository URL, branch, and the install, build, and start commands for a Fastify app](../assets/console-real/shots/git_connect_step_4.png)
 
-<!-- ADD IMAGE: the runtime configuration panel filled in for Fastify, showing App Directory, Port, Node version, and the Install and Start commands -->
+![pm2 list shows uptime and restart count](images/gen-1-terminal.png)
 
 Env vars go under **Runtime Configuration, Environment Variables**, with a **Paste .env Content** tab to drop the whole file in at once. A missing variable is the most common reason a Fastify app builds but will not boot, so copy them all. Then add your domain, point DNS at the server, and install a free auto-renewing SSL certificate. The proxy already terminates TLS on 443 and forwards to your Fastify port, so once DNS resolves the API is live over HTTPS.
 
-<!-- ADD IMAGE: the live build log streaming npm ci and the Fastify boot line during a deploy -->
+![Runtime config for Fastify](images/gen-2-terminal.png)
 
 ## Fastify vs Express: what differs at deploy time
 
@@ -246,11 +246,21 @@ Fix the one thing it names and deploy again. The overwhelming majority of Fastif
 
 Kloudbean runs Fastify on Linux managed cloud: the Node runtime, PM2, the reverse proxy, SSL, and backups are maintained on whichever of the seven clouds you pick. It is Linux stacks, not Windows or .NET, and Fastify is a Node framework, so it fits cleanly. "Managed" means the platform keeps the server and stack healthy while you own the app: your routes, your data, your config. It is a standard Linux box running standard Node, so you can move hosts anytime, with no per-app tax as you add more.
 
----
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-**Your Fastify API, live on a server you own.** Deploy from Git, let PM2 keep it up, wire in a managed database, and get free auto-renewing SSL, without hand-rolling a proxy config. Start at [kloudbean.com](https://www.kloudbean.com/); sizes and plans (from $8/mo, Enterprise custom) are on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Seven clouds, one dashboard · Git deploy with live logs · PM2 process management · Seven managed databases · Free auto-renewing SSL · Free migration · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

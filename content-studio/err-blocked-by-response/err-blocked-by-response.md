@@ -114,9 +114,21 @@ The boundary is the usual one. The box, its stack, its certificates and its back
 
 For the standard header set and a safe CSP rollout, [the security headers guide](https://www.kloudbean.com/blog/security-headers-guide/), which is the natural companion to this one. Elsewhere in the browser-error family: [ERR_CONNECTION_RESET](https://www.kloudbean.com/blog/err-connection-reset/) for a connection killed mid-flight, [ERR_SSL_PROTOCOL_ERROR](https://www.kloudbean.com/blog/err-ssl-protocol-error/) when the handshake fails, and [ERR_CACHE_MISS](https://www.kloudbean.com/blog/err-cache-miss/) for the POST resubmission case. If you haven't pinned down which code you have, [this site can't be reached](https://www.kloudbean.com/blog/this-site-cant-be-reached/) is the router. On HTTPS as the precondition for all of this, [custom domain and SSL](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/), and for setting headers at the proxy layer, [nginx as a reverse proxy for Node](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/).
 
-**Set the header once, in a place you can find.** Managed servers across seven clouds with a managed reverse proxy, so response headers live in maintained configuration rather than a file someone edited long ago. Free SSL issued and renewed, S3-compatible object storage for serving your own assets, and free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Ship the app, not the infrastructure.**
 
-Managed reverse proxy · Free SSL, renewed · S3 storage · Free migration · One dashboard
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
+
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

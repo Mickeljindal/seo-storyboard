@@ -65,7 +65,7 @@ Start with a manual smoke test. A smoke test is the quick, shallow pass that ans
 
 If several of those fail, that's normal for an AI-generated app, and it's exactly why you tested before launch instead of after. For the broader "is this ready at all" pass, the [AI app production readiness checklist](https://www.kloudbean.com/blog/ai-app-production-readiness-checklist/) is the companion piece, and [from prototype to production checklist](https://www.kloudbean.com/blog/from-prototype-to-production-checklist/) covers the general prototype-to-prod list.
 
-<!-- ADD IMAGE: a browser private window showing a protected page reachable while logged out, next to a terminal curl of the same endpoint returning data with no auth -->
+![Unauthenticated access to a protected endpoint](images/gen-1-terminal.png)
 
 ## Test the security paths, because that's where AI builders cut corners
 
@@ -116,7 +116,7 @@ Same pattern works in any stack. Python has `pytest` and `httpx`, Laravel has fe
 
 Then make them run without you remembering to. If you deploy from Git, hang the test command off the build so a red test shows up in the build log next to the deploy that caused it. On Kloudbean the build logs stream live during a deploy, which matters more than it sounds: you find out your auth test broke while you're still watching the screen, not from a user three days later.
 
-<!-- ADD IMAGE: a terminal running the test file, showing the auth test failing (a protected route returning 200 instead of 401) so the reader sees a real caught bug -->
+![Protected route returns 200 instead of 401](images/gen-2-terminal.png)
 
 ## Don't let the AI grade its own homework
 
@@ -144,15 +144,23 @@ Testing produces a pile of findings and no ranking, which is how people end up e
 
 And the honest limit. A host can give you a realistic place to run these tests, a managed database that behaves like production, a Git deploy so a fix and a re-test is one push, backups underneath it. No host, ours included, can tell you your auth check is decorative, that your form saves a broken row, or that the AI's green test suite asserts the bug. Nobody sells that. It's twenty minutes of clicking the paths you avoided, and it's the highest-value twenty minutes in the whole launch.
 
-<!-- ADD IMAGE: the Kloudbean dashboard launching a managed database (DBS then Launch Database) to back a staging environment -->
+![the Kloudbean dashboard launching a managed database (DBS then Launch Database) to back a staging environment](../assets/console-real/shots/staging_step_1.png)
 
-**Test on a real staging environment, then launch with confidence.** Spin up staging backed by a real managed database, deploy from Git so every fix re-tests in one push, and keep the whole stack (server, database, SSL) in one dashboard.
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-Staging environment · Real managed database · Git deploy · Automatic backups · Free SSL · Free migration · Free trial
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
 
-<!-- ADD IMAGE: the Git deployment view showing a push building and deploying, so a fix and re-test is one commit -->
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

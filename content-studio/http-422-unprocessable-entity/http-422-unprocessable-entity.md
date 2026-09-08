@@ -122,11 +122,20 @@ Beyond that, this article is a design argument rather than a product one: name t
 
 Its closest neighbour, [400 Bad Request](https://www.kloudbean.com/blog/400-bad-request/), which covers the parsing side. The code on the other side of the boundary is [415 Unsupported Media Type](https://www.kloudbean.com/blog/http-error-415-unsupported-media-type/): the spec says a 422 means the content type was understood, which is precisely why 415 would have been the wrong answer. For the other deterministic 4xx you should not retry, [409 Conflict](https://www.kloudbean.com/blog/409-conflict-error/). On authentication and permissions, [401 Unauthorized](https://www.kloudbean.com/blog/http-error-401-unauthorized/) and [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/). For the codes where retrying is correct, [429 Too Many Requests](https://www.kloudbean.com/blog/429-too-many-requests/). On queues that should not retry forever, [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/). And for the constraints underneath your validation, [PostgreSQL performance tuning](https://www.kloudbean.com/blog/postgresql-performance-tuning/).
 
-## Your database and your app in one place
+<!-- cta:start -->
+**Deploys that tell you what broke.**
 
-Managed PostgreSQL, MySQL, MariaDB, and Redis alongside your application in the same account, with automatic backups and visible server metrics, from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-Managed databases · Automatic backups · Server metrics · Flat from $8/mo
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

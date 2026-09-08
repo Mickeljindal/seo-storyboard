@@ -87,7 +87,7 @@ Short version: for most apps, MariaDB vs MySQL performance is a wash. Both are q
 
 If your queries are slow on one, they'll be slow on the other, and the fix is the same. Add the right indexes. Run `EXPLAIN` on the ugly queries. Kill the N+1 patterns your ORM loves to generate. Cache the hot reads. We keep a full [MySQL performance tuning](https://www.kloudbean.com/blog/mysql-performance-tuning/) guide, and [connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) is usually the first real bottleneck a busy app hits, on either engine. Choose on fit and licensing, not on a benchmark screenshot someone posted in 2019.
 
-<!-- ADD IMAGE: a benchmark you ran yourself, MariaDB vs MySQL on the same hardware and your own query mix -->
+![Query performance over time](images/gen-1-graph.png)
 
 ## Is MariaDB a drop-in replacement for MySQL?
 
@@ -121,7 +121,7 @@ DB_NAME=appdb
 
 After importing, run your test suite and click through the JSON-heavy and report-heavy pages first. That's where drift hides. For a bigger or busier database, our free migration assistance can move it with minimal downtime.
 
-<!-- ADD IMAGE: your terminal mid-migration, mysqldump exporting then the mysql client importing into the new engine -->
+![Exporting MySQL data for import](images/gen-2-terminal.png)
 
 ## MariaDB or MySQL for WordPress?
 
@@ -149,25 +149,34 @@ Both MariaDB and MySQL are one-click managed engines here, sitting alongside Pos
 3. **Wire it in through the environment.** Add the connection as an environment variable, not a hard-coded string. A single `DATABASE_URL` or discrete `DB_*` fields both work, and since both engines use the same scheme, you don't rewrite anything if you switch later.
 4. **Deploy and verify.** Ship your app (managed CI/CD from GitHub works well here), run your migrations, then click through a couple of real pages to confirm reads and writes stick.
 
-![The Kloudbean console Launch Database screen with MariaDB and MySQL among the one-click managed engines](../assets/console/launch-database.png)
+![The Kloudbean console Launch Database screen with MariaDB and MySQL among the one-click managed engines](../assets/console-real/shots/mariadb_launch_step_1.png)
 
 *DBS -> Launch Database: MariaDB and MySQL are both one-click, provisioned and backed up on your server.*
 
 The connection details go into your app's environment, never into the repository. Open **Runtime Configuration -> Environment Variables** and drop them in:
 
-![The Kloudbean console Environment Variables screen holding the database connection string safely outside the code](../assets/console/env-vars.png)
+![The Kloudbean console Environment Variables screen holding the database connection string safely outside the code](../assets/console-real/shots/nodespm_env_step_1.png)
 
 *Runtime Configuration -> Environment Variables: the connection string lives here for both MariaDB and MySQL.*
 
 Because both speak the same protocol and share tooling, you can start on one and move to the other later without rewriting your app. Want the per-engine details? See [managed MariaDB hosting](https://www.kloudbean.com/blog/managed-mariadb-hosting/) and [managed MySQL hosting](https://www.kloudbean.com/blog/managed-mysql-hosting/).
 
-<!-- ADD IMAGE: the WordPress Site Health screen showing the database server and version, MariaDB or MySQL -->
+![WordPress queries the database server and version](images/gen-3-flow.png)
 
----
+<!-- cta:start -->
+**Move it once. Own it after.**
 
-**Run MariaDB or MySQL without babysitting it.** Both are one-click managed engines with automatic backups, IP allow-listing, and free migration help, deployed next to your app with simple Git deploys. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-One-click databases · Automatic backups · Free migration · Free trial
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -53,7 +53,21 @@
   <p>Volumetric attacks are the loud ones you see in headlines, measured in gigabits or terabits per second. Application-layer attacks are quieter and, honestly, trickier. They mimic real users, so a firewall waving traffic through can't tell the difference. A flood of legit-looking requests to an expensive endpoint (a search, a login, a report) can take down an app on far less traffic than a volumetric attack needs. Sneaky is worse than loud here.</p>
 
   <!-- ADD IMAGE: swap this slot for a real <figure> with an <img> (src -> images/traffic-spike.png) and a <figcaption>. -->
-  <figure class="img-slot"><span><b>Add image</b><em>A traffic graph: a normal baseline, then a sharp wall of requests when the attack starts.</em><small>Makes "flood" concrete at a glance.</small></span></figure>
+  <!-- IMAGE GENERATE [graph] #1
+Create a clean line chart / time-series graph for a technical blog post titled "DDoS Protection Explained: How the Flood Works and How You Stop It".
+
+What it must show: A traffic graph: a normal baseline, then a sharp wall of requests when the attack starts.
+Also: Makes "flood" concrete at a glance.
+
+Label both axes. Draw the trend the description implies. Add a dashed red threshold line only if a limit is being hit. Legible axis labels, no 3D, no gradient clutter.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-graph.png" alt="A traffic graph: a normal baseline, then a sharp wall of requests when the attack starts.">
+    <figcaption>Attack starts with a flood of requests</figcaption>
+  </figure>
 
   <h2>How the defense actually works: filter at the edge</h2>
   <p>Here's the mental model that fixes most confusion. You don't fight a flood at your front door. You fight it far upstream, at an edge network with capacity vastly larger than any single server, and only clean traffic is allowed to continue to your origin.</p>
@@ -119,12 +133,26 @@
   <p>A quick clarification, because people mix these up. A <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">load balancer</a> spreads traffic across app instances for performance and availability. It is not DDoS mitigation on its own, though it's part of how traffic reaches your origin. Don't count on it to filter a flood.</p>
 
   <figure>
-    <img src="../assets/console/flb-load-balancer.png" alt="The Kloudbean console: a load balancer distributing traffic across app instances">
+    <img src="../assets/console-real/shots/flb_launch_step_2.png" alt="The Kloudbean console: a load balancer distributing traffic across app instances">
     <figcaption>A load balancer spreads traffic across instances. Useful for availability, but it isn't a DDoS filter by itself.</figcaption>
   </figure>
 
   <!-- ADD IMAGE: swap this slot for a real <figure> with an <img> (src -> images/edge-blocked.png) and a <figcaption>. -->
-  <figure class="img-slot"><span><b>Add image</b><em>An edge or WAF dashboard showing blocked requests climbing while origin traffic stays flat.</em><small>Shows the filtering working in real time.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "DDoS Protection Explained: How the Flood Works and How You Stop It".
+
+What it must show: An edge or WAF dashboard showing blocked requests climbing while origin traffic stays flat.
+Also: Shows the filtering working in real time.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="An edge or WAF dashboard showing blocked requests climbing while origin traffic stays flat.">
+    <figcaption>Blocked requests increase while origin stays stable</figcaption>
+  </figure>
 
   <h2>The mistake worth avoiding</h2>
   <p>Three mistakes come up again and again. They're worth naming, because each one feels reasonable and each one fails at the worst possible moment.</p>
@@ -133,7 +161,7 @@
   <p><strong>"We'll deal with it if it happens."</strong> The worst time to add an edge is during the attack. Pointing your DNS at a new edge takes time to propagate while you're already down, and you're making config decisions in a panic. Put the edge up before you need it. That single choice, made on a calm afternoon, is the biggest lever you have.</p>
 
   <figure>
-    <img src="../assets/console/add-server.png" alt="The Kloudbean console: your origin server, the thing that should sit behind edge protection">
+    <img src="../assets/console-real/shots/launch_server_step_1.png" alt="The Kloudbean console: your origin server, the thing that should sit behind edge protection">
     <figcaption>Your origin server is what you protect, not what fights the flood. Size it for your real traffic, not the attack.</figcaption>
   </figure>
 
@@ -147,7 +175,21 @@
   </ul>
 
   <!-- ADD IMAGE: swap this slot for a real <figure> with an <img> (src -> images/under-attack-mode.png) and a <figcaption>. -->
-  <figure class="img-slot"><span><b>Add image</b><em>Toggling an "under attack" mode or a stricter rate-limit rule during an incident.</em><small>The one button that buys you breathing room.</small></span></figure>
+  <!-- IMAGE GENERATE [panel] #3
+Create a clean settings / configuration panel UI mockup for a technical blog post titled "DDoS Protection Explained: How the Flood Works and How You Stop It".
+
+What it must show: Toggling an "under attack" mode or a stricter rate-limit rule during an incident.
+Also: The one button that buys you breathing room.
+
+A white card with a small uppercase section label, then labelled rows. Highlight the row that carries the point with a violet border. Optional green check line at the bottom confirming the result.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-panel.png" alt="Toggling an &quot;under attack&quot; mode or a stricter rate-limit rule during an incident.">
+    <figcaption>Activate during an attack to protect your service</figcaption>
+  </figure>
 
   <h2>The cheapest version of this that actually holds</h2>
   <p>You don't need an enterprise security programme to stop being an easy target. There's a minimum setup, and it's short. Three things, in this order, and it's the order that matters.</p>
@@ -160,11 +202,55 @@
   <p>If it helps to know where that lands on Kloudbean specifically: step three is already done, since Shorewall and Fail2ban run on every server from launch. Step one is the Cloudflare add-on, paid on standard plans and included with Enterprise. Step two is on you either way, because no host can stop you pointing a spare DNS record straight at your own origin.</p>
   <p>And the honest limit, which you should be suspicious of any provider not stating. Nobody stops every DDoS attack. A large enough volumetric flood is an edge and upstream-capacity problem, and no origin server, ours included, absorbs one no matter how big you size it. What a host can do is give you a real edge to hide behind and a hardened box underneath. What no host can do is make that decision for you on a quiet afternoon, which is the day the decision is cheap. Whether you'd rather run that stack yourself is the wider <a href="https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/">managed vs unmanaged</a> question, and it gets loud on the day you're under fire.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Put the edge up before the flood.</p>
-    <p style="margin:0 0 .6em">Front your app with Cloudflare's edge, run on tier-1 cloud capacity, and let the built-in firewall and Fail2ban handle the small stuff, all from one dashboard. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.85">Cloudflare edge add-on · Tier-1 cloud capacity · Shorewall firewall + Fail2ban · Free SSL · Free trial</p>
+<div class="kbcta-sec-wrap">
+  <div class="kbcta-sec-overlay"></div>
+  <div class="kbcta-sec-content">
+    <div class="kbcta-sec-eyebrow">SECURITY &middot; HARDENED BY DEFAULT</div>
+    <p class="kbcta-sec-heading">The server layer, hardened for you.</p>
+    <p class="kbcta-sec-description">The platform keeps the server, stack, SSL, and patching current, with automatic backups running. Application-level security stays yours, and that split is deliberate rather than hidden.</p>
+    <ul class="kbcta-sec-features">
+      <li>&#10003; Shorewall firewall</li>
+      <li>&#10003; Fail2ban</li>
+      <li>&#10003; OS patching handled</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; IP access control</li>
+      <li>&#10003; Automatic backups</li>
+    </ul>
+    <div class="kbcta-sec-buttons">
+      <a class="kbcta-sec-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-sec-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-sec: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-sec-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-sec-wrap *{box-sizing:border-box}
+.kbcta-sec-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-sec-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-sec-content{position:relative;z-index:3;max-width:700px}
+.kbcta-sec-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-sec-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-sec-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-sec-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-sec-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-sec-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-sec-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-sec-btn:hover,.kbcta-sec-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-sec-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-sec-link:hover,.kbcta-sec-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-sec-wrap{padding:36px 24px}
+  .kbcta-sec-heading{font-size:31px}
+  .kbcta-sec-description{font-size:16px}
+  .kbcta-sec-features li{white-space:normal}
+  .kbcta-sec-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-sec-btn{width:100%}
+  .kbcta-sec-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

@@ -36,7 +36,7 @@ What leaves is the request body. The prompt. It travels to wherever the provider
 
 So picture a box around Saudi Arabia. Almost everything you built sits inside it. One arrow points out. Your real task is knowing exactly what rides on that arrow, and that is what most teams have never actually looked at. The general residency story (where a normal app's data quietly leaks, and how to verify it) is covered in [data residency in Saudi Arabia](https://www.kloudbean.com/blog/data-residency-saudi-arabia/), and the wider in-Kingdom AI architecture is the pillar, [hosting AI apps in Saudi Arabia](https://www.kloudbean.com/blog/hosting-ai-apps-saudi-arabia/). Here I only care about the arrow.
 
-<!-- ADD IMAGE: the data-flow diagram (app, database, embeddings, and logs inside a dashed in-Kingdom Dammam boundary; only the prompt payload passing through a redact/minimize gate and crossing the border to a hosted model API; the reply returning). This is rendered as the inline SVG in the HTML. -->
+![Real replies, not pseudo-code](images/gen-1-terminal.png)
 
 ## What's actually inside the prompt you send
 
@@ -58,7 +58,7 @@ Here's the audit, one row per payload part. Run it against your own app.
 | Few-shot examples | Yes, if built from real data | Use synthetic or masked examples |
 | Tool / function outputs | Yes, a lookup can return a full record | Return IDs and the few fields the model needs, not whole rows |
 
-<!-- ADD IMAGE: a real prompt shown in a log viewer with the personal-data fields highlighted, so a reader can see how much identity rides along by default. -->
+![From client to database](images/gen-2-flow.png)
 
 ## What the provider does with your prompt, and why you verify it
 
@@ -80,7 +80,7 @@ That list is the real work, and it's the difference between "we send it to OpenA
 
 My rule of thumb, and I'd design the whole system around it: assume every byte you put in a prompt could be logged somewhere you don't control. Not because any provider is careless, but because you've handed that byte to infrastructure you can't audit. Design backward from that assumption and you stop asking "will they keep it safe?" and start asking "why is this even in the prompt?" That second question saves you far more risk than any vendor promise.
 
-<!-- ADD IMAGE: a provider's API data-processing terms or DPA page open in a browser, with the training and retention clauses highlighted. -->
+![Stripping identifiers for privacy](images/gen-3-terminal.png)
 
 ## Send less: a minimization playbook that actually helps
 
@@ -125,7 +125,7 @@ function buildPrompt(record, question) {
 
 Redaction isn't perfect. A determined user can still type something sensitive into a free-text box, and a model can sometimes infer more than you sent. But going from "full record every call" to "a token and one fact" is a genuine, measurable drop in what crosses the border, and it costs you an afternoon.
 
-<!-- ADD IMAGE: a side-by-side of the raw prompt and the minimized prompt, with the stripped identifiers struck through on the left. -->
+![From console to region](images/gen-4-flow.png)
 
 ## When the data truly can't leave the Kingdom
 
@@ -179,11 +179,21 @@ And the honest limits, because this is a compliance-adjacent page and vagueness 
 
 <!-- ADD IMAGE: the Kloudbean console launching a managed database into the Dammam (me-central2) region, in the same account as the app server. -->
 
-## Give everything that can stay home a home in the Kingdom
+<!-- cta:start -->
+**Run it in Dammam, not a region abroad.**
 
-**Keep your app, database, embeddings, files, and logs in-Kingdom on GCP Dammam, and make the prompt the only thing that ever crosses the border, on your terms.** Then shrink even that with redaction and minimization in your own code. Start at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+Provision in Google Cloud's Dammam region (me-central2) so the server, the managed database, and the backups all stay on Saudi soil, managed from a single dashboard.
 
-In-Kingdom GCP Dammam region · 7 managed databases · pgvector embeddings · Object storage with no egress fees · Automatic backups · Free SSL · Git deploy
+- Dammam (me-central2)
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- One dashboard
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [Talk to a cloud expert](https://calendly.com/kloudbean)
+<!-- cta:end -->
 
 ## FAQ
 

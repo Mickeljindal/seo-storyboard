@@ -53,7 +53,7 @@ Supabase hands you a Postgres database, auth, file storage, and instant APIs. It
 
 Ollama runs open models locally, and Open WebUI gives you a clean chat interface on top. Together they're a private assistant where your prompts never leave your server. This is the exception on weight: models want real memory, and a GPU helps for speed. Open WebUI is a one-click app on Kloudbean; the model behind it wants the bigger machine. Own it because not every prompt should go to a third party. [Full Ollama and Open WebUI guide](https://www.kloudbean.com/blog/self-host-ollama-open-webui/).
 
-<!-- ADD IMAGE: Your own list of self-hosted apps running side by side, each on its own subdomain. Author screenshot from your dashboard. -->
+![Running side by side for flexibility](images/gen-1-comparison.png)
 
 ### LLM and agent building: Langflow
 
@@ -123,11 +123,11 @@ This is the bit people get wrong reading a generic roundup. On Kloudbean, five o
 
 You don't spin up ten servers. That's what makes this practical instead of expensive. Most of these tools are light, so several live happily on **one** server as separate applications, each with its own domain, sharing the same box and the same flat bill.
 
-![The Kloudbean console Add Application screen: run several self-hosted tools on one server, each with its own domain](../assets/console/add-application.png)
+![The Kloudbean console Add Application screen: run several self-hosted tools on one server, each with its own domain](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 Add an application, point a subdomain at it, and it runs beside the others. `n8n.yourdomain.com`, `analytics.yourdomain.com`, `files.yourdomain.com`. One server, one bill, many tools. The full playbook lives in [hosting multiple apps on one server](https://www.kloudbean.com/blog/host-multiple-apps-one-server/). The only two that really want their own space are GitLab (RAM-hungry) and local AI models (memory-hungry). Everything else cohabits fine.
 
-<!-- ADD IMAGE: A before-and-after: a stack of monthly SaaS invoices on one side, a single flat server bill on the other. Author graphic. -->
+![Before & After](images/gen-2-flow.png)
 
 ## What you're actually signing up for
 
@@ -145,9 +145,21 @@ Three mistakes we see often enough to call out:
 
 Pick the one bill that annoys you most and self-host that first. Automation, analytics, and monitoring are the quickest wins, since they're light and fast to stand up. None of this is all-or-nothing. Move one tool this month, another when you're ready. My honest advice? Start with n8n. It's one click, it's genuinely useful within an hour, and it proves the whole model to you before you commit anything heavier.
 
-**One server. Many tools. No creeping subscriptions.** Start with a small managed server, add one-click apps like n8n and Supabase, and run the rest beside them. Begin free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-One-click apps · Host many on one server · Automatic backups · Free SSL · Free trial
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

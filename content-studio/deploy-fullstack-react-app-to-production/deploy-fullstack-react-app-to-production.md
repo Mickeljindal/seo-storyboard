@@ -74,7 +74,7 @@ The fix is that catch-all route above, sometimes called the SPA fallback or hist
 
 > **Coming from a starter template?** A lot of Vite and CRA starters run the SPA and API as two dev servers with a proxy, which hides this entirely in development. The refresh-404 only appears once you deploy for real. If your app "works locally but 404s in production on refresh," this is almost always why.
 
-<!-- ADD IMAGE: Browser on /dashboard showing a 404 after refresh, next to the same page working once the catch-all route is added. -->
+![404 on /dashboard vs working with catch-all](images/gen-1-comparison.png)
 
 ## The other gotcha: where your API lives
 
@@ -106,11 +106,11 @@ Open the app, go to **Application Administration → Deploy Code**, connect GitH
 - **Node Version:** Node 20+.
 - **Install / Build / Start:** install, then a Build that compiles the React front end (for example `npm run build`, producing `dist` or `build`), then a Start that runs the server which serves that bundle and the API.
 
-![The Kloudbean console Deploy Code / Git Deployment tab: build the React front end and start the API server](../assets/console/git-deployment.png)
+![The Kloudbean console Deploy Code / Git Deployment tab: build the React front end and start the API server](../assets/console-real/shots/git_connect_step_4.png)
 
 Hit **Pull & Deploy** and watch the log. Then launch the database from **DBS → Launch Database**: a managed Postgres or MySQL (six engines are available), on the same box, backed up, reached over the local network in a fraction of a millisecond instead of across the internet. Connect your API to it with an environment variable and run migrations as part of the build so the tables exist on first boot.
 
-![Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance on the same server as the API](../assets/console/launch-database.png)
+![Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance on the same server as the API](../assets/console-real/shots/psql_launch_step_1.png)
 
 Set your variables under **Runtime Configuration → Environment Variables** with the **Paste .env Content** tab (unprefixed secrets for the API, `VITE_`/`REACT_APP_` for anything the browser needs at build). Add your domain under **Domain Aliases**, install free **Let's Encrypt** SSL, and turn on **automated deployment** so each push rebuilds the SPA and ships. Full picture of the stack on one box: [host your app, API, and database on one server](https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/).
 
@@ -118,7 +118,7 @@ Set your variables under **Runtime Configuration → Environment Variables** wit
 
 Splitting on purpose? Add the second app from **Applications → Add Application** on the same server, put the API on `api.yourapp.com` and the SPA on `app.yourapp.com`, and point both at the shared database. Now you do need CORS: your API must send `Access-Control-Allow-Origin` for your SPA's origin, or the browser blocks every call. This is the tax for splitting, and it's the main reason one process is the easier default. Stacking apps on one box is covered in [hosting multiple apps on one server](https://www.kloudbean.com/blog/host-multiple-apps-one-server/).
 
-![Kloudbean Add Application screen for running a second app, such as a separate API, on the same server](../assets/console/add-application.png)
+![Kloudbean Add Application screen for running a second app, such as a separate API, on the same server](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 ## Two different failures, two different fixes
 
@@ -137,7 +137,21 @@ One thing specific to a client-rendered SPA: because the browser renders it, the
 
 The rest is the usual boundary. Kloudbean runs this as a Node app on Linux, not Windows or .NET. "Managed" means the server, stack, SSL, and backups are handled; you own the app and its data, and can move hosts whenever, because it's a standard Linux box. If an AI tool generated your app, the tool-agnostic version is the [deploy an AI-built app](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) guide.
 
-Deploy your full-stack React app at [kloudbean.com](https://www.kloudbean.com/) with a free trial and your first migration done for you. Prefer to keep the API and database close? See [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). Server sizes are on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
+
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

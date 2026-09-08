@@ -54,7 +54,7 @@ With **webhooks**, you register a URL and Telegram sends each update to it as an
 
 **An opinion, since you're going to ask:** use long polling until something forces you off it. Most bots never need webhooks. Polling is fewer moving parts, the same code runs locally and in production, and the failure mode is obvious: the process is down. Webhooks add a domain, a certificate, a public route, and a class of silent failures where Telegram delivers to a URL that quietly 500s and a user tells you about it. Earn your way onto webhooks with a real reason: volume where polling round-trips add up, a latency requirement, or an existing web app where adding a route beats running a second process.
 
-<!-- ADD IMAGE: diagram of polling (outbound getUpdates, no cert needed) versus webhook (inbound HTTPS POST to your server) -->
+![Inspecting the webhook status](images/gen-1-terminal.png)
 
 ## Switching to webhooks without breaking your bot
 
@@ -78,7 +78,7 @@ Two details worth internalising. `secret_token` makes Telegram send an `X-Telegr
 
 Your handler must answer quickly. Telegram retries slow deliveries, so a webhook that does a 30 second API call inline earns duplicate updates and a growing backlog. Acknowledge with a 200, then do the slow work. A tiny job queue in Redis is the usual fix, and [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/) saves you running one yourself.
 
-<!-- ADD IMAGE: a terminal showing the getWebhookInfo response with url, pending_update_count and last_error_message visible -->
+![Real replies, not pseudo-code](images/gen-2-terminal.png)
 
 ## Why a bot wants an always-on process
 
@@ -131,7 +131,7 @@ Put anything you'd be annoyed to lose in a real datastore. Postgres or MySQL for
 
 One design note: make your handlers idempotent. Telegram retries webhook deliveries, and a duplicate that charges twice or sends two confirmations is a support ticket. Store the `update_id` you last processed and skip repeats.
 
-<!-- ADD IMAGE: side by side, an in-memory dict losing conversation state after a restart versus the same state read back from a database -->
+![Configure the bot token](images/gen-3-flow.png)
 
 ## Keep the process alive after it crashes
 
@@ -172,7 +172,21 @@ Bots fail in repeatable ways. Work down this list before rewriting code.
 - **Replies stopped mid-conversation.** Classic in-memory state loss after a restart. Check your uptime against when it broke.
 - **429 Too Many Requests.** You're over Telegram's rate limits. Respect the `retry_after` value and queue your sends instead of looping.
 
-**Give your bot a box that stays awake.** A persistent process, free SSL, and a managed database with backups, from one dashboard. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Take it off localhost for good.**
+
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

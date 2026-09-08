@@ -50,7 +50,7 @@ bundle exec jekyll build      # Jekyll  -> _site/
 
 Even the big meta-frameworks can produce static output. Next.js has a static export (`output: 'export'`) that writes an `out/` folder, and Nuxt has `nuxt generate`. Whatever the tool, the deliverable is the same shape: a build output folder you can serve anywhere.
 
-<!-- ADD IMAGE: a terminal right after npm run build, showing the dist folder with index.html and hashed CSS and JS assets -->
+![Output files ready](images/gen-1-terminal.png)
 
 ### Common tools and the folder they build
 
@@ -101,7 +101,7 @@ location / {
 
 On file-host style platforms the same idea is a redirect rule (a `_redirects` file with `/*  /index.html  200`, for example). Any static host worth using lets you set this. If deep links 404 in production but work locally, this rewrite is almost always what's missing. A fully prerendered SSG site (Astro, Hugo) doesn't hit this, because it built a real file for every route.
 
-<!-- ADD IMAGE: split view, a browser 404 on a refreshed SPA deep link, then the same route loading after the rewrite-to-index rule is set -->
+![Free analytics show increasing traffic](images/gen-3-graph.png)
 
 ## What about the API? The static/backend boundary
 
@@ -125,7 +125,7 @@ Point the static site at your GitHub repo, pick a branch, and set the build comm
 
 *Screenshot: the Kloudbean Git Deployment screen, Build set to npm run build and the output directory set to dist/, then deploy.*
 
-<!-- ADD IMAGE: the static site overview with the built-in visit analytics panel showing pageviews over time -->
+![Ensure routes are rewritten correctly](images/gen-1-panel.png)
 
 ### 3. Add your custom domain and turn on free SSL
 
@@ -143,13 +143,21 @@ This is where staying on one platform pays off. Kloudbean gives you free static 
 
 One honest note on speed. Free static hosting serves from a server with SSL, which is fast for most audiences. If you serve a truly global, latency-critical audience, Cloudflare edge caching is available as an add-on to push content to the edge. For a landing page or a docs site, you likely won't need it.
 
----
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-**Ship your static site free, grow into a full app when you're ready.**
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Host your built files with a custom domain and free SSL on [kloudbean.com](https://www.kloudbean.com/), and when the site needs a backend, the same dashboard runs the app, the database, and the storage. Sizes and plans on [pricing](https://www.kloudbean.com/pricing/).
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
 
-Free static site hosting · Custom domain · Free auto-renewing SSL · Built-in visit analytics · Managed databases when you need them · Free migration · Free trial
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

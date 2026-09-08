@@ -12,7 +12,7 @@ secondary_keywords:
   - why does my free app sleep
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 8 — Pricing, Cost & SaaS Consolidation
+cluster: 8 - Pricing, Cost & SaaS Consolidation
 ---
 
 ![Free tier vs cheap VPS, which should host your side project](images/hero.png)
@@ -46,7 +46,7 @@ Free tiers are a fantastic on-ramp. They earn their keep for the right job. But 
 
 And when any of that goes sideways, support is usually a community forum and a shrug. That's the honest trade for free. Worth it when the stakes are low, painful when they aren't. If you want the long version, we wrote a whole piece on [whether free hosting is worth it](https://www.kloudbean.com/blog/is-free-hosting-worth-it/) and a rundown of [free app hosting options](https://www.kloudbean.com/blog/free-app-hosting-options/).
 
-<!-- ADD IMAGE: A browser network panel or timer showing a slow first response after the app woke from sleep, to make cold starts concrete. -->
+![First Response Time After App Wakes](images/gen-1-comparison.png)
 
 ## What a $5 VPS really costs you
 
@@ -56,7 +56,7 @@ The catch is one word: unmanaged. The provider hands you a bare Linux box and wa
 
 None of this is hard, exactly. It's just real, ongoing work, and it's on you at the worst possible moments. The 2am "why is the site down" moment is a rite of passage, and it's a lot less charming when it's a project people actually use. If that tradeoff intrigues you rather than tires you, a VPS is a brilliant classroom. The [real cost of an unmanaged VPS](https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/) goes deeper, and [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) lays the two side by side.
 
-<!-- ADD IMAGE: A terminal running system updates or showing fail2ban blocking login attempts, to show the sysadmin work a raw VPS puts on you. -->
+![Ensure your VPS is secure and up-to-date](images/gen-2-terminal.png)
 
 ## Free tier vs cheap VPS: the honest ledger
 
@@ -86,7 +86,7 @@ What about the project that's outgrown "demo" but where you'd rather write featu
 
 There's a third choice that quietly takes the best of both. A **small managed server** is always-on with dedicated resources like the VPS, no cold starts, your own domain, and it's maintained like a platform, so patching, SSL, and backups are handled for you. It costs a little more than a bare VPS, and that difference buys back the exact thing the VPS charges you in secret: your time.
 
-![The Kloudbean console adding a small managed server that is always-on like a VPS but maintained like a platform](../assets/console/add-server.png)
+![The Kloudbean console adding a small managed server that is always-on like a VPS but maintained like a platform](../assets/console-real/shots/launch_server_step_1.png)
 
 Underneath, it's a Linux box in all three cases. Managed just means the server, the stack, SSL, patching, and automatic backups are handled, while your app code and data stay yours to export whenever you want. You get the always-on reliability without the sysadmin homework, and you're not on the hook at 2am. For a side project that people actually depend on, that's usually the right answer, and a free trial plus free migration help means trying it costs you nothing. If you're weighing the whole picture, [the real cost of running a side project](https://www.kloudbean.com/blog/cost-of-running-a-side-project/) and [cloud hosting pricing explained](https://www.kloudbean.com/blog/cloud-hosting-pricing-explained/) both help.
 
@@ -94,17 +94,26 @@ Underneath, it's a Linux box in all three cases. Managed just means the server, 
 
 Here's the freeing part: none of this is a marriage. A sensible path is to start on a free tier while you build and validate, then move to an always-on server the day it starts to matter. Your app is just code in a repo plus maybe a database, so that move is a redeploy, not a rebuild.
 
-![The Kloudbean console connecting a Git repository to deploy to a server, showing the move from free tier to managed is a redeploy](../assets/console/git-deployment.png)
+![The Kloudbean console connecting a Git repository to deploy to a server, showing the move from free tier to managed is a redeploy](../assets/console-real/shots/git_connect_step_4.png)
 
 Connect the repo, bring your environment variables, point the domain, done. So don't agonize at the start. Pick the cheapest thing that fits today, knowing you can graduate in an afternoon when the project earns it.
 
 <!-- ADD IMAGE: A custom domain going live with SSL on the new server, to show graduating is quick and finished. -->
 
----
+<!-- cta:start -->
+**Move it once. Own it after.**
 
-**Always-on, without the 2am pager.** Get the VPS's reliability with none of the sysadmin homework: a small managed server that's patched, secured, and backed up for you, on infrastructure you don't have to babysit.
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-Always-on server · Automatic backups · Free SSL · Simple Git deploy · Free migration help · Free trial · Start at [kloudbean.com](https://www.kloudbean.com/) · See [pricing](https://www.kloudbean.com/pricing/).
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

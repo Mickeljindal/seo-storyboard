@@ -67,7 +67,7 @@ Strip away the jargon and a reverse proxy earns its keep in a handful of concret
 
 Notice something: none of these need more than one backend. A reverse proxy in front of a *single* app is already useful. That matters for the next comparison, because people assume a proxy only earns its place once you run a fleet of servers. Not true.
 
-<!-- ADD IMAGE: browser devtools showing a response header like Server: nginx, the proxy quietly answering in front of your app. -->
+![Proof the middleman is there even when you never configured it](images/gen-1-panel.png)
 
 ## Reverse proxy vs forward proxy: which direction is it facing?
 
@@ -104,7 +104,7 @@ But a reverse proxy doesn't need any of that to be worth having. In front of a s
 | **Useful with a single server** | Yes, very | Not the point of one |
 | **In one line** | The general tool | A reverse proxy tuned for distribution |
 
-![The Kloudbean Flexible Load Balancer, a specialized reverse proxy, spreading traffic across healthy backend nodes](../assets/console/flb-load-balancer.png)
+![The Kloudbean Flexible Load Balancer, a specialized reverse proxy, spreading traffic across healthy backend nodes](../assets/console-real/shots/flb_launch_step_2.png)
 
 ## Nginx reverse proxy: reading a real config
 
@@ -151,7 +151,7 @@ curl -I https://example.com
 
 That last line is the tell. If `curl` comes back with `502 Bad Gateway`, the proxy is alive and well. It's your app behind it that isn't answering.
 
-<!-- ADD IMAGE: an SSL certificate view, an active auto-renewing cert that terminates at the proxy so your app speaks plain HTTP inside. -->
+![HTTPS to Plain HTTP](images/gen-2-flow.png)
 
 ## Why a 502 is the reverse proxy talking to you
 
@@ -173,7 +173,7 @@ The code is fine. The wiring is wrong. I'd bet most 502s are config, not bugs. I
 
 > **Founder note.** On a managed host you almost never hand-edit the proxy config, and honestly you shouldn't have to. The platform runs Nginx or Apache in front of your app and terminates SSL there for you. Knowing the proxy exists isn't about configuring it. It's so the first time you meet a 502, you know exactly who's talking and where to look: your app's bind address and port, not the proxy.
 
-![Adding an application in the Kloudbean console, where the platform wires a reverse proxy to your app's port](../assets/console/add-application.png)
+![Adding an application in the Kloudbean console, where the platform wires a reverse proxy to your app's port](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 ## How the reverse proxy fits on Kloudbean
 
@@ -183,9 +183,9 @@ Need more than one backend? That's when the built-in **Flexible Load Balancer** 
 
 The division of labour stays honest. The platform runs the proxy and the SSL. You own the app that listens behind it, on Linux stacks like Node, PHP, Python, Ruby, and Java. Your backend listens on an internal port, so the only public door is the proxy out front, which is exactly where you want it. On Enterprise you can put that backend on a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/) as well.
 
-![The Kloudbean dashboard showing servers, applications, databases, and the load balancer in one place](../assets/console/dashboard.png)
+![The Kloudbean dashboard showing servers, applications, databases, and the load balancer in one place](../assets/console-real/shots/dashboard.png)
 
-<!-- ADD IMAGE: an app runtime panel showing the HTTP port and bind address the platform's proxy forwards to. -->
+![The setting that decides your homepage or 502](images/gen-3-panel.png)
 
 ## Reverse proxy explained: what to actually remember
 
@@ -193,11 +193,21 @@ Strip it to the studs. A reverse proxy is the server in front of your server. It
 
 A forward proxy points the other way, standing in front of clients. A load balancer is a reverse proxy that specializes in spreading traffic across many backends. And the practical payoff, the bit worth carrying around: when you see a 502, the proxy is fine and your app isn't answering, so check the bind address and the port first. You'll be right most of the time. If you're choosing where that whole managed stack should live, our take on the [best managed cloud hosting](https://www.kloudbean.com/blog/best-managed-cloud-hosting/) lays out what to look for.
 
----
+<!-- cta:start -->
+**Own the server. Skip the server admin.**
 
-**Let the platform run the proxy. You run the app.** Deploy on Kloudbean and a web server sits in front of your app with free auto-renewing SSL, wired to the right port for you. Flip on the built-in load balancer the day one backend isn't enough. Start free at [kloudbean.com](https://www.kloudbean.com/); compare plans from $8/mo on [pricing](https://www.kloudbean.com/pricing/).
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
 
-One dashboard · Managed web server and SSL · Built-in load balancer · 7 clouds · Free migration · Free trial
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -128,7 +128,21 @@
   <p>The two features that save the most weekends are staging and backups, and they work as a pair. Staging is a copy of your live site you can break freely. The rule that prevents most WordPress disasters is boring and absolute: if a change is going to touch the live site (a plugin update, a theme edit, a PHP version bump), it goes through staging first. Test there, confirm nothing broke, then push. Kloudbean gives you one-click staging for WordPress (and Laravel), so there's no excuse to test on production.</p>
   <p>Backups are the net for when something slips through anyway. The three things that make a backup real: it runs automatically (a backup you have to remember isn't one), it lives off the box it's protecting (a backup on the same disk dies with the disk), and you can actually restore it yourself. That last one is the step people skip. Test a restore once, before you need it, so you know the path works. When a bad update or a bad query hits, restoring a clean copy is almost always faster and safer than hand-cleaning a broken site.</p>
   <!-- Author: swap this slot for a real screenshot. src -> images/wp-staging-screen.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The one-click Staging screen: creating a staging copy of a live WordPress site, then a push-to-live action.</em><small>Show the create-staging and push-to-live buttons.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #1
+Create a left-to-right architecture / flow diagram for a technical blog post titled "Managed WordPress Hosting: What It Handles, and When You Need It".
+
+What it must show: The one-click Staging screen: creating a staging copy of a live WordPress site, then a push-to-live action.
+Also: Show the create-staging and push-to-live buttons.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-flow.png" alt="The one-click Staging screen: creating a staging copy of a live WordPress site, then a push-to-live action.">
+    <figcaption>One click for staging, then push to live</figcaption>
+  </figure>
 
   <h2>Security, kept brief</h2>
   <p>WordPress security is a big topic on its own, and it's mostly the boring basics done consistently. On the managed side, a good host ships the server hardened: on Kloudbean every server gets a Shorewall firewall and Fail2ban brute-force banning configured automatically, free SSL, site isolation, and session cookies set HttpOnly to blunt common session-theft tricks. You can fence the login with IP Access Control or a Basic Auth gate, and scope who touches what with subusers and User Access Control. Teams that want an extra layer can add BitNinja on the higher tiers; it's a real option, not a headline.</p>
@@ -138,23 +152,49 @@
   <p>WordPress has been a first-class stack on Kloudbean since launch, alongside WooCommerce, so this isn't a bolt-on. Here's the path, with the actual screens.</p>
   <p>You start by launching a server on the cloud you want (seven providers: AWS, Amazon Lightsail, Google Cloud, DigitalOcean, Vultr, Akamai Linode, and UpCloud) in a region near your audience, then add WordPress as an application. The stack comes tuned, hardened, and SSL-ready, not a bare box you configure.</p>
   <figure>
-    <img src="../assets/console/add-server.png" alt="The Kloudbean Add Server page: choosing a cloud provider and region for a WordPress site">
+    <img src="../assets/console-real/shots/launch_server_step_1.png" alt="The Kloudbean Add Server page: choosing a cloud provider and region for a WordPress site">
     <figcaption>Launch on the cloud and region closest to your audience. Seven providers, one console.</figcaption>
   </figure>
   <figure>
-    <img src="../assets/console/add-application.png" alt="The Kloudbean Add Application screen with WordPress selected as the application stack">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="The Kloudbean Add Application screen with WordPress selected as the application stack">
     <figcaption>Add Application: choose WordPress (or WooCommerce), and the stack is provisioned tuned and hardened.</figcaption>
   </figure>
   <p>WordPress stores its data in MySQL or MariaDB, and on Kloudbean those are managed engines: provisioned, secured, kept off the public internet, and backed up. Add a managed Redis alongside it and you've got the object cache that keeps a busy site quick. That's the caching layer a plugin can't reach, running as real infrastructure.</p>
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean Launch Database screen showing managed MySQL and MariaDB for WordPress, plus Redis for object caching">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean Launch Database screen showing managed MySQL and MariaDB for WordPress, plus Redis for object caching">
     <figcaption>Managed MySQL or MariaDB for WordPress, plus managed Redis for object caching, all backed up.</figcaption>
   </figure>
   <p>From there you get the managed WordPress toolkit: one-click staging, automatic backups with self-serve restore, free auto-renewing SSL, cron jobs from the dashboard without SSH, and WP-CLI when you want the command line (see the <a href="https://www.kloudbean.com/blog/wordpress-cli-guide/">WordPress CLI guide</a>). Cloudflare, including its Enterprise edge caching, is available as an add-on for extra speed at the edge (included for Enterprise accounts). And it's all in one dashboard next to any other apps, databases, and storage you run, with one login and one bill.</p>
   <!-- Author: swap this slot for a real screenshot. src -> images/wp-app-overview.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The WordPress application overview: the live URL, PHP version, cache controls, staging, and backups in one panel.</em></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "Managed WordPress Hosting: What It Handles, and When You Need It".
+
+What it must show: The WordPress application overview: the live URL, PHP version, cache controls, staging, and backups in one panel.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="The WordPress application overview: the live URL, PHP version, cache controls, staging, and backups in one panel.">
+    <figcaption>From live URL to database</figcaption>
+  </figure>
   <!-- Author: swap this slot for a real screenshot. src -> images/domain-ssl-screen.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The Domain &amp; SSL screen: adding a custom domain and installing a free auto-renewing certificate.</em></span></figure>
+  <!-- IMAGE GENERATE [flow] #3
+Create a left-to-right architecture / flow diagram for a technical blog post titled "Managed WordPress Hosting: What It Handles, and When You Need It".
+
+What it must show: The Domain &amp; SSL screen: adding a custom domain and installing a free auto-renewing certificate.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-flow.png" alt="The Domain &amp; SSL screen: adding a custom domain and installing a free auto-renewing certificate.">
+    <figcaption>Steps for adding a custom domain and SSL</figcaption>
+  </figure>
   <p>If a WordPress database ever refuses to connect, the fix is usually a config detail, and we walked the whole thing in <a href="https://www.kloudbean.com/blog/fix-error-establishing-database-connection-wordpress/">error establishing a database connection</a>.</p>
 
   <h2>Scaling up, and running many sites</h2>
@@ -170,11 +210,55 @@
   <h2>What is still your problem</h2>
   <p>Two things, plainly. Kloudbean runs WordPress on a <strong>Linux and PHP</strong> stack, the environment WordPress was built for, so this is a strong fit, not a stretch. And "managed" is a split, not a takeover: the platform runs the server, the stack, caching, SSL, and backups, while you still own your content, your plugin choices, your theme, and your users. On compliance, treat it as shared responsibility. The platform provides the infrastructure controls and keeps maturing them; the application-level compliance of your specific site stays yours. That division is the honest version of "managed," and it's a good deal precisely because it's clear about who does what.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">You write the posts. We run the stack.</p>
-    <p style="margin:0 0 .6em">Managed WordPress on infrastructure you own, with caching, staging, backups, and free SSL handled for you. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; check current plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">One-click staging · Managed MySQL &amp; Redis · Automatic backups · Free auto-renewing SSL · Firewall + brute-force banning · Free migration · Free trial</p>
+<div class="kbcta-wp-wrap">
+  <div class="kbcta-wp-overlay"></div>
+  <div class="kbcta-wp-content">
+    <div class="kbcta-wp-eyebrow">MANAGED WORDPRESS &middot; ONE DASHBOARD</div>
+    <p class="kbcta-wp-heading">WordPress, without the server admin.</p>
+    <p class="kbcta-wp-description">Run WordPress and WooCommerce on a managed server with a staging site, automatic backups, free auto-renewing SSL, and a managed MySQL or MariaDB beside it. Pick the cloud and the region yourself.</p>
+    <ul class="kbcta-wp-features">
+      <li>&#10003; Managed WordPress stack</li>
+      <li>&#10003; One-click staging</li>
+      <li>&#10003; Managed MySQL and MariaDB</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Built-in load balancer</li>
+    </ul>
+    <div class="kbcta-wp-buttons">
+      <a class="kbcta-wp-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-wp-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-wp: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-wp-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-wp-wrap *{box-sizing:border-box}
+.kbcta-wp-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-wp-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-wp-content{position:relative;z-index:3;max-width:700px}
+.kbcta-wp-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-wp-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-wp-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-wp-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-wp-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-wp-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-wp-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-wp-btn:hover,.kbcta-wp-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-wp-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-wp-link:hover,.kbcta-wp-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-wp-wrap{padding:36px 24px}
+  .kbcta-wp-heading{font-size:31px}
+  .kbcta-wp-description{font-size:16px}
+  .kbcta-wp-features li{white-space:normal}
+  .kbcta-wp-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-wp-btn{width:100%}
+  .kbcta-wp-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

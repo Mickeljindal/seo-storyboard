@@ -70,7 +70,7 @@ The move that changes the math is collapsing the *infrastructure* portion (hosti
 
 That's where the pile collapses. When hosting stops being per-seat, the database stops being a metered tier, and three projects stop being three plans, the infrastructure line goes from "scales with everything" to "one predictable number." In this example, a single well-sized server in the low hundreds a month replaced the whole infrastructure stack, and because the traffic fit comfortably on one box, the effective figure landed near $100. The roughly $540 of genuine third-party SaaS didn't move, because it never should.
 
-![The Kloudbean console Add Application screen, adding a second or third app to a server you already pay for instead of buying another plan](../assets/console/add-application.png)
+![The Kloudbean console Add Application screen, adding a second or third app to a server you already pay for instead of buying another plan](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 ## What consolidation honestly won't fix
 
@@ -99,7 +99,7 @@ Two things make that trade practical rather than theoretical. Backups run automa
 
 Here's my actual opinion, after watching a lot of these bills. The goal isn't the lowest possible number. It's a number you can forecast. A flat server costs the same in a quiet month and a viral one, so you can budget it, and a launch that goes well doesn't arrive with a usage-overage hangover. For a small team, a bill you can predict at the start of the month and recognize at the end of it is worth more than shaving off the last few dollars. Cheapest is a trap when "cheapest" also means "unknowable until the invoice lands."
 
-<!-- ADD IMAGE: a simple before/after of the monthly total: a long itemized invoice with many line items next to a one-line flat server charge (mocked or anonymized, no real vendor names or account data) -->
+![Monthly charges comparison](images/gen-1-comparison.png)
 
 ## Run the teardown on your own bill
 
@@ -110,7 +110,7 @@ You don't need a $4,000 bill for this to matter. Pull up your last invoice and s
 
 Add up pile one. If it's a meaningful number, and if you're running more than one app, on a team, with real traffic, it usually is, the case makes itself. If it's small, you've just confirmed you're fine where you are, which is also a useful answer. Either way you now know your real infrastructure spend as a single figure, which is more than most teams can say before they do this. The [cut your cloud bill guide](https://www.kloudbean.com/blog/how-to-cut-your-cloud-bill/) goes deeper on the exercise, and [cloud hosting pricing explained](https://www.kloudbean.com/blog/cloud-hosting-pricing-explained/) unpacks the metered shapes.
 
-<!-- ADD IMAGE: the "two piles" worksheet: invoice lines sorted into "infrastructure (consolidates)" and "third-party SaaS (stays)" columns -->
+![Sorting costs into infrastructure and SaaS](images/gen-2-flow.png)
 
 ## How the consolidation actually happens
 
@@ -131,7 +131,20 @@ One scope note before you plan a move. Kloudbean runs Linux stacks: Node, PHP, P
 
 And the part no host fixes, ours very much included. If your bill is high because one endpoint runs an N+1 query on every page load, or because a background job re-processes the same rows every night, moving it to a flat server just relocates the problem behind a fixed price. It'll be cheaper. It'll still be wrong. Same with the third-party SaaS in pile two: nobody's hosting plan cancels your email or analytics subscription. Consolidation is a pricing-shape fix, and it's a good one, but it doesn't touch application decisions. Those stay yours on every platform. If an unmanaged box still looks cheaper on paper, the [real cost of an unmanaged VPS](https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/) is the honest comparison, and side projects have their own math in [the cost of running a side project](https://www.kloudbean.com/blog/cost-of-running-a-side-project/).
 
-**A bill you own, not one that owns you.** See what a flat, owned server would cost you on [pricing](https://www.kloudbean.com/pricing/), or start free at [kloudbean.com](https://www.kloudbean.com/) with your first migration done for you.
+<!-- cta:start -->
+**Deploys that tell you what broke.**
+
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
+
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

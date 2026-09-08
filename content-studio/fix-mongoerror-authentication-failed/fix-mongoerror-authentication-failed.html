@@ -63,7 +63,21 @@ use appdb
 db.getUsers()</code></pre>
 
   <!-- ADD IMAGE: a mongosh session running db.getUsers() in admin and in appdb side by side, proving where the user actually lives. Swap for a real screenshot: src -> images/getusers-authsource.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A mongosh session running db.getUsers() in admin and then in appdb, so the reader can see which database actually holds the user.</em><small>Optional: highlight the roles array pointing at a different db than the user lives in.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #1
+Create a left-to-right architecture / flow diagram for a technical blog post titled "MongoError: Authentication Failed? Check authSource Before the Password".
+
+What it must show: A mongosh session running db.getUsers() in admin and then in appdb, so the reader can see which database actually holds the user.
+Also: Optional: highlight the roles array pointing at a different db than the user lives in.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-flow.png" alt="A mongosh session running db.getUsers() in admin and then in appdb, so the reader can see which database actually holds the user.">
+    <figcaption>One line</figcaption>
+  </figure>
 
   <h2>Test the credentials with mongosh before you touch app code</h2>
   <p>This is the step I'd insist on, and it's the one people skip. Before editing a single line of application config, authenticate from a shell. It splits the problem cleanly in half: if <code>mongosh</code> gets in with those credentials, the credentials are good and you have an application configuration bug. If <code>mongosh</code> also fails, the problem is the user, the password, or the auth database, and your app is innocent.</p>
@@ -122,7 +136,21 @@ db.grantRolesToUser("appuser", [ { role: "readWrite", db: "appdb" } ])</code></p
   <p>Give the application a user with <code>readWrite</code> on its own database and nothing more. Don't hand your app a root or cluster-admin account because it's convenient during debugging, then forget to change it. A least-privilege user limits the blast radius of a leaked credential, and it makes errors more informative, since an over-privileged user succeeds at things that should have failed loudly in staging.</p>
 
   <!-- ADD IMAGE: the two errors side by side in a terminal, authentication failed next to not authorized, to make the distinction visual. Swap for a real screenshot: src -> images/auth-vs-authz.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Two terminal errors side by side: authentication failed next to not authorized on appdb, so the reader learns to tell them apart at a glance.</em><small>Optional: annotate which stage each one failed at.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #2
+Create a realistic terminal / command-line screenshot for a technical blog post titled "MongoError: Authentication Failed? Check authSource Before the Password".
+
+What it must show: Two terminal errors side by side: authentication failed next to not authorized on appdb, so the reader learns to tell them apart at a glance.
+Also: Optional: annotate which stage each one failed at.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-terminal.png" alt="Two terminal errors side by side: authentication failed next to not authorized on appdb, so the reader learns to tell them apart at a glance.">
+    <figcaption>Differences at a glance</figcaption>
+  </figure>
 
   <h2>The .env causes: invisible characters and stale values</h2>
   <p>When <code>mongosh</code> works but the app still fails, the problem is almost always what your process actually loaded. Things that look identical to the eye and aren't:</p>
@@ -171,16 +199,74 @@ mongodb+srv://appuser:PLACEHOLDER_PASSWORD@cluster.example.net/appdb?authSource=
   <p>Wherever you run it, the discipline is the same: one canonical connection string per environment, stored as config.</p>
 
   <!-- ADD IMAGE: the managed database connection details panel, with host, port, user and database shown so the reader sees a supplied URI rather than a hand-typed one. Swap for a real screenshot: src -> images/db-connection-details.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A managed database details panel showing host, port, user, and database name, illustrating a supplied connection string instead of a hand assembled one.</em><small>Optional: pair it with the app runtime config screen where the URI is set.</small></span></figure>
+  <!-- IMAGE GENERATE [panel] #3
+Create a clean settings / configuration panel UI mockup for a technical blog post titled "MongoError: Authentication Failed? Check authSource Before the Password".
+
+What it must show: A managed database details panel showing host, port, user, and database name, illustrating a supplied connection string instead of a hand assembled one.
+Also: Optional: pair it with the app runtime config screen where the URI is set.
+
+A white card with a small uppercase section label, then labelled rows. Highlight the row that carries the point with a violet border. Optional green check line at the bottom confirming the result.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-panel.png" alt="A managed database details panel showing host, port, user, and database name, illustrating a supplied connection string instead of a hand assembled one.">
+    <figcaption>Ensure correct connection to the managed database</figcaption>
+  </figure>
 
   <h2>For the next time</h2>
   <p>Once you're authenticating cleanly, the next questions are about the connection itself. <a href="https://www.kloudbean.com/blog/connect-mongoose-to-mongodb/">Connecting Mongoose to MongoDB</a> covers the driver options, connection events, and models. <a href="https://www.kloudbean.com/blog/managed-mongodb-hosting/">Managed MongoDB hosting</a> covers running the database itself, indexing, and migrating an existing one. For connection stability under load, read <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>. And for keeping credentials out of your repo, <a href="https://www.kloudbean.com/blog/secrets-management/">secrets management</a> is the companion piece to this one.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Stop hand-building MongoDB connection strings.</p>
-    <p style="margin:0 0 .6em">Launch a managed MongoDB, copy the connection details from the dashboard, and set them as runtime config for your app. See <a href="https://www.kloudbean.com/">kloudbean.com</a> or check current plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">One-click managed MongoDB · Automatic backups · IP allow-listing · Free SSL · Git deploys</p>
+<div class="kbcta-db-wrap">
+  <div class="kbcta-db-overlay"></div>
+  <div class="kbcta-db-content">
+    <div class="kbcta-db-eyebrow">MANAGED DATABASES &middot; SEVEN ENGINES</div>
+    <p class="kbcta-db-heading">One click to a real database.</p>
+    <p class="kbcta-db-description">Seven managed engines, provisioned and patched for you, with access controlled and backups running automatically. Your schema, your queries, and your data stay exportable with the standard tools.</p>
+    <ul class="kbcta-db-features">
+      <li>&#10003; Seven managed engines</li>
+      <li>&#10003; One-click launch</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Controlled access</li>
+      <li>&#10003; Standard connection strings</li>
+      <li>&#10003; Free migration assistance</li>
+    </ul>
+    <div class="kbcta-db-buttons">
+      <a class="kbcta-db-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-db-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-db: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-db-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#04202B;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-db-wrap *{box-sizing:border-box}
+.kbcta-db-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #04202B 0%, #073947 55%, rgba(14,116,144,.62) 100%);pointer-events:none}
+.kbcta-db-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-db-content{position:relative;z-index:3;max-width:700px}
+.kbcta-db-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-db-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-db-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-db-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-db-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-db-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-db-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#064454;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-db-btn:hover,.kbcta-db-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-db-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-db-link:hover,.kbcta-db-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-db-wrap{padding:36px 24px}
+  .kbcta-db-heading{font-size:31px}
+  .kbcta-db-description{font-size:16px}
+  .kbcta-db-features li{white-space:normal}
+  .kbcta-db-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-db-btn{width:100%}
+  .kbcta-db-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

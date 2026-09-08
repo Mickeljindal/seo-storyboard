@@ -105,11 +105,20 @@ The honest tradeoff: Railway's instant-provisioning developer experience is exce
 
 Useful next reads: [why is my Railway bill so high](https://www.kloudbean.com/blog/why-is-my-railway-bill-so-high/) for the billing mechanics, [Render vs Railway vs Kloudbean](https://www.kloudbean.com/blog/render-vs-railway-vs-kloudbean/) for the model comparison, and [a Railway alternative](https://www.kloudbean.com/blog/railway-alternative-for-vibe-coded-apps/) for the platform view. On the mechanics: [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/), [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/), [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/), and [migrating with zero downtime](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/).
 
-## Swap the meter for a flat number
+<!-- cta:start -->
+**Bring the app. Keep the deploy flow.**
 
-Run your Node app, worker, managed database, and Redis in one dashboard on a flat plan from $8/mo with no egress metering, deployed from GitHub. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-Flat from $8/mo · No egress metering · Managed Postgres and Redis · Always-on under PM2 · Free migration
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

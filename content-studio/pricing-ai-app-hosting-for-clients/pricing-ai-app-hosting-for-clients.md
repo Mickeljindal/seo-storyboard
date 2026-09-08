@@ -117,9 +117,20 @@ Most of this is discipline, not software. But the split gets far easier to run w
 
 Kloudbean fits this model on the infrastructure side: standard plans start at a flat, predictable rate (from $8 a month), each client app can run on its own managed server, and one dashboard shows the whole fleet, so pass-through costs are easy to read and attribute. Handy for running the split cleanly. Secondary to the point of this page, which is the pricing method itself.
 
----
+<!-- cta:start -->
+**One login. Every client app.**
 
-**Price the risk, not just the box.** If you want infrastructure with flat, predictable pricing and one dashboard to see every client's app and its cost, that's what Kloudbean is built for. Details at [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+Consolidate the dashboards: isolated apps on managed servers, per-client databases, per-app backups you can restore individually, and permissions scoped per resource and action.
+
+- One dashboard
+- Per-client isolation
+- Subusers and access control
+- Per-app backups
+- Git deploys
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

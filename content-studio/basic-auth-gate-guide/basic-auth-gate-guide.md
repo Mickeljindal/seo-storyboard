@@ -85,11 +85,20 @@ The bottom five rows are the part no host supplies, and that includes us. There 
 
 Basic Auth pairs naturally with [IP allowlisting](https://www.kloudbean.com/blog/ip-allowlisting-guide/) for private environments, and both sit above the [Shorewall firewall and Fail2ban](https://www.kloudbean.com/blog/fail2ban-and-shorewall-guide/) baseline. For the HTTPS the gate depends on, [custom domains and SSL](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/); for the response-header layer, the [security headers guide](https://www.kloudbean.com/blog/security-headers-guide/); and for real request filtering, [what a WAF does](https://www.kloudbean.com/blog/what-a-waf-does/). The overview is [secure and compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 
-## Hide what isn't ready, in a couple of clicks.
+<!-- cta:start -->
+**The server layer, hardened for you.**
 
-Kloudbean lets you put a Basic Auth gate in front of an app, with free auto-renewing SSL to satisfy the HTTPS rule and staging environments for WordPress and Laravel. Keep pre-launch work off search engines and away from the public. The platform-level view is in [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/). Otherwise, [kloudbean.com](https://www.kloudbean.com/).
+Every server ships with a Shorewall firewall and Fail2ban, free auto-renewing SSL, automatic backups, and OS patching handled. Add IP access control or a Basic Auth gate when a site should not be public.
 
-Basic Auth gate · Free auto-renewing SSL · Staging sites · IP Access Control
+- Shorewall firewall
+- Fail2ban
+- OS patching handled
+- Free SSL
+- IP access control
+- Automatic backups
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

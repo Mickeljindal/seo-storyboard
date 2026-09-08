@@ -69,7 +69,7 @@ Coming from a fuller ORM and weighing your options? Prisma is the other big one 
 
 Notice both snippets read `process.env.DATABASE_URL`. That's on purpose. Your Drizzle DATABASE_URL should live in an environment variable, never typed into the source and never committed. On Kloudbean you set it under Runtime Configuration, Environment Variables, and the app reads it at boot:
 
-![The Kloudbean console Environment Variables screen, where the Drizzle DATABASE_URL is stored instead of in code](../assets/console/env-vars.png)
+![The Kloudbean console Environment Variables screen, where the Drizzle DATABASE_URL is stored instead of in code](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ```bash
 # set in Runtime Configuration, Environment Variables (not in code)
@@ -111,7 +111,7 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 export const db = drizzle(pool, { schema });
 ```
 
-<!-- ADD IMAGE: your editor showing schema.ts with the inferred row type on hover -->
+![From schema to query](images/gen-1-flow.png)
 
 ## Step 4: Generate and run migrations with drizzle-kit
 
@@ -159,7 +159,7 @@ await pool.end();
 
 Drop that into your build or start command and schema changes ship with the code that needs them. If you're wiring up automatic deploys, the [Git deploy guide](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) shows where the migrate step belongs in the pipeline.
 
-<!-- ADD IMAGE: terminal running drizzle-kit generate then drizzle-kit migrate -->
+![Real migration flow](images/gen-2-terminal.png)
 
 ## A real query, end to end
 
@@ -190,11 +190,11 @@ If `found` comes back empty on a fresh deploy, or you see `error: relation "user
 
 All of the above assumes you have a real Postgres to point at. On Kloudbean you open the DBS section, hit Launch Database, and pick PostgreSQL from the managed engines. A minute or two later it's provisioned, patched, locked to your app server's IP, and already being backed up. You copy the host, port, database, user, and password into your `DATABASE_URL`.
 
-![Launching a managed PostgreSQL database in the Kloudbean console to connect Drizzle to](../assets/console/launch-database.png)
+![Launching a managed PostgreSQL database in the Kloudbean console to connect Drizzle to](../assets/console-real/shots/psql_launch_step_1.png)
 
 Why managed rather than a Postgres you babysit yourself? Because Drizzle being thin means the database is doing the real work, and you don't want to be the one paging yourself over patches, backups, and disk alerts. If you want the deeper reasoning on the engine itself, JSONB, extensions, and what you're actually paying for, that's in [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/). For the broader picture of wiring any framework to a managed database, start at [how to add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
 
-<!-- ADD IMAGE: the connection details panel after launch: host, port, database, user -->
+![Connection details feed DATABASE_URL](images/gen-3-flow.png)
 
 ## Connections are finite: size your pool
 
@@ -227,11 +227,20 @@ A short field guide to the failures that cost people an evening:
 
 None of these are Drizzle's fault, and that's kind of the point. Most deploy failures are configuration, not code.
 
----
+<!-- cta:start -->
+**Managed, backed up, and still yours.**
 
-**Give your Drizzle app a Postgres that's actually production-ready.** Launch a managed PostgreSQL, drop the connection string into one environment variable, and run your migrations. Automatic backups, IP allow-listing, and free migration help, on the same server as your app. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans from $8/mo on [pricing](https://www.kloudbean.com/pricing/).
+Seven managed engines, provisioned and patched for you, with access controlled and backups running automatically. Your schema, your queries, and your data stay exportable with the standard tools.
 
-One-click PostgreSQL · Automatic backups · Env vars in the UI · Free migration · Free trial
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

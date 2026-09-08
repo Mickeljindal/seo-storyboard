@@ -91,7 +91,7 @@ export class User {
 
 One production note about the `entities` array. In dev people use a glob like `src/**/*.ts`. In production you run compiled JavaScript, so the glob has to point at `dist` and `.js`, or you import the classes directly as above. Get it wrong and TypeORM finds zero entities, then throws `EntityMetadataNotFoundError: No metadata for "User" was found.` Importing classes explicitly is the boring, reliable choice.
 
-<!-- ADD IMAGE: Your editor open on entities/User.ts, decorators visible. -->
+![Benefits and Considerations](images/gen-1-comparison.png)
 
 ## The synchronize trap: never use synchronize true in production
 
@@ -147,7 +147,7 @@ export const AppDataSource = new DataSource({
 
 `migrationsRun` is convenient, but with several instances booting at once you get multiple migrations racing. For one instance it's fine. For anything bigger, run migrations as a dedicated step before the new version takes traffic. On Kloudbean's managed CI/CD you drop `npm run migration:run` into the deploy step and watch it stream in the live build logs.
 
-<!-- ADD IMAGE: Deploy logs with migration:run applying a pending migration. -->
+![Migrations running as part of deploy](images/gen-2-flow.png)
 
 ## Configuring the TypeORM connection pool
 
@@ -281,15 +281,22 @@ Everything above assumes a real database on the other end: always-on, backed up,
 
 The flow is short. Launch a managed PostgreSQL, MySQL, or MariaDB, copy the host, port, database, user, and password into your environment variables, then deploy your Node or NestJS app on the same server so the two sit side by side, with the database locked to the app server's IP. Point your DataSource at it and run your migrations. One dashboard for the app, the database, the backups, and the env vars, no separate providers to stitch together. The framework-agnostic pillar is [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), and the engine deep-dive is [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/).
 
-<!-- ADD IMAGE: The connection details panel after launch: host, port, database, user. -->
+![Connection details for TypeORM](images/gen-3-flow.png)
 
----
+<!-- cta:start -->
+**One click to a real database.**
 
-**Give your TypeORM app a database built for production.**
+Seven managed engines, provisioned and patched for you, with access controlled and backups running automatically. Your schema, your queries, and your data stay exportable with the standard tools.
 
-Launch managed PostgreSQL or MySQL, drop the connection string into one environment variable, set `synchronize: false`, and run your migrations with IP allow-listing and automatic backups. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans from $8/mo on [pricing](https://www.kloudbean.com/pricing/).
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
 
-One-click databases · Automatic backups · Env vars in the UI · Free migration · Free trial
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

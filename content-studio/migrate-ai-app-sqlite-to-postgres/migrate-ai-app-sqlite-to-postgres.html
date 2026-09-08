@@ -43,7 +43,21 @@
   <p>Postgres is the natural landing spot. It's strict where SQLite is loose, it handles real concurrency, and a managed one is a solved problem to run. If you're still deciding what belongs in a database versus object storage versus a cache, <a href="https://www.kloudbean.com/blog/persistent-storage-for-ai-apps/">persistent storage for AI apps</a> sorts that out. Assuming you've decided, let's move.</p>
 
   <!-- ADD IMAGE: src -> images/localhost-vs-production.png. Side by side of app.db on the app disk versus a managed Postgres running as its own service outside the app. -->
-  <figure class="img-slot"><span><b>Add image</b><em>app.db on the app's local disk versus a managed Postgres running outside the app.</em><small>A simple two-panel contrast works here.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #1
+Create a side-by-side comparison table for a technical blog post titled "How to Migrate Your AI App from SQLite to PostgreSQL".
+
+What it must show: app.db on the app's local disk versus a managed Postgres running outside the app.
+Also: A simple two-panel contrast works here.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-comparison.png" alt="app.db on the app's local disk versus a managed Postgres running outside the app.">
+    <figcaption>Key differences for AI app</figcaption>
+  </figure>
 
   <h2>The plan to migrate SQLite to PostgreSQL</h2>
   <p>Here's the whole SQLite to Postgres migration in six moves. Read it once so the later detail has somewhere to hang.</p>
@@ -154,7 +168,21 @@ CAST type integer to bigint,
   <p>Notice <code>reset sequences</code> in there. That's pgloader handling gotcha number five for you, which is one big reason to prefer it over a hand-rolled dump. When it finishes it prints a summary table: rows read, rows loaded, and any that errored. Read that summary. If the counts don't match, something got rejected and you want to know before you cut over, not after.</p>
 
   <!-- ADD IMAGE: src -> images/pgloader-summary.png. A terminal showing pgloader's end-of-run summary table with rows read and rows loaded per table. -->
-  <figure class="img-slot"><span><b>Add image</b><em>pgloader's end-of-run summary: rows read and rows loaded per table.</em><small>A real terminal capture reassures the reader the counts matched.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #2
+Create a realistic terminal / command-line screenshot for a technical blog post titled "How to Migrate Your AI App from SQLite to PostgreSQL".
+
+What it must show: pgloader's end-of-run summary: rows read and rows loaded per table.
+Also: A real terminal capture reassures the reader the counts matched.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-terminal.png" alt="pgloader's end-of-run summary: rows read and rows loaded per table.">
+    <figcaption>pgloader's end-of-run summary: rows read and rows loaded per table</figcaption>
+  </figure>
 
   <p>pgloader isn't the answer for everyone. If your app already manages its schema through an ORM, running pgloader can leave the ORM's migration history out of step with reality. In that case, path B is cleaner.</p>
 
@@ -187,7 +215,21 @@ CAST type integer to bigint,
   <p>And here's the anti-pattern that catches people, because it looks like success. You repoint the app at a brand-new, empty Postgres and deploy before moving the data. The app boots. No errors. It "works." Except it's a fresh install with zero rows, and if any code path writes before you notice, you now have data split across two databases and a real mess to reconcile. An empty database that starts clean is not the same as a migrated one. Verify row counts before you trust a green deploy.</p>
 
   <!-- ADD IMAGE: src -> images/row-count-match.png. Two count queries side by side, the same SELECT count of rows on SQLite and on Postgres, showing the totals match before cutover. -->
-  <figure class="img-slot"><span><b>Add image</b><em>The same row-count query on SQLite and on Postgres, totals matching before cutover.</em><small>This is the single check that prevents most data loss.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #3
+Create a left-to-right architecture / flow diagram for a technical blog post titled "How to Migrate Your AI App from SQLite to PostgreSQL".
+
+What it must show: The same row-count query on SQLite and on Postgres, totals matching before cutover.
+Also: This is the single check that prevents most data loss.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-flow.png" alt="The same row-count query on SQLite and on Postgres, totals matching before cutover.">
+    <figcaption>Before cutover</figcaption>
+  </figure>
 
   <p>Do the migration now, while the data is still small. That's the one strong opinion I'll push here. Every week you leave an AI app on SQLite in production, the dataset grows, more real users depend on it, and the cutover gets riskier. The migration you do at 200 rows is a coffee break. The one you keep putting off until 200,000 rows and paying customers is a maintenance window with your heart rate up. Small is easy. Waiting only makes it harder.</p>
   <p>One more thing for after cutover. Postgres has a real connection limit, and a busy app (or a serverless one opening a fresh connection per request) can exhaust it fast. If you see connection errors under load, that's expected, and <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a> is the fix. SQLite never made you think about this because it was just a file. Postgres is a server, so plan for it. This is quietly easier if your app runs as a long-lived process rather than a function, which is how apps run on Kloudbean: one process, one pool, connections reused across requests. Functions are where people burn through a connection limit, because each cold instance opens its own.</p>
@@ -204,12 +246,55 @@ CAST type integer to bigint,
   <p>Be precise about that fourth item though, because a lot of writing on this is sloppy, including some of ours in the past. On a standard plan the database is locked down by IP allow-listing, not hidden on a private network. It has an endpoint; the allow rule is what makes reaching it useless for anyone else. Running it inside a VPC is an Enterprise capability, so don't design around it unless you're on that plan.</p>
   <p>And the part no host fixes, ours included: nothing on this page happens automatically. No platform finds the row where a text value snuck into an integer column, decides whether your <code>created_at</code> strings are UTC, or resets <code>users_id_seq</code> for you. Provisioning is a few clicks anywhere decent. The cleanup is the migration, and it's yours. What managed hosting buys is that the database keeps existing after you're done, which is the whole reason you're here.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Move your AI app onto Postgres for good.</p>
-    <p style="margin:0 0 .6em">Provision a managed PostgreSQL that survives every redeploy, then bring your data across with free migration help. One dashboard, a connection string, and your data finally lives somewhere a deploy can't wipe.</p>
-    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Managed Postgres · Free migration assistance · Automatic backups · Free SSL · IP allow-listing · Git deploy · From $8/mo</p>
+<div class="kbcta-move-wrap">
+  <div class="kbcta-move-overlay"></div>
+  <div class="kbcta-move-content">
+    <div class="kbcta-move-eyebrow">MIGRATE &middot; FLAT, PREDICTABLE PRICING</div>
+    <p class="kbcta-move-heading">A rehoming, not a rewrite.</p>
+    <p class="kbcta-move-description">Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.</p>
+    <ul class="kbcta-move-features">
+      <li>&#10003; Free migration assistance</li>
+      <li>&#10003; Free trial</li>
+      <li>&#10003; Seven cloud providers</li>
+      <li>&#10003; Flat monthly price</li>
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Git deploy</li>
+    </ul>
+    <div class="kbcta-move-buttons">
+      <a class="kbcta-move-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-move-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-move: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-move-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#0A0730;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-move-wrap *{box-sizing:border-box}
+.kbcta-move-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #0A0730 0%, #1B0F5A 58%, rgba(79,26,243,.55) 100%);pointer-events:none}
+.kbcta-move-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.28) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-move-content{position:relative;z-index:3;max-width:700px}
+.kbcta-move-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-move-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-move-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-move-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-move-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-move-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-move-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#2A0E7A;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-move-btn:hover,.kbcta-move-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-move-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-move-link:hover,.kbcta-move-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-move-wrap{padding:36px 24px}
+  .kbcta-move-heading{font-size:31px}
+  .kbcta-move-description{font-size:16px}
+  .kbcta-move-features li{white-space:normal}
+  .kbcta-move-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-move-btn{width:100%}
+  .kbcta-move-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

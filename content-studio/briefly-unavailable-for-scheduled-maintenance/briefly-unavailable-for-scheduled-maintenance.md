@@ -4,7 +4,7 @@
 
 Your whole site, front end and admin, is showing one line of text: "Briefly unavailable for scheduled maintenance. Check back in a minute." A minute passes. Then twenty. Nothing changes, because nothing is going to. This is not a crash, a hack, or a database failure. WordPress writes a file called `.maintenance` before it updates anything, shows that message to every visitor while the update runs, and deletes the file when it finishes. If the update died partway, the file survives, and WordPress keeps honouring an instruction that has no process behind it any more. Deleting the file takes ten seconds. The more useful question is what failed mid-update, because something did.
 
-> **How do I fix "Briefly unavailable for scheduled maintenance"?**
+> **How do I fix 'Briefly unavailable for scheduled maintenance'?**
 > Delete the file named `.maintenance` from your WordPress root directory, the same folder as `wp-config.php`. It is a hidden file, so enable "show hidden files" in your file manager or use `rm .maintenance` over SSH. The site comes back immediately. Then check whether the interrupted update actually completed, because a plugin, theme, or core update stopped halfway and may have left mismatched files behind.
 
 ## What WordPress was doing when it stopped
@@ -133,15 +133,25 @@ If the maintenance message turns out to be masking something worse, the two neig
 
 On preventing this, [WordPress staging environments](https://www.kloudbean.com/blog/wordpress-staging-environment/) and [server backups](https://www.kloudbean.com/blog/server-backups-guide/). On the errors it can hide, [the critical error message](https://www.kloudbean.com/blog/there-has-been-a-critical-error-on-this-website/) and [database connection errors](https://www.kloudbean.com/blog/fix-error-establishing-database-connection-wordpress/). On the command line that avoids the whole problem, the [WP-CLI guide](https://www.kloudbean.com/blog/wordpress-cli-guide/). On what a 503 signals, [503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/). And on keeping the site defensible generally, [secure WordPress hosting](https://www.kloudbean.com/blog/secure-wordpress-hosting/).
 
-## Break the update, not the site.
+<!-- cta:start -->
+**Ship the app, not the infrastructure.**
 
-Managed WordPress on seven clouds with one-click staging, automatic backups, free SSL, and a firewall with intrusion prevention by default, so a failed update is recoverable instead of public. From $8/mo, with free migration assistance. Start at [kloudbean.com](https://www.kloudbean.com/).
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
 
-Staging · Automatic backups · Free SSL · 7 clouds · Flat from $8/mo
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 
-**How do I fix "Briefly unavailable for scheduled maintenance"?**
+**How do I fix 'Briefly unavailable for scheduled maintenance'?**
 
 Delete the `.maintenance` file from your WordPress root folder, the one containing `wp-config.php`. It is hidden because of the leading dot, so switch on hidden files in your SFTP client or file manager, or run `rm .maintenance` over SSH. The site returns immediately, with no cache clearing needed.
 

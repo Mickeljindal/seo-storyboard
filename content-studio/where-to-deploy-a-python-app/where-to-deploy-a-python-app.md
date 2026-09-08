@@ -146,9 +146,21 @@ Be equally clear about where that model is the wrong answer, including on us. Th
 Then the part no host anywhere fixes. Nothing about a hosting choice makes a synchronous WSGI view asynchronous, turns an N+1 query into a fast one, or notices that a Celery task has been silently failing for a fortnight. Sizing your Gunicorn workers, bounding your connection pool, and watching your own queue are yours on every platform that exists. The host decides whether your process gets to stay alive. What that process does with the time is still your code, and that's where almost all the performance actually lives.
 
 
----
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-**Run your Python app as the long-lived process it is.** If you want a managed server for your Django, FastAPI, or Flask app, a managed database beside it, backups, free SSL, and cron from the dashboard, all in one place, that's what Kloudbean is for. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

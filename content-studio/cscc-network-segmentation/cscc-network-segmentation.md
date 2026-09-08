@@ -63,11 +63,21 @@ A managed cloud can provide the infrastructure half of these controls: private n
 
 This is the network domain of a bigger framework: start with [the NCA CSCC guide](https://www.kloudbean.com/blog/nca-cscc-compliance-guide/), and prepare with the [critical systems hosting checklist](https://www.kloudbean.com/blog/critical-systems-hosting-checklist/). The controls here build on [private networking](https://www.kloudbean.com/blog/what-is-a-vpc/), host-level [firewalling](https://www.kloudbean.com/blog/fail2ban-and-shorewall-guide/), [DDoS protection](https://www.kloudbean.com/blog/ddos-protection-explained/), and [remote access controls](https://www.kloudbean.com/blog/cscc-remote-access-controls/), plus the recurring testing cadence in [CSCC vulnerability assessment and penetration testing](https://www.kloudbean.com/blog/cscc-vulnerability-assessment-and-pentest/). For where the data lives, [data residency in Saudi Arabia](https://www.kloudbean.com/blog/data-residency-saudi-arabia/).
 
-## Build the segmented network the controls expect.
+<!-- cta:start -->
+**Build the infrastructure half properly.**
 
-Kloudbean can deliver private networking, per-environment isolation, whitelist-only firewalling, private-only managed databases, and edge DDoS protection on managed engagements, in-Kingdom on the Dammam region. Start the conversation at [kloudbean.com](https://www.kloudbean.com/), and read the framework overview in [the NCA CSCC guide](https://www.kloudbean.com/blog/nca-cscc-compliance-guide/).
+Kloudbean delivers the infrastructure alignment behind these controls on managed enterprise engagements: centralised logging, immutable retention, private database access, MFA, and in-Kingdom hosting where required. Certification is assessed against your organisation, so governance and application work stay with you.
 
-Per-environment isolation · Whitelist firewalling · Edge DDoS · In-Kingdom
+- In-Kingdom (Dammam) available
+- Centralised logging
+- Immutable log storage
+- Private database access
+- MFA and least privilege
+- Automatic backups
+- Evidence as managed reports
+
+[Start free](https://console.kloudbean.com/register) · [Talk to a cloud expert](https://calendly.com/kloudbean)
+<!-- cta:end -->
 
 ## FAQ
 

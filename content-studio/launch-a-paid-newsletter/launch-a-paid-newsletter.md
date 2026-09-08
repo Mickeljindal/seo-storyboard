@@ -47,7 +47,7 @@ Hosted platforms typically take a cut of your subscription revenue, on top of th
 
 Read that last row twice. Most writers are in the left column and should stay there a while. A percentage of a small number is a small number, and the work you're avoiding is worth more than that early on.
 
-<!-- ADD IMAGE: two cost curves, platform revenue share rising with growth versus self-hosted staying flat, crossover marked -->
+![Platform vs self-hosted](images/gen-1-flow.png)
 
 ## Why owning your email list matters more than your platform
 
@@ -77,7 +77,7 @@ Two things happen. First, you probably can't. Outbound port 25 is blocked by def
 
 The right answer is unglamorous. Send through a transactional email API. Your app talks to the provider over HTTPS or authenticated SMTP submission on port 587, and the provider carries IP reputation, feedback loops and the relationships with inbox providers. You still own your list. You're just not pretending to be a mail operator. Budget for it as a line item, priced per email sent.
 
-<!-- ADD IMAGE: sending path, your app to a transactional email API to the inbox, with direct port 25 shown blocked -->
+![From app to inbox](images/gen-2-flow.png)
 
 ## Paywalls and payments, where the real complexity hides
 
@@ -104,7 +104,7 @@ That's the shape of thing [Kloudbean](https://www.kloudbean.com/) runs: Listmonk
 
 Wherever you run it, read [how backups actually work](https://www.kloudbean.com/blog/server-backups-guide/) and do a test restore. Then diary another one in six months.
 
-<!-- ADD IMAGE: console screenshot of the one-click app catalogue with the newsletter apps visible -->
+![Step-by-step deployment](images/gen-3-flow.png)
 
 ## When self-hosting starts to make sense
 
@@ -130,9 +130,21 @@ If you don't want to own that, stay on a platform. Not a cop-out. It's the right
 - [Self-hosted tools worth running](https://www.kloudbean.com/blog/best-self-hosted-tools/) if you like owning your stack.
 - [What a side project actually costs](https://www.kloudbean.com/blog/cost-of-running-a-side-project/) to keep online.
 
----
+<!-- cta:start -->
+**Ship the app, not the infrastructure.**
 
-**Own the list, not the maintenance.** If you decide to self-host, Listmonk or Ghost on a managed server with a backed-up database is the short path. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/), which starts at $8/mo.
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
+
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

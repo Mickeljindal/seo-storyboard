@@ -74,7 +74,7 @@ The Apache equivalent, if that's your stack:
 </VirtualHost>
 ```
 
-<!-- ADD IMAGE: console, the Domain Aliases and SSL screen for one co-hosted app, domain mapped and a free certificate issued -->
+![Set up per-app routing and SSL](images/gen-1-flow.png)
 
 Add a domain, add a block, reload the proxy, and that domain now reaches its app. On a managed platform you don't hand-edit these files. You add an application, point a domain at it, and the routing plus a free SSL certificate are wired up for you. But it's worth knowing what's happening underneath, because this is the mechanism.
 
@@ -104,7 +104,7 @@ GRANT ALL PRIVILEGES ON app_b.* TO 'app_b'@'localhost';
 
 Now app_a can only ever see `app_a`, and a problem in one database can't reach into another. A managed database per app makes this even cleaner, and each one is backed up on its own. That's the version I'd default to: on Kloudbean a managed database is one click per app, allow-listed to the server's IP, with its own automatic and on-demand backups, so restoring one client's data doesn't mean rolling back everybody's. Seven engines are available that way, MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch and MongoDB, which matters when the apps sharing your box don't share a stack. More on that in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). The one time sharing a database is fine is when the apps are genuinely one system (a frontend and its own API, say). Unrelated apps, never.
 
-<!-- ADD IMAGE: a database list on one server showing a separate database per app: app_a, app_b, app_c -->
+![One database per app](images/gen-2-flow.png)
 
 ## Headroom and the noisy neighbour
 
@@ -135,11 +135,11 @@ There's no number, and anyone who gives you one is guessing. There are signals, 
 
 What makes those signals cheap to act on is not having to rebuild anything when you do. Adding an application to a server on Kloudbean gives it its own user, web root, process, routing and free SSL, one at a time, so the four boundaries above come as the default shape rather than something you assemble per app. Deploys come from Git per app, and cron for each one is defined in the dashboard instead of a single crontab where three clients' jobs sit in one file.
 
-![The Kloudbean console showing several applications running on one server, each with its own domain and its own place in the console](../assets/console/add-application.png)
+![The Kloudbean console showing several applications running on one server, each with its own domain and its own place in the console](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 So `client-one.com`, `client-two.com`, and `api.mine.com` can all live on one server, each answering only for its own traffic, each with its own managed database and its own automatic [backups](https://www.kloudbean.com/blog/server-backups-guide/). You add them one at a time, and the platform keeps the routing and SSL straight. When one app earns its own box, moving it is a redeploy. This is the general, technical build. If you're running many client sites and want the operational playbook (billing, handoff, standardising the fleet), that's a different angle covered in the [agency hosting playbook](https://www.kloudbean.com/blog/hosting-for-agencies-playbook/) and [how agencies host 20 client apps](https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/).
 
-<!-- ADD IMAGE: the server resource graph with several apps running, CPU and memory sitting comfortably below the ceiling -->
+![CPU and memory comfortably below ceiling](images/gen-3-graph.png)
 
 Want just an app plus its own API and database on one box, rather than many tenants? That narrower setup is walked through in [host an app, API, and database on one server](https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/). And if you're weighing doing all this yourself versus a managed setup, [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) lays out the trade.
 
@@ -151,11 +151,21 @@ Which means a few failures stay yours on any host, ours included. No platform fi
 
 None of that argues against co-hosting. Most single-app servers idle most of the day, and running four apps on one right-sized box is better engineering than paying for four bored ones. Just watch the shared resources, and treat the first sign of contention as information rather than an emergency.
 
----
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-**Use the whole server, not 10% of it.** Put several apps on one right-sized server, each isolated with its own user, database, and backups. Start free at [kloudbean.com](https://www.kloudbean.com/); sizes and plans on [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Many apps, one server · Isolated per app · Per-app databases · Automatic backups · Built-in load balancer · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

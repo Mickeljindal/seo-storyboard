@@ -50,9 +50,9 @@ Two of those are worth dwelling on. Change management is where a lot of teams fl
 
 Be careful reading the second row, though, because vendors blur it. On Kloudbean the immutable, searchable, CSV-exportable audit trail is an Enterprise capability, not something on a standard plan. The rest of that table, subusers with per-resource permissions, Git deployment history, automatic and on-demand backups, free SSL, Shorewall and Fail2ban, is standard. If your buyer's questionnaire specifically asks for a tamper-resistant activity log, that's the line to check on any platform you're evaluating, before you promise it in a security review.
 
-![The Kloudbean console showing Git deployment history, useful as change-management evidence for SOC 2](../assets/console/git-deployment.png)
+![The Kloudbean console showing Git deployment history, useful as change-management evidence for SOC 2](../assets/console-real/shots/git_connect_step_4.png)
 
-<!-- ADD IMAGE: your access-control matrix, who on the team can reach production and with which role -->
+![Production Team Member Reach](images/gen-1-comparison.png)
 
 ## Then what's still your job?
 
@@ -60,7 +60,7 @@ The bigger half, and it's the half your customers' data flows through. Your own 
 
 The most basic control here is unglamorous: don't scatter credentials through your codebase. Keep them in managed environment variables with least-privilege access, so who can reach what is a setting you control, not a guess. Two console-level habits make this easy to evidence: set the values as environment variables rather than in code, so rotating one is a config change nobody has to commit, and put IP allow-listing on the managed database so only your app server's address can connect. Both are things you can screenshot and hand to an auditor in about a minute.
 
-![The Kloudbean console managing secrets as environment variables with least-privilege access](../assets/console/env-vars.png)
+![The Kloudbean console managing secrets as environment variables with least-privilege access](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ## Type I or Type II, and why you can't cram
 
@@ -105,11 +105,23 @@ Print this and argue about it with your team, because most SOC 2 panic comes fro
 
 Two things no host fixes, ours firmly included. Nobody can write your policies or run your offboarding for you, so the top four rows never move however much you spend on infrastructure. And a platform's own posture is not your report: Kloudbean is built to align with SOC 2 and supports the infrastructure controls in that table, but it isn't SOC 2 certified, and certification is assessed against an organisation rather than granted to a hosting account. Anyone selling "compliant hosting" as a shortcut to your own attestation is selling you the wrong thing. What you can reasonably expect from a host is that the shared rows produce evidence without you screenshotting anything by hand. Working through several frameworks at once? The siblings pair well: [GDPR compliant hosting](https://www.kloudbean.com/blog/gdpr-compliant-hosting/), [PCI compliant hosting](https://www.kloudbean.com/blog/pci-compliant-hosting/), and sensible [security headers](https://www.kloudbean.com/blog/security-headers-guide/) on the app itself.
 
-<!-- ADD IMAGE: an export of your audit trail or activity log covering the observation window -->
+![From event capture to final export](images/gen-2-flow.png)
 
-**Inherit the foundation, own your half.** Build on managed infrastructure that leaves the evidence trail your SOC 2 needs, all on one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/) and see plans on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-Access control · Enterprise audit trail · CI/CD deploy history · Automatic backups · Free SSL · Firewall + brute-force blocking
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## SOC 2 hosting FAQ
 

@@ -143,15 +143,20 @@ The boundary as always. What is handled: the operating system, the stack, certif
 
 On the search dependency, [managed Elasticsearch](https://www.kloudbean.com/blog/managed-elasticsearch-hosting/), and for caching and sessions, [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/). For the catalogue, [managed MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/) and [MySQL performance tuning](https://www.kloudbean.com/blog/mysql-performance-tuning/). The equivalent performance work on the other big ecommerce platform is in [speed up WooCommerce](https://www.kloudbean.com/blog/speed-up-woocommerce/) and [WooCommerce hosting](https://www.kloudbean.com/blog/woocommerce-hosting/), and much of the reasoning transfers. On the edge layer, [CDN explained](https://www.kloudbean.com/blog/cdn-explained/). And when a heavy catalogue page times out rather than merely dragging, [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/).
 
----
+<!-- cta:start -->
+**Managed stack, staging, and backups.**
 
-### Fix the layer your competitors have not looked at.
+The stack, the patching, SSL, and backups are handled, so your work stays on the site rather than the box. Staging is one click, and the managed database sits right next to the app.
 
-Managed Magento hosting across seven clouds with managed Elasticsearch for catalogue search, managed Redis for cache and sessions, managed MySQL or MariaDB, cron jobs from the dashboard, and logs beside server metrics. Cloudflare Enterprise edge caching available as an add-on. Free SSL issued and renewed. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+- Managed WordPress stack
+- One-click staging
+- Managed MySQL and MariaDB
+- Automatic backups
+- Free SSL
+- Built-in load balancer
 
-Managed Elasticsearch · Managed Redis · Managed MySQL · Cron in the UI · Free SSL
-
----
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

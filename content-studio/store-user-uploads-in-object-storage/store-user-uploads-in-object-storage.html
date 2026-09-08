@@ -38,7 +38,21 @@
   <p>The uploads folder feels permanent because on your machine it is. Production is where that assumption dies. Hit this with other post-deploy surprises? It's usually an environment gap, and we cover the rest in <a href="https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/">why your app works locally but not in production</a>.</p>
 
   <!-- ADD IMAGE: before/after showing an upload saved to a local uploads folder that is wiped on redeploy, versus the same file safe in a bucket. Swap for a real screenshot: src -> images/uploads-disk-vs-bucket.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A before and after: a file in a local uploads folder that is gone after redeploy, next to the same file living in a bucket.</em><small>Makes the ephemeral disk trap obvious at a glance.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #1
+Create a side-by-side comparison table for a technical blog post titled "Store User Uploads in Object Storage, Not on the App Server".
+
+What it must show: A before and after: a file in a local uploads folder that is gone after redeploy, next to the same file living in a bucket.
+Also: Makes the ephemeral disk trap obvious at a glance.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-comparison.png" alt="A before and after: a file in a local uploads folder that is gone after redeploy, next to the same file living in a bucket.">
+    <figcaption>Ephemeral Disk Trap vs Safe Storage</figcaption>
+  </figure>
 
   <h2>The pattern that works: bytes in a bucket, key in the database</h2>
   <p>The fix splits one "file" into two things that live in different places. That split is the whole idea.</p>
@@ -184,7 +198,7 @@ const url = await getSignedUrl(
   <p>Store the endpoint, bucket, and keys as environment variables on the server, not in the repo. On Kloudbean they're fields in the console, no SSH involved, and the Node or Python runtime config sits on the same screen. Practical consequence: when you rotate a storage key, you paste the new one and restart the app, without a commit or a rebuild.</p>
 
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean Environment Variables editor, where the S3 endpoint, bucket name, and keys are stored on the server">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean Environment Variables editor, where the S3 endpoint, bucket name, and keys are stored on the server">
     <figcaption>Set S3_ENDPOINT, S3_BUCKET, S3_KEY, and S3_SECRET as environment variables, then redeploy. The same values feed both upload flows.</figcaption>
   </figure>
 
@@ -205,7 +219,21 @@ const url = await getSignedUrl(
   <p>The endpoint is the only piece that changes to point at a Kloudbean bucket instead of AWS, because underneath it's the same S3 API. Kloudbean's buckets carry full AWS S3 SDK and CLI compatibility (since March 2025), so every snippet above runs unchanged with one <code>S3_ENDPOINT</code> swap, and <code>aws s3 cp</code> works against them for the migration. That cuts both ways, which is the point: the same portability that gets you in gets you out. There's more on it in <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage explained</a>.</p>
 
   <!-- ADD IMAGE: a framework storage config (Laravel filesystems.php s3 disk or django-storages settings) with the endpoint, bucket, and keys filled in. Swap for a real screenshot: src -> images/framework-storage-config.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A framework storage config with the S3 endpoint, bucket, and keys filled in.</em><small>Laravel filesystems.php or django-storages settings both work.</small></span></figure>
+  <!-- IMAGE GENERATE [panel] #2
+Create a clean settings / configuration panel UI mockup for a technical blog post titled "Store User Uploads in Object Storage, Not on the App Server".
+
+What it must show: A framework storage config with the S3 endpoint, bucket, and keys filled in.
+Also: Laravel filesystems.php or django-storages settings both work.
+
+A white card with a small uppercase section label, then labelled rows. Highlight the row that carries the point with a violet border. Optional green check line at the bottom confirming the result.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-panel.png" alt="A framework storage config with the S3 endpoint, bucket, and keys filled in.">
+    <figcaption>Securely store user uploads</figcaption>
+  </figure>
 
   <h2>Public or private bucket? Decide per file, not per app</h2>
   <p>This trips people up, so choose it on purpose.</p>
@@ -254,20 +282,91 @@ const url = await getSignedUrl(
   <p>That last row is the one no host fixes, ours included. Object storage is durable and replicated, which protects you from hardware dying, not from your own <code>DELETE</code>. If your worker loops over the wrong prefix, replication faithfully replicates the deletion. Versioning and a separate copy of anything irreplaceable are your call, and they sit alongside the <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups</a> that cover the database rows pointing at those objects. Two other things nobody can do for you: validating what a user uploaded, and deciding which files were meant to be private in the first place.</p>
 
   <figure>
-    <img src="../assets/console/s3-buckets.png" alt="The Kloudbean console creating an S3-compatible bucket alongside servers, apps, and managed databases">
-    <figcaption>Create a bucket in the same dashboard as everything else, set public or private access, and manage objects from the console.</figcaption>
+    <img src="../assets/console-real/shots/storage_bucket_step_1.png" alt="Open S3 Object Storage">
+    <figcaption>Open S3 Object Storage</figcaption>
+  </figure>
+  <figure>
+    <img src="../assets/console-real/shots/storage_bucket_step_2.png" alt="Create a new bucket">
+    <figcaption>Create a new bucket</figcaption>
+  </figure>
+  <figure>
+    <img src="../assets/console-real/shots/storage_bucket_step_3.png" alt="Name the bucket and set its access">
+    <figcaption>Name the bucket and set its access</figcaption>
+  </figure>
+  <figure>
+    <img src="../assets/console-real/shots/storage_bucket_step_4.png" alt="The bucket is ready for objects">
+    <figcaption>The bucket is ready for objects</figcaption>
   </figure>
 
   <!-- ADD IMAGE: the object list inside a bucket after a few uploads, showing keys like uploads/ with size and content type. Swap for a real screenshot: src -> images/bucket-object-list.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A bucket's object list after some uploads, showing keys, sizes, and content types.</em><small>Optional: use your own console screenshot.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #3
+Create a left-to-right architecture / flow diagram for a technical blog post titled "Store User Uploads in Object Storage, Not on the App Server".
+
+What it must show: A bucket's object list after some uploads, showing keys, sizes, and content types.
+Also: Optional: use your own console screenshot.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-flow.png" alt="A bucket's object list after some uploads, showing keys, sizes, and content types.">
+    <figcaption>One hop per box</figcaption>
+  </figure>
 
   <p>Uploads are one piece of keeping an app server stateless, so you can scale or rebuild it at will. Wiring this up for the first time? The full path is in <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">how to deploy an AI-built app to production</a>.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Put the files in a bucket, keep the server disposable.</p>
-    <p style="margin:0 0 .6em">Kloudbean gives you built-in S3-compatible object storage in the same dashboard as your servers, managed databases, and apps. Full AWS S3 SDK and CLI compatibility, public and private buckets, and objects you can export anytime. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">S3-compatible buckets · Managed databases · Automatic backups · One dashboard · Free migration · Free trial</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">Take it off localhost for good.</p>
+    <p class="kbcta-ai-description">Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

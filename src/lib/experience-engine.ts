@@ -19,10 +19,32 @@ import "@tanstack/react-start/server-only";
 
 export type SeedSnippet = {
   title: string;
-  kind: "lesson" | "mistake" | "migration" | "incident" | "benchmark";
+  // Knowledge Object type: the original 5, plus the broader KO taxonomy.
+  kind:
+    | "lesson"
+    | "mistake"
+    | "migration"
+    | "incident"
+    | "benchmark"
+    | "engineering-decision"
+    | "architecture-decision"
+    | "support-insight"
+    | "anti-pattern"
+    | "production-tip"
+    | "debugging-shortcut"
+    | "decision-framework"
+    | "performance-observation"
+    | "security-insight"
+    | "cost-lesson"
+    | "product-philosophy"
+    | "feature-rationale"
+    | "product-fact";
   body: string;
   tags: string[];
   clusterId?: number | null;
+  confidence?: "verified" | "curated" | "inferred";
+  grounded?: boolean;
+  sourceRef?: string | null;
 };
 
 /** Starter library — general, honest operational lessons (edit freely in the dashboard). */
@@ -117,6 +139,120 @@ export const SEED_EXPERIENCE_SNIPPETS: SeedSnippet[] = [
     body: "Teams scale up for a launch or campaign and then forget to scale back down once traffic normalizes — the infrastructure bill stays at peak-traffic sizing for months longer than needed. A quarterly right-sizing review against actual usage (not the original provisioning) is a simple habit that routinely finds 20-30% in avoidable spend on over-provisioned servers.",
     tags: ["cost", "pricing", "right-sizing", "cloud cost"],
   },
+  // --- AI / vibe-coded deploy cluster (cluster 1) — grounded, general patterns,
+  // no invented customers or statistics. These are the failure modes we see
+  // repeatedly when people ship AI-generated apps to a real server. ---
+  {
+    title: "The #1 first-deploy failure: a hard-coded port",
+    kind: "mistake",
+    body: "The single most common reason an AI-built app fails its first deploy is a hard-coded port. The tool writes app.listen(3000) because that worked on the laptop, but a real server assigns the port and the app has to read process.env.PORT. When it doesn't, nothing is listening where the platform expects, and the deploy comes up as a 503. It's a one-line fix that people burn an hour on because the error looks scarier than it is.",
+    tags: [
+      "deploy",
+      "ai",
+      "cursor",
+      "lovable",
+      "bolt",
+      "v0",
+      "replit",
+      "windsurf",
+      "node",
+      "port",
+      "503",
+      "nextjs",
+      "vite",
+      "vibe-coded",
+    ],
+    clusterId: 1,
+  },
+  {
+    title: "SQLite (or any local file DB) wiped on redeploy",
+    kind: "mistake",
+    body: "AI tools love to scaffold with SQLite or a local file database because it's the fastest thing that runs in dev. It works right up until the first redeploy, when the filesystem resets and the data is gone. The worst version of this is a real signup vanishing an hour after launch. Moving to a managed Postgres or MySQL before you have users, not after you lose some, is the pattern that saves the heartbreak.",
+    tags: [
+      "deploy",
+      "ai",
+      "database",
+      "sqlite",
+      "postgres",
+      "mysql",
+      "prisma",
+      "cursor",
+      "lovable",
+      "bolt",
+      "replit",
+      "vibe-coded",
+    ],
+    clusterId: 1,
+  },
+  {
+    title: "Build-time env vars set too late",
+    kind: "lesson",
+    body: "A confusing one we see constantly: someone deploys a Vite or Next.js app, the page is blank, so they add the VITE_ or NEXT_PUBLIC_ variable in the dashboard and reload — and nothing changes. Those variables are baked into the JavaScript bundle at build time, not read at runtime. The value has to be present before the build runs; setting it afterward does nothing until you rebuild. It costs people an afternoon almost every time.",
+    tags: [
+      "deploy",
+      "ai",
+      "env",
+      "environment variables",
+      "vite",
+      "nextjs",
+      "react",
+      "vue",
+      "v0",
+      "lovable",
+      "vibe-coded",
+    ],
+    clusterId: 1,
+  },
+  {
+    title: "Secrets the AI tool inlined into the code",
+    kind: "mistake",
+    body: "Agentic tools inline an API key straight into a source file to make something work in the moment, and it gets committed and pushed without anyone noticing. A key in Git is a leaked key, public repo or not. Before shipping AI-generated code, grep the diff for keys and absolute paths, move anything real into environment variables, and rotate whatever already hit a commit. This is the most common security mistake in vibe-coded apps.",
+    tags: [
+      "deploy",
+      "ai",
+      "security",
+      "secrets",
+      "api keys",
+      "cursor",
+      "claude code",
+      "windsurf",
+      "env",
+      "vibe-coded",
+    ],
+    clusterId: 1,
+  },
+  {
+    title: "NODE_ENV=production strips the build tools",
+    kind: "incident",
+    body: "A subtle build failure: NODE_ENV is set to production before install, so npm skips devDependencies — and for most AI-built TypeScript projects the compiler, Vite, and Tailwind live in devDependencies. The build then fails on the server with a missing-module error even though it built fine locally. Either run the install before that variable is set, or make sure the build-time tools aren't in the dev-only section.",
+    tags: ["deploy", "ai", "node", "build", "npm", "typescript", "vite", "nextjs", "vibe-coded"],
+    clusterId: 1,
+  },
+  {
+    title: "Migrating off a per-app platform: the managed services get forgotten",
+    kind: "migration",
+    body: "When people move an app off a builder platform (Lovable, Replit, Vercel-hosted), they copy the code and forget the platform was quietly providing the backend — the database, auth, file storage, or a key-value store. The frontend deploys fine, then login spins forever and the dashboard is empty, because those calls have nowhere to go. Mapping every managed service the platform gave you to a real equivalent, before cutover, is what separates a clean migration from a half-broken one.",
+    tags: [
+      "deploy",
+      "ai",
+      "migration",
+      "migrate",
+      "lovable",
+      "replit",
+      "vercel",
+      "netlify",
+      "supabase",
+      "vibe-coded",
+    ],
+    clusterId: 1,
+  },
+  {
+    title: "File uploads written to local disk",
+    kind: "mistake",
+    body: "If an AI-built app lets users upload anything and the code writes it to a local ./uploads folder, those files disappear on the next redeploy, same as a SQLite file. Uploads belong in object storage, reached over the S3 API, so they survive deploys and restarts. People usually discover this the first time a redeploy quietly eats a batch of user uploads.",
+    tags: ["deploy", "ai", "object storage", "s3", "uploads", "node", "vibe-coded"],
+    clusterId: 1,
+  },
 ];
 
 /** Insert the seed library, skipping titles that already exist. */
@@ -127,7 +263,16 @@ export async function seedExperienceSnippets(): Promise<{ inserted: number; skip
   const toInsert = SEED_EXPERIENCE_SNIPPETS.filter(
     (s) => !existingTitles.has(s.title.trim().toLowerCase()),
   );
-  const inserted = await repo.insertExperienceSnippets(toInsert);
+  // Tag the seed library as curated, grounded Knowledge Objects.
+  const inserted = await repo.insertExperienceSnippets(
+    toInsert.map((s) => ({
+      ...s,
+      source: "curated",
+      confidence: s.confidence ?? "curated",
+      grounded: s.grounded ?? true,
+      sourceRef: s.sourceRef ?? "curated-seed",
+    })),
+  );
   return { inserted, skipped: SEED_EXPERIENCE_SNIPPETS.length - toInsert.length };
 }
 
@@ -143,7 +288,16 @@ export async function experiencePromptBlock(
   try {
     const repo = await import("@/server/db/repos/experience");
     const snippets = await repo.findRelevantSnippets(topicText, clusterId, 2);
-    if (!snippets.length) return "";
+    if (!snippets.length) {
+      // Honest by design: record the missing knowledge instead of inventing it.
+      await repo.logKnowledgeGap({
+        topic: topicText.slice(0, 300),
+        neededType: "operational-lesson",
+        note: "No matching Knowledge Object when writing this topic.",
+        clusterId,
+      });
+      return "";
+    }
 
     const lines = [
       "REAL OPERATIONAL EXPERIENCE (E-E-A-T — weave 1 of these in naturally where relevant, in your own words, framed as a pattern we see repeatedly, NOT as a specific unnamed customer story; do not quote verbatim):",

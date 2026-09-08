@@ -112,11 +112,20 @@ What is the same either way: managed servers across seven clouds with your choic
 
 If self-hosting is your answer, [self-hosting GitLab](https://www.kloudbean.com/blog/self-host-gitlab/) covers the resource floor, sizing by team size, and what the licence being free does not include. For the deploy half, [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) and [zero downtime deployments](https://www.kloudbean.com/blog/zero-downtime-deployments/). On pipeline hygiene, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). When a deploy breaks, [a Node app crashing on deploy](https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/) and [503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/). And for a broad view of the target, [how to deploy any app](https://www.kloudbean.com/blog/how-to-deploy-any-app/).
 
-## The pipeline has to end somewhere.
+<!-- cta:start -->
+**Move it once. Own it after.**
 
-Managed servers across seven clouds, managed databases and Redis, free SSL, automatic backups, and a Git integration that builds and deploys on every push with live build logs, from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-7 clouds · Managed CI/CD from Git · Live build logs · Managed databases · Flat from $8/mo
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

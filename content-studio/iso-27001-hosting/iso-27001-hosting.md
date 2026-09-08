@@ -91,7 +91,7 @@ Look at the right column. That's most of the standard, and no server touches it.
    one is the provider's. Your ISMS certification is separate.
 ```
 
-<!-- ADD IMAGE: your Statement of Applicability, the Annex A controls you apply, the ones you exclude, and the reason for each -->
+![ISO 27001 controls applied and excluded](images/gen-1-flow.png)
 
 ## ISO 27001 vs SOC 2, briefly
 
@@ -123,37 +123,37 @@ Building the ISMS is your project, mostly people and process. But you can get th
 
 Give every teammate a unique login, never a shared one, and grant the narrowest role that gets the job done. Subusers with granular User Access Control cover per-resource, per-action permissions, and IP Access Control lets you pin admin access to known networks. When your audit asks who can reach production, you want a precise answer sitting in the dashboard, not a shrug.
 
-![The Kloudbean console showing subusers and granular User Access Control for least-privilege access, mapping to the ISO 27001 access-control area](../assets/console/subusers-uac.png)
+![The Kloudbean console showing subusers and granular User Access Control for least-privilege access, mapping to the ISO 27001 access-control area](../assets/console-real/shots/uac_resources_access.png)
 
 ### Step 2. Encrypt everything in transit
 
 Serve every page and API call over HTTPS, with no mixed content, so data in transit is protected end to end. A free SSL certificate that issues and renews itself removes any excuse to run plain HTTP. Encryption at rest is a separate call you make at the application or database level, so plan it deliberately rather than assuming it's handled.
 
-![The Kloudbean console issuing a free SSL certificate so data is encrypted in transit, mapping to the ISO 27001 cryptography area](../assets/console/ssl-certificate.png)
+![The Kloudbean console issuing a free SSL certificate so data is encrypted in transit, mapping to the ISO 27001 cryptography area](../assets/console-real/shots/le_ssl_step_1.png)
 
 ### Step 3. Harden the servers and isolate the network
 
 Unpatched software and open ports start a lot of incidents, so keep the stack patched and run baseline protections like a firewall and brute-force blocking by default. Then lock your managed database down with IP allow-listing, so only your app server's IP can reach it and a random scanner can't even knock. That single move closes a whole class of exposure. On Enterprise, private networking (a VPC) takes the database off the public internet entirely. Here's [what a VPC is](https://www.kloudbean.com/blog/what-is-a-vpc/) if the concept is new.
 
-![The Kloudbean console firewall settings closing unused ports, mapping to the ISO 27001 operations-security area](../assets/console/firewall.png)
+![The Kloudbean console firewall settings closing unused ports, mapping to the ISO 27001 operations-security area](../assets/console-real/shots/app_ip_whitelisting.png)
 
 ### Step 4. Turn on automatic backups and test a restore
 
 ISO 27001 cares about availability, not just secrecy, so your data needs to survive a bad day. Automatic backups stored off the main server cover that, and the seven managed database engines carry their own. Do the step everyone skips: actually test a restore, because an untested backup is a hope, not a control. Our [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/) walks through it.
 
-![The Kloudbean console managing automatic backups, mapping to the ISO 27001 backup and availability area](../assets/console/manage-backups.png)
+![The Kloudbean console managing automatic backups, mapping to the ISO 27001 backup and availability area](../assets/console-real/shots/app_backup_step_2.png)
 
 ### Step 5. Record significant activity
 
 An auditor will ask who did what, and when. On enterprise accounts the Audit Trail gives you an immutable, searchable, account-wide log you can export to CSV, which is the kind of evidence that turns a stressful audit into a boring one. Your app should log its own security-relevant events too, since the platform trail covers the account layer, not your application's internals.
 
-<!-- ADD IMAGE: an export of your account activity log or audit trail, filtered to the actions an auditor cares about -->
+![Logging and monitoring control area evidence accumulation](images/gen-2-graph.png)
 
 ### Step 6. Do the risk assessment and Statement of Applicability
 
 Now the part only you can do, and the part ISO 27001 actually revolves around. Run a risk assessment, decide how you'll treat each risk, write the policies that back those decisions, and record which Annex A controls apply in your Statement of Applicability. The infrastructure steps above give you strong evidence for the technical controls. This step is what makes it an ISMS rather than a pile of good settings.
 
-<!-- ADD IMAGE: your risk register, each identified risk, its owner, the treatment decision, and the control that addresses it -->
+![From identification to treatment](images/gen-3-flow.png)
 
 > **A quick, honest boundary.** This is general educational information to help you plan, not compliance or legal advice. ISO 27001 has real nuance, and your scope, risk profile, and Statement of Applicability deserve a qualified security professional and an accredited certification body. When you're evaluating any provider, confirm its current certifications and their scope directly with the provider, rather than taking a marketing line for it.
 
@@ -165,11 +165,21 @@ My honest take: most of the pain isn't infrastructure. It's underestimating the 
 
 Where Kloudbean fits: the infrastructure side, with controls that map to Annex A areas, on tier-1 clouds whose data centers hold ISO 27001 at the infrastructure level. What it won't do, because no honest host can, is make your organization certified or hand you a certificate for your ISMS. Mapping several frameworks at once? The siblings pair well: [PCI compliant hosting](https://www.kloudbean.com/blog/pci-compliant-hosting/), [GDPR compliant hosting](https://www.kloudbean.com/blog/gdpr-compliant-hosting/), [HIPAA compliant hosting](https://www.kloudbean.com/blog/hipaa-compliant-hosting/), and the broader [secure and compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/) overview.
 
----
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-**Build on a foundation your ISO 27001 program can point to.** Run your app on infrastructure with hardening, encryption in transit, IP allow-listing, access controls, and automatic backups, all on tier-1 clouds and all on one dashboard. Talk to us about the enterprise Audit Trail, private networking, and custom setups for your ISO 27001 program. Start with a free trial and free migration assistance at [kloudbean.com](https://www.kloudbean.com/), and see plans on [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Access control (UAC) · Free SSL · Shorewall + Fail2ban · IP allow-listing · Automatic backups · Enterprise Audit Trail
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## ISO 27001 hosting FAQ
 

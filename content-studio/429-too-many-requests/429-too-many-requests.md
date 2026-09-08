@@ -149,11 +149,20 @@ The honest limit: no platform can tell you what your correct request rate is, an
 
 For neighbouring status codes, [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/), [400 Bad Request](https://www.kloudbean.com/blog/400-bad-request/), and [503 after a deploy](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/), which is what nginx returns for rate limits by default. On restoring real client addresses, [error 521](https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/) and [Cloudflare error codes](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/). To cut request volume, [Redis caching patterns](https://www.kloudbean.com/blog/redis-caching-patterns/) and [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/). To control a burst, [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/). And on the proxy layer, [the nginx reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/).
 
-## Count real clients, not your own proxy
+<!-- cta:start -->
+**Read the log, fix it, ship again.**
 
-Managed servers with nginx configured properly, Cloudflare available as an add-on so proxy and origin agree, IP access control with CIDR rules, and managed Redis for caching that removes the calls entirely. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.
 
-Managed nginx · Cloudflare add-on · IP access control · Managed Redis · One dashboard
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -129,7 +129,7 @@ So how long? Match the TTL to how fresh the data has to be, not to a number that
 
 The anti-pattern here is caching everything with a giant TTL and no invalidation, then wondering why users see old data. Don't do that. A short TTL with no invalidation logic is often better than a long TTL with careful invalidation, because it fails safe. Stale for ten seconds beats stale for an afternoon.
 
-<!-- ADD IMAGE: redis-cli TTL user:42 output showing seconds remaining -->
+![Monitor key expiry countdown](images/gen-1-terminal.png)
 
 ## Write-through and write-behind, briefly
 
@@ -182,7 +182,7 @@ Serve the slightly-expired value immediately while a background task refreshes i
 
 My honest advice: start with jittered TTLs everywhere, add a lock only on the handful of keys you can prove are hot. Don't build elaborate stampede defenses for keys that get read twice a minute. Measure first.
 
-<!-- ADD IMAGE: a latency graph with a spike at the moment a hot key expires, then flat after adding jitter -->
+![Spike in requests as TTLs reset](images/gen-2-graph.png)
 
 ## The Redis session store pattern
 
@@ -214,21 +214,30 @@ The mental test: if Redis vanished this second, your app should get slow, not lo
 
 The patterns are the same wherever Redis runs. What changes is how much of the babysitting is yours. On Kloudbean, Redis is one of the managed database engines, so you launch it from the same place as your Postgres or MySQL, running right next to it, and it stays patched and backed up while you use it.
 
-![The Kloudbean console launching a managed Redis instance alongside the other managed database engines](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed Redis instance alongside the other managed database engines](../assets/console-real/shots/redis_launch_step_1.png)
 
 Then you wire it in exactly like the database: one connection value, read from the environment. The client reads `REDIS_URL` and connects. Because it's an env var, rotating the password is a config change, not a code change.
 
-![The Kloudbean console environment variables screen holding REDIS_URL for the app to read](../assets/console/env-vars.png)
+![The Kloudbean console environment variables screen holding REDIS_URL for the app to read](../assets/console-real/shots/nodespm_env_step_1.png)
 
 Keeping Redis and the database in the same account also erases the most common connection headache. When the app and Redis sit right next to each other, you're not debugging cross-provider routing or firewall rules, and connection reuse stays cheap (the same reason an always-on server makes [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) simpler than it is on serverless). If you're already following [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), adding Redis is the identical flow with one more env var.
 
-<!-- ADD IMAGE: terminal with redis-cli MONITOR streaming GET and SETEX calls as the app serves traffic -->
+![Real Redis stream proves the pattern is live](images/gen-3-terminal.png)
 
----
+<!-- cta:start -->
+**Managed, backed up, and still yours.**
 
-**Put the fast layer where it belongs.** Launch a [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/) next to your app, connect it with one URL, and let cache-aside lift the repeat load off your database. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+Seven managed engines, provisioned and patched for you, with access controlled and backups running automatically. Your schema, your queries, and your data stay exportable with the standard tools.
 
-One-click Redis · IP allow-listing · Automatic backups · Free migration · Free trial
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -28,7 +28,7 @@ SiteGround's headline prices are promotional. You sign up at a friendly intro ra
 
 This is the honest reason "SiteGround too expensive" is such a common search. The product didn't change, the price did. And because the renewal is tied to a shared plan, paying more doesn't buy a different machine, just the same metered model at full freight. When the SiteGround renewal price is what pushes you to look around, the fix isn't a cheaper shared plan somewhere else. It's a pricing model that doesn't reset every year.
 
-<!-- ADD IMAGE: A renewal notice or invoice showing the intro rate next to the standard renewal rate. Blur the account details, keep the two numbers readable. -->
+![Intro rate vs. standard renewal rate](images/gen-1-flow.png)
 
 ### SiteGround CPU seconds, and why busy sites hit the cap
 
@@ -70,7 +70,7 @@ A fair side-by-side. SiteGround wins a couple of rows on purpose, and I've kept 
 
 Read the last two rows plainly. SiteGround bundles a CDN, a real convenience, and its intro price is genuinely low for year one. The managed-cloud trade is a flatter, more predictable bill and a server whose limits you set, not a meter that sets them for you. That's the SiteGround vs managed cloud decision in a line.
 
-<!-- ADD IMAGE: A resource-usage graph flatlining at a cap, next to a dedicated server's CPU graph with headroom. Real numbers from your own before-and-after land harder than a mockup. -->
+![CPU usage plateaus at cap](images/gen-2-graph.png)
 
 ## What actually changes on your own cloud server
 
@@ -88,27 +88,27 @@ The move is calmer than it sounds, and you can do it without a terminal marathon
 
 Seven providers to choose from, a region near your readers, and a size you can change later. That's your dedicated box, with CPU and RAM that belong to you, not a slice you fight a meter for. You can resize it later, so don't overthink the first pick.
 
-![Provider, region and size, the three choices when creating a Kloudbean server](../assets/console/add-server.png)
+![Provider, region and size, the three choices when creating a Kloudbean server](../assets/console-real/shots/launch_server_step_1.png)
 
 ### 2. Add your application
 
 Add the app you're moving. WordPress, WooCommerce, Laravel, Magento, Drupal and Joomla all launch from a tile. Not on PHP? Node.js, Python, Ruby, and Java run here as first-class citizens, and static sites host free. That range is something a WordPress-focused shared plan rarely gives you.
 
-![Creating a second application on an existing Kloudbean server](../assets/console/add-application.png)
+![Creating a second application on an existing Kloudbean server](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 ### 3. Bring your site across
 
 Two ways. If it's a WordPress or PHP site, the free migration assistance moves it for you, files and database included, so you're not exporting SQL by hand. If your code lives in Git, connect the repo and let managed CI/CD build and deploy on every push, with live build logs you can watch in the console. Details are in the [Git deploy guide](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-![The Git Deployment tab, with a repository and branch selected](../assets/console/git-deployment.png)
+![The Git Deployment tab, with a repository and branch selected](../assets/console-real/shots/git_connect_step_4.png)
 
 ### 4. Confirm backups and staging
 
 Automatic backups are on by default, and you can restore from one when you need it. If an update has ever cost you an afternoon, the reason is obvious. Staging is there for WordPress and Laravel too, so you test risky changes on a copy before they hit the live site. The [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/) covers how restores work.
 
-![The Kloudbean console showing automatic backups you can view and restore](../assets/console/manage-backups.png)
+![The Kloudbean console showing automatic backups you can view and restore](../assets/console-real/shots/app_backup_step_2.png)
 
-<!-- ADD IMAGE: A WordPress staging copy being pushed to live after a tested change. Show the staging label so readers see it's a safe copy. -->
+![WordPress deployment workflow](images/gen-3-flow.png)
 
 ## Cut over without downtime: point your DNS
 
@@ -130,7 +130,7 @@ Drop the TTL to 300 seconds a day before you cut over so the change propagates q
 
 > **Coming from SiteGround?** You keep your site and your domain. Files and database are migrated for you, the certificate is issued when DNS resolves, and backups start straight away. The thing you leave behind is the CPU-seconds meter, not your content.
 
-<!-- ADD IMAGE: A DNS panel with two A records, root and www, pointing at a server IP. Show the Type, Name, Value, and TTL columns so readers can copy the exact fields. -->
+![Configure A records for root and www](images/gen-4-flow.png)
 
 ## The honest trade-offs
 
@@ -138,13 +138,20 @@ Straight talk, because fair cuts both ways. Kloudbean isn't a domain registrar, 
 
 Weighing this against other budget hosts too? The same logic runs through our [Namecheap alternative](https://www.kloudbean.com/blog/namecheap-alternative/) and [GoDaddy alternative](https://www.kloudbean.com/blog/godaddy-alternative/) pieces, and there's a WordPress-specific walkthrough in [managed WordPress hosting](https://www.kloudbean.com/blog/managed-wordpress-hosting/).
 
----
+<!-- cta:start -->
+**Move it once. Own it after.**
 
-**Your own resources. No CPU-seconds lottery.**
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-Move off the meter and onto a server whose limits you set. See it working at [kloudbean.com](https://www.kloudbean.com/), with current rates on [pricing](https://www.kloudbean.com/pricing/).
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
 
-Dedicated CPU and RAM · 7 clouds · 7 managed databases · Git deploy · Staging · Automatic backups · Free SSL · Free migration · Free trial
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## SiteGround alternative FAQ
 
@@ -170,7 +177,7 @@ No. Your domain stays registered wherever it is, and you just point its DNS at t
 No, that's the point of managed cloud. The platform handles the operating system, stack, SSL, patching, and backups, so you get a dedicated server without the server chores. You have root and SSH if you want them, but you're never required to touch either.
 
 **Is Kloudbean more expensive than SiteGround?**
-In year one, SiteGround's intro price is usually lower. Kloudbean starts from $8/mo and is priced by server size, with no promo-to-renewal jump, so the gap narrows or flips once SiteGround renews. Check current pricing on the pricing page before you decide.
+In year one, SiteGround's intro price is usually lower. Kloudbean starts from $8/mo and is priced by server size, with no promo-to-renewal jump, so the gap narrows or flips once SiteGround renews. Look at the live pricing page before you commit.
 
 **Does Kloudbean include a CDN like SiteGround?**
 SiteGround bundles a CDN and caching, a genuine convenience. On Kloudbean, Cloudflare is available as a paid add-on, and it's included for Enterprise. So the CDN is there for edge caching, just as a separate choice rather than baked in.

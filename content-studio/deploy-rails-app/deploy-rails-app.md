@@ -53,7 +53,7 @@ bundle exec puma -C config/puma.rb   # listens on the assigned port
 
 Push once to wire it up. From then on, deploying is a `git push`: the precompile and migrate steps run themselves in order, and Puma restarts on the new code. That's the payoff for setting the sequence up once. On [Kloudbean](https://www.kloudbean.com/) you connect the repo under **Deploy Code → Git Deployment** and fill those fields.
 
-![The Kloudbean Deploy Code / Git Deployment screen: a Rails repo connected with bundle install, assets:precompile, db:migrate and the Puma start command set](../assets/console/git-deployment.png)
+![The Kloudbean Deploy Code / Git Deployment screen: a Rails repo connected with bundle install, assets:precompile, db:migrate and the Puma start command set](../assets/console-real/shots/git_connect_step_4.png)
 
 ## Why won't it boot with "Missing encryption key" or SECRET_KEY_BASE?
 
@@ -79,17 +79,17 @@ RAILS_SERVE_STATIC_FILES=true
 RAILS_MAX_THREADS=5
 ```
 
-![The Kloudbean Environment Variables screen: RAILS_MASTER_KEY, SECRET_KEY_BASE and DATABASE_URL set for a Rails app via Paste .env](../assets/console/env-vars.png)
+![The Kloudbean Environment Variables screen: RAILS_MASTER_KEY, SECRET_KEY_BASE and DATABASE_URL set for a Rails app via Paste .env](../assets/console-real/shots/nodespm_env_step_1.png)
 
 More on why secrets belong in the environment and not the codebase: [environment variables, done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
-<!-- ADD IMAGE: The boot failure in context: a production.log tail showing the Missing encryption key error, or the Logs Viewer App Errors tab with the same message. -->
+![Identify the root cause of boot failure](images/gen-1-terminal.png)
 
 ## What about the database and migrations?
 
 Launch a managed Postgres and connect it with a single `DATABASE_URL` environment variable. Rails reads that automatically, no config file editing needed.
 
-![The Kloudbean Launch Database screen: creating a managed Postgres for a Rails app, connected with DATABASE_URL](../assets/console/launch-database.png)
+![The Kloudbean Launch Database screen: creating a managed Postgres for a Rails app, connected with DATABASE_URL](../assets/console-real/shots/psql_launch_step_1.png)
 
 Migrations are the part people fret over, but the pattern is boring on purpose: run `rails db:migrate` as a release step on every deploy, right before the new code goes live. Each version applies its own schema changes, in order, so the database never drifts behind the code. You don't run migrations by hand on production. You let the deploy do it, every time.
 
@@ -134,7 +134,21 @@ Keep two things apart, because Rails muddies this. `log/production.log` is Rails
 
 Rails is a Ruby app, and Ruby on Linux is exactly what a managed server runs, so nothing here fights the platform. Kloudbean keeps the box healthy: the Ruby stack, the web server in front of Puma, free SSL, the firewall, and server-level backups, on any of its seven clouds. You own the Rails app: its credentials, its migrations, its Active Storage config, any Sidekiq workers. It's a standard Linux server running standard Ruby, so you can move hosts whenever you like. Working in other frameworks too? The Python checklist is [deploy a Django app](https://www.kloudbean.com/blog/deploy-django-app/), and running app plus database on one box is covered in [host your app, API, and database on one server](https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/).
 
-**Puma, Postgres, and Sidekiq if you need it.** Deploy your Rails app on a server you own at [kloudbean.com](https://www.kloudbean.com/), and let the release step run migrations on every push. Managed Postgres & Redis · Automatic backups · Free Let's Encrypt SSL · Git deploy · Free migration · Free trial. Sizes on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Take it off localhost for good.**
+
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

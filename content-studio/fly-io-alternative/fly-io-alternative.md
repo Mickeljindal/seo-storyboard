@@ -64,13 +64,13 @@ None of that is a flaw in Fly. It's the cost of the flexibility. It only stings 
 
 > **The mistake we see most:** reaching for global *compute* when the real need was a CDN in front of a mostly-cacheable app. Teams add regions, inherit distributed-state headaches, and their landing page is still slow because the fix was never compute placement. It was caching. Solve the content layer first. You often discover you're done.
 
-<!-- ADD IMAGE: A CDN analytics view showing cache hit ratio climbing after edge caching is switched on, with origin requests dropping. -->
+![Cache hit ratio climbs with edge caching](images/gen-1-flow.png)
 
 ## The Kloudbean model: a Fly.io alternative with a managed origin and a real edge
 
 Kloudbean gives you one real, managed server in the region you choose. Flat, predictable price. A managed database right on the box. Git-push deploys with live build logs. Then it puts **Cloudflare Enterprise edge caching** in front, so your content is served from Cloudflare's worldwide network close to every visitor. (Cloudflare is a paid add-on for any site, and included free for Enterprise customers.) You get the global speed people actually want, plus ownership and simplicity, and you never configure a fleet of Machines.
 
-![The Kloudbean console Git Deployment tab: connect a repo, set the runtime, and Pull and Deploy](../assets/console/git-deployment.png)
+![The Kloudbean console Git Deployment tab: connect a repo, set the runtime, and Pull and Deploy](../assets/console-real/shots/git_connect_step_4.png)
 
 And because Kloudbean is genuinely multi-cloud (AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud), you also choose where the origin lives. Put it near your biggest audience or where your data is required to sit. One well-placed server for your app and database, Cloudflare's network for global reach. If you're deploying a Node service, the [deploy a Node app to managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) guide walks the exact flow, and there's a companion [Render alternative](https://www.kloudbean.com/blog/render-alternative-for-vibe-coded-apps/) writeup if you're comparing PaaS options more broadly.
 
@@ -87,7 +87,7 @@ And because Kloudbean is genuinely multi-cloud (AWS, AWS Lightsail, Google Cloud
 | **Pricing shape** | Per-machine and per-region | Flat server (+ Cloudflare add-on; free for Enterprise) |
 | **Ownership** | A platform abstraction | A real server you own and can leave |
 
-<!-- ADD IMAGE: Choosing the cloud and region for the origin server, so it sits near your audience or where data must live. -->
+![Optimizing for proximity to audience](images/gen-2-flow.png)
 
 ## Moving off Fly.io is a normal deploy
 
@@ -95,7 +95,7 @@ If you decide the fleet isn't for you, moving off is undramatic, because your ap
 
 You're collapsing a distributed configuration down to a single-server one. Then you switch on Cloudflare for the global reach you had before, and move large files or user uploads into [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/) so they don't live on the app disk. Test on the temporary URL, point your domain with SSL, enable auto-deploy, done. Outgrow one box later? Add a node behind the built-in [load balancer](https://www.kloudbean.com/blog/cloud-load-balancer-explained/) rather than sharding across regions.
 
-<!-- ADD IMAGE: A fly.toml on the left, mapped to the Install / Build / Start command fields and env vars on the right. -->
+![Map to Install / Build / Start](images/gen-3-terminal.png)
 
 ## What about cost?
 
@@ -107,11 +107,20 @@ So if you were running regions you didn't strictly need, consolidating to one se
 
 Kloudbean runs **Linux** stacks: Node.js (React, Vue, Angular, Express), Python (Django, Flask, FastAPI), PHP (WordPress, Laravel), Ruby, Java, and static sites. Windows Server sits on the Premium and Enterprise tiers, while .NET itself runs on Linux. "Managed" means Kloudbean runs the server, stack, SSL, and backups, while you own and maintain the application and your data. The technical point, plainly: a single origin server is *not* distributed compute. With Cloudflare edge caching in front, your content is genuinely fast worldwide, which is what most "edge" needs are. For real multi-region compute, that's Fly's niche, and this piece won't pretend otherwise. The [full deploy walkthrough](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) covers shipping any app end to end, and [what a VPC is](https://www.kloudbean.com/blog/what-is-a-vpc/) explains network isolation, which Kloudbean offers as an Enterprise feature.
 
----
+<!-- cta:start -->
+**Move it once. Own it after.**
 
-**Global speed, minus the fleet.** Run one owned server with Cloudflare edge caching in front at [kloudbean.com](https://www.kloudbean.com/). Free trial, first migration done for you. Plans on [pricing](https://www.kloudbean.com/pricing/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-One managed server you own · 7 clouds · Managed database on the box · Cloudflare Enterprise edge caching · Git push-to-deploy · Free migration · Free trial
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -11,7 +11,7 @@ byline: By Kloudbean Engineering · Headless, Not Homeless.
 
 By Kloudbean Engineering · Headless, Not Homeless.
 
-<!-- ADD IMAGE: hero (rendered later): the admin build and API in front of a managed Postgres database and S3 object storage, behind a reverse proxy with SSL -->
+![Install command, Build & Start set, Node version](images/gen-2-terminal.png)
 
 Strapi is a joy in development. You run `npm run develop`, the content-type builder opens, you model a few collections, and the REST and GraphQL APIs just appear. Then you go to deploy Strapi to production and the fun stops. The admin panel needs a build. Five secrets have to exist or the server refuses to boot. And that friendly default database? It's a SQLite file that quietly disappears on your next deploy. This is the complete, honest guide to getting Strapi live on a server you own, with a real database and uploads that survive.
 
@@ -84,7 +84,7 @@ DATABASE_URL=mysql://strapi:s3cret@10.0.0.5:3306/strapi
 
 The connection details (host, port, name, user, password) come from your managed database. If you want the framework-agnostic version of this step, with Prisma, Django, Rails and the rest, it's covered in [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), and there's a deeper dive on [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/).
 
-![Launch a managed PostgreSQL or MySQL for Strapi in the Kloudbean console](../assets/console/launch-database.png)
+![Launch a managed PostgreSQL or MySQL for Strapi in the Kloudbean console](../assets/console-real/shots/psql_launch_step_1.png)
 *Launch a managed PostgreSQL or MySQL for Strapi. It's provisioned and backed up on a schedule, locked to your app server's IP.*
 
 ## The five secrets Strapi won't boot without
@@ -119,7 +119,7 @@ TRANSFER_TOKEN_SALT=...
 
 Running a recent Strapi 5 build? It also expects an `ENCRYPTION_KEY`, so generate one more while you're there. Set every one of these as an environment variable in your host, never committed to Git. If you commit a `.env` with real secrets, treat them as burned and rotate them. The why-and-how of secret handling is in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
-![The Kloudbean Environment Variables editor holding the Strapi secrets and database connection](../assets/console/env-vars.png)
+![The Kloudbean Environment Variables editor holding the Strapi secrets and database connection](../assets/console-real/shots/nodespm_env_step_1.png)
 *Set the Strapi secrets and the database connection as environment variables. There's a paste-env tab so you can drop them all in at once.*
 
 > **A pattern we see constantly:** a Strapi app that builds cleanly but crash-loops on boot. Nine times out of ten it's one missing secret or a database it can't reach, not a bug in your code. Read the first few lines of the error log before you touch anything else. Strapi usually names the exact problem.
@@ -212,7 +212,7 @@ With the concepts clear, the actual deploy is short, because a managed server ha
 
 Create a server, pick a cloud (Kloudbean runs seven: AWS, Amazon Lightsail, Google Cloud, DigitalOcean, Vultr, Linode, and UpCloud), choose the Node.js stack and a size. 2 GB of RAM is a comfortable starting point for a single Strapi instance, since the admin build is not shy about memory. Then add your app under **Applications**.
 
-![The Kloudbean Add Application screen, adding a Strapi Node.js app](../assets/console/add-application.png)
+![The Kloudbean Add Application screen, adding a Strapi Node.js app](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 *Add Application: Strapi is a Node app, so pick the Node.js stack. It can share a server with other apps if you want.*
 
 ### 2. Launch the managed database
@@ -227,7 +227,7 @@ In **Runtime Configuration, Environment Variables**, add the five Strapi secrets
 
 In **Git Deployment**, connect GitHub, paste the repo URL, pick a branch, and set the commands: install with `npm ci`, build with `npm run build`, start with `npm run start`. Hit deploy and the build log streams live, so you watch the admin compile instead of guessing. Turn on automated deployment and every push to that branch rebuilds and ships itself. Details in [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-![The Kloudbean Git Deployment tab with the repository, branch, and commands for Strapi](../assets/console/git-deployment.png)
+![The Kloudbean Git Deployment tab with the repository, branch, and commands for Strapi](../assets/console-real/shots/git_connect_step_4.png)
 *Git Deployment: set install, build (npm run build), and start (npm run start), then deploy with live logs.*
 
 ### 5. Point a domain and turn on SSL
@@ -247,13 +247,21 @@ Self-hosting Strapi is not hard, but a handful of habits keep it boring, which i
 
 Backups, IP allow-listing, and free SSL come with the managed setup, so most of this is a matter of using what's already there rather than bolting it on later.
 
----
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-**Your Strapi CMS, live on infrastructure you own.**
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Managed Postgres or MySQL, a Node runtime, S3-compatible storage for uploads, Git deploy with live build logs, automatic backups, and free auto-renewing SSL, all in one dashboard. Start at [kloudbean.com](https://www.kloudbean.com/); sizes and plans (from $8/mo, Enterprise custom) are on [pricing](https://www.kloudbean.com/pricing/).
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
 
-Managed PostgreSQL and MySQL · Node runtime · S3-compatible object storage · Git deploy with live logs · Automatic backups · Free SSL · Free migration
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

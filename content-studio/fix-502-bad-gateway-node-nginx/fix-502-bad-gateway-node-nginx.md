@@ -95,11 +95,20 @@ A good share of 502s are really "the Nginx and Node wiring drifted apart," wrong
 
 The proxy layer and the crash causes are the two halves of a 502. For the proxy, see [Nginx reverse proxy for Node](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/) and [reverse proxy explained](https://www.kloudbean.com/blog/reverse-proxy-explained/). For the crashes, see [PM2 app keeps restarting](https://www.kloudbean.com/blog/pm2-app-keeps-restarting/), [ECONNREFUSED](https://www.kloudbean.com/blog/fix-econnrefused-node/), and [heap out of memory](https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/). If the code in your log is actually 500 rather than 502, the diagnosis inverts, because a 500 proves the process is alive and responding: see [500 Internal Server Error](https://www.kloudbean.com/blog/http-error-500-internal-server-error/). To catch 502s early, set up [uptime monitoring](https://www.kloudbean.com/blog/uptime-monitoring/).
 
-## Skip the Nginx wiring entirely
+<!-- cta:start -->
+**Deploys that tell you what broke.**
 
-Run your always-on Node app behind a managed reverse proxy with SSL handled for you, so the port, proxy, and reload steps behind most 502s are done. Deploy from GitHub on flat pricing from $8/mo. Start at [kloudbean.com](https://www.kloudbean.com/).
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-Managed reverse proxy · Free SSL · Always-on Node under PM2 · GitHub deploys · Flat from $8/mo
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 
@@ -112,7 +121,7 @@ Read `/var/log/nginx/error.log`. "Connection refused" means the app is down or o
 **Is 502 an Nginx problem or a Node problem?**
 Almost always a Node problem or a proxy-configuration problem, not Nginx itself, since Nginx is clearly running if it can serve the 502 page. Either the app isn't answering where Nginx expects, or it's too slow. Fix the app or the `proxy_pass` target rather than reinstalling Nginx.
 
-**How do I fix "upstream timed out" 502s?**
+**How do I fix 'upstream timed out' 502s?**
 You can raise `proxy_read_timeout` to give slow responses more room, but a request taking over a minute usually signals a slow query or a synchronous external call. The durable fix is to speed up the endpoint or move long work to a background job so the request returns quickly. Raising the timeout just hides the latency.
 
 **Why do I get a 502 only under load?**

@@ -193,11 +193,21 @@ The honest boundary: nobody else can decide whether your canonical host has `www
 
 For the SSL mode that causes the edge version of this, [error 525](https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/) and [Cloudflare error codes](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/). On the proxy configuration itself, [the nginx reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). For certificates, [fixing SSL certificate errors](https://www.kloudbean.com/blog/fix-ssl-certificate-errors/) and [custom domain and SSL](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/). On shared sessions, [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/). And on the cookie growth that breaks logins, [400 Bad Request](https://www.kloudbean.com/blog/400-bad-request/).
 
-## Forwarded headers configured before you need them
+<!-- cta:start -->
+**Own the server. Skip the server admin.**
 
-Managed servers with nginx set up for the headers your framework expects, free SSL issued and renewed, managed Redis for shared sessions, and staging so redirect rules are not tested in production. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
 
-Managed nginx · Free SSL · Managed Redis · Staging sites · One dashboard
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

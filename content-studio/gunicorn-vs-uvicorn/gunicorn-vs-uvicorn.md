@@ -49,7 +49,7 @@ That single split decides everything. Gunicorn is a WSGI server. Uvicorn is an A
 
 *The framework picks the server. The combo in the middle lets an ASGI app borrow Gunicorn's process manager. Everything terminates behind a reverse proxy.*
 
-<!-- ADD IMAGE: terminal running flask run, showing the Werkzeug warning about not using the dev server in production -->
+![Booting the wrong server](images/gen-1-terminal.png)
 
 ## Gunicorn: the WSGI workhorse
 
@@ -134,7 +134,7 @@ Then adjust with your actual workload in mind:
 
 My advice, plainly: start low, measure, then raise it. Two or four workers, real traffic, watch CPU and memory. Guessing high on day one is how people run out of RAM and wonder why the OS started killing processes.
 
-<!-- ADD IMAGE: resource view showing several worker processes and the memory each one holds -->
+![Worker process memory consumption](images/gen-2-flow.png)
 
 ## Both belong behind a reverse proxy
 
@@ -169,25 +169,34 @@ Everything above is real, and it's a fair amount of plumbing to wire up by hand:
 
 On [Kloudbean](https://www.kloudbean.com/), Python is a first-class managed runtime: Flask, Django, and FastAPI are all supported. You set the runtime and your start command in the dashboard, and the WSGI or ASGI server is configured through that runtime config rather than hand-rolled on the box. The platform supervises the process, keeps it alive across crashes and reboots, sits it behind the web server, and handles free auto-renewing SSL and server-level backups. You still own the interesting decisions: which server, how many workers, your framework, your data.
 
-![The Kloudbean console adding a Python application and choosing its runtime configuration](../assets/console/add-application.png)
+![The Kloudbean console adding a Python application and choosing its runtime configuration](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 *Pick the Python app and its runtime in the dashboard. The WSGI or ASGI server is set through runtime config, so you're choosing behavior, not writing init scripts.*
 
 Deploys follow the same path as any app here: connect a GitHub repo, set the install and start commands, and it builds and ships on every push with build logs streaming live in the console. For a WSGI app the start command is a Gunicorn line; for an async app it's a Uvicorn line (or the Gunicorn combo). Same three fields either way.
 
-![The Kloudbean Git Deployment tab with install and start commands for a Python app](../assets/console/git-deployment.png)
+![The Kloudbean Git Deployment tab with install and start commands for a Python app](../assets/console-real/shots/git_connect_step_4.png)
 
 *Git Deployment: Install runs `pip install -r requirements.txt`, Start runs your Gunicorn or Uvicorn command. The platform keeps the workers running.*
 
 Keep your secrets and database URL out of the repo and in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). Then it's the flow you already know: the WSGI walkthrough is [deploy a Flask app](https://www.kloudbean.com/blog/deploy-flask-app/) and [deploy a Django app](https://www.kloudbean.com/blog/deploy-django-app/), the ASGI version is [deploy a FastAPI app](https://www.kloudbean.com/blog/deploy-fastapi-app/). Same server, same proxy. Only the start command changes.
 
-<!-- ADD IMAGE: the deployed app responding in a browser, or the build log completing -->
+![From browser to app](images/gen-3-flow.png)
 
----
+<!-- cta:start -->
+**Bring the app. Keep the deploy flow.**
 
-**Pick the server your framework asks for. We'll run it.**
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-Deploy your Flask, Django, or FastAPI app at [kloudbean.com](https://www.kloudbean.com/). Managed Python runtimes · Git deploy with live logs · Auto SSL · Automatic backups · Free migration · Free trial. Sizes on [pricing](https://www.kloudbean.com/pricing/).
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

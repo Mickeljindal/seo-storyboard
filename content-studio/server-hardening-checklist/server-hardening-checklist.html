@@ -111,7 +111,21 @@ ChallengeResponseAuthentication no</code></pre>
   <p>Why block root specifically? Because "root" is the one username every attacker already knows. Force logins through a normal account that uses <code>sudo</code>, and a bot now has to guess both a valid username and a key it can't have. Skip it and your auth log fills with root password attempts all day. That's not paranoia. That's Tuesday.</p>
 
   <!-- ADD IMAGE: a terminal showing a successful key-based SSH login next to the sshd_config lines above. Swap for a real screenshot: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A terminal showing a key-based SSH login working, with password auth and root login switched off.</em><small>Reinforces the highest-value step.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #1
+Create a realistic terminal / command-line screenshot for a technical blog post titled "The Server Hardening Checklist: How to Secure a Linux Server".
+
+What it must show: A terminal showing a key-based SSH login working, with password auth and root login switched off.
+Also: Reinforces the highest-value step.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-terminal.png" alt="A terminal showing a key-based SSH login working, with password auth and root login switched off.">
+    <figcaption>Password auth and root login disabled</figcaption>
+  </figure>
 
   <h3>3. Turn on a firewall and default to deny</h3>
   <p>A server should answer on the ports it needs and go silent on everything else. The rule is default-deny: block all inbound traffic, then open only what you use. For a typical web server that's SSH on 22, HTTP on 80, and HTTPS on 443. Nothing else faces the internet.</p>
@@ -125,7 +139,7 @@ sudo ufw enable</code></pre>
   <p>The most common self-inflicted breach is a database listening on a public IP with a weak password. Postgres on 5432, MySQL on 3306, Redis on 6379, Mongo on 27017, all wide open because someone bound it to 0.0.0.0 and forgot. Scanners find those in hours. Lock your database to your app server's IP so only that server can connect, and keep it off the public internet entirely. If it doesn't need a public port, it shouldn't have one.</p>
 
   <figure>
-    <img src="../assets/console/firewall.png" alt="The Kloudbean console firewall settings, showing the Shorewall firewall and Fail2ban enabled by default">
+    <img src="../assets/console-real/shots/app_ip_whitelisting.png" alt="The Kloudbean console firewall settings, showing the Shorewall firewall and Fail2ban enabled by default">
     <figcaption>On a managed platform the firewall is already on. Kloudbean ships a Shorewall firewall and Fail2ban enabled from the first minute, so default-deny isn't a step you have to remember.</figcaption>
   </figure>
 
@@ -141,7 +155,21 @@ sudo fail2ban-client status sshd</code></pre>
   <p>Why it matters: blast radius. If an app running as root gets popped, the attacker owns the machine. If that same app runs as a limited <code>www-data</code>-style user, they're stuck with far less to steal or wreck. You can't prevent every break-in. You can stop one from becoming total.</p>
 
   <!-- ADD IMAGE: a diagram or terminal showing an app running as a non-root service user, with a separate sudo account per human. Swap for a real screenshot: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>App running as a dedicated non-root service user, with one sudo-capable account per person.</em><small>Shows the least-privilege layout.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #2
+Create a realistic terminal / command-line screenshot for a technical blog post titled "The Server Hardening Checklist: How to Secure a Linux Server".
+
+What it must show: App running as a dedicated non-root service user, with one sudo-capable account per person.
+Also: Shows the least-privilege layout.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-terminal.png" alt="App running as a dedicated non-root service user, with one sudo-capable account per person.">
+    <figcaption>Least-privilege layout</figcaption>
+  </figure>
 
   <h3>6. Close unused services and delete default accounts</h3>
   <p>Every service you run is a door someone could try. So run fewer of them. That old FTP daemon nobody uses, the sample database from a tutorial, the default "admin" account that shipped with a package: all attack surface, none of it earning its keep. See what's listening and shut down what shouldn't be:</p>
@@ -163,7 +191,7 @@ sudo systemctl disable --now &lt;service&gt;</code></pre>
   <p>One thing here is a security decision dressed up as a convenience: who has to log into the server just to read a log. On Kloudbean you view application logs in the UI, under <strong>Application Administration</strong>, then <strong>Logs Viewer</strong>, with separate tabs for <strong>Web Requests Logs</strong> (the web server access logs for every request served), <strong>App Info</strong> (<code>app.info.log</code>), and <strong>App Errors</strong> (<code>app.error.log</code>), plus a search box for locating one error. So a developer chasing a 503 reads the App Errors tab and gets their answer. No shell account, no key issued, nothing added to your SSH surface. That's least privilege in practice, and it's the version people actually stick to, because the secure path is also the faster one. The files remain at <code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs</code> for anyone who wants them directly, but nobody needs root on a box to read a stack trace.</p>
 
   <figure>
-    <img src="../assets/console/server-health.png" alt="The Kloudbean console server health view showing CPU, memory, and disk usage over time">
+    <img src="../assets/console-real/shots/server_health_step_2.png" alt="The Kloudbean console server health view showing CPU, memory, and disk usage over time">
     <figcaption>Server health at a glance: CPU, memory, and disk. On a managed dashboard the graphs and alerts are already wired up, so you're watching trends instead of building a monitoring stack from scratch.</figcaption>
   </figure>
 
@@ -195,7 +223,21 @@ sudo systemctl disable --now &lt;service&gt;</code></pre>
   <p>Now the honest boundary. The platform hardens the server. You still own app-level security: your dependencies and their CVEs, your code, your auth logic, and your secrets. Run <code>npm audit</code> or <code>pip-audit</code>, set your <a href="https://www.kloudbean.com/blog/security-headers-guide/">HTTP security headers</a>, and keep keys out of Git. That's the shared-responsibility model, laid out in full in the guide to <a href="https://www.kloudbean.com/blog/secure-compliant-hosting/">secure, compliant hosting and who secures what</a>. Managed is worth it because that baseline is genuinely tedious to run yourself, which is the argument in <a href="https://www.kloudbean.com/blog/what-is-a-managed-server/">what a managed server actually is</a> and <a href="https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/">the real cost of an unmanaged VPS</a>.</p>
 
   <!-- ADD IMAGE: a split showing the platform-handled baseline on one side and your app-level responsibilities on the other. Swap for a real screenshot: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A simple two-column split: server baseline the platform handles vs app-level security you own.</em><small>Reinforces the shared-responsibility line.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #3
+Create a side-by-side comparison table for a technical blog post titled "The Server Hardening Checklist: How to Secure a Linux Server".
+
+What it must show: A simple two-column split: server baseline the platform handles vs app-level security you own.
+Also: Reinforces the shared-responsibility line.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-comparison.png" alt="A simple two-column split: server baseline the platform handles vs app-level security you own.">
+    <figcaption>Responsibility split for server security</figcaption>
+  </figure>
 
   <h2>The five-minute version, if you only do a handful</h2>
   <p>If the whole list feels like a lot, collapse it to three: patch the box, switch SSH to keys, and turn on a default-deny firewall. Those three take an afternoon and shut out most automated attacks. When you have more time, add the rest, in this order.</p>
@@ -209,11 +251,55 @@ sudo systemctl disable --now &lt;service&gt;</code></pre>
     <li>Restore one backup on purpose, to prove the path works.</li>
   </ul>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Skip the baseline grind. Ship on a server that arrives hardened.</p>
-    <p style="margin:0 0 .6em">Launch on infrastructure where the firewall, Fail2ban, free SSL, backups, and patching are already handled, so your effort goes to the app-level security only you can own. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>, and verify current details there.</p>
-    <p style="margin:0">Shorewall firewall + Fail2ban baseline · Free auto-renewing SSL · Automatic backups · Managed patching · IP Access Control · Subusers + UAC · Free migration · Free trial</p>
+<div class="kbcta-sec-wrap">
+  <div class="kbcta-sec-overlay"></div>
+  <div class="kbcta-sec-content">
+    <div class="kbcta-sec-eyebrow">SECURITY &middot; HARDENED BY DEFAULT</div>
+    <p class="kbcta-sec-heading">Patched, firewalled, and backed up.</p>
+    <p class="kbcta-sec-description">The platform keeps the server, stack, SSL, and patching current, with automatic backups running. Application-level security stays yours, and that split is deliberate rather than hidden.</p>
+    <ul class="kbcta-sec-features">
+      <li>&#10003; Shorewall firewall</li>
+      <li>&#10003; Fail2ban</li>
+      <li>&#10003; OS patching handled</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; IP access control</li>
+      <li>&#10003; Automatic backups</li>
+    </ul>
+    <div class="kbcta-sec-buttons">
+      <a class="kbcta-sec-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-sec-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-sec: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-sec-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-sec-wrap *{box-sizing:border-box}
+.kbcta-sec-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-sec-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-sec-content{position:relative;z-index:3;max-width:700px}
+.kbcta-sec-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-sec-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-sec-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-sec-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-sec-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-sec-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-sec-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-sec-btn:hover,.kbcta-sec-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-sec-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-sec-link:hover,.kbcta-sec-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-sec-wrap{padding:36px 24px}
+  .kbcta-sec-heading{font-size:31px}
+  .kbcta-sec-description{font-size:16px}
+  .kbcta-sec-features li{white-space:normal}
+  .kbcta-sec-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-sec-btn{width:100%}
+  .kbcta-sec-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

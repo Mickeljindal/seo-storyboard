@@ -100,9 +100,21 @@ The honest boundary: managed covers the server, the stack, TLS, backups, and pat
 
 By layer: [ERR_NAME_NOT_RESOLVED and DNS_PROBE_FINISHED_NXDOMAIN](https://www.kloudbean.com/blog/err-name-not-resolved/) for the DNS branch, and [DNS explained](https://www.kloudbean.com/blog/dns-explained/) if the record types themselves are the confusing part. [ERR_CONNECTION_RESET](https://www.kloudbean.com/blog/err-connection-reset/) covers the whole reset, refused and timed-out family at the TCP layer. [ERR_SSL_PROTOCOL_ERROR](https://www.kloudbean.com/blog/err-ssl-protocol-error/) and [fixing SSL certificate errors](https://www.kloudbean.com/blog/fix-ssl-certificate-errors/) handle the encryption hop. When the server answers but answers badly, [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/) and [Cloudflare 521](https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/) are the next stops. And if pages load but slowly, [slow DNS lookups](https://www.kloudbean.com/blog/fix-slow-dns-lookup/) is a different problem with a similar smell.
 
-**Close the server-side causes for good.** Managed servers across seven clouds, with SSL issued and renewed for you, Shorewall and Fail2ban configured by default, IP access rules and bans visible in the dashboard, and server health metrics beside them. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Ship the app, not the infrastructure.**
 
-Free SSL, renewed · Firewall configured · Visible bans · Server metrics · One dashboard
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
+
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

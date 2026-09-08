@@ -88,15 +88,21 @@ The honest boundary: the platform gives you the access model and the tools. Desi
 
 This is one part of running a client fleet. The whole operation is in the [hosting for agencies playbook](https://www.kloudbean.com/blog/hosting-for-agencies-playbook/), and the scale version is [how agencies host 20 client apps on one server](https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/). For why scoped access is a managed-cloud property rather than a reseller one, [reseller hosting versus managed cloud](https://www.kloudbean.com/blog/reseller-hosting-vs-managed-cloud/). On keeping clients isolated at the server level, [hosting multiple apps on one server](https://www.kloudbean.com/blog/host-multiple-apps-one-server/), and for branding the experience for clients, [white-label hosting](https://www.kloudbean.com/blog/white-label-hosting-for-agencies/). Secrets deserve the same care as access: [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
----
+<!-- cta:start -->
+**Ship the app, not the infrastructure.**
 
-### Give everyone their own key, cut to size.
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
 
-Manage every client from one account with subusers and per-resource, per-action access control, social login, and hardened sessions, across seven clouds with free SSL and automatic backups. Free migration assistance if you're consolidating a fleet. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
 
-Subusers · Per-resource UAC · Social login · Hardened sessions · One account · Free SSL
-
----
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

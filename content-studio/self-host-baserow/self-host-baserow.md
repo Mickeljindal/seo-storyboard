@@ -74,11 +74,21 @@ The honest boundary: the platform runs the server, the PostgreSQL database, SSL,
 
 For the wrap-an-existing-database alternative and the full comparison, [self-hosting NocoDB](https://www.kloudbean.com/blog/self-host-nocodb/). The [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) guide covers the rest of the field. The database underneath is [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), kept safe with [server backups](https://www.kloudbean.com/blog/server-backups-guide/), and attachments live in [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). If you want to automate around your base, [self-hosting n8n](https://www.kloudbean.com/blog/self-host-n8n/) pairs nicely.
 
-## Run a no-code database you own.
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-Host Baserow as an app on a managed server across seven clouds, with managed PostgreSQL for the database it owns, free auto-renewing SSL, and automatic backups. Live collaboration, your data in-house. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Managed server · Managed PostgreSQL · Free auto-renewing SSL · Automatic backups
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

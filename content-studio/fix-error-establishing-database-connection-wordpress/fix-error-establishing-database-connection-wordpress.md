@@ -55,7 +55,7 @@ define( 'DB_HOST', 'localhost' );
 
 Open `wp-config.php` in the root of your WordPress install and confirm all four match your actual database exactly. A single wrong character does it. This cause shoots to the top of the list if the error appeared right after you migrated the site, switched hosts, reset the database password, or edited that file. A credential quietly drifting out of sync is the number-one trigger there is. If you recently moved the site, the [zero-downtime migration guide](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/) covers keeping these in step.
 
-<!-- ADD IMAGE: the wp-config.php file open in an editor with the four DB_ lines highlighted -->
+![Check these first for a connection error](images/gen-1-panel.png)
 
 ## Cause 2: The wrong DB_HOST, or a database it can't reach
 
@@ -73,7 +73,7 @@ mysql -h 10.0.0.5 -u wp_user -p wordpress_db -e "SELECT 1;"
 
 If that connects, your host and credentials are fine and the problem is elsewhere. If it hangs or refuses, the database is either down, or it's up but not reachable at the address you gave it (wrong host, blocked port, or an app-server IP that isn't allow-listed on the database). WP-CLI is the fastest tool for this kind of poke; the [WP-CLI guide](https://www.kloudbean.com/blog/wordpress-cli-guide/) has more of these.
 
-<!-- ADD IMAGE: a terminal running wp db check and a mysql SELECT 1 test, both returning success -->
+![Proving host and credentials](images/gen-2-terminal.png)
 
 ## Cause 3: The database is down or out of connections
 
@@ -92,7 +92,7 @@ SHOW STATUS LIKE 'Threads_connected';
 
 The other version of this is a database that has simply stopped, crashed, run out of memory, or filled its disk, so it isn't accepting connections at all. Either way the answer isn't to keep refreshing and hoping. It's more capacity: a bigger database, or one that runs as its own managed service instead of scrapping for RAM on the same box as your web server.
 
-![The Kloudbean console launching a managed database kept running and sized so WordPress can always connect](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed database kept running and sized so WordPress can always connect](../assets/console-real/shots/psql_launch_step_1.png)
 
 This is the honest argument for a [managed MySQL database](https://www.kloudbean.com/blog/managed-mysql-hosting/). When the database isn't fighting your PHP for memory and is sized and kept running on its own, the "overwhelmed" and "down" causes largely stop happening. A lot of these incidents just quietly disappear.
 
@@ -125,11 +125,20 @@ Once you've fixed it, the goal is to not see it again. A few of these causes bas
 
 Under the hood this is ordinary managed Linux hosting. The platform keeps the database service, the stack, SSL, and backups healthy, and you still own your content and your schema to export whenever you want. Managed hosting can't stop you mistyping a password during a migration. But it removes the infrastructure triggers, which are most of them, and it makes the restore fast when you do need one.
 
----
+<!-- cta:start -->
+**Managed stack, staging, and backups.**
 
-**A database that stays up under load.** Run WordPress on a managed database that's sized, monitored, and backed up, so most of these errors never start, and a restore is quick when one does. Start free at [kloudbean.com](https://www.kloudbean.com/), see [pricing](https://www.kloudbean.com/pricing/).
+The stack, the patching, SSL, and backups are handled, so your work stays on the site rather than the box. Staging is one click, and the managed database sits right next to the app.
 
-Managed MySQL & MariaDB · IP allow-listing · Automatic backups · Free migration · Free SSL
+- Managed WordPress stack
+- One-click staging
+- Managed MySQL and MariaDB
+- Automatic backups
+- Free SSL
+- Built-in load balancer
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

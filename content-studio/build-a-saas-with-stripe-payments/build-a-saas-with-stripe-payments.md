@@ -48,7 +48,7 @@ The real argument isn't developer effort, it's scope. With Checkout or Elements,
 
 Start with Checkout. You can move to Elements later once you know your funnel well enough to have an opinion about it. The switch is a front-end change; the webhook architecture underneath, which is the part that takes real thought, doesn't move.
 
-<!-- ADD IMAGE: a Stripe Checkout session in test mode, side by side with the Stripe dashboard showing the resulting customer and subscription objects. -->
+![Comparison of Stripe Checkout session and Dashboard](images/gen-1-comparison.png)
 
 ## Stripe or a merchant of record
 
@@ -168,7 +168,7 @@ Write your state updates so replaying them is harmless anyway. "Set status to ac
 
 One more thing that saves you later: events can arrive out of order. A `customer.subscription.updated` from Stripe's retry queue can land after a newer one you already processed. Store the subscription object's timestamp and ignore anything older than what you've already written. None of this is Stripe-specific, incidentally, so the same claim table and ordering guard apply to every sender you take callbacks from, which is what [handling webhooks reliably in production](https://www.kloudbean.com/blog/webhooks-guide/) covers for Node and Python.
 
-<!-- ADD IMAGE: the Stripe dashboard webhook log showing one event with several delivery attempts, including a failed one and a successful retry. -->
+![From event to successful retry](images/gen-2-flow.png)
 
 ## What to store in your own database
 
@@ -230,7 +230,7 @@ Take the `whsec_` value that `stripe listen` prints and put it in your local `ST
 
 Things worth actually testing before you launch, not after: a duplicate delivery (run the same trigger twice and confirm nothing double-provisions), a failed renewal, a cancellation, and the closed-tab case. That last one is easy to simulate. Complete a test checkout, then close the tab before the redirect finishes. If the user ends up with access anyway, your architecture is right.
 
-<!-- ADD IMAGE: a terminal running stripe listen with forwarded events scrolling, next to your app log showing each event handled once. -->
+![Stripe events processed by your app](images/gen-3-terminal.png)
 
 ## What your webhook endpoint needs from the infrastructure under it
 
@@ -255,13 +255,25 @@ Concretely, if you're starting tomorrow morning:
 
 That's roughly a week of part-time work, and most of it is steps 4 to 8. If you're taking a prototype to paid for the first time, [turning a prototype into a paid product](https://www.kloudbean.com/blog/turn-your-ai-prototype-into-a-paid-product/) and [launching a micro SaaS](https://www.kloudbean.com/blog/how-to-launch-a-micro-saas/) cover the parts of the journey either side of billing.
 
-<!-- ADD IMAGE: your users table in a database client, showing the stripe_customer_id, subscription_status, and current_period_end columns populated after a test checkout. -->
+![Test checkout data in Users table](images/gen-4-comparison.png)
 
 The one idea to keep, if you keep nothing else: money lives at Stripe, truth lives in your database, and the webhook is the only bridge you trust.
 
----
+<!-- cta:start -->
+**Ship the app, not the infrastructure.**
 
-**Your webhook needs to be awake when Stripe retries.** Persistent app processes, free SSL, and a managed database with automatic backups. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
+
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

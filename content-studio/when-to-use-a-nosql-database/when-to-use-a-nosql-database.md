@@ -27,7 +27,7 @@ Four families cover nearly everything people mean by the word:
 
 Document databases are the ones people weigh against SQL for app data, so that's this guide's focus. "Should I use NoSQL?" nearly always means "should I use MongoDB instead of Postgres?"
 
-<!-- ADD IMAGE: a whiteboard sketch of the four families (document, key-value, wide-column, graph) with one example database under each -->
+![Four database families overview](images/gen-1-flow.png)
 
 ## SQL vs NoSQL: the differences that actually decide it
 
@@ -112,7 +112,7 @@ Now `id`, `name`, and `price` are typed columns with constraints, and `attrs` ho
 
 My rule of thumb: if the only reason you're eyeing a document database is "some of my fields vary," try JSONB first. Reach for a real document store when your data is document-shaped all the way down, not just at the edges. The [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) guide goes deeper on what Postgres can absorb before you add anything else.
 
-<!-- ADD IMAGE: a SQL client (psql or TablePlus) running the JSONB query above and returning matching product rows -->
+![JSONB query execution flow](images/gen-2-flow.png)
 
 ## ACID vs BASE, and the consistency you're actually trading
 
@@ -138,25 +138,32 @@ Two databases can be right. Two you added "just in case" are usually double the 
 
 On Kloudbean the families in this guide aren't abstract. They're one-click managed engines on the same dashboard as your app: relational (PostgreSQL, MySQL, MariaDB), document (MongoDB), key-value (Redis and Memcached), and search (Elasticsearch). Seven engines, one login. So you can start relational and add a document store or cache later, no new vendor, no separate bill.
 
-![The Kloudbean console Launch Database screen showing relational and document engines side by side](../assets/console/launch-database.png)
+![The Kloudbean console Launch Database screen showing relational and document engines side by side](../assets/console-real/shots/psql_launch_step_1.png)
 *Launch Database: relational (PostgreSQL, MySQL, MariaDB) and document (MongoDB) sit in the same engine list, one click either way.*
 
 Every engine is locked to your app server's IP, gets automatic backups, and hands you a connection string for an environment variable. Your app reads its connection from config, not code, so switching engines is a config change. The [how-to on adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) covers that wiring.
 
-![The Kloudbean dashboard showing servers, applications, and managed databases on one screen](../assets/console/dashboard.png)
+![The Kloudbean dashboard showing servers, applications, and managed databases on one screen](../assets/console-real/shots/dashboard.png)
 *Relational as the backbone, a document store or Redis alongside it, one dashboard. Polyglot persistence, no second bill to chase.*
 
-<!-- ADD IMAGE: a small architecture diagram (app in the middle, Postgres as source of truth, Redis cache, a document store for one feature) -->
+![Request flow through app, Postgres, Redis, and document store](images/gen-3-flow.png)
 
 If MongoDB is the piece you need, the [managed MongoDB hosting](https://www.kloudbean.com/blog/managed-mongodb-hosting/) guide covers modeling and connecting it. If you're staying relational, you're already on the well-paved road.
 
----
+<!-- cta:start -->
+**One click to a real database.**
 
-**Start relational, scale into more when the workload demands it.**
+Launch MySQL, MariaDB, PostgreSQL, Redis, Memcached, MongoDB, or Elasticsearch in a click, reachable from your app server with automatic backups from minute one. Standard connection strings, standard dumps, no proprietary format.
 
-Launch PostgreSQL, MySQL, MongoDB, Redis, or Elasticsearch in a click, each locked to your app server's IP, backed up automatically, and connected with one environment variable. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
 
-One-click databases · Automatic backups · Free migration · Free trial · From $8/mo
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

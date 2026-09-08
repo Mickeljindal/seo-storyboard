@@ -188,11 +188,20 @@ Servers run across seven clouds with your choice of region, with a Shorewall fir
 
 For the deployment guides themselves, [Flask](https://www.kloudbean.com/blog/deploy-flask-app/), [Django](https://www.kloudbean.com/blog/deploy-django-app/), and [FastAPI](https://www.kloudbean.com/blog/deploy-fastapi-app/). On choosing between them, [Flask versus Django](https://www.kloudbean.com/blog/flask-vs-django/). For the compiled-extension version of this problem, [native module build errors](https://www.kloudbean.com/blog/fix-better-sqlite3-install-errors/), and the Node equivalent in [Cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/). When pip itself refuses to install at all, [the externally-managed-environment fix](https://www.kloudbean.com/blog/pip-externally-managed-environment/) is the one. On the process layer, [Gunicorn versus Uvicorn](https://www.kloudbean.com/blog/gunicorn-vs-uvicorn/). And on configuration and deploys, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) and [auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-## Build the environment where the code runs.
+<!-- cta:start -->
+**Read the log, fix it, ship again.**
 
-Managed Python hosting for Flask, Django, and FastAPI across seven clouds, with runtime config in the UI, Git deploys and live build logs, one-click managed databases, free SSL, and automatic backups. From $8/mo, with free migration assistance. Start at [kloudbean.com](https://www.kloudbean.com/).
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-Flask · Django · FastAPI · Live build logs · 6 managed databases · Flat from $8/mo
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

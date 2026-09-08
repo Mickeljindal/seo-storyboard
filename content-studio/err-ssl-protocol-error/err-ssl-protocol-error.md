@@ -191,11 +191,20 @@ The boundary, stated plainly: nobody else can decide how far to harden your ciph
 
 For the certificate-rejection family, [fixing SSL certificate errors](https://www.kloudbean.com/blog/fix-ssl-certificate-errors/), and for the fundamentals, [SSL and TLS explained](https://www.kloudbean.com/blog/ssl-tls-explained/). The handshake failure between a proxy and your origin is [Cloudflare error 525](https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/). For the opposite scheme mismatch, [400 Bad Request](https://www.kloudbean.com/blog/400-bad-request/). On antivirus interception in a different guise, [ERR_CONNECTION_RESET](https://www.kloudbean.com/blog/err-connection-reset/). Firefox reports these same failures under its own names, and it keeps its own root store rather than reading your operating system's, which is why it often fails where Chrome succeeds: [PR_END_OF_FILE_ERROR and PR_CONNECT_RESET_ERROR](https://www.kloudbean.com/blog/pr-end-of-file-error/). For terminating TLS in front of an app, [the nginx reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/) and [custom domain and SSL](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/). And on HSTS and related headers, [the security headers guide](https://www.kloudbean.com/blog/security-headers-guide/).
 
-## TLS that does not quietly go out of date
+<!-- cta:start -->
+**The server layer, hardened for you.**
 
-Managed servers with maintained TLS configuration, free SSL issued and renewed, nginx terminating properly in front of your application, and Cloudflare available as an add-on. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Every server ships with a Shorewall firewall and Fail2ban, free auto-renewing SSL, automatic backups, and OS patching handled. Add IP access control or a Basic Auth gate when a site should not be public.
 
-Maintained TLS · Free SSL · Managed nginx · Cloudflare add-on · One dashboard
+- Shorewall firewall
+- Fail2ban
+- OS patching handled
+- Free SSL
+- IP access control
+- Automatic backups
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

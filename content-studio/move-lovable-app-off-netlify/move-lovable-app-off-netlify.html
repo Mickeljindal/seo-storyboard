@@ -116,7 +116,21 @@
   <p>If your inventory only turns up <code>netlify.toml</code>, a <code>_redirects</code> file, and a hosted database, you've got an easy move. Every extra row is a little more work, and Identity is the one that's genuinely a project rather than a config tweak.</p>
 
   <!-- ADD IMAGE: swap for a real <figure><img><figcaption> (src -> images/netlify-settings.png) -->
-  <figure class="img-slot"><span><b>Add image</b><em>Netlify site settings showing Identity, Forms, and the build/redirects config, with the pieces you'll be migrating highlighted.</em><small>The dashboard half of the inventory. Author supplies.</small></span></figure>
+  <!-- IMAGE GENERATE [panel] #1
+Create a clean settings / configuration panel UI mockup for a technical blog post titled "Move Your Lovable App Off Netlify to Kloudbean (Migration Guide)".
+
+What it must show: Netlify site settings showing Identity, Forms, and the build/redirects config, with the pieces you'll be migrating highlighted.
+Also: The dashboard half of the inventory. Author supplies.
+
+A white card with a small uppercase section label, then labelled rows. Highlight the row that carries the point with a violet border. Optional green check line at the bottom confirming the result.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-panel.png" alt="Netlify site settings showing Identity, Forms, and the build/redirects config, with the pieces you'll be migrating highlighted.">
+    <figcaption>Configure identity, forms, and build settings</figcaption>
+  </figure>
 
   <h2>The one that bites: pieces that fail silently</h2>
   <p>Most Netlify features fail loudly when they go missing. A missing API route throws a clear error, and you fix it. The dangerous ones are the pieces that fail <em>quietly</em>, because nothing errors, so you don't notice until it matters.</p>
@@ -127,7 +141,7 @@
   <p>With the inventory done, the deploy itself is the same clean flow any Lovable app uses. In the <a href="https://www.kloudbean.com/">Kloudbean</a> console, click <strong>Add Server</strong>, pick a cloud provider, choose <strong>Node.js</strong>, select the datacenter nearest your users, and give the build 2 to 4 GB of headroom. Then open the app and go to <strong>Application Administration, Deploy Code</strong>.</p>
 
   <figure>
-    <img src="../assets/console/git-deployment.png" alt="Kloudbean Deploy Code / Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy">
+    <img src="../assets/console-real/shots/git_connect_step_4.png" alt="Kloudbean Deploy Code / Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy">
     <figcaption>Deploy Code, then Git Deployment: connect the repo Lovable synced to, set the runtime fields, Pull and Deploy, with the build log streaming live.</figcaption>
   </figure>
 
@@ -135,14 +149,28 @@
   <p>Recreate your Netlify environment variables under <strong>Runtime Configuration, Environment Variables</strong>. The <strong>Paste .env Content</strong> tab makes it quick.</p>
 
   <figure>
-    <img src="../assets/console/env-vars.png" alt="Kloudbean environment variables editor showing a Paste .env Content tab and a key value list">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="Kloudbean environment variables editor showing a Paste .env Content tab and a key value list">
     <figcaption>Recreate every variable from Netlify's Site settings, then Environment. A missing one is the top cause of a broken first deploy, so check nothing got left behind.</figcaption>
   </figure>
 
   <p>On the database, you've got a choice. Keep pointing at your existing Supabase (change nothing), or launch a managed <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">Postgres</a> and bring the data onto your own server. The tradeoffs there, especially around Supabase auth and storage, are mapped in the <a href="https://www.kloudbean.com/blog/deploy-lovable-app-to-your-own-server/">deploy-a-Lovable-app guide</a>, so I won't repeat them here.</p>
 
   <!-- ADD IMAGE: swap for a real <figure><img><figcaption> (src -> images/spa-routing.png) -->
-  <figure class="img-slot"><span><b>Add image</b><em>The migrated app on its temporary URL, with a hard refresh on a deep route (like /dashboard) loading correctly instead of 404ing.</em><small>Proof the SPA catch-all route is in place. Author supplies.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "Move Your Lovable App Off Netlify to Kloudbean (Migration Guide)".
+
+What it must show: The migrated app on its temporary URL, with a hard refresh on a deep route (like /dashboard) loading correctly instead of 404ing.
+Also: Proof the SPA catch-all route is in place. Author supplies.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="The migrated app on its temporary URL, with a hard refresh on a deep route (like /dashboard) loading correctly instead of 404ing.">
+    <figcaption>Proof of SPA catch-all route</figcaption>
+  </figure>
 
   <h2>Test on the temp URL, then cut over DNS</h2>
   <p>Test on the app's temporary <code>*.kloudbeansite.com</code> URL before touching your domain. Walk the whole inventory: log in (Identity replacement), submit the contact form (Forms replacement), hard-refresh a deep route (redirects replacement), hit every former Function path. If a route 503s, the app isn't running, so open <strong>Application Administration</strong>, then <strong>Logs Viewer</strong>, and read the <strong>App Errors</strong> tab (<code>app.error.log</code>). Search it for the Function name or variable you just moved. <strong>App Info</strong> (<code>app.info.log</code>) and <strong>Web Requests Logs</strong>, the access log for every request served, sit in the same viewer. The two log files are also on disk at <code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs</code> via the File Manager.</p>
@@ -158,10 +186,55 @@
   <h2>When this is the wrong answer</h2>
   <p>Kloudbean runs Linux stacks: Node and the modern web toolkit (React, Vue, Next.js) that Lovable produces, plus PHP, Python, Ruby, and Java when you need them. Windows Server belongs to Premium and Enterprise; .NET does not need it. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and automatic backups; you own and maintain the application and its data. That split is the whole point: the pieces Netlify used to hide are now yours, in one place you can actually see into.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Nothing left behind.</p>
-    <p style="margin:0">Move your app at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Databases in a click, backups on by default, IP allow-listing, migration help, Git deploys. Deploy walkthrough <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">here</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+<div class="kbcta-move-wrap">
+  <div class="kbcta-move-overlay"></div>
+  <div class="kbcta-move-content">
+    <div class="kbcta-move-eyebrow">MIGRATE &middot; FLAT, PREDICTABLE PRICING</div>
+    <p class="kbcta-move-heading">Move it once. Own it after.</p>
+    <p class="kbcta-move-description">Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.</p>
+    <ul class="kbcta-move-features">
+      <li>&#10003; Free migration assistance</li>
+      <li>&#10003; Free trial</li>
+      <li>&#10003; Seven cloud providers</li>
+      <li>&#10003; Flat monthly price</li>
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Git deploy</li>
+    </ul>
+    <div class="kbcta-move-buttons">
+      <a class="kbcta-move-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-move-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-move: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-move-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#0A0730;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-move-wrap *{box-sizing:border-box}
+.kbcta-move-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #0A0730 0%, #1B0F5A 58%, rgba(79,26,243,.55) 100%);pointer-events:none}
+.kbcta-move-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.28) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-move-content{position:relative;z-index:3;max-width:700px}
+.kbcta-move-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-move-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-move-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-move-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-move-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-move-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-move-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#2A0E7A;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-move-btn:hover,.kbcta-move-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-move-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-move-link:hover,.kbcta-move-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-move-wrap{padding:36px 24px}
+  .kbcta-move-heading{font-size:31px}
+  .kbcta-move-description{font-size:16px}
+  .kbcta-move-features li{white-space:normal}
+  .kbcta-move-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-move-btn{width:100%}
+  .kbcta-move-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

@@ -77,11 +77,20 @@ To be fair about the trade, though: Fly's regional placement is genuinely excell
 
 For the platform comparison see [a Fly.io alternative](https://www.kloudbean.com/blog/fly-io-alternative/), and for the move itself [migrating from Fly.io to Kloudbean](https://www.kloudbean.com/blog/migrate-fly-to-kloudbean/). Other cost-shape reads: [why is my Railway bill so high](https://www.kloudbean.com/blog/why-is-my-railway-bill-so-high/), [Heroku costs after the free tier](https://www.kloudbean.com/blog/heroku-cost-after-free-tier/), and [the cheapest way to host a Node.js app](https://www.kloudbean.com/blog/cheapest-way-to-host-nodejs-app/). For choosing overall, [best managed Node.js hosting](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/).
 
-## No forgotten volumes on your invoice
+<!-- cta:start -->
+**Read the log, fix it, ship again.**
 
-Run your Node app, worker, managed database, and Redis in one dashboard on a flat plan from $8/mo, with no egress metering and storage included rather than billed as separate objects. Support is in the plan, and migration help is included. Start at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.
 
-Flat from $8/mo · No egress metering · Storage included · Support in the plan · Free migration
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

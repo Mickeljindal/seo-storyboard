@@ -72,11 +72,21 @@ The honest boundary: the platform runs the server, the Postgres database, SSL, a
 
 For the lighter, single-database alternative and the full comparison, [self-hosting Umami](https://www.kloudbean.com/blog/self-host-umami/). The rest of the category is in [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/). The configuration database is [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), and both data stores need [server backups](https://www.kloudbean.com/blog/server-backups-guide/). If analytics is part of a wider owned stack, [self-hosting Ghost](https://www.kloudbean.com/blog/self-host-ghost/) for publishing is good company.
 
-## Own your analytics, on a server sized for it.
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-Run Plausible Community Edition on a managed server across seven clouds, with managed PostgreSQL for its configuration, free auto-renewing SSL, and automatic backups, on a box with room for ClickHouse. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Managed server · Managed PostgreSQL · Free auto-renewing SSL · Automatic backups
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

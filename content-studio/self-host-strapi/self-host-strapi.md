@@ -85,7 +85,7 @@ Hosted platforms like Contentful or Sanity are genuinely good, and for a small m
 
 Fair credit to the SaaS side: hands-off really is hands-off, and for a tiny site that convenience can beat ownership. But once your content becomes a core asset, or editors and API traffic drive the bill, self-hosted Strapi is usually the better long game.
 
-<!-- ADD IMAGE: Strapi Media Library showing uploaded files served from your S3-compatible bucket URL, not the local server. -->
+![Using openssl to create random secret values](images/gen-2-terminal.png)
 
 ## The config that makes Strapi production-ready
 
@@ -152,7 +152,7 @@ S3_BUCKET=strapi-uploads
 
 `APP_KEYS` takes a comma-separated list; a handful of keys is normal. Keep every value identical across deploys so sessions and tokens survive a redeploy. More on the habit in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
-<!-- ADD IMAGE: Terminal running openssl rand to generate APP_KEYS and the JWT secrets. -->
+![Ensure least-privilege access](images/gen-4-panel.png)
 
 ### Build and start commands
 
@@ -214,7 +214,7 @@ Strapi is a Node app, so you deploy it like any Node service: add it to the mana
 
 Open the database section and launch a PostgreSQL instance. It's provisioned, secured, locked to your app server's IP, and backed up for you. Note the connection details for the env vars next.
 
-![The Kloudbean console Launch Database screen, creating the managed PostgreSQL that backs self-hosted Strapi](../assets/console/launch-database.png)
+![The Kloudbean console Launch Database screen, creating the managed PostgreSQL that backs self-hosted Strapi](../assets/console-real/shots/psql_launch_step_1.png)
 
 *Launch a managed PostgreSQL for Strapi. More on sizing and backups in the [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) guide.*
 
@@ -222,7 +222,7 @@ Open the database section and launch a PostgreSQL instance. It's provisioned, se
 
 Create a new application on the Node runtime and point it at your Strapi project. Standard Node deployment, running under PM2 so the process stays up and restarts on failure.
 
-![The Kloudbean console Add Application screen, deploying the Strapi Node app onto the managed Node runtime](../assets/console/add-application.png)
+![The Kloudbean console Add Application screen, deploying the Strapi Node app onto the managed Node runtime](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 *Add the Strapi app on the managed Node runtime. Strapi runs as your own Node application, not a one-click install.*
 
@@ -230,7 +230,7 @@ Create a new application on the Node runtime and point it at your Strapi project
 
 Open Runtime Configuration, then Environment Variables, and paste in the block from earlier: the Strapi secrets, `DATABASE_URL`, `NODE_ENV=production`, and the S3 credentials. Save, and the app picks them up on its next start.
 
-![The Kloudbean console Environment Variables screen holding Strapi APP_KEYS, JWT secrets, DATABASE_URL and S3 credentials](../assets/console/env-vars.png)
+![The Kloudbean console Environment Variables screen holding Strapi APP_KEYS, JWT secrets, DATABASE_URL and S3 credentials](../assets/console-real/shots/nodespm_env_step_1.png)
 
 *Environment Variables: APP_KEYS, the JWT secrets, DATABASE_URL, and the S3 keys live here, never in the repo.*
 
@@ -238,7 +238,7 @@ Open Runtime Configuration, then Environment Variables, and paste in the block f
 
 Link your GitHub repository and set it to build and start on push. Put `npm run build` in the build step so the admin compiles every time, then let the process manager run `npm run start`. Live build logs stream in the console, so a failed build tells you why.
 
-![The Kloudbean console Git deployment screen, building and starting self-hosted Strapi on every push from GitHub](../assets/console/git-deployment.png)
+![The Kloudbean console Git deployment screen, building and starting self-hosted Strapi on every push from GitHub](../assets/console-real/shots/git_connect_step_4.png)
 
 *Git deploys: push to your branch, Strapi rebuilds the admin and restarts. Full walk-through in [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).*
 
@@ -261,17 +261,27 @@ You're running a public content API and an admin panel, so a little hardening go
 
 One Strapi process handles a surprising amount of traffic, so don't reach for more before you need it. When you do scale out, the earlier architecture is what makes it possible. Multiple instances only work if they share the same state: one PostgreSQL, one S3-compatible bucket. That's the real reason local SQLite and local uploads fail, they're private to a single process. Put a load balancer in front (Kloudbean's FLB is built in for this), point every instance at the same database and bucket, and requests spread cleanly.
 
-![The Kloudbean console Flexible Load Balancer screen, spreading traffic across multiple Strapi instances that share one database and bucket](../assets/console/flb-load-balancer.png)
+![The Kloudbean console Flexible Load Balancer screen, spreading traffic across multiple Strapi instances that share one database and bucket](../assets/console-real/shots/flb_launch_step_2.png)
 
 *Scaling out: FLB in front of multiple Strapi instances, all sharing the same managed PostgreSQL and S3 bucket.*
 
 Keep media in object storage no matter how many instances you run. And a slow content API is nearly always a database question: add the right indexes, watch your queries, resize the server before you add machines.
 
----
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-**Own your content layer, end to end.** Run self-hosted Strapi on a managed Node server, backed by managed PostgreSQL and S3-compatible uploads, with secrets in env, Git deploys, and automatic backups handled for you. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Managed Node runtime · Managed PostgreSQL · S3-compatible storage · Automatic backups · Free migration · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -94,11 +94,20 @@ Where that stops, precisely: private networking, VPC and VPN are part of the Ent
 
 For the framework see [NCA CSCC explained](https://www.kloudbean.com/blog/nca-cscc-compliance-guide/), and for the full gap list [the critical systems hosting checklist](https://www.kloudbean.com/blog/critical-systems-hosting-checklist/). On the technical neighbours: [what is a VPC](https://www.kloudbean.com/blog/what-is-a-vpc/), [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/), and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/). Logging and retention are in [CSCC 18-month log retention](https://www.kloudbean.com/blog/cscc-log-retention-immutable-logs/), and residency in [data residency in Saudi Arabia](https://www.kloudbean.com/blog/data-residency-saudi-arabia/).
 
-## Databases people cannot reach directly
+<!-- cta:start -->
+**A database you can dump and take with you.**
 
-Kloudbean runs managed enterprise engagements with databases on private addressing and no public endpoint, application-tier-only access, and administrative paths behind VPN, bastion, and MFA with session logging, on in-Kingdom infrastructure where required. Start a conversation at [kloudbean.com](https://www.kloudbean.com/).
+Launch MySQL, MariaDB, PostgreSQL, Redis, Memcached, MongoDB, or Elasticsearch in a click, reachable from your app server with automatic backups from minute one. Standard connection strings, standard dumps, no proprietary format.
 
-Private-only databases · No public endpoint · VPN and bastion admin path · MFA · Session logging
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

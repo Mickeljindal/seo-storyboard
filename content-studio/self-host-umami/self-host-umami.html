@@ -109,7 +109,21 @@
   <p>If you want zero operations and you're tiny, Umami Cloud's free tier is a lovely place to start, and GA4 costs nothing. The moment data ownership, a predictable bill, or accurate high-volume counts matter more than a paste-and-forget setup, self-hosting is the better deal.</p>
 
   <!-- To add your own screenshot here, replace this whole figure with a real <figure><img ...><figcaption>...</figcaption></figure>. Image path: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Your live Umami dashboard showing real visitor numbers, so readers see the payoff.</em><small>A real shot of your own instance beats any stock chart.</small></span></figure>
+  <!-- IMAGE GENERATE [graph] #1
+Create a clean line chart / time-series graph for a technical blog post titled "How to Self-Host Umami: Own Your Web Analytics".
+
+What it must show: Your live Umami dashboard showing real visitor numbers, so readers see the payoff.
+Also: A real shot of your own instance beats any stock chart.
+
+Label both axes. Draw the trend the description implies. Add a dashed red threshold line only if a limit is being hit. Legible axis labels, no 3D, no gradient clutter.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-flow.png" alt="Your live Umami dashboard showing real visitor numbers, so readers see the payoff.">
+    <figcaption>From request to dashboard</figcaption>
+  </figure>
 
   <h2>Deploy Umami on a managed Node server</h2>
   <p>Here's the production path end to end. Four steps, and the order matters: database first, then the app, then the secrets, then the deploy.</p>
@@ -118,7 +132,7 @@
   <p>Start with the database, because Umami needs it before it'll boot. Provision a managed PostgreSQL instance, create a database named <code>umami</code>, and grab its internal host and credentials. Managed here means the engine is provisioned, patched, and backed up for you, and you whitelist your app server's IP so it can reach the database without exposing a public port.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen used to provision managed PostgreSQL for a self-hosted Umami analytics instance">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean console Launch Database screen used to provision managed PostgreSQL for a self-hosted Umami analytics instance">
     <figcaption>Launch a managed PostgreSQL database first. Umami stores every event here, so this is the piece you'll back up and keep.</figcaption>
   </figure>
 
@@ -126,18 +140,32 @@
   <p>Next, add an application on the server as a Node app and point it at the Umami source (the official <code>umami-software/umami</code> repo, or your fork). This is where I want to be clear: there's no magic one-click Umami button here. You're running the real Umami Node app on a managed Node runtime, which is the honest version and the one that lets you update on your own terms. The <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app</a> guide covers the general flow if you want the long form.</p>
 
   <figure>
-    <img src="../assets/console/add-application.png" alt="The Kloudbean console Add Application screen where the Umami Next.js Node app is added to a managed server">
+    <img src="../assets/console-real/shots/adding_app_from_apps_step_1.png" alt="The Kloudbean console Add Application screen where the Umami Next.js Node app is added to a managed server">
     <figcaption>Add Application as a Node app, then connect the Umami repository. Umami is a standard Next.js app, so nothing exotic is required.</figcaption>
   </figure>
 
   <!-- To add your own screenshot here, replace this whole figure with a real <figure><img ...><figcaption>...</figcaption></figure>. Image path: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The Umami GitHub repo page, or your fork, so readers know exactly what they're deploying.</em><small>Optional. Helps first-timers find the right source.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "How to Self-Host Umami: Own Your Web Analytics".
+
+What it must show: The Umami GitHub repo page, or your fork, so readers know exactly what they're deploying.
+Also: Optional. Helps first-timers find the right source.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="The Umami GitHub repo page, or your fork, so readers know exactly what they're deploying.">
+    <figcaption>Steps to deploy your own instance</figcaption>
+  </figure>
 
   <h3>3. Set DATABASE_URL and APP_SECRET</h3>
   <p>Umami is configured almost entirely through two environment variables. <code>DATABASE_URL</code> tells it where the database is, and <code>APP_SECRET</code> is the secret it uses to sign tokens. Set these in the console, not in a file you might commit.</p>
 
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables screen where the Umami DATABASE_URL and APP_SECRET are configured">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean console Environment Variables screen where the Umami DATABASE_URL and APP_SECRET are configured">
     <figcaption>Runtime Configuration then Environment Variables: this is where DATABASE_URL and APP_SECRET live, safely out of your Git repo.</figcaption>
   </figure>
 
@@ -163,7 +191,7 @@ npm start</code></pre>
 <pre><code>npx prisma migrate deploy</code></pre>
 
   <figure>
-    <img src="../assets/console/git-deployment.png" alt="The Kloudbean console Git deployment screen building and deploying the Umami Node app from GitHub with live build logs">
+    <img src="../assets/console-real/shots/git_connect_step_4.png" alt="The Kloudbean console Git deployment screen building and deploying the Umami Node app from GitHub with live build logs">
     <figcaption>Connect GitHub and every push builds and deploys Umami, running the migrations as part of the build. The live logs show the schema being applied.</figcaption>
   </figure>
 
@@ -173,7 +201,21 @@ npm start</code></pre>
   <p>Fresh Umami installs ship with a default account: username <code>admin</code>, password <code>umami</code>. That's public knowledge. If you leave it, anyone who finds your URL can walk into your dashboard. So the very first thing you do after the first successful login is change that password. This is the single most common self-hosted Umami mistake, and it takes about thirty seconds to avoid.</p>
 
   <!-- To add your own screenshot here, replace this whole figure with a real <figure><img ...><figcaption>...</figcaption></figure>. Image path: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The Umami profile screen where you change the default admin password on first login.</em><small>Reinforces the security step. Optional author shot.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #3
+Create a left-to-right architecture / flow diagram for a technical blog post titled "How to Self-Host Umami: Own Your Web Analytics".
+
+What it must show: The Umami profile screen where you change the default admin password on first login.
+Also: Reinforces the security step. Optional author shot.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-flow.png" alt="The Umami profile screen where you change the default admin password on first login.">
+    <figcaption>First login security step</figcaption>
+  </figure>
 
   <h2>Add the Umami tracking script to your sites</h2>
   <p>With Umami running on your own domain, you add a website inside the dashboard, and it hands you a small script tag with that site's ID. Drop this into the <code>&lt;head&gt;</code> of the pages you want to track:</p>
@@ -208,11 +250,56 @@ npm start</code></pre>
 
   <p>Umami is a good gateway into running your own tools. The <a href="https://www.kloudbean.com/blog/best-self-hosted-tools/">best self-hosted tools</a> roundup is worth a read, <a href="https://www.kloudbean.com/blog/self-host-supabase/">self-hosting Supabase</a> is a natural next step for your backend, and <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a> covers what's running under Umami. If you want analytics that scale on ClickHouse with a more polished dashboard, <a href="https://www.kloudbean.com/blog/self-host-plausible/">self-hosting Plausible</a> is the heavier-but-faster alternative.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Analytics that stay yours.</p>
-    <p style="margin:0 0 .6em">Run the Umami Node app on a managed server, back it with managed PostgreSQL, and keep every pageview in a database you own. The OS, SSL, and backups are handled. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Managed Node runtime · Managed PostgreSQL · Automatic backups · Free SSL · Free migration · Free trial</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">Prototype to production, without the babysitting.</p>
+    <p class="kbcta-ai-description">Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

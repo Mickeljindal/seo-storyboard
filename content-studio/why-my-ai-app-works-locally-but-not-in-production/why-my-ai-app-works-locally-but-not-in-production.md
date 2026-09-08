@@ -10,7 +10,7 @@ Here's the founder-level truth, and it saves a lot of thrashing. AI tools optimi
 
 Production strips all of that away. The server is a fresh Linux box that knows none of your local assumptions. So the bug is rarely in the logic the AI wrote. It's in the environment around it: config and state. See production-only failures that way and they stop being mysterious. Let's walk the seven.
 
-<!-- ADD IMAGE: bespoke SVG diff diagram, localhost (implicit) vs production (explicit): local SQLite to managed DB, .env to server env vars, localhost:3000 to 0.0.0.0 + PORT, local disk uploads to object storage, laptop runtime to pinned version -->
+![Before and After: An Ephemeral-Disk Trap](images/gen-1-comparison.png)
 
 ## First move: open the Logs Viewer, not your editor
 
@@ -52,7 +52,7 @@ DATABASE_URL="postgresql://appuser:secret@10.0.0.5:5432/appdb"
 
 On Kloudbean you open **DBS**, click **Launch Database**, and wire the connection in as an environment variable. The full walkthrough, with migration commands for Prisma, Drizzle, Django, Laravel, and Rails, is in [how to add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). Do this before you have real users, not after you lose them.
 
-![The Kloudbean console Launch Database screen, creating a managed Postgres or MySQL that survives redeploys](../assets/console/launch-database.png)
+![The Kloudbean console Launch Database screen, creating a managed Postgres or MySQL that survives redeploys](../assets/console-real/shots/psql_launch_step_1.png)
 
 ## 2. Your secrets live on your laptop, not on the server
 
@@ -62,7 +62,7 @@ On Kloudbean you open **DBS**, click **Launch Database**, and wire the connectio
 
 **Fix:** set every secret on the server itself. In Kloudbean that's **Runtime Configuration -> Environment Variables**, where you can paste your whole `.env` and convert it to key/value in one go, then redeploy. The reliable habit is env parity: put your local `.env` and the server's variables side by side and set anything that's missing. New to this? Read [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) before you trust any deploy. And don't paste secrets into the repo to make the deploy pass. That leaks your keys into Git history forever.
 
-![The Kloudbean Environment Variables editor with a paste dot env tab, where secrets are set on the server](../assets/console/env-vars.png)
+![The Kloudbean Environment Variables editor with a paste dot env tab, where secrets are set on the server](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ## 3. Your app binds to localhost, so nothing can reach it
 
@@ -129,7 +129,7 @@ Then set `VITE_API_URL` at build time in production, and set your API's allowed 
 
 **Fix:** set the build command explicitly (usually `npm run build`) so the production assets actually get generated. If a package is needed to build, make sure it's installed at build time rather than pruned. On Kloudbean you set the install, build, and start commands right in the Git deployment config, and the live build logs show you exactly which step failed.
 
-![The Kloudbean Git deployment configuration where install, build, and start commands are set](../assets/console/git-deployment.png)
+![The Kloudbean Git deployment configuration where install, build, and start commands are set](../assets/console-real/shots/git_connect_step_4.png)
 
 ## 7. Node or Python version mismatch
 
@@ -174,11 +174,20 @@ Most of these failures share a root: the app needs services and config that live
 
 Weighing where to put a vibe-coded app after a hobby host? The [Render alternative for vibe-coded apps](https://www.kloudbean.com/blog/render-alternative-for-vibe-coded-apps/) breaks down the tradeoffs, and the pillar guide, [how to deploy an AI-built app to production](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/), ties every step together.
 
----
+<!-- cta:start -->
+**Read the log, fix it, ship again.**
 
-**The code already runs. Now give it a real home.** Launch a managed server, database, and object storage from one dashboard at [kloudbean.com](https://www.kloudbean.com/), with a free trial and your first migration done for you. Sizes and plans on [pricing](https://www.kloudbean.com/pricing/).
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-Managed databases · Environment variables in the UI · Object storage · Live build logs · Free migration
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

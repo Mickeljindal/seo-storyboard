@@ -11,7 +11,7 @@ secondary_keywords:
   - clear redis object cache wordpress
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 6 — WordPress & Frontend
+cluster: 6 - WordPress & Frontend
 ---
 
 ![How to clear WordPress cache across every layer, from browser to database](images/hero.png)
@@ -58,7 +58,7 @@ Your browser saves images, CSS, and sometimes whole pages so a repeat visit load
 
 A CDN keeps copies of your pages on servers around the world so a visitor in Sydney isn't waiting on a server in Virginia. That's a huge speed win, and it's also the layer people forget. The CDN has no idea you edited anything until you tell it, so it happily serves its cached copy until that copy expires or you purge it. If new content shows in some regions but not others, or your plugin purge did nothing, suspect the CDN. Purge it from wherever it's managed. On Cloudflare that's the caching section with its purge control.
 
-![The Kloudbean console showing object storage and CDN controls where cached copies are purged](../assets/console/s3-buckets.png)
+![The Kloudbean console showing object storage and CDN controls where cached copies are purged](../assets/console-real/shots/storage_bucket_step_3.png)
 
 ### 3. Page cache (the plugin or server layer)
 
@@ -74,7 +74,7 @@ wp cache flush
 
 That clears WordPress's object cache, Redis included when it's wired up. It's the single most reliable "clear the WordPress cache" action there is, because it goes straight at the data layer instead of a plugin's idea of it. If you run [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/) as your object cache, this is the command that empties it. More on the tool itself in the [WP-CLI guide](https://www.kloudbean.com/blog/wordpress-cli-guide/).
 
-<!-- ADD IMAGE: a terminal showing wp cache flush run over SSH, with the "Success: The cache was flushed." line -->
+![Success: The cache was flushed.](images/gen-1-terminal.png)
 
 ### 5. PHP opcache
 
@@ -92,7 +92,7 @@ Here's where most guides tell you to purge all of it and pray. Don't. Blowing aw
 
 A pattern we see constantly in support: someone spends twenty minutes hammering their caching plugin's purge button when the page was fine all along in an incognito window. It was their browser the whole time. The private-window test takes five seconds and saves you the other nineteen minutes. Do it first.
 
-<!-- ADD IMAGE: side by side of the same page, normal window showing the old version, incognito showing the new one -->
+![Five second cache test](images/gen-2-comparison.png)
 
 ## When you do want to clear everything (after a deploy)
 
@@ -110,13 +110,22 @@ Two habits kill most of the recurring pain. First, cache-bust your assets. When 
 
 This is a Linux and PHP stack underneath, and on managed WordPress the server page cache, the Redis object cache, and the Cloudflare edge (a paid add-on, free on Enterprise) are set up and sitting behind a purge control, so clearing the right layer is a button or a one-line `wp cache flush`. Managed means the server, stack, SSL, and backups are handled. Your content and your data stay yours, and clearing any cache never touches them. It only refreshes the copies.
 
-<!-- ADD IMAGE: the hosting panel with server cache and object cache toggles plus their purge buttons -->
+![Server-level and object cache purges](images/gen-3-terminal.png)
 
----
+<!-- cta:start -->
+**WordPress, without the server admin.**
 
-**Ship the change, not the stale copy.** Run WordPress where the server cache, Redis object cache, and edge caching are set up and one click to purge, so a stale page is a ten-second fix instead of a mystery. Start free at [kloudbean.com](https://www.kloudbean.com/), see [pricing](https://www.kloudbean.com/pricing/).
+The stack, the patching, SSL, and backups are handled, so your work stays on the site rather than the box. Staging is one click, and the managed database sits right next to the app.
 
-Managed WordPress · Server + object cache handled · Managed Redis · Cloudflare edge add-on · Free SSL · Automatic backups
+- Managed WordPress stack
+- One-click staging
+- Managed MySQL and MariaDB
+- Automatic backups
+- Free SSL
+- Built-in load balancer
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

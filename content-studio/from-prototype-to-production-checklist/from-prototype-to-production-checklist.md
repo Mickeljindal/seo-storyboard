@@ -10,7 +10,7 @@ You built something with Lovable, Bolt, Cursor, Replit, or v0, and it works. It 
 
 The full walk-through of the deploy itself lives in [how to deploy an AI-built app to production](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/). This piece is the readiness checklist that sits next to it. Print it, argue with it, tick it off.
 
-<!-- ADD IMAGE: bespoke SVG, a prototype-vs-production readiness checklist across six areas (Data, Config and secrets, Security, Reliability, Performance, Ops) with grouped ticks, brand navy/purple/green -->
+![One hop per box](images/gen-1-flow.png)
 
 ## How to use this prototype to production checklist
 
@@ -40,7 +40,7 @@ Here's the whole thing as one table, prototype default against production fix. I
 
 **Fix:** launch a managed PostgreSQL or MySQL and point your app at it through a connection string. Your ORM already speaks all three engines, so it's usually a config change plus a migration, not a rewrite. The full walk-through, with Prisma, Django, Laravel, and Rails examples, is in [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
 
-<!-- ADD IMAGE: ../assets/console/launch-database.png, DBS then Launch Database, choosing Postgres or MySQL -->
+![Uptime monitor confirms /healthz is up](images/gen-2-graph.png)
 
 ### Send user uploads to object storage, not the app disk
 
@@ -69,7 +69,7 @@ git commit -m "Stop tracking .env"
 # set the real values on the server as env vars instead
 ```
 
-<!-- ADD IMAGE: ../assets/console/env-vars.png, Runtime Configuration then Environment Variables, paste .env and save -->
+![Resize for Performance](images/gen-3-comparison.png)
 
 ## Security: assume someone hostile will find it
 
@@ -81,7 +81,7 @@ git commit -m "Stop tracking .env"
 
 **Fix:** enforce auth on the server for every route that touches data, not just in the frontend. Validate and sanitize input at the boundary. Add security headers (a content security policy, HSTS, sensible cookie flags). Use parameterized queries, which your ORM does by default, so don't hand-build SQL strings. For the platform-side controls and the shared-responsibility split, see [secure and compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 
-<!-- ADD IMAGE: your app's login/auth screen, or response headers showing HSTS and a content security policy -->
+![Uptime monitor sees /healthz OK](images/gen-1-graph.png)
 
 ### Force HTTPS with a free SSL certificate
 
@@ -101,7 +101,7 @@ git commit -m "Stop tracking .env"
 
 **Fix:** turn on automatic backups for the database and server, then run one real restore into a scratch environment so you know the path end to end. Do it before you have users, and put a reminder to repeat it. More on cadence and retention in the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/).
 
-<!-- ADD IMAGE: ../assets/console/manage-backups.png, backup schedule and restore points -->
+<!-- ADD IMAGE: ../assets/console-real/shots/app_backup_step_2.png, backup schedule and restore points -->
 
 ### Add a health check and keep the process always on
 
@@ -142,7 +142,7 @@ Two other traps sink small apps: a missing index that slows a query as data grow
 
 **Fix:** connect your Git repo and deploy from it, so a push to your branch builds and ships automatically with logs you can watch. Your repo becomes the source of truth, not a folder on your laptop, and rolling back is just deploying the previous commit. It's the same loop covered end to end in the [full deploy guide](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/). If the project still only lives inside the builder, getting the code into a repo is step one, which is where [moving a Replit app to your own server](https://www.kloudbean.com/blog/deploy-replit-app/) begins.
 
-<!-- ADD IMAGE: ../assets/console/git-deployment.png, Code Delivery then Git Deployment, connect repo and branch -->
+<!-- ADD IMAGE: ../assets/console-real/shots/git_connect_step_4.png, Code Delivery then Git Deployment, connect repo and branch -->
 
 ## How far down the list do you really need to go?
 
@@ -152,11 +152,21 @@ What makes this less painful is keeping it in one place. When the database, env 
 
 One honest note on "managed." The platform provisions the server, patches the stack, runs SSL and backups, and locks the database down so only your app server's IP can reach it. You still own your application: its logic, its data, its app-level security. Compliance splits the same way, infrastructure controls on the platform, app behavior on you. A good deal, but not magic.
 
-## Start free
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-Your prototype is done. Let's make it a launch. Spin up a managed server with the database, secrets, backups, SSL, and Git deploy all in one place. Start free at [kloudbean.com](https://www.kloudbean.com/), and check sizes on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Managed databases · Automatic backups · Free SSL · Object storage · Free migration · Simple Git deploy
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

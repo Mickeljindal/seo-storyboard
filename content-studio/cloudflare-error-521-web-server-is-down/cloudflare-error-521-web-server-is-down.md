@@ -159,11 +159,20 @@ The honest boundary: a managed platform will not stop you from misconfiguring Cl
 
 For the whole family of these codes and how to tell them apart, see [Cloudflare error codes 520 to 527](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/). The two closest neighbours have their own guides: [error 520](https://www.kloudbean.com/blog/cloudflare-error-520/) and [error 525](https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/). On the upstream side, [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/) and [the nginx reverse proxy setup](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). When a connection is refused rather than proxied, [ECONNREFUSED](https://www.kloudbean.com/blog/fix-econnrefused-node/) covers the same idea inside your own app. And for the records these errors rely on, [DNS explained](https://www.kloudbean.com/blog/dns-explained/).
 
-## A firewall that already expects your proxy
+<!-- cta:start -->
+**Read the log, fix it, ship again.**
 
-Managed servers with Shorewall and Fail2ban configured, free SSL issued and renewed, Cloudflare available as an add-on, and everything in one dashboard so a firewall change and a proxy change are not in two different products. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-Managed servers · Firewall and Fail2ban configured · Free SSL · Cloudflare add-on · One dashboard
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

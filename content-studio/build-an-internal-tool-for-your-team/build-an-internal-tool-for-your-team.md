@@ -32,7 +32,7 @@ It's usually not worth it when the task happens twice a year, when the rules cha
 
 One filter saves a lot of grief: write the tool's job as a single sentence before you write any code. If you can't, the scope isn't ready. Tools that start as let's build an ops dashboard grow forever. Tools that start as let Mark refund an order and log who did it ship in a week.
 
-<!-- ADD IMAGE: the spreadsheet or manual workflow the tool replaces, with the repetitive step circled. -->
+![Steps to automate](images/gen-1-flow.png)
 
 ## Build vs buy an internal tool, honestly
 
@@ -68,7 +68,7 @@ If your tool needs to write, be deliberate. Don't hand it a superuser connection
 
 Two practical details: internal tools open a connection per user action, so on Postgres, [connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) stops a five-person dashboard from exhausting your connection limit, and [wiring a managed database in properly](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) is a one-time job that saves the recurring one. If you're picking an engine now, [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) is the boring correct default, because internal tools grow relational joins fast.
 
-<!-- ADD IMAGE: a simple flow of tool to database, showing whether it reads production, a replica, or its own store. -->
+![Data source selection](images/gen-2-flow.png)
 
 ## Who's allowed in, and what they can do
 
@@ -102,7 +102,7 @@ That combination is what **Kloudbean** covers from one dashboard: a managed serv
 
 If you're weighing that against running your own box, the tradeoffs are the same ones in [whether you need a VPS at all](https://www.kloudbean.com/blog/do-i-need-a-vps-for-my-saas/). For an internal tool specifically, the deciding factor is usually that nobody on a five-person team wants to own OS patching for a dashboard that three people use.
 
-<!-- ADD IMAGE: the IP allow-list or auth gate configured for the internal tool, with real addresses blurred. -->
+![Ensure the tool is not accessible from the internet](images/gen-3-panel.png)
 
 ## A build path that gets it done in a week
 
@@ -118,7 +118,21 @@ Order matters here. Most stalled internal tools stalled because someone started 
 
 Resist the urge to make it pretty until it's correct. Internal tools earn their keep through accuracy and access control. A plain table with correct data and a clear record of who changed what beats a beautiful dashboard that occasionally lies. Ugly and trustworthy wins.
 
-**An internal tool needs a private, always-on home.** Managed server, managed database, IP allow-listing, automatic backups, free SSL, one dashboard. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Own the server. Skip the server admin.**
+
+Pick from seven clouds, run your app on a managed server you control, and keep databases, storage, and deploys in the same dashboard instead of four separate vendors.
+
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

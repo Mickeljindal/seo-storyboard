@@ -87,15 +87,20 @@ The boundary is clean and worth stating to yourself as much as the client. The p
 
 This is one phase of running an agency on managed hosting. The whole operation is in the [hosting for agencies playbook](https://www.kloudbean.com/blog/hosting-for-agencies-playbook/), whose billing phase this page expands. For the packaging, [white-label hosting](https://www.kloudbean.com/blog/white-label-hosting-for-agencies/) and [WordPress maintenance retainer plans](https://www.kloudbean.com/blog/wordpress-maintenance-retainer-plans/). For the hosting model that makes the margin math work, [how agencies host 20 client apps on one server](https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/) and [reseller hosting versus managed cloud](https://www.kloudbean.com/blog/reseller-hosting-vs-managed-cloud/). For the predictability that underpins a flat price, [how cloud hosting pricing works](https://www.kloudbean.com/blog/cloud-hosting-pricing-explained/). And for the access side of the client relationship, [subusers and UAC](https://www.kloudbean.com/blog/subuser-and-uac-guide/).
 
----
+<!-- cta:start -->
+**Run the whole client book from one console.**
 
-### Bill the management, on a base you can predict.
+Consolidate the dashboards: isolated apps on managed servers, per-client databases, per-app backups you can restore individually, and permissions scoped per resource and action.
 
-Consolidate clients onto one account across seven clouds, with predictable base pricing you can quote on top of, automatic backups, free SSL, scoped billing roles, and free migration to bring sites across. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+- One dashboard
+- Per-client isolation
+- Subusers and access control
+- Per-app backups
+- Git deploys
+- Free migration assistance
 
-One account, many clients · Predictable base · Automatic backups · Scoped roles · Free SSL · Free migration
-
----
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -20,7 +20,7 @@ A handful of reasons come up again and again. None of them mean Supabase is bad.
 
 **You need the database beside your other apps.** If your API, a background worker, and a cache all want to talk to the same database in the same account, a hosted DB reached across the public internet adds latency and one more vendor. Owning the database lets you park it next to everything else that uses it.
 
-<!-- ADD IMAGE: your current Supabase project dashboard, for context on what you're starting from before the move -->
+![Before state](images/gen-1-flow.png)
 
 ## The part people miss: Supabase is Postgres
 
@@ -38,7 +38,7 @@ If, when you're honest, you mostly use Supabase as a database and reach for its 
 
 Start by launching the database. Open the databases section, choose PostgreSQL, name it, create it. A minute or two later it's provisioned, secured, and already being backed up, locked to your app server's IP rather than open to the internet.
 
-![The Kloudbean Launch Database screen with managed PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, and MongoDB](../assets/console/launch-database.png)
+![The Kloudbean Launch Database screen with managed PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, and MongoDB](../assets/console-real/shots/psql_launch_step_1.png)
 
 Now move the data. Because both sides are Postgres, this is a plain dump and restore, then a connection-string swap. Grab your Supabase connection string from its dashboard and run:
 
@@ -56,7 +56,7 @@ DATABASE_URL=postgresql://appuser:s3cret@10.0.0.5:5432/appdb
 
 The `--no-owner --no-privileges` flags save you from role errors, since the ownership on Supabase won't match your new database's users. After the restore, set `DATABASE_URL` in your app's environment (not in the source) and redeploy. Your ORM won't notice the difference. Prisma, Drizzle, Django, Laravel, Rails: they all just read the new connection string and carry on. The full walkthrough, with the migrate commands per framework, is in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
 
-<!-- ADD IMAGE: a terminal mid-migration showing pg_dump then psql running, with row counts matching after the import -->
+![Experience intact with full auth and table editor](images/gen-3-comparison.png)
 
 What did you give up? The Supabase auth and storage APIs, if you were using them. That's the honest tradeoff. Auth becomes your framework's own auth (or a library), and files go to object storage. If you barely touched those, you won't miss them. If you leaned on them heavily, read on, because Path B keeps them.
 
@@ -66,11 +66,11 @@ Maybe you love the full Supabase experience. The auth, the storage, the realtime
 
 On Kloudbean, self-hosted Supabase is a one-click app. You add it the same way you'd add any application, on a managed server on the cloud of your choice. You keep the Supabase API surface your code already calls, and the whole thing sits on your server, in your account, backed up on your schedule.
 
-![The Kloudbean Add Application screen where self-hosted Supabase can be launched as a one-click app on a managed server](../assets/console/add-application.png)
+![The Kloudbean Add Application screen where self-hosted Supabase can be launched as a one-click app on a managed server](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 The tradeoff here is the mirror image of Path A. You keep every Supabase feature, and in exchange you're now running the Supabase stack yourself (on a managed server, so the OS, firewall, SSL, and backups are handled, but the Supabase services are yours to operate). For a lot of teams that's a fair deal: full features, full ownership, predictable server pricing. The deeper how-to lives in the [self-host Supabase](https://www.kloudbean.com/blog/self-host-supabase/) guide.
 
-<!-- ADD IMAGE: self-hosted Supabase Studio open on your own domain, showing the table editor and auth still fully intact -->
+![From client to cloud](images/gen-4-flow.png)
 
 ## Path A or Path B: which one fits you?
 
@@ -90,7 +90,7 @@ My honest steer? If you're not sure which you are, you're probably a Path A pers
 
 Here's why the destination matters as much as the path. Moving your Postgres to a random second host just swaps one bill for another. The point of leaving a BaaS is to own the stack, and that's easier when the database isn't off on its own island. On Kloudbean, the database is one tab in a dashboard that also runs your app servers, object storage, static sites, a load balancer, and Git deploys.
 
-![The Kloudbean dashboard showing servers, applications, and managed databases managed from one place](../assets/console/dashboard.png)
+![The Kloudbean dashboard showing servers, applications, and managed databases managed from one place](../assets/console-real/shots/dashboard.png)
 
 The specifics, all grounded, no marketing math:
 
@@ -100,7 +100,7 @@ The specifics, all grounded, no marketing math:
 - **Automatic backups and free SSL.** Backed up without you thinking about it, behind auto-renewing certificates.
 - **Object storage in the same console.** S3-compatible buckets for the files you'd have kept in Supabase Storage, no separate vendor.
 
-<!-- ADD IMAGE: the S3-compatible object storage buckets screen, for files that used to live in Supabase Storage -->
+![Real dump and restore process](images/gen-1-terminal.png)
 
 Fewer logins, one bill, and a stack you can actually see. That's the difference between renting a backend and owning one. For the pricing shape of all this, the honest breakdown is in [cloud hosting pricing explained](https://www.kloudbean.com/blog/cloud-hosting-pricing-explained/), and the bigger buyer's view is the pillar, [best managed cloud hosting](https://www.kloudbean.com/blog/best-managed-cloud-hosting/).
 
@@ -112,11 +112,20 @@ A guide that only sells one side isn't worth much, so here's the fine print. Klo
 
 And the most honest limit of all: if Supabase is serving you well and the cost is comfortable, you don't need to move. An alternative is for when the fit changes, not a verdict on the tool. When that day comes, the fact that it's Postgres underneath is what makes leaving painless. Free migration assistance can handle Path A for you if you'd rather not run `pg_dump` yourself.
 
----
+<!-- cta:start -->
+**Move it once. Own it after.**
 
-**Own your Postgres. Keep what you liked about Supabase.** Migrate to a managed PostgreSQL you control, or self-host Supabase on a server you own, both on infrastructure across seven clouds from one dashboard. Start at [kloudbean.com](https://www.kloudbean.com/); check current plans on [pricing](https://www.kloudbean.com/pricing/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-Managed PostgreSQL · One-click Supabase · Automatic backups · Free migration · Free trial · Seven clouds
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

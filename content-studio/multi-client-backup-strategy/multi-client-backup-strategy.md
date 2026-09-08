@@ -79,15 +79,20 @@ The honest boundary: the platform provides isolation, automatic backups, and off
 
 The fundamentals this page builds on are in the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/) (3-2-1, off-box, test the restore). The isolation it depends on is [hosting multiple apps on one server](https://www.kloudbean.com/blog/host-multiple-apps-one-server/), and the retention-then-delete rule is [agency client offboarding](https://www.kloudbean.com/blog/agency-client-offboarding/). Retention maps to plan tiers in [client billing and markup](https://www.kloudbean.com/blog/client-billing-and-markup-for-hosting/). The wider operation is the [hosting for agencies playbook](https://www.kloudbean.com/blog/hosting-for-agencies-playbook/) and [how agencies host 20 client apps on one server](https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/). Off-box storage itself is [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/).
 
----
+<!-- cta:start -->
+**Stop paying a platform per client.**
 
-### Back up the whole fleet, prove any one on demand.
+Host client apps as isolated applications on servers you own, each with its own database and SSL, with per-app backups and Git deploys, and scoped access for teammates through subusers and user access control.
 
-Isolated client environments with automatic per-environment backups shipped off-box to S3-compatible object storage, all in one dashboard across seven clouds. Free migration assistance to bring new clients into the routine. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+- One dashboard
+- Per-client isolation
+- Subusers and access control
+- Per-app backups
+- Git deploys
+- Free migration assistance
 
-Isolated backups · Automatic · Off-box object storage · One dashboard · Free migration
-
----
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

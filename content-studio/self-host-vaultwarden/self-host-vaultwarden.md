@@ -91,11 +91,21 @@ The honest boundary matters more here than anywhere. The platform keeps the serv
 
 For the wider set of things worth running yourself, the [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) guide, and for files rather than passwords, [self-hosting Nextcloud](https://www.kloudbean.com/blog/self-host-nextcloud/). The backups this tool depends on are in [the server backups guide](https://www.kloudbean.com/blog/server-backups-guide/) and [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). For the database option, [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), and for the HTTPS layer, [the reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). Keeping secrets out of code more generally is [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
-## Own your vault, with the backups handled.
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-Run Vaultwarden on a small managed server across seven clouds, with free auto-renewing SSL for the mandatory HTTPS, automatic off-box backups as the safety net, and managed PostgreSQL or MariaDB when you outgrow SQLite. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Small managed server · Free auto-renewing SSL · Automatic off-box backups · Managed databases
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -94,11 +94,21 @@ The honest boundary, which is bigger for this tool than most: the platform runs 
 
 More options live in the [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup. If your real goal is a site with a newsletter, compare with [self-hosting Ghost](https://www.kloudbean.com/blog/self-host-ghost/). On the sending side, [why SMTP ports get blocked](https://www.kloudbean.com/blog/port-25-blocked-smtp-ports/) is worth a read before you fight your relay. The pieces listmonk leans on: [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), [server backups](https://www.kloudbean.com/blog/server-backups-guide/), and [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). And for another marketing-side tool to own, [self-hosting Postiz](https://www.kloudbean.com/blog/self-host-postiz/).
 
-## Own your list, on a server built to keep it safe.
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-Run Listmonk as an application on a managed server across seven clouds, with managed PostgreSQL for your list, free auto-renewing SSL, and automatic backups. Pair it with your sending service and you own the audience without the per-subscriber bill. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Managed server · Managed PostgreSQL · Free auto-renewing SSL · Automatic backups
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

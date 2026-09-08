@@ -30,7 +30,7 @@ A normal WordPress install runs one site. **Multisite** flips a switch in `wp-co
 
 So a subsite isn't a separate WordPress. It's a set of extra tables (`wp_2_posts`, `wp_3_posts`, and so on) inside one shared database, served by one shared codebase. That single fact is where all the upside and all the risk come from. Update once, and it's updated everywhere. Break once, and you've broken everywhere. Hold that thought.
 
-<!-- ADD IMAGE: diagram comparing multisite (one install and one database fanning out to subsites that share a fate) against separate isolated installs -->
+![Choose subdomains or subdirectories](images/gen-1-flow.png)
 
 ```
 MULTISITE                          |  SEPARATE INSTALLS
@@ -64,7 +64,7 @@ define( 'SUBDOMAIN_INSTALL', true );
 
 My honest steer: pick **subdirectories** unless you have a reason not to. It sidesteps wildcard DNS and wildcard SSL entirely, and free SSL from your host just covers the one domain. Go subdomains when each site really needs to feel like its own hostname, or you're mapping custom domains per site anyway. Either way, decide now, because flipping it after you've got live subsites means URL surgery you don't want.
 
-<!-- ADD IMAGE: the Tools then Network Setup screen where you choose subdomains or subdirectories before creating the network -->
+![Use wp site list to see your subsites](images/gen-2-terminal.png)
 
 ## The question everyone asks: one theme or multiple?
 
@@ -130,7 +130,7 @@ wp db export --tables=$(wp db tables --url=dept-a.example.com --format=csv)
 
 That last one hints at the truth about "just pull one site out": it's an export, a URL search-and-replace, and a rebuild of that site's uploads, not a button. The full command set is in the [WordPress CLI guide](https://www.kloudbean.com/blog/wordpress-cli-guide/), and you drive all of it over SSH on a managed server.
 
-<!-- ADD IMAGE: the Network Admin Sites list showing several subsites, or a terminal running wp site list -->
+![One hop per box](images/gen-3-flow.png)
 
 ## What a WordPress multisite network needs from hosting
 
@@ -150,11 +150,20 @@ Be clear-eyed about the flip side of "update once." Because the sites share core
 
 And extraction is the one that catches people. Getting a single subsite out of a network is a real migration: export its tables, rewrite URLs, move its uploads, and stand it up as a fresh install. For a network of related sites you control, that risk is a fine trade for the convenience. For a pile of unrelated client sites, it's a bad one, and separate installs would have kept you free. That's the whole decision, really. Not "is multisite good" but "should these particular sites share a fate?"
 
----
+<!-- cta:start -->
+**Let someone else patch the server.**
 
-**Network them, or keep them separate. On purpose, either way.** Run a WordPress multisite network or a set of independent installs on hosting sized for the whole picture at [kloudbean.com](https://www.kloudbean.com/). Plans on [pricing](https://www.kloudbean.com/pricing/).
+The stack, the patching, SSL, and backups are handled, so your work stays on the site rather than the box. Staging is one click, and the managed database sits right next to the app.
 
-Managed WordPress · Managed MySQL · Staging · Automatic backups · Free SSL · Free migration · Free trial
+- Managed WordPress stack
+- One-click staging
+- Managed MySQL and MariaDB
+- Automatic backups
+- Free SSL
+- Built-in load balancer
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

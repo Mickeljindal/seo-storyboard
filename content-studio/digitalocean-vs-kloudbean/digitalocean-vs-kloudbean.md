@@ -68,19 +68,19 @@ certbot --nginx -d yourdomain.com   # then remember to renew it later
 
 That's satisfying if server work is your thing. If it isn't, it's a wall of chores between you and a running app. With Kloudbean managing a droplet, the same first hour is a form. And this is the screen where the "not either/or" point stops being abstract: you pick DigitalOcean as the cloud provider, on the same infrastructure you'd have rented directly.
 
-![Kloudbean Add Server screen showing DigitalOcean among the cloud provider choices when provisioning a managed server](../assets/console/add-server.png)
+![Kloudbean Add Server screen showing DigitalOcean among the cloud provider choices when provisioning a managed server](../assets/console-real/shots/launch_server_step_1.png)
 
 Then deploying your code is connecting a repo instead of scripting it by hand.
 
-![Kloudbean console Deploy Code and Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy](../assets/console/git-deployment.png)
+![Kloudbean console Deploy Code and Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy](../assets/console-real/shots/git_connect_step_4.png)
 
 The database lands on the same server too, which is the honest answer to the "managed DigitalOcean hosting" question. Instead of standing up Postgres by hand or paying for DO's managed database as a separate product across the network, you launch one on the box.
 
-![Kloudbean Launch Database screen for creating a managed Postgres instance next to the application](../assets/console/launch-database.png)
+![Kloudbean Launch Database screen for creating a managed Postgres instance next to the application](../assets/console-real/shots/psql_launch_step_1.png)
 
 You can launch Postgres, MySQL, MariaDB, Redis, MongoDB, or Elasticsearch next to the app, reached over the local network. There's more on that in the [app, API, and database on one server](https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/) guide.
 
-<!-- ADD IMAGE: A raw droplet SSH session mid-setup (apt, ufw, certbot) next to the DigitalOcean control panel, to show the hands-on side fairly. -->
+![SSH into a new Droplet and install essentials](images/gen-1-terminal.png)
 
 ## The part that outlasts setup
 
@@ -104,9 +104,20 @@ Raw droplets are cheaper than a managed server, and they should be. You're suppl
 
 Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and frameworks like React, Vue, Angular, Laravel, Django, and WordPress. Windows Server is a Premium and Enterprise option rather than a standard one, though .NET itself runs on Linux here. Standalone managed Kubernetes is also enterprise or custom rather than a default. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you still own your application and your data. That split is the whole point: you keep the app, someone else keeps the box healthy. And because it's standard Linux and standard code underneath, you can leave for a raw droplet, or anywhere else, whenever you want.
 
-## Same infrastructure. Someone else keeps it healthy.
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-Run a managed server on DigitalOcean (or six other clouds) at [kloudbean.com](https://www.kloudbean.com/). One-click deploy, managed databases, free SSL, automatic backups, free migration, and a free trial. The full deploy walkthrough is [here](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/); plans on [pricing](https://www.kloudbean.com/pricing/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
+
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

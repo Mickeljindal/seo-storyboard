@@ -154,15 +154,24 @@ The boundary, stated plainly: no host can stop a badly written plugin from throw
 
 For the neighbouring WordPress failure with a very different cause, see [error establishing a database connection](https://www.kloudbean.com/blog/fix-error-establishing-database-connection-wordpress/). On safe change management, [WordPress staging environments](https://www.kloudbean.com/blog/wordpress-staging-environment/) and [the backups guide](https://www.kloudbean.com/blog/server-backups-guide/). For the command line used above, [the WP-CLI guide](https://www.kloudbean.com/blog/wordpress-cli-guide/). When memory is the theme, [heap out of memory](https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/) covers the same class of problem in Node. And for caching that reduces the load causing memory pressure, [clearing WordPress cache](https://www.kloudbean.com/blog/how-to-clear-wordpress-cache/) and [managed WordPress hosting](https://www.kloudbean.com/blog/managed-wordpress-hosting/).
 
-## Break it on staging instead
+<!-- cta:start -->
+**Read the log, fix it, ship again.**
 
-Managed WordPress with one-click staging, automatic backups, PHP version control per application, and WP-CLI over SSH, on a flat plan from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
 
-Staging sites · Automatic backups · PHP version control · WP-CLI access · Flat from $8/mo
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 
-**What does "There has been a critical error on this website" mean?**
+**What does 'There has been a critical error on this website' mean?**
 It means a PHP fatal error stopped WordPress from finishing the page. Since WordPress 5.2 this message replaces the old blank white screen, and WordPress also emails your admin address with the exact file and line that failed plus a recovery mode login link. The cause is almost always a plugin, a theme, a PHP version change, or an exhausted memory limit.
 
 **How do I find out which plugin caused the critical error?**

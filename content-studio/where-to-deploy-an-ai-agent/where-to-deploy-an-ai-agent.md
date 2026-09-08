@@ -113,9 +113,21 @@ For the shape most people are actually building, a loop that acts over time and 
 
 And the honest limit that applies to every host, ours very much included: nothing about a hosting choice stops a runaway loop. No platform enforces your iteration cap, writes your stopping condition, makes your tool calls idempotent, or sets a budget limit in your model provider's account. Those are all in your code and your provider dashboard. A host can keep the process alive and show you what it's doing. Deciding when the agent should stop is the one part that was always going to be yours.
 
----
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-**Run the agent, not the plumbing.** If your agent needs an always-on server, a managed database for its memory, scheduled runs from a dashboard, and a safe place for its keys, that is the shape Kloudbean provides. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -74,11 +74,21 @@ Health checks are how the platform and your monitoring know the truth about your
 
 Health checks sit in the middle of your production ops. They pair with [graceful shutdown](https://www.kloudbean.com/blog/graceful-shutdown-nodejs/) and [zero-downtime deployments](https://www.kloudbean.com/blog/zero-downtime-deployments/) for clean releases, with [uptime monitoring](https://www.kloudbean.com/blog/uptime-monitoring/) for alerts, and with [PM2 restart behavior](https://www.kloudbean.com/blog/pm2-app-keeps-restarting/) when a liveness failure triggers a restart. The readiness dependency check connects to [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/).
 
-## Give the platform an honest signal
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-Run your Node app always-on under PM2, with liveness and readiness endpoints the platform and your monitoring can act on, and GitHub deploys that steer traffic correctly. Flat pricing from $8/mo. Start at [kloudbean.com](https://www.kloudbean.com/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Always-on under PM2 · Clean health signals · Uptime monitoring · GitHub deploys · Flat from $8/mo
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

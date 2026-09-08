@@ -118,11 +118,20 @@ Now the honest part, and it applies to us as much as anyone. No host fixes the r
 
 Each layer has a deeper guide: [Fail2ban and Shorewall](https://www.kloudbean.com/blog/fail2ban-and-shorewall-guide/), [IP allowlisting](https://www.kloudbean.com/blog/ip-allowlisting-guide/), [the Basic Auth gate](https://www.kloudbean.com/blog/basic-auth-gate-guide/), [two-factor and social login](https://www.kloudbean.com/blog/two-factor-and-social-login/), [secrets management](https://www.kloudbean.com/blog/secrets-management-guide/), [encryption at rest and in transit](https://www.kloudbean.com/blog/data-encryption-at-rest-and-in-transit/), and [the audit trail](https://www.kloudbean.com/blog/audit-trail-for-compliance/). The pillar that ties them together is [secure and compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 
-## Start with the infrastructure layer handled.
+<!-- cta:start -->
+**Patched, firewalled, and backed up.**
 
-Kloudbean covers a large slice of this checklist by default: firewall and brute-force baseline, free auto-renewing SSL, automatic backups, OS patching, IP Access Control, a Basic Auth gate, social login, and an enterprise Audit Trail. You focus on the application layer only you can own. Compare it in [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/), or start at [kloudbean.com](https://www.kloudbean.com/).
+The platform keeps the server, stack, SSL, and patching current, with automatic backups running. Application-level security stays yours, and that split is deliberate rather than hidden.
 
-Baseline hardening · Free SSL · Automatic backups · Access controls · Enterprise audit trail
+- Shorewall firewall
+- Fail2ban
+- OS patching handled
+- Free SSL
+- IP access control
+- Automatic backups
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -1,7 +1,7 @@
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { getDb, schema } from "../client";
 
-const { experienceSnippets } = schema;
+const { experienceSnippets, knowledgeGaps } = schema;
 
 export type ExperienceSnippet = {
   id: string;
@@ -13,6 +13,11 @@ export type ExperienceSnippet = {
   usage_count: number;
   source: string;
   active: boolean;
+  // Knowledge Object fields (institutional memory)
+  confidence: string; // verified | curated | inferred
+  grounded: boolean; // tied to a real source?
+  source_ref: string | null;
+  status: string; // active | needs-review | stale | retired
   created_at: string;
 };
 
@@ -27,6 +32,10 @@ function toApi(row: typeof experienceSnippets.$inferSelect): ExperienceSnippet {
     usage_count: row.usageCount ?? 0,
     source: row.source ?? "manual",
     active: row.active ?? true,
+    confidence: row.confidence ?? "curated",
+    grounded: row.grounded ?? true,
+    source_ref: row.sourceRef ?? null,
+    status: row.status ?? "active",
     created_at: row.createdAt?.toISOString?.() ?? "",
   };
 }
@@ -51,6 +60,10 @@ export async function insertExperienceSnippet(row: {
   tags?: string[];
   clusterId?: number | null;
   source?: string;
+  confidence?: string;
+  grounded?: boolean;
+  sourceRef?: string | null;
+  status?: string;
 }): Promise<ExperienceSnippet> {
   const db = await getDb();
   const [inserted] = await db
@@ -62,6 +75,10 @@ export async function insertExperienceSnippet(row: {
       tags: row.tags ?? [],
       clusterId: row.clusterId ?? null,
       source: row.source ?? "manual",
+      confidence: row.confidence,
+      grounded: row.grounded,
+      sourceRef: row.sourceRef ?? null,
+      status: row.status,
     })
     .returning();
   return toApi(inserted);
@@ -75,6 +92,10 @@ export async function insertExperienceSnippets(
     tags?: string[];
     clusterId?: number | null;
     source?: string;
+    confidence?: string;
+    grounded?: boolean;
+    sourceRef?: string | null;
+    status?: string;
   }[],
 ): Promise<number> {
   if (!rows.length) return 0;
@@ -89,6 +110,10 @@ export async function insertExperienceSnippets(
         tags: r.tags ?? [],
         clusterId: r.clusterId ?? null,
         source: r.source ?? "manual",
+        confidence: r.confidence,
+        grounded: r.grounded,
+        sourceRef: r.sourceRef ?? null,
+        status: r.status,
       })),
     )
     .returning({ id: experienceSnippets.id });
@@ -168,4 +193,97 @@ export async function findRelevantSnippets(
   }
 
   return scored.map((x) => toApi(x.row));
+}
+
+/**
+ * Log a knowledge gap: a needed Knowledge Object type is missing for a topic.
+ * Dedups by (topic, neededType): bumps `hits` if an open gap already exists.
+ * This is how the system stays honest — missing knowledge is recorded for the
+ * backlog, never fabricated. Best-effort; never throws into the caller.
+ */
+export async function logKnowledgeGap(input: {
+  topic: string;
+  neededType: string;
+  note?: string;
+  clusterId?: number | null;
+  geo?: string | null;
+}): Promise<void> {
+  try {
+    const db = await getDb();
+    const topic = input.topic.trim().slice(0, 300);
+    if (!topic) return;
+    const [existing] = await db
+      .select({ id: knowledgeGaps.id })
+      .from(knowledgeGaps)
+      .where(
+        and(
+          eq(knowledgeGaps.topic, topic),
+          eq(knowledgeGaps.neededType, input.neededType),
+          eq(knowledgeGaps.status, "open"),
+        ),
+      )
+      .limit(1);
+    if (existing) {
+      await db
+        .update(knowledgeGaps)
+        .set({ hits: sql`${knowledgeGaps.hits} + 1`, updatedAt: new Date() })
+        .where(eq(knowledgeGaps.id, existing.id));
+      return;
+    }
+    await db.insert(knowledgeGaps).values({
+      topic,
+      neededType: input.neededType,
+      note: input.note ?? null,
+      clusterId: input.clusterId ?? null,
+      geo: input.geo ?? null,
+    });
+  } catch {
+    /* gap logging is best-effort — never block content generation */
+  }
+}
+
+export type KnowledgeGap = {
+  id: string;
+  topic: string;
+  needed_type: string;
+  note: string | null;
+  cluster_id: number | null;
+  geo: string | null;
+  status: string;
+  hits: number;
+  created_at: string;
+};
+
+/** List knowledge gaps (default: most-requested first) for the backlog view. */
+export async function listKnowledgeGaps(opts?: {
+  status?: string;
+  limit?: number;
+}): Promise<KnowledgeGap[]> {
+  const db = await getDb();
+  let q = db.select().from(knowledgeGaps).$dynamic();
+  if (opts?.status) q = q.where(eq(knowledgeGaps.status, opts.status));
+  q = q.orderBy(desc(knowledgeGaps.hits), desc(knowledgeGaps.createdAt));
+  if (opts?.limit) q = q.limit(opts.limit);
+  const rows = await q;
+  return rows.map((r) => ({
+    id: r.id,
+    topic: r.topic,
+    needed_type: r.neededType,
+    note: r.note ?? null,
+    cluster_id: r.clusterId ?? null,
+    geo: r.geo ?? null,
+    status: r.status,
+    hits: r.hits ?? 0,
+    created_at: r.createdAt?.toISOString?.() ?? "",
+  }));
+}
+
+export async function countKnowledgeGaps(): Promise<number> {
+  const db = await getDb();
+  try {
+    const [r] = await db.select({ c: sql<number>`count(*)::int` }).from(knowledgeGaps);
+    return Number(r?.c ?? 0);
+  } catch {
+    return 0;
+  }
 }

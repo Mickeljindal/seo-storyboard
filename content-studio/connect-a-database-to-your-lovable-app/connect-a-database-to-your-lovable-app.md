@@ -85,7 +85,7 @@ app.get("/api/todos", async (_req, res) => {
 
 Same trap wears a second hat with Supabase. You hit a `401` while testing, you're tired, and you "fix" it by pasting the *service_role* key (the one that bypasses Row Level Security) into a `VITE_` variable so the request goes through. It goes through, all right, straight into the public bundle. A `401` means a policy is missing, not that you need the master key in the browser. If any of this feels fuzzy, the full mental model is in [environment variables, done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
-<!-- ADD IMAGE: DevTools open on a live site, a database string visible in the bundle. Shows why front-end code holds no secrets. -->
+![Converting a block into key/value pairs](images/gen-2-flow.png)
 
 ## Two honest ways to connect a database to your Lovable app
 
@@ -119,7 +119,7 @@ Here's the real click-path, whichever database you landed on. None of it needs a
 
 Open the **DBS** section and hit **Launch Database**. Kloudbean runs seven managed engines, so pick PostgreSQL (the safe default for a Lovable app, since that's what it already used) or MySQL if your stack expects it. Name it, create it, and a minute or two later it's provisioned, locked to your app server's IP, and already backed up. On Path A instead? Launch **Supabase** as a one-click app here rather than a bare database.
 
-![Kloudbean Launch Database screen with managed PostgreSQL, MySQL, and other engines for a Lovable app](../assets/console/launch-database.png)
+![Kloudbean Launch Database screen with managed PostgreSQL, MySQL, and other engines for a Lovable app](../assets/console-real/shots/psql_launch_step_1.png)
 
 You'll get the connection details: host, port, database name, username, password. You need them in the next step. Don't paste them into your app's code.
 
@@ -136,7 +136,7 @@ VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOi...
 ```
 
-![Kloudbean Environment Variables editor storing DATABASE_URL for a Lovable app safely, not in code](../assets/console/env-vars.png)
+![Kloudbean Environment Variables editor storing DATABASE_URL for a Lovable app safely, not in code](../assets/console-real/shots/nodespm_env_step_1.png)
 
 Because the connection is an environment variable, it stays out of your Git history and you can rotate the password without touching a line of code.
 
@@ -146,7 +146,7 @@ Because the connection is an environment variable, it stays out of your Git hist
 
 This is the step people skip, and it's the one that makes the safe shape possible. The static frontend can live on free static hosting, but the small server that holds `DATABASE_URL` and answers your API calls has to run somewhere always-on. From **Applications then Add Application**, pick your stack (Node, for most Lovable projects that ship a server). Kloudbean keeps a Node app alive under PM2, so it restarts itself instead of dying when a process hiccups.
 
-![Kloudbean Add Application screen for running the server side of a Lovable app that holds the database connection](../assets/console/add-application.png)
+![Kloudbean Add Application screen for running the server side of a Lovable app that holds the database connection](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 If keeping Supabase, your "server" work is lighter, since supabase-js handles the data calls from the frontend. The full deploy of both halves (frontend and backend) is walked end to end in [deploy a Lovable app to your own server](https://www.kloudbean.com/blog/deploy-lovable-app-to-your-own-server/).
 
@@ -168,11 +168,20 @@ Connecting the database is one piece of owning your whole stack instead of renti
 
 > **Coming from Supabase?** You don't have to choose between "stay locked in" and "rewrite everything." Run managed Supabase on infrastructure you own, or move to a plain managed Postgres. Both keep your data on hardware you control. The tradeoffs are in [the Supabase alternative breakdown](https://www.kloudbean.com/blog/supabase-alternative/).
 
-## Give your Lovable app a database it actually owns.
+<!-- cta:start -->
+**Managed, backed up, and still yours.**
 
-Managed PostgreSQL and MySQL, one-click managed Supabase, automatic backups, and IP allow-listing, all beside your app on a server you control. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+Launch MySQL, MariaDB, PostgreSQL, Redis, Memcached, MongoDB, or Elasticsearch in a click, reachable from your app server with automatic backups from minute one. Standard connection strings, standard dumps, no proprietary format.
 
-One-click databases · Automatic backups · Free migration · Free trial · Simple Git deploy
+- Seven managed engines
+- One-click launch
+- Automatic backups
+- Controlled access
+- Standard connection strings
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

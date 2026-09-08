@@ -54,7 +54,7 @@ Then real shoppers arrive together. Ten people hit checkout at the same time on 
 
 So the honest read: shared hosting is fine for a store that's barely a store, a handful of orders a month and no real traffic. The moment a WooCommerce site has customers and a revenue number, the shared plan stops being a bargain and starts being a liability.
 
-<!-- ADD IMAGE: server metrics during a flash sale, CPU and RAM climbing while PHP workers max out. -->
+![PHP workers max out during sales](images/gen-1-graph.png)
 
 ## What good WooCommerce hosting actually gives you
 
@@ -76,7 +76,7 @@ Here's the checklist that separates hosting a store can trust from hosting that 
 
 **Room to scale.** Traffic grows, and sales are spiky by nature. You want to resize the server up when you need more headroom, and for big stores, put a load balancer in front and run more than one app server. Hosting that traps you on one fixed box is hosting you'll outgrow mid-sale.
 
-![The Kloudbean Add Application screen with WooCommerce selected as the application stack](../assets/console/add-application.png)
+![The Kloudbean Add Application screen with WooCommerce selected as the application stack](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 ## WooCommerce server requirements, as sensible baselines
 
@@ -146,7 +146,7 @@ Scaling a store is mostly about the dynamic path, since that's the part that cos
 
 **And offload the heavy static stuff.** Product images and downloads can move to object storage and sit behind an edge CDN, so your app servers spend their cycles on carts and checkouts, not on serving photos. For the full mental model of resize versus add-servers, we wrote it up in [scalable WordPress hosting](https://www.kloudbean.com/blog/scalable-wordpress-hosting/).
 
-<!-- ADD IMAGE: a load balancer with two or three app servers behind it, all pointing at one managed database. -->
+![To multiple app servers sharing a managed database](images/gen-2-fanout.png)
 
 ## How Kloudbean does managed WooCommerce hosting
 
@@ -154,15 +154,15 @@ WooCommerce has been a first-class stack on Kloudbean since launch, right alongs
 
 You pick a cloud (seven of them: AWS, Amazon Lightsail, Google Cloud, DigitalOcean, Vultr, Akamai Linode, and UpCloud), launch a server in a region near your customers, and add WooCommerce as an application. The PHP stack comes tuned and hardened, with free SSL ready to go, not a blank box waiting for you to configure it.
 
-<!-- ADD IMAGE: the WooCommerce application overview with the live URL, PHP version, and cache controls. -->
+![Execution flow from live URL to cache](images/gen-3-flow.png)
 
 The store keeps its data in managed MySQL or MariaDB: provisioned, secured, kept off the public internet, and backed up automatically with controlled access. Alongside it you add a managed Redis or Memcached for the object cache, the layer that keeps the dynamic pages quick. That's the caching a plugin can't provide, running as real infrastructure you can size.
 
-![The Kloudbean Launch Database screen showing managed MySQL and MariaDB for WooCommerce, plus Redis and Memcached for object caching](../assets/console/launch-database.png)
+![The Kloudbean Launch Database screen showing managed MySQL and MariaDB for WooCommerce, plus Redis and Memcached for object caching](../assets/console-real/shots/psql_launch_step_1.png)
 
 From there you get the pieces a store leans on. One-click staging for WordPress (WooCommerce runs on it) so plugin and theme updates get tested before they hit live sales. Automatic backups with self-serve restore, because orders are money. Free auto-renewing SSL for the checkout. Cron jobs from the dashboard without SSH for scheduled tasks. And when a sale is coming, you resize the server or put the built-in Flexible Load Balancer in front, all from the same place.
 
-![The Kloudbean backups screen showing automatic backups and self-serve restore for a WooCommerce store](../assets/console/manage-backups.png)
+![The Kloudbean backups screen showing automatic backups and self-serve restore for a WooCommerce store](../assets/console-real/shots/app_backup_step_2.png)
 
 It's all one dashboard: the store, its database, the object cache, backups, SSL, and scaling, with one login and one bill. If you're moving an existing store, Kloudbean offers free migration assistance, and there's a free trial so you can load your catalog and test a real checkout before committing. If you're wiring the database up by hand, [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) walks the connection details, and [managed MySQL hosting](https://www.kloudbean.com/blog/managed-mysql-hosting/) covers the database side in depth. For the backup discipline itself, see the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/).
 
@@ -176,11 +176,20 @@ Two things, said plainly. WooCommerce runs on a **Linux and PHP** stack, which i
 
 If you're still deciding between plain managed WordPress and a store-ready setup, [managed WordPress hosting](https://www.kloudbean.com/blog/managed-wordpress-hosting/) lays out the general version, and this page is the WooCommerce-specific answer sitting on top of it.
 
----
+<!-- cta:start -->
+**Let someone else patch the server.**
 
-**Your store stays fast. We run the stack under it.** Managed WooCommerce hosting on infrastructure you own, with the database, object cache, backups, and SSL handled for you. Start at [kloudbean.com](https://www.kloudbean.com/); check current plans on [pricing](https://www.kloudbean.com/pricing/).
+The stack, the patching, SSL, and backups are handled, so your work stays on the site rather than the box. Staging is one click, and the managed database sits right next to the app.
 
-One-click WooCommerce · Managed MySQL & Redis · Full-page + object cache · Automatic backups · Free auto-renewing SSL · One-click staging · Free migration · Free trial
+- Managed WordPress stack
+- One-click staging
+- Managed MySQL and MariaDB
+- Automatic backups
+- Free SSL
+- Built-in load balancer
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -31,7 +31,7 @@ Most guides make this sound like a growth-hacking funnel. It isn't. It's a short
 
 And the order is where people go wrong. The common failure is inverting it: months spent building in private, a beautiful product nobody asked for, then a scramble to find users who never show up. Flip that. The problem comes first, the customers come early, and the code is the part in the middle that you keep as small as you can get away with.
 
-<!-- ADD IMAGE: a clean version of the loop diagram (Real problem -> Lean MVP -> Production layer -> Launch -> Paying users, with a dashed arrow looping back to iterate). Brand colors navy #000f27, purple #4F1AF3, green #40b75f. -->
+![Pinpoint the problem](images/gen-1-flow.png)
 
 *Most founders sprint straight to building. The sequence that works starts with a real problem and ends with people who pay, then loops back.*
 
@@ -78,7 +78,7 @@ Notice what's still not here: Kubernetes, autoscaling groups, a hand-built priva
 
 This right-hand column is exactly what a managed platform hands you, and it's where Kloudbean fits: one dashboard for your app server, a managed database, and object storage, with automatic backups and free SSL handled for you. Your app runs as a persistent process, so there's no cold start on the first request, and you can wire up managed CI/CD straight from GitHub so every push deploys itself. Pricing is flat and starts at $8/mo, which keeps the boring layer boring. If your product leans on AI, the same shape is covered in [hosting for an AI SaaS](https://www.kloudbean.com/blog/best-hosting-for-ai-saas/), and the database side is walked through in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). Automating deploys is covered in [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-<!-- ADD IMAGE: launching a managed database from the dashboard: pick the engine, name it, create. Reuse ../assets/console/launch-database.png if you have it. -->
+![launching a managed database from the dashboard: pick the engine, name it, create. Reuse ../assets/console-real/shots/psql_launch_step_1.png](../assets/console-real/shots/psql_launch_step_1.png)
 
 ## Phase 4: Launch before you feel ready
 
@@ -104,9 +104,21 @@ If you skim nothing else, remember the ways this goes wrong, because they're pre
 
 None of these are technical problems, really. They're discipline problems. The founders who launch aren't the ones with the cleanest code, they're the ones who kept the scope small, shipped early, and listened to people who paid. The infrastructure just needs to stay out of your way while you do that.
 
----
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-**Put your micro-SaaS somewhere it can just run.** When you're ready for the production layer, Kloudbean gives you a managed server, a managed database, backups, and SSL from one dashboard, with simple Git deploys. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/). One dashboard · Managed databases · Automatic backups · Free SSL · Git deploys · Free trial.
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

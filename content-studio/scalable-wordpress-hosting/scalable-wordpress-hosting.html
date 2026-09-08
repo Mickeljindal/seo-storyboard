@@ -72,21 +72,49 @@
   <p>The catch is a ceiling. You can only make a single box so big, and one box is a single point of failure: if it has a bad day, the whole site is down. So right-sizing is the correct first answer, right up until you hit that ceiling or you need the site to survive a server failure. Start here. Don't start bigger than here.</p>
 
   <!-- ADD IMAGE: replace this slot with a real screenshot. src -> images/resize-server.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The server resize screen, or a metrics graph showing CPU and RAM headroom before and after a resize.</em><small>Author-supplied screenshot from your own dashboard.</small></span></figure>
+  <!-- IMAGE GENERATE [graph] #1
+Create a clean line chart / time-series graph for a technical blog post titled "Scalable WordPress Hosting: The Rungs to Climb, In Order".
+
+What it must show: The server resize screen, or a metrics graph showing CPU and RAM headroom before and after a resize.
+Also: Author-supplied screenshot from your own dashboard.
+
+Label both axes. Draw the trend the description implies. Add a dashed red threshold line only if a limit is being hit. Legible axis labels, no 3D, no gradient clutter.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-graph.png" alt="The server resize screen, or a metrics graph showing CPU and RAM headroom before and after a resize.">
+    <figcaption>CPU usage increases then plateaus</figcaption>
+  </figure>
 
   <h2>Rung 2: Turn on caching (this is the big one)</h2>
   <p>If you do one thing on this whole ladder, do this. A <strong>page cache</strong> serves ready-made HTML instead of rebuilding a page from PHP and the database on every hit, and it can multiply the traffic a single server handles by a large factor. An <strong>object cache</strong> (this is where managed Redis comes in) keeps the results of repeated database queries in memory, so WordPress stops asking the database the same thing over and over.</p>
   <p>A site that's buckling under load is very often just uncached. Set up page and object caching before you spend a cent on more hardware. It's the cheapest and biggest win on the ladder, full stop. The guides on <a href="https://www.kloudbean.com/blog/how-to-clear-wordpress-cache/">clearing the WordPress cache</a> and <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis hosting</a> cover the how.</p>
 
   <!-- ADD IMAGE: replace this slot with a real screenshot. src -> images/object-cache.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A caching plugin showing page cache on and Redis connected as the object cache backend.</em><small>Author-supplied screenshot from your own site.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "Scalable WordPress Hosting: The Rungs to Climb, In Order".
+
+What it must show: A caching plugin showing page cache on and Redis connected as the object cache backend.
+Also: Author-supplied screenshot from your own site.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="A caching plugin showing page cache on and Redis connected as the object cache backend.">
+    <figcaption>Page cache on and Redis object cache</figcaption>
+  </figure>
 
   <h2>Rung 3: Tune PHP and the database</h2>
   <p>Once caching is on, the next bottleneck is usually the dynamic work that can't be cached: logged-in traffic, the cart on a WooCommerce store, search. Two levers here. On the app side, give PHP enough workers to handle concurrent requests (too few and requests queue behind each other). On the data side, run WordPress on a properly sized managed database rather than sharing scraps with everything else on the box.</p>
   <p>Slow queries are the usual culprit. Add indexes on the columns you filter on, and run <code>EXPLAIN</code> on anything sluggish. And that "error establishing a database connection" from the intro? Under load it usually means the database ran out of connections or capacity, not that your server is too small. The fix for <a href="https://www.kloudbean.com/blog/fix-error-establishing-database-connection-wordpress/">that specific error</a> is almost always the database tier, not the web tier.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console: launching a managed MySQL or MariaDB database sized for a high-traffic WordPress site">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="The Kloudbean console: launching a managed MySQL or MariaDB database sized for a high-traffic WordPress site">
     <figcaption>Give WordPress its own sized managed database (MySQL or MariaDB) instead of leaving it to fight for scraps.</figcaption>
   </figure>
 
@@ -95,14 +123,28 @@
   <p>On Kloudbean, Cloudflare (including Cloudflare Enterprise edge caching) is available as an add-on for any site, and it's included for Enterprise accounts. For a global audience or a landing page expecting a spike, this rung is often what keeps the origin quiet on the busy day.</p>
 
   <!-- ADD IMAGE: replace this slot with a real screenshot. src -> images/cdn-edge.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A CDN or Cloudflare dashboard showing cached bandwidth served from the edge versus requests reaching the origin.</em><small>Author-supplied screenshot.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #3
+Create a side-by-side comparison table for a technical blog post titled "Scalable WordPress Hosting: The Rungs to Climb, In Order".
+
+What it must show: A CDN or Cloudflare dashboard showing cached bandwidth served from the edge versus requests reaching the origin.
+Also: Author-supplied screenshot.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-comparison.png" alt="A CDN or Cloudflare dashboard showing cached bandwidth served from the edge versus requests reaching the origin.">
+    <figcaption>Cached bandwidth served from the edge versus requests reaching the origin</figcaption>
+  </figure>
 
   <h2>Rung 5: Offload media to object storage</h2>
   <p>Big files don't belong on your app server's local disk. Every uploaded image, PDF, and video bloats the server, complicates backups, and quietly blocks you from the next rung. Move media to <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a> (or managed Google Cloud Storage) and the server stays lean while files get served efficiently.</p>
   <p>There's a second reason this rung matters, and it's the one people trip on: the moment you want more than one app server, media on local disk breaks. Node A has an image Node B has never heard of. Shared object storage is the fix, which is why it comes right before scaling out.</p>
 
   <figure>
-    <img src="../assets/console/s3-buckets.png" alt="The Kloudbean console: S3-compatible object storage buckets for offloading WordPress media">
+    <img src="../assets/console-real/shots/storage_bucket_step_3.png" alt="The Kloudbean console: S3-compatible object storage buckets for offloading WordPress media">
     <figcaption>Media in object storage keeps the server lean and, crucially, makes uploads shareable across multiple nodes.</figcaption>
   </figure>
 
@@ -111,7 +153,7 @@
   <p>WordPress needs two things prepared before this works cleanly, which is why they're earlier rungs: shared storage for uploads (that's the object storage from rung 5) and a shared object cache and session store (that's Redis from rung 2), so a visitor gets a consistent experience no matter which node serves them. Kloudbean's built-in <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">Flexible Load Balancer</a> is available on any account to enable when you reach this rung. It's off by default, so it's there waiting rather than in your way.</p>
 
   <figure>
-    <img src="../assets/console/flb-load-balancer.png" alt="The Kloudbean console: the Flexible Load Balancer distributing traffic across multiple WordPress app nodes">
+    <img src="../assets/console-real/shots/flb_launch_step_2.png" alt="The Kloudbean console: the Flexible Load Balancer distributing traffic across multiple WordPress app nodes">
     <figcaption>The Flexible Load Balancer spreads traffic across app nodes and routes around any node that goes unhealthy.</figcaption>
   </figure>
 
@@ -143,11 +185,55 @@
   <h2>The honest boundary</h2>
   <p>It's a Linux stack under all of it. The platform provides the levers (resize, managed database, caching, object storage, and the load balancer) and keeps them patched and healthy, while your site, your theme, your plugins, and your content stay yours. And the theme of the whole ladder bears repeating once: caching and a well-sized database matter more than raw server count for most sites. Scaling well is turning the right knob at the right time, and having those knobs there without building them yourself.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Cache, right-size, then scale out. In that order.</p>
-    <p style="margin:0 0 .6em">Scale WordPress the sane way at <a href="https://www.kloudbean.com/">kloudbean.com</a>, with the database sized to match. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Right-size in a click · Managed Redis · Object storage · Built-in load balancer · Automatic backups · Free trial</p>
+<div class="kbcta-wp-wrap">
+  <div class="kbcta-wp-overlay"></div>
+  <div class="kbcta-wp-content">
+    <div class="kbcta-wp-eyebrow">MANAGED WORDPRESS &middot; ONE DASHBOARD</div>
+    <p class="kbcta-wp-heading">WordPress, without the server admin.</p>
+    <p class="kbcta-wp-description">Run WordPress and WooCommerce on a managed server with a staging site, automatic backups, free auto-renewing SSL, and a managed MySQL or MariaDB beside it. Pick the cloud and the region yourself.</p>
+    <ul class="kbcta-wp-features">
+      <li>&#10003; Managed WordPress stack</li>
+      <li>&#10003; One-click staging</li>
+      <li>&#10003; Managed MySQL and MariaDB</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Built-in load balancer</li>
+    </ul>
+    <div class="kbcta-wp-buttons">
+      <a class="kbcta-wp-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-wp-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-wp: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-wp-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-wp-wrap *{box-sizing:border-box}
+.kbcta-wp-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-wp-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-wp-content{position:relative;z-index:3;max-width:700px}
+.kbcta-wp-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-wp-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-wp-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-wp-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-wp-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-wp-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-wp-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-wp-btn:hover,.kbcta-wp-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-wp-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-wp-link:hover,.kbcta-wp-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-wp-wrap{padding:36px 24px}
+  .kbcta-wp-heading{font-size:31px}
+  .kbcta-wp-description{font-size:16px}
+  .kbcta-wp-features li{white-space:normal}
+  .kbcta-wp-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-wp-btn{width:100%}
+  .kbcta-wp-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">
@@ -165,7 +251,7 @@
     <p>Three things: shared storage for uploads so media is consistent across nodes (object storage), a shared object cache and session store so a visitor's experience is the same on any node (Redis), and a load balancer to distribute traffic and route around unhealthy nodes. Get object storage and Redis in place before you add the second node.</p>
     <h3>Does Kloudbean autoscale WordPress automatically?</h3>
     <p>No, not as a default toggle. Autoscaling is part of the enterprise path, alongside Kubernetes and custom architectures, set up as a custom engagement. For the vast majority of sites, caching, right-sizing, a CDN, and a load balancer you scale deliberately are the better and more predictable answer than an autoscaling cluster.</p>
-    <h3>How do I fix "error establishing a database connection" under load?</h3>
+    <h3>How do I fix an error establishing a database connection under load?</h3>
     <p>Under load, that error usually means the database ran out of connections or capacity, not that the web server is too small. Move WordPress onto a properly sized managed database, add an object cache to reduce query volume, and check that connection limits and PHP workers are sane. It's a database-tier fix far more often than a web-tier one.</p>
     <h3>Do I need read replicas for WordPress?</h3>
     <p>Usually not until you're at real scale. Read replicas serve read queries so the primary database is freed for writes, which helps read-heavy sites. But a well-sized managed database plus a good object cache handles more than most people expect. Treat replicas as a deliberate architecture step for genuinely high read load, not a routine default.</p>
@@ -185,7 +271,7 @@
 {"@type":"Question","name":"Does adding more servers fix a slow WordPress database?","acceptedAnswer":{"@type":"Answer","text":"No. Scaling the web tier with more app nodes doesn't scale the database. If they all hit one overloaded database, it stays the bottleneck. Scaling seriously means giving the database its own sized managed instance, using an object cache to cut repeated queries, and adding read replicas for read-heavy load. The database is a separate rung from the web servers."}},
 {"@type":"Question","name":"What do I need to run WordPress across multiple servers?","acceptedAnswer":{"@type":"Answer","text":"Three things: shared storage for uploads so media is consistent across nodes (object storage), a shared object cache and session store so a visitor's experience is the same on any node (Redis), and a load balancer to distribute traffic and route around unhealthy nodes. Get object storage and Redis in place before you add the second node."}},
 {"@type":"Question","name":"Does Kloudbean autoscale WordPress automatically?","acceptedAnswer":{"@type":"Answer","text":"No, not as a default toggle. Autoscaling is part of the enterprise path, alongside Kubernetes and custom architectures, set up as a custom engagement. For the vast majority of sites, caching, right-sizing, a CDN, and a load balancer you scale deliberately are the better and more predictable answer than an autoscaling cluster."}},
-{"@type":"Question","name":"How do I fix \"error establishing a database connection\" under load?","acceptedAnswer":{"@type":"Answer","text":"Under load, that error usually means the database ran out of connections or capacity, not that the web server is too small. Move WordPress onto a properly sized managed database, add an object cache to reduce query volume, and check that connection limits and PHP workers are sane. It's a database-tier fix far more often than a web-tier one."}},
+{"@type":"Question","name":"How do I fix an error establishing a database connection under load?","acceptedAnswer":{"@type":"Answer","text":"Under load, that error usually means the database ran out of connections or capacity, not that the web server is too small. Move WordPress onto a properly sized managed database, add an object cache to reduce query volume, and check that connection limits and PHP workers are sane. It's a database-tier fix far more often than a web-tier one."}},
 {"@type":"Question","name":"Do I need read replicas for WordPress?","acceptedAnswer":{"@type":"Answer","text":"Usually not until you're at real scale. Read replicas serve read queries so the primary database is freed for writes, which helps read-heavy sites. But a well-sized managed database plus a good object cache handles more than most people expect. Treat replicas as a deliberate architecture step for genuinely high read load, not a routine default."}}
 ]}
 ]}

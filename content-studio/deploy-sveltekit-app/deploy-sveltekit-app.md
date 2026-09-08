@@ -58,7 +58,7 @@ That's a real long-running process, the same shape a Node or Express app takes i
 
 One more real detail: `adapter-node` bundles your build tooling with Rollup, so the runtime footprint is small. To ship only production dependencies you copy `package.json` and the lockfile and run `npm ci --omit dev`. Skip that if your app has no runtime dependencies at all.
 
-<!-- ADD IMAGE: a terminal running node build with the "Listening on 0.0.0.0:3000" line visible -->
+![Grounds the 'it's a process, not files' point](images/gen-1-terminal.png)
 
 ### The ORIGIN gotcha that breaks form actions
 
@@ -139,7 +139,7 @@ Deploys come from Git, which is what you want: the repo is the source of truth, 
 
 Hit **Pull & Deploy**. The console streams the pull, install, build, and start steps live, so when something fails you see the exact line, not a spinner. Turn on automated deployment and every push to your branch reruns `npm run build` and ships itself. That's the git-to-live loop the per-seat platforms rent you, on a server you own.
 
-<!-- ADD IMAGE: Build and Deployment History with a deploy open and live logs streaming the SvelteKit build -->
+![Each step of the deployment process](images/gen-2-flow.png)
 
 ### Environment variables, the SvelteKit way
 
@@ -169,7 +169,7 @@ npm run build && npx prisma migrate deploy   # or: npx drizzle-kit migrate
 
 Then add your custom domain, point DNS at the server, and install a free auto-renewing certificate so the site loads over HTTPS. If DNS records and certificate steps are new territory, the full walkthrough is in [custom domain and SSL for your app](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/). Set `ORIGIN` to that same domain while you're here, so form actions behave the instant the domain goes live.
 
-<!-- ADD IMAGE: the app's domain and SSL panel with a custom domain added and a free certificate issued -->
+![Configure custom domain and free certificate](images/gen-3-flow.png)
 
 ## Where SvelteKit deploys actually break
 
@@ -191,13 +191,21 @@ Two things worth saying straight. First, this is a Linux Node deployment. Svelte
 
 Second, your server lives in one region, not on a global edge network the way some platforms spread functions worldwide. For most apps a well-placed server with the database right next to it is faster than people expect, because you skip the cold starts and the round trips to a far-off database. If you genuinely serve a latency-critical audience on every continent, put Cloudflare in front (a paid add-on, free on Enterprise) so pages cache at the edge while the app runs on hardware you own. "Managed" means the server, stack, SSL, backups, and patching are handled. Your code and your data stay yours, and because it's a standard Linux box underneath, you can move whenever you like.
 
----
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-**Set the adapter. Push. Watch it build.**
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Deploy your SvelteKit app from Git onto a managed server you own, with PM2, Nginx, and SSL already handled. Start at [kloudbean.com](https://www.kloudbean.com/), and if you're moving off a per-seat host, read the [Netlify alternative for full-stack apps](https://www.kloudbean.com/blog/netlify-alternative-for-full-stack-apps/). Sizes and plans on [pricing](https://www.kloudbean.com/pricing/).
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
 
-Seven clouds, one dashboard · Git deploy with live logs · Free auto-renewing SSL · Managed databases · Automatic backups · Free migration · Free trial
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

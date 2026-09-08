@@ -34,7 +34,7 @@ Think of a RAG system as a short assembly line with two shifts. An offline shift
 
 Almost all of them. Your documents are just files, so they live in in-Kingdom object storage. The chunks and their embeddings are just rows, so they live in an in-Kingdom database. The similarity search that finds the right chunks is a database query, so it runs in-Kingdom too. Retrieval never has to leave. The one stop that reaches outside is the final generation call, when you send the user's question plus the chunks you retrieved to a hosted model that runs wherever the provider runs. Everything before that arrow is yours to keep home. This is the RAG-shaped slice of a bigger picture, by the way. The overall in-Kingdom data-flow boundary for any AI app lives in [hosting AI apps in Saudi Arabia](https://www.kloudbean.com/blog/hosting-ai-apps-saudi-arabia/); this page zooms in on the retrieval case.
 
-<!-- ADD IMAGE: the RAG pipeline drawn inside a dashed Dammam box, documents to chunker to embeddings to pgvector store to retriever, with one arrow crossing out to the model through a minimize gate. -->
+![Embeddings API Location Impact](images/gen-1-comparison.png)
 
 Laid out as a checklist, the map looks like this.
 
@@ -62,7 +62,7 @@ There's a subtle third edge that folds into crossing one. At query time you also
 
 Closing crossing one means running an embeddings model on your own compute in the region, which is a smaller job than people assume: embedding models are far lighter than generation models, and GPU servers are self-serve on Kloudbean, provisioned in the Dammam region like any other server. So the fix is a machine and a model, not a re-architecture.
 
-<!-- ADD IMAGE: a before and after of indexing, one path sending documents to a hosted embeddings API abroad, the other keeping the embeddings model in-Kingdom. -->
+![One in-Kingdom database for app data and vectors](images/gen-2-flow.png)
 
 ## Put the vector store in-Kingdom, and you probably don't need a new database
 
@@ -90,7 +90,7 @@ That `ORDER BY embedding <=> $1` is the whole retrieval step, and it runs entire
 
 Two details that matter for residency once it's running. The automatic backups follow the instance, so a Dammam database keeps its copies in-region rather than quietly parking your embeddings somewhere else. And on a standard plan you restrict access by whitelisting your app server's IP on the database, so only that server can connect. Private networking in a VPC is an Enterprise capability, so describe what you actually have when someone asks how the store is isolated.
 
-<!-- ADD IMAGE: the Kloudbean console launching a managed PostgreSQL into the Dammam region, the database that will hold the pgvector embeddings. Swap for a real screenshot: src -> images/launch-db-dammam.png -->
+![Data storage and processing in Saudi Arabia](images/gen-3-comparison.png)
 
 ## Retrieved context is a bigger, more sensitive payload than a plain chat
 
@@ -129,7 +129,7 @@ Watch for this one, because it looks like diligence. A team provisions Postgres 
 
 It's residency you can point at, wrapped around a data flow nobody checked. The vector store being in the Kingdom is doing no residency work at all if the text had to leave to fill it. The fix isn't to tear down the in-Kingdom database, which is correct and worth keeping. The fix is to move the embeddings model in-Kingdom, or to decide, on purpose and in writing, that indexing sends text out and that's acceptable for your data. What you can't do is set the region, wire a foreign embed call, and call the whole thing sovereign.
 
-<!-- ADD IMAGE: a short checklist contrasting region-set-but-foreign-embed against a genuinely in-Kingdom index. -->
+![From source to database](images/gen-4-flow.png)
 
 ## RAG, PDPL, and what actually crosses
 
@@ -158,11 +158,21 @@ The rest of the boundary, stated plainly: managed covers the server, the stack, 
 
 <!-- ADD IMAGE: the Kloudbean console showing object storage for source documents and a managed Postgres, both set to the Dammam region, in one account. Swap for a real screenshot: src -> images/dammam-stack.png -->
 
-## Keep your knowledge base and embeddings in the Kingdom
+<!-- cta:start -->
+**Run it in Dammam, not a region abroad.**
 
-**Run the resident half of your RAG stack in Dammam: source documents in object storage, chunks and embeddings in a managed Postgres with pgvector, and retrieval that never leaves the country, all from one dashboard.** The one call to a model is yours to shrink or close. Start at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+Provision in Google Cloud's Dammam region (me-central2) so the server, the managed database, and the backups all stay on Saudi soil, managed from a single dashboard.
 
-In-Kingdom GCP Dammam region · Managed Postgres with pgvector · Object storage with no egress fees · Automatic backups · Free SSL · Git deploy · IP allow-listing
+- Dammam (me-central2)
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- One dashboard
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [Talk to a cloud expert](https://calendly.com/kloudbean)
+<!-- cta:end -->
 
 ## FAQ
 

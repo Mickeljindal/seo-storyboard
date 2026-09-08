@@ -130,11 +130,20 @@ Kloudbean does offer provider and region choice across seven clouds, and a built
 
 Context: [a Fly.io alternative](https://www.kloudbean.com/blog/fly-io-alternative/) and [why is my Fly.io bill so high](https://www.kloudbean.com/blog/why-is-my-fly-io-bill-so-high/). On the mechanics: [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/), [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/), [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/), and [migrating with zero downtime](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/). For workers, [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/).
 
-## Fewer moving parts, one predictable bill
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-Run your Node app and worker always-on under PM2, with managed PostgreSQL, managed Redis, and S3-compatible storage in one dashboard on a flat plan from $8/mo with no egress metering. Free migration assistance included, volumes and all. Start at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-Always-on under PM2 · Managed Postgres and Redis · S3-compatible storage · No egress metering · Free migration
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

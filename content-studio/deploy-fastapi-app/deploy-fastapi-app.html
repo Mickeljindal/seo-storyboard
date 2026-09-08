@@ -106,7 +106,7 @@ gunicorn main:app -k uvicorn.workers.UvicornWorker --workers 4 --bind 0.0.0.0:$P
   <p>Second, <strong>something to keep it alive</strong>: a process manager that restarts the app if it crashes or the box reboots. On managed cloud that supervision is built in. You hand over the start command and the platform keeps it running, no init scripts to write. Note the <code>$PORT</code> in both commands. The app must bind the port the platform assigns, not a hard-coded one, or the web server in front connects to nothing and you get a 503. That single mistake causes a big share of "it deployed but won't load" tickets, same as it does for <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">a Node app reading the wrong port</a>.</p>
 
   <figure>
-    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Deploy Code / Git Deployment tab: Install set to pip install requirements, Start set to the Uvicorn command binding the assigned port">
+    <img src="../assets/console-real/shots/git_connect_step_4.png" alt="The Kloudbean Deploy Code / Git Deployment tab: Install set to pip install requirements, Start set to the Uvicorn command binding the assigned port">
     <figcaption>Git Deployment: Install runs <code>pip install -r requirements.txt</code>, Start runs your Uvicorn command bound to <code>$PORT</code>. The platform supervises the workers.</figcaption>
   </figure>
 
@@ -135,7 +135,7 @@ async def users():
   <p>FastAPI is quick, so a single modest server handles more traffic than most people expect. My opinion, plainly: Uvicorn with a few workers behind the managed web server is the sane default, and most FastAPI apps never need more than that. When you do outgrow one box, you don't leap to container orchestration. You add a second server and put a <strong>load balancer</strong> in front to spread requests across both.</p>
 
   <figure>
-    <img src="../assets/console/flb-load-balancer.png" alt="The Kloudbean console load balancer spreading traffic across two FastAPI app servers with health checks">
+    <img src="../assets/console-real/shots/flb_launch_step_2.png" alt="The Kloudbean console load balancer spreading traffic across two FastAPI app servers with health checks">
     <figcaption>Horizontal scaling the boring way: two or three app servers behind a load balancer, each running Uvicorn workers, with health checks routing around any that go unhealthy.</figcaption>
   </figure>
 
@@ -152,22 +152,82 @@ async def users():
   <p>Add your secrets and database URL under <strong>Runtime Configuration &#8594; Environment Variables</strong> with the <strong>Paste .env</strong> tab, launch a <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">managed Postgres or MySQL</a> on the same box, point a domain, and install free Let's Encrypt SSL. Deployed a Flask app before? Then you already know this, you just swap <code>gunicorn app:app</code> for the Uvicorn command. The full WSGI walkthrough is <a href="https://www.kloudbean.com/blog/deploy-flask-app/">deploy a Flask app</a>, and the settings-first version is <a href="https://www.kloudbean.com/blog/deploy-django-app/">deploy a Django app</a>.</p>
 
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean Environment Variables screen: FastAPI database URL and secrets pasted in as a .env">
+    <img src="../assets/console-real/shots/fastapi_env_step_1.png" alt="The Kloudbean Environment Variables screen: FastAPI database URL and secrets pasted in as a .env">
     <figcaption>Environment Variables, Paste .env. Your database URL and secrets live on the server, and FastAPI reads them at startup.</figcaption>
   </figure>
 
   <p>One nice payoff once it's live: FastAPI generates interactive API docs for free at <code>/docs</code> (Swagger UI) and <code>/redoc</code>. Deploy, and they're immediately at <code>yourdomain.com/docs</code> with zero extra setup, which makes handing an API to a frontend team genuinely pleasant.</p>
 
   <!-- ADD IMAGE: swap this slot for a real <figure> with an <img> (src -> images/fastapi-docs.png) and a <figcaption>. -->
-  <figure class="img-slot"><span><b>Add image</b><em>Browser at yourdomain.com/docs showing FastAPI's auto-generated Swagger UI, live on the deployed app.</em><small>Shows the built-in interactive docs working in production.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #1
+Create a left-to-right architecture / flow diagram for a technical blog post titled "5 Myths About Deploying FastAPI (and What's Actually True)".
+
+What it must show: Browser at yourdomain.com/docs showing FastAPI's auto-generated Swagger UI, live on the deployed app.
+Also: Shows the built-in interactive docs working in production.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-flow.png" alt="Browser at yourdomain.com/docs showing FastAPI's auto-generated Swagger UI, live on the deployed app.">
+    <figcaption>One hop per box</figcaption>
+  </figure>
 
   <p>None of this fights the platform. FastAPI is Python on Linux, which is exactly what a managed server runs. Kloudbean keeps the server healthy, supervises your Uvicorn workers, handles SSL, and takes server-level backups. You own the app code, the worker count, the secrets, and the data. The myths all come from treating "fast and async" as if it needed exotic hosting. It doesn't. It needs a normal server, sensibly configured, and it flies. When it does 503, that means the app isn't running, and the cause is almost always the port, a missing env var, or the start command.</p>
   <p>Read the traceback in the dashboard: <strong>Application Administration &rarr; Logs Viewer</strong>, then the <strong>App Errors</strong> tab, which is the app's own error log. <strong>App Info</strong> and <strong>Web Requests Logs</strong> are separate tabs, and there's a search box for finding one exception in a busy file. Build failures live in <strong>Build and Deployment History</strong> instead, streaming live while the deploy runs. The same files are on disk at <code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/</code> (<code>app.error.log</code> and <code>app.info.log</code>) if you'd rather use a terminal or the File Manager. The checklist is <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploying</a>.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Fast doesn't mean complicated.</p>
-    <p style="margin:0">Deploy your FastAPI app, Uvicorn workers and all, at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Git deploy · Managed Postgres · Auto SSL · Load balancer when you need it · Free migration · Free trial. Sizes on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+<div class="kbcta-ai-wrap">
+  <div class="kbcta-ai-overlay"></div>
+  <div class="kbcta-ai-content">
+    <div class="kbcta-ai-eyebrow">AI APPS &middot; PRODUCTION INFRASTRUCTURE</div>
+    <p class="kbcta-ai-heading">Take it off localhost for good.</p>
+    <p class="kbcta-ai-description">Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.</p>
+    <ul class="kbcta-ai-features">
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Always-on processes</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration</li>
+    </ul>
+    <div class="kbcta-ai-buttons">
+      <a class="kbcta-ai-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-ai-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-ai: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-ai-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-ai-wrap *{box-sizing:border-box}
+.kbcta-ai-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-ai-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-ai-content{position:relative;z-index:3;max-width:700px}
+.kbcta-ai-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-ai-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-ai-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-ai-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-ai-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-ai-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-ai-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-ai-btn:hover,.kbcta-ai-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-ai-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-ai-link:hover,.kbcta-ai-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-ai-wrap{padding:36px 24px}
+  .kbcta-ai-heading{font-size:31px}
+  .kbcta-ai-description{font-size:16px}
+  .kbcta-ai-features li{white-space:normal}
+  .kbcta-ai-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-ai-btn{width:100%}
+  .kbcta-ai-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

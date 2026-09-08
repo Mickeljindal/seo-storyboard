@@ -63,7 +63,7 @@ Same numbers, in a table you can scan:
 
 Look at the second row again. **99.9% uptime allows almost nine hours of downtime a year**, and the host has still met its promise. That's a full working day where your site could be unreachable, entirely "within SLA." Jump to 99.99% and the yearly allowance drops to under an hour. One extra nine, a wildly different experience for your users.
 
-<!-- ADD IMAGE: a real provider SLA page with the uptime percentage and the exclusions clause highlighted -->
+![What '99.9%' really means](images/gen-1-flow.png)
 
 ## What even counts as "down"?
 
@@ -83,7 +83,7 @@ Do the math on that. Say an outage during a launch costs you a few thousand doll
 
 And there's a trap inside the trap: credits are rarely automatic. Most SLAs make *you* notice the outage and file a claim within a tight window, sometimes just a handful of days. Miss the window and the credit evaporates, no matter how badly the provider fell short. If uptime matters to you, monitor it yourself. Don't wait for the provider to volunteer that they missed.
 
-<!-- ADD IMAGE: a mocked invoice showing an SLA service credit as a small percentage of the monthly bill -->
+![Steps to determine credit](images/gen-2-flow.png)
 
 ## Uptime SLA vs real reliability (they're not the same thing)
 
@@ -93,11 +93,11 @@ I'll say it plainly: most outages I've watched teams live through weren't the pr
 
 Whether you get round to that depends mostly on how much work it is. On Kloudbean the Flexible Load Balancer sits in every account, off until you enable it, so a second node behind a balancer is a thing you switch on in the same dashboard as the servers rather than a week of wiring. Cheap redundancy is redundancy that actually gets built.
 
-![The Kloudbean console: a load balancer spreading traffic across multiple servers for redundancy](../assets/console/flb-load-balancer.png)
+![The Kloudbean console: a load balancer spreading traffic across multiple servers for redundancy](../assets/console-real/shots/flb_launch_step_2.png)
 
 So a headline SLA number and your app's actual availability are two different measurements. The provider promises a floor for one layer. Redundancy is how you build a reliable app on top of it. If you're weighing whether to run this yourself, that tradeoff is the whole story in [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/). And if a shaky SLA is what's pushing you to shop around, switching hosts is a logistics job, not a trap: see [how to migrate with zero downtime](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/) and the [managed cloud hosting myths](https://www.kloudbean.com/blog/managed-cloud-hosting-myths/) that keep people stuck.
 
-<!-- ADD IMAGE: an uptime monitoring graph with an outage dip, a recovery, and the SLA threshold line marked -->
+![SLA threshold: 99.9% uptime](images/gen-3-graph.png)
 
 ## A real example: the EC2 SLA
 
@@ -138,11 +138,21 @@ Work it in this order. Each step is cheap and each one changes what happens on a
 
 The part no provider closes, us included: a bad deploy at 4pm Friday, a migration that locks a table, an expired third-party API key, an unindexed query under load. None of those are SLA events, and none of them get better because you moved to a provider with an extra nine on the banner. We deliberately don't put a percentage on a banner. What we can hand you is the infrastructure floor and the redundancy parts. The architecture decision, and the deploy discipline, stay yours.
 
----
+<!-- cta:start -->
+**One dashboard for the whole stack.**
 
-**Read the nines. Then build above them.** Run redundant servers behind a built-in load balancer, on tier-1 cloud infrastructure, all from one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+Pick from seven clouds, run your app on a managed server you control, and keep databases, storage, and deploys in the same dashboard instead of four separate vendors.
 
-Seven clouds · Built-in load balancer · Automatic backups · Free migration · Free trial
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -132,11 +132,20 @@ For teams, subusers with granular per-resource and per-action permissions mean p
 
 On securing the server around this, [the server hardening checklist](https://www.kloudbean.com/blog/server-hardening-checklist/) and [Fail2ban and Shorewall](https://www.kloudbean.com/blog/fail2ban-shorewall-hardening/). On replacing manual uploads, [auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) and [zero downtime deployments](https://www.kloudbean.com/blog/zero-downtime-deployments/). On files that should not live on your server at all, [object storage for user uploads](https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/) and [S3 compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/). On the transport layer generally, [SSL and TLS explained](https://www.kloudbean.com/blog/ssl-tls-explained/). And for recovering from a mistake, [server backups](https://www.kloudbean.com/blog/server-backups-guide/).
 
-## Stop uploading. Start deploying.
+<!-- cta:start -->
+**Bring the app. Keep the deploy flow.**
 
-Managed servers across seven clouds with a firewall and intrusion prevention configured by default, free SSL, automatic backups, and Git deploys that replace manual file transfer entirely. From $8/mo, with free migration assistance. Start at [kloudbean.com](https://www.kloudbean.com/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-7 clouds · Firewall and Fail2ban by default · Free SSL · Automatic backups · Flat from $8/mo
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

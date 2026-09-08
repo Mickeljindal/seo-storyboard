@@ -20,7 +20,7 @@ Handle those three and you've handled most webhook bugs you'll ever hit.
 
 Here's the flow you're building. The important detail: the slow work happens *after* you've already answered the provider, not before. A provider POSTs the event, your HTTPS endpoint verifies the HMAC signature and returns 202 right away, the event goes onto a Redis queue, and a worker processes it on its own time, deduping on the event id.
 
-<!-- ADD IMAGE: a log line showing a rejected delivery (401 invalid signature) next to an accepted 202 -->
+![From rejection to acceptance](images/gen-1-flow.png)
 
 ## Receiving webhooks without dropping events
 
@@ -162,7 +162,7 @@ CREATE TABLE processed_events (
 
 Out-of-order delivery is the cousin of duplicates. Retries mean an `updated` event can arrive before the `created` one, so don't assume order. Where it matters, check a timestamp or version and ignore anything older than the state you already have.
 
-<!-- ADD IMAGE: Redis showing the dedupe keys (wh:evt_...) with their TTL counting down -->
+![Deduplication in Redis](images/gen-2-flow.png)
 
 ## What status code should a webhook return?
 
@@ -245,19 +245,19 @@ A webhook receiver is a normal Node or Python app, a Redis queue, and a worker. 
 
 1. **Add your app.** Create a Node or Python application for the receiver. Point it at your GitHub repo and every push builds and deploys. Express, FastAPI, Django, and Flask all work the same way, your webhook route is just an endpoint in the app.
 
-![The Kloudbean console adding a Node or Python application to host the webhook receiver](../assets/console/add-application.png)
+![The Kloudbean console adding a Node or Python application to host the webhook receiver](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 2. **Store the signing secret as an environment variable.** Open Runtime Configuration and add `WEBHOOK_SECRET`. It lives on the server, never in your code or Git history, and you can rotate it without a code change. More on doing this cleanly in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
-![The Kloudbean console Environment Variables screen where the webhook signing secret is stored](../assets/console/env-vars.png)
+![The Kloudbean console Environment Variables screen where the webhook signing secret is stored](../assets/console-real/shots/nodespm_env_step_1.png)
 
 3. **Launch managed Redis for the queue.** From the DBS section, launch a Redis instance. It comes up locked to your app server's IP, one click, and it's backed up. That's your BullMQ or Celery broker, reachable by the app internally and not exposed to the internet.
 
-![The Kloudbean console Launch Database screen selecting managed Redis for the webhook queue](../assets/console/launch-database.png)
+![The Kloudbean console Launch Database screen selecting managed Redis for the webhook queue](../assets/console-real/shots/psql_launch_step_1.png)
 
 4. **Run the worker.** The BullMQ or Celery worker is a second process beside the web app on the same server. It pulls jobs off Redis and does the slow work. The [Celery with Redis](https://www.kloudbean.com/blog/celery-with-redis/) guide walks through keeping it running. Your endpoint is already on HTTPS with free SSL, which webhooks require.
 
-<!-- ADD IMAGE: the deployed app tile showing the receiver, the worker process, and the linked Redis instance -->
+![From receiver to worker, via Redis](images/gen-3-flow.png)
 
 The guides on [deploying a Node app](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/), [deploying Express](https://www.kloudbean.com/blog/deploy-express-app/), and [deploying FastAPI](https://www.kloudbean.com/blog/deploy-fastapi-app/) cover the app side end to end.
 
@@ -272,13 +272,23 @@ Webhook security comes down to a handful of habits. Skip any one and endpoints g
 - **Don't trust the payload for authorization.** Before doing something sensitive, re-fetch the object from the provider's API by id. A verified signature proves the message is authentic, not that the state in it is still current.
 - **Allowlist source IPs if published.** Some providers publish their egress IP ranges. If yours does, restrict to them. Kloudbean's Shorewall firewall and Fail2ban already blunt random abuse at the edge.
 
-<!-- ADD IMAGE: a simple before and after showing an unverified endpoint accepting a forged event versus a verified one rejecting it -->
+![Security impact of webhook validation](images/gen-4-comparison.png)
 
----
+<!-- cta:start -->
+**One dashboard for the whole stack.**
 
-**Ship a webhook receiver that doesn't drop events.** Put your Node or Python app, a one-click Redis queue, and your worker on the same server, behind free SSL and IP allow-listing. Begin at [kloudbean.com](https://www.kloudbean.com/) and check what each tier includes on [pricing](https://www.kloudbean.com/pricing/). Free migration assistance if you're moving an existing integration over.
+Pick from seven clouds, run your app on a managed server you control, and keep databases, storage, and deploys in the same dashboard instead of four separate vendors.
 
-Managed Node and Python · One-click Redis · Env-stored secrets · Free SSL · Simple Git deploy
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

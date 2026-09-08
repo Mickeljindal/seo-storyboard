@@ -22,7 +22,7 @@ No. This one matters, so I'll be direct. Kloudbean does not provision servers on
 
 That makes this a true external comparison, not a "same box, different label" story. On one side, Hetzner: rock-bottom raw servers where you do all the sysadmin. On the other, a managed platform on seven other tier-1 clouds that takes the operations off your plate. So "Hetzner vs Kloudbean" really means raw and cheap versus managed and hands-off, on different infrastructure. Go the Kloudbean route and you'd run your app on one of those seven clouds, not on Hetzner. A migration, not a rewrite. More on the split in [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/).
 
-<!-- ADD IMAGE: a split graphic, a bare server rack labeled Hetzner on one side and a tidy dashboard labeled managed on the other. -->
+![Control vs Convenience](images/gen-1-comparison.png)
 
 ## The honest catch: raw means you're the sysadmin now
 
@@ -62,17 +62,17 @@ My honest read after seeing this many times: a cheap VPS was never actually chea
 
 Managed hosting moves that whole stack of chores to the platform. On Kloudbean you still pick a real cloud, so you're on tier-1 infrastructure; what changes is the layer on top. You launch a server and it comes up already hardened, with a Shorewall firewall and Fail2ban running, free SSL ready to issue and auto-renew, and automatic backups on. No day-one `apt install` marathon.
 
-![The Kloudbean console launching a managed server on a choice of seven clouds, with the price shown before you provision](../assets/console/add-server.png)
+![The Kloudbean console launching a managed server on a choice of seven clouds, with the price shown before you provision](../assets/console-real/shots/launch_server_step_1.png)
 
 *Pick the cloud, the size, the region. It comes up patched, firewalled, and backed up, not a bare OS you now have to secure yourself.*
 
 The bigger difference is scope. Hetzner gives you servers. Kloudbean gives you one dashboard for the whole stack. That means servers and applications, plus seven managed database engines you launch with one click (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB), built-in S3-compatible object storage and managed Google Cloud Storage buckets, and a built-in Flexible Load Balancer you enable when you need it. All under one login. On a raw box you'd install, secure, and babysit each of those yourself. If your app needs a database, wiring one up is a click rather than an afternoon of installing and hardening it by hand.
 
-<!-- ADD IMAGE: the whole-stack dashboard overview, servers plus apps plus databases plus storage in one view. -->
+![From Client to Server](images/gen-2-flow.png)
 
 Deploys change too. Instead of SSH and hand-rolled scripts, you connect a Git repo and the platform builds and ships on every push, with live build logs in the console. There's staging for WordPress and Laravel, subusers with granular access control, and cron jobs from the UI without a terminal. That's what people mean by managed, spelled out in [what a managed server is](https://www.kloudbean.com/blog/what-is-a-managed-server/). Server, stack, SSL, patching, and backups are handled, and your app code and data stay yours to export any day.
 
-![The Kloudbean console showing automatic backups running on a schedule, handled by the platform](../assets/console/manage-backups.png)
+![The Kloudbean console showing automatic backups running on a schedule, handled by the platform](../assets/console-real/shots/app_backup_step_2.png)
 
 *Backups run on a schedule without you scripting them. Still, test a restore once. That's the step everyone skips.*
 
@@ -101,7 +101,7 @@ Here's the whole comparison in one table, honest about where Hetzner wins (the r
 
 Read the price row and the OS row together, and there's the trade. Hetzner wins the sticker. Kloudbean wins the rows underneath. You're not paying more for the same server, you're paying to delete the list. For the wider field of managed platforms, we lined them up in [best managed cloud hosting](https://www.kloudbean.com/blog/best-managed-cloud-hosting/).
 
-<!-- ADD IMAGE: a two-column checklist contrasting "you do it" tasks on Hetzner with "handled" tasks on managed. -->
+![Automated or Manual?](images/gen-1-comparison.png)
 
 ## Is Hetzner good for WordPress or production?
 
@@ -123,13 +123,20 @@ Pick managed if your time and uptime are worth more than the price gap. If every
 
 The trap is picking on the sticker alone and discovering the rest of the bill in your evenings. Choose on the total, not the tip.
 
----
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-**Keep the low-fuss server. Skip the sysadmin shift.**
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-Launch a real server on the cloud you choose, hardened and backed up from minute one, then deploy by pushing code. Start free at [kloudbean.com](https://www.kloudbean.com/), or see plans on [pricing](https://www.kloudbean.com/pricing/). Migration off a raw box is free.
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
 
-7 clouds · One-click databases · Free auto-renewing SSL · Automatic backups · Firewall + Fail2ban built in · Free migration · Free trial
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

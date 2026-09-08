@@ -41,7 +41,7 @@ Here's a definition you can quote. A zero downtime deployment is a release where
 
 Three things make that work, and you need all three: more than one place to run the app with a load balancer in front, a real health check so the balancer knows who's ready, and changes that are safe to run side by side, because for a moment both versions are live against the same database. Miss one and "zero downtime" quietly becomes "downtime, occasionally."
 
-<!-- ADD IMAGE: a timeline of a naive deploy: old version stops, a red gap of failed requests, then the new version becomes healthy. Beside it, an overlapping deploy where the red gap is gone. -->
+![Transitioning to new version](images/gen-2-flow.png)
 
 ## Blue-green vs rolling deployment (and where canary fits)
 
@@ -100,7 +100,7 @@ process.on('SIGTERM', () => {
 
 Two details. `server.close()` refuses new connections but lets active ones drain, which is what you want. And the timeout isn't optional: without it, one stuck request holds the whole deploy hostage. On Node with PM2 running multiple workers, `pm2 reload` restarts them one at a time so there's always a live worker, a genuine zero downtime reload on a single server. The full Express path is in the [deploy an Express app guide](https://www.kloudbean.com/blog/deploy-express-app/), and closing the pool cleanly ties into [how connection pooling works](https://www.kloudbean.com/blog/database-connection-pooling/).
 
-<!-- ADD IMAGE: a deploy log showing the old instance receiving SIGTERM, draining in-flight requests, then exiting, while the new instance reports healthy. -->
+![Redeploy the last successful commit](images/gen-3-flow.png)
 
 ## The part nobody warns you about: database migrations
 
@@ -150,11 +150,11 @@ Kloudbean doesn't ship a magic "zero downtime" button, and you should be a littl
 
 **Managed CI/CD from Git.** Connect your repo and every push builds and deploys on the server, with the build log streaming live and a deployment history you can scroll back through. That history is your rollback: pick the last good commit and redeploy. It's also where you run migrations as part of the deploy so schema and code travel together. Full setup in the [auto-deploy from GitHub guide](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
-![The Kloudbean console Git deployment screen showing deploy on push, deployment history, and live build logs](../assets/console/git-deployment.png)
+![The Kloudbean console Git deployment screen showing deploy on push, deployment history, and live build logs](../assets/console-real/shots/git_connect_step_4.png)
 
 **The built-in Flexible Load Balancer.** This is the horizontal primitive behind rolling and blue-green. It's built into every account, off by default, enable it when you need it. Put your instances in an application pool and the balancer runs health checks and routes only to healthy members, with SSL managed at the balancer and access logs. Health-gated cutover across instances is exactly what a rolling deploy needs, and it's the switch you flip for blue-green.
 
-![The Kloudbean Flexible Load Balancer distributing traffic across healthy backend nodes in an application pool](../assets/console/flb-load-balancer.png)
+![The Kloudbean Flexible Load Balancer distributing traffic across healthy backend nodes in an application pool](../assets/console-real/shots/flb_launch_step_2.png)
 
 **PM2 multi-process for Node.** On a Node app, `pm2 reload` restarts your workers one at a time so there's always a live worker serving, a real single-server zero downtime reload with no load balancer required.
 
@@ -162,13 +162,25 @@ Kloudbean doesn't ship a magic "zero downtime" button, and you should be a littl
 
 One honest boundary. True autoscaling and Kubernetes-style orchestration are enterprise and custom-setup territory, not a standard-account toggle. For most teams that's fine, because a fixed pool behind the load balancer, deployed with rolling releases and backward-compatible migrations, is all a zero downtime deployment actually requires.
 
-<!-- ADD IMAGE: a deployment history list with the current green deploy at the top and an older successful deploy below it, ready to redeploy as a rollback. -->
+![Old version stops, new version becomes healthy](images/gen-1-graph.png)
 
 > **A calm deploy checklist.** Run more than one instance behind the load balancer. Make the health check ping the database, not just return 200. Handle `SIGTERM` and drain in-flight requests. Split every destructive migration into expand, backfill, contract. Keep the previous build one redeploy away. Rehearse on staging. That's a zero downtime deployment without any exotic tooling.
 
-**Ship the new version without the outage.** Deploy from Git with a live build log and a rollback that's one redeploy away, put your instances behind a built-in load balancer with health checks, and rehearse on staging first. Start at [kloudbean.com](https://www.kloudbean.com/) and check server sizes on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-Managed Git deploys · Deployment history · Built-in load balancer · Health checks · Staging · Free migration · Free trial
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

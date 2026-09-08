@@ -78,7 +78,7 @@ Uptime Kuma is a strong UptimeRobot alternative and a credible self-hosted Pingd
 
 The one real edge a hosted monitor has: it checks from many global locations you never have to run. That matters for a worldwide audience, and you can only approximate it by running Uptime Kuma in a couple of regions yourself. For most teams the ownership, unlimited monitors, and flat cost still win. Plenty of people run both, Uptime Kuma for the deep internal picture and a light external monitor for a distant second opinion.
 
-<!-- ADD IMAGE: Your live Uptime Kuma dashboard with a row of green monitors and one red, so readers see the payoff. -->
+![Real-time monitoring](images/gen-1-flow.png)
 
 ## Deploy Uptime Kuma on a managed Node server
 
@@ -88,7 +88,7 @@ Here's the production path end to end. Five steps, and the order is deliberate: 
 
 Start with the database, the piece you least want to lose. Provision a managed MariaDB instance, create a database named `uptimekuma`, and note its internal host and credentials. Managed means it's provisioned, patched, and backed up for you, and you whitelist your monitor's IP so it reaches the database without a public port. Prefer SQLite? Skip this and make sure the data directory lands on a persistent volume instead.
 
-![The Kloudbean console Launch Database screen used to provision managed MariaDB so Uptime Kuma monitoring history survives redeploys](../assets/console/launch-database.png)
+![The Kloudbean console Launch Database screen used to provision managed MariaDB so Uptime Kuma monitoring history survives redeploys](../assets/console-real/shots/psql_launch_step_1.png)
 
 Launch managed MariaDB first. Your monitoring history lives here, so it's the piece you back up and keep. Details in the [managed MariaDB hosting](https://www.kloudbean.com/blog/managed-mariadb-hosting/) guide.
 
@@ -96,13 +96,13 @@ Launch managed MariaDB first. Your monitoring history lives here, so it's the pi
 
 Add an application as a Node app and point it at the Uptime Kuma source (the official `louislam/uptime-kuma` repo, or your fork). Worth being straight: there's no magic one-click Uptime Kuma button. You're running the real Node app on a managed Node runtime, which lets you update on your own schedule. The [deploy a Node app](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) guide has the long form.
 
-![The Kloudbean console Add Application screen where the Uptime Kuma Node app is added to a managed server](../assets/console/add-application.png)
+![The Kloudbean console Add Application screen where the Uptime Kuma Node app is added to a managed server](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 ### 3. Point it at the database with environment variables
 
 To use managed MariaDB, set Uptime Kuma's database environment variables in the console, not in a file you might commit. Skip these and Uptime Kuma falls back to its default SQLite file.
 
-![The Kloudbean console Environment Variables screen where the Uptime Kuma MariaDB connection details are configured](../assets/console/env-vars.png)
+![The Kloudbean console Environment Variables screen where the Uptime Kuma MariaDB connection details are configured](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ```bash
 # Point Uptime Kuma at managed MariaDB instead of the default SQLite file.
@@ -136,7 +136,7 @@ npm run build
 node server/server.js   # starts Uptime Kuma on port 3001
 ```
 
-![The Kloudbean console Git deployment screen building and deploying the Uptime Kuma Node app from GitHub with live build logs](../assets/console/git-deployment.png)
+![The Kloudbean console Git deployment screen building and deploying the Uptime Kuma Node app from GitHub with live build logs](../assets/console-real/shots/git_connect_step_4.png)
 
 Connect GitHub and every push rebuilds and redeploys Uptime Kuma. The live build logs show it installing, building the frontend, and starting the server on port 3001.
 
@@ -144,7 +144,7 @@ Connect GitHub and every push rebuilds and redeploys Uptime Kuma. The live build
 
 Point a subdomain like `status.yourdomain.com` at the app, issue a free SSL certificate, and the dashboard is now served over HTTPS. On the first visit Uptime Kuma runs a short setup wizard where you create the admin account. Choose a strong password right there, because this dashboard maps out your whole infrastructure.
 
-![The Kloudbean console SSL certificate screen issuing free HTTPS for the self-hosted Uptime Kuma dashboard](../assets/console/ssl-certificate.png)
+![The Kloudbean console SSL certificate screen issuing free HTTPS for the self-hosted Uptime Kuma dashboard](../assets/console-real/shots/le_ssl_step_1.png)
 
 ## Set up your monitors, and the keyword trick
 
@@ -166,7 +166,7 @@ Monitors are created in the web UI, not a config file, so this part is quick. Fo
 
 My advice: don't just monitor the homepage. Monitor a real health endpoint that touches your database, and put a keyword monitor on a page that only renders correctly when the app is genuinely working. That pairing catches the failures a naive ping misses.
 
-<!-- ADD IMAGE: The Uptime Kuma add-monitor screen, or a finished public status page built from your monitors. -->
+![New monitors added to the public status page](images/gen-2-graph.png)
 
 ## Notifications: wire one before you need it
 
@@ -174,7 +174,7 @@ A monitor that notices an outage and tells no one is decoration. Uptime Kuma shi
 
 A couple of channels beats one, since people miss email. A Slack or Telegram ping is harder to sleep through, and a webhook can escalate to an on-call tool.
 
-<!-- ADD IMAGE: An Uptime Kuma outage alert as it lands in Slack or Telegram, so readers see the notification actually arrive. -->
+![Notification journey](images/gen-3-flow.png)
 
 ## Security: lock the dashboard, protect the data
 
@@ -194,17 +194,27 @@ Back to the point that matters most, the one people rationalize away to save a f
 
 The reasoning is boring and correct. If your monitor shares fate with your app, it can't warn you about the failures that take them both down together, and those hurt most. A small box in another region that only runs Uptime Kuma is some of the cheapest reliability insurance going. You can even watch that server's own health from the console, so the watcher doesn't go dark unnoticed.
 
-![The Kloudbean console server health view showing the small independent server that runs the self-hosted Uptime Kuma monitor](../assets/console/server-health.png)
+![The Kloudbean console server health view showing the small independent server that runs the self-hosted Uptime Kuma monitor](../assets/console-real/shots/server_health_step_2.png)
 
 Run Uptime Kuma on its own small server and keep an eye on that server's health too. The watcher needs watching, lightly.
 
 If this is your first self-hosted tool, you're in good company. The [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup is worth a browse, [self-hosting Supabase](https://www.kloudbean.com/blog/self-host-supabase/) is a natural next step for a backend you own, and for the broader theory of what to watch and how to alert without crying wolf, read [uptime monitoring](https://www.kloudbean.com/blog/uptime-monitoring/).
 
----
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-**Know before your users do.** Run the Uptime Kuma Node app on a managed server, keep its history in managed MariaDB, and host it on its own independent box. The OS, SSL, and backups are handled, so you watch your stack instead of babysitting the watcher. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Managed Node runtime · Managed MariaDB · Automatic backups · Free SSL · Free migration · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

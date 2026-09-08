@@ -48,7 +48,7 @@ It's worth being concrete, because this is the gap that surprises people. A work
 
 None of that means the code is wrong. The code is fine. It just needs a home that outlives the tab.
 
-<!-- ADD IMAGE: Bolt.new's Connect to GitHub / export panel, pushing the project to a new repository. -->
+![Push to new repository](images/gen-1-flow.png)
 
 ## Step one is an evacuation: get the real project out
 
@@ -77,7 +77,7 @@ What a fresh clone tends to surface:
 
 If it builds clean locally, the server deploy is almost boring. That's the goal.
 
-<!-- ADD IMAGE: Your terminal running a clean npm run build locally, surfacing a Module not found error the tab never showed. -->
+![Identify missing module](images/gen-2-terminal.png)
 
 ## The three things the sandbox was faking
 
@@ -102,7 +102,7 @@ Repo pushed and building clean? Now it's a short path through the console, with 
 
 Sign in to the [Kloudbean](https://www.kloudbean.com/) console and click **Add Server**. Pick a **Cloud Provider**, choose **Node.js** as the application, pick the datacenter nearest your users, and give the build room with 2 to 4 GB of memory. **Launch Now** provisions it in a few minutes, stack ready. This is the always-on machine the WebContainer was standing in for.
 
-![Kloudbean Add Server screen: choosing a cloud provider, Node.js application, datacenter, and server size](../assets/console/add-server.png)
+![Kloudbean Add Server screen: choosing a cloud provider, Node.js application, datacenter, and server size](../assets/console-real/shots/launch_server_step_1.png)
 
 Open the app, go to **Application Administration, Deploy Code**, connect GitHub, paste your repository URL, and pick the branch. Then set the runtime fields that actually matter:
 
@@ -111,17 +111,17 @@ Open the app, go to **Application Administration, Deploy Code**, connect GitHub,
 - **Node Version:** match what you built on locally.
 - **Install / Build / Start:** `npm install`, `npm run build`, then `npm start` (or a small server for a static Vite build).
 
-![Kloudbean Deploy Code / Git Deployment screen: connect the repo, set App Directory, port, and build and start commands](../assets/console/git-deployment.png)
+![Kloudbean Deploy Code / Git Deployment screen: connect the repo, set App Directory, port, and build and start commands](../assets/console-real/shots/git_connect_step_4.png)
 
 If your app stores data, launch a managed **Postgres** or **MySQL** from the console. It runs next to the app, gets backed up, and you reach it with a connection string you keep in environment variables, never in the repo. Already using a hosted database from Bolt and want to keep it? You can. Or bring it onto one owned server with an export and import.
 
 Add every key the app needs under **Runtime Configuration, Environment Variables**. The **Paste .env Content** tab is the quick way: paste, **Convert to Key/Value**, **Save**. A missing variable is the top reason an app builds fine then won't start, so be thorough. More on that in [environment variables, done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
-![Kloudbean environment variables editor with a paste .env content tab and a key value list](../assets/console/env-vars.png)
+![Kloudbean environment variables editor with a paste .env content tab and a key value list](../assets/console-real/shots/nodespm_env_step_1.png)
 
 Test on the temporary URL the app gets by default and click through the real flows off the WebContainer. Then add your custom domain under **Domain Aliases**, point its DNS at the server, install a free Let's Encrypt certificate, and turn on [automated deployment](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) so every push rebuilds and ships with the build log streaming live.
 
-<!-- ADD IMAGE: Your Bolt app live on its custom domain with the SSL padlock, next to the old Bolt preview tab. -->
+![Getting your Bolt.new app online](images/gen-3-comparison.png)
 
 ## When the deploy comes up as a 503
 
@@ -145,9 +145,21 @@ Once auto-deploy is on, you keep the best of both. Keep iterating in Bolt where 
 
 Kloudbean runs Linux web stacks: Node, plus PHP, Python, Ruby, and Java, with frameworks like React, Vue, Next.js, Laravel, and Django on top. That's what Bolt.new produces, so you're on solid ground. .NET on Linux is fine. A Windows Server instance is a Premium or Enterprise question. "Managed" means the server, stack, SSL, backups, and patching are handled, while you own and maintain the app itself. Prefer the tool-agnostic version that also covers Cursor, Lovable, and v0? That's the [deploy an AI-built app](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) guide, and the [Lovable walkthrough](https://www.kloudbean.com/blog/deploy-lovable-app-to-your-own-server/) is a close cousin of this one.
 
-## From preview to product
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-Get your Bolt.new app off the tab and onto a server you own at [kloudbean.com](https://www.kloudbean.com/). One-click databases · Automatic backups · Free migration · Free trial · Git deploy. Plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

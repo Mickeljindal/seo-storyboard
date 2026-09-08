@@ -95,7 +95,7 @@ Read this as a fit check. The right column is not a flaw, it is what each model 
 | Unmanaged VPS | Control and lowest sticker price | Flat and cheap | Your time, permanently |
 | Managed cloud | Always-on apps with a database | Flat, per server | Scale-to-zero for idle projects |
 
-<!-- ADD IMAGE: a filled-in worksheet answering the four questions for one real app, with the resulting model circled -->
+![Choose the best model for your app](images/gen-1-flow.png)
 
 ## Why pricing shape matters more than price
 
@@ -123,11 +123,11 @@ Because the database can run on the same server as the app, it is reachable over
 
 Where this model is the wrong answer, plainly: an app that idles most of the day will cost less somewhere that scales to zero, and if you need containers on a standard plan or automatic autoscaling, that is not what this is. Edge compute and serverless are genuinely different categories and we are not pretending to be them. What an always-on server plus a CDN in front does cover is the common version of the latency problem, where the goal is fast delivery to a spread-out audience rather than running compute in twelve regions.
 
-![The Kloudbean console adding a Node.js application and connecting a GitHub repository, with the managed database available in the same dashboard](../assets/console/add-application.png)
+![The Kloudbean console adding a Node.js application and connecting a GitHub repository, with the managed database available in the same dashboard](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 *Add the application, connect the repository, and managed CI/CD builds and deploys on every push, on the same dashboard as the database it talks to.*
 
-<!-- ADD IMAGE: the Node runtime and environment variables screen, showing the version pinned and config set without SSH -->
+![Kloudbean console session](images/gen-2-terminal.png)
 
 ## Moving an existing Node app over
 
@@ -172,11 +172,21 @@ The cheapest deployment is not the same thing as the cheapest production system.
 
 If your app needs to stay awake, talk to a database, run its workers, and keep serving customers without turning you into the sysadmin, that is where Kloudbean fits. Not as a better version of everything above, but as the right answer to one specific and very common architecture. Once you have picked the model, the hands-on walkthroughs go framework by framework: [a Node app on managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/), [Express](https://www.kloudbean.com/blog/deploy-express-app/), and [NestJS](https://www.kloudbean.com/blog/deploy-nestjs-app/).
 
----
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-**Always-on Node, with the database beside it.** Deploy from GitHub, run under PM2 on a real server across seven clouds, and launch a managed database in the same dashboard, with automatic backups, free SSL, and a bill you can forecast before traffic arrives. Standard plans start from $8/mo. Start at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Deploy from GitHub · Always-on, no cold starts · 7 managed database engines · Automatic backups · Free SSL · IP allow-listing · Free migration · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

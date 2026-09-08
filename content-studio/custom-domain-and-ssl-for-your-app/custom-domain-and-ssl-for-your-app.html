@@ -114,7 +114,10 @@
   <p>That's the whole DNS for a web app in most cases: one A record and one CNAME. The A record maps a name straight to an IPv4 address; if your server has IPv6, an <code>AAAA</code> record does the same for it. A CNAME maps a name to <em>another name</em> rather than an IP, which is why <code>www</code> can follow the apex around if the underlying IP ever changes.</p>
 
   <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/domain-aliases.png) and a <figcaption> -->
-  <figure class="img-slot"><span><b>Add image</b><em>The Domain Aliases screen with the apex and www domains added, so readers see where the domain goes in the console.</em><small>Grounds Stage 1. Use your own screenshot.</small></span></figure>
+  <figure>
+    <img src="../assets/console-real/shots/domain_alias_step_2.png" alt="The Domain Aliases screen with the apex and www domains added, so readers see where the domain goes in the console.">
+    <figcaption>Add the apex and www domains as aliases</figcaption>
+  </figure>
 
   <h2>Stage 2: let DNS propagate (the honest wait)</h2>
   <p>You saved the records. The domain still doesn't load your app. Don't panic, and don't start changing things. DNS changes take time to spread across the internet's resolvers. Sometimes it's a couple of minutes. Sometimes it's a few hours. That window is baked into how DNS works, and no host or registrar can make a global change instant. This is genuinely out of everyone's hands, including ours, so anyone promising instant propagation is bluffing.</p>
@@ -129,6 +132,13 @@
   <p>After that, renewal is not your job. Let's Encrypt certificates are short-lived by design, and on a managed platform they renew automatically before they expire. You set this up once and stop thinking about it. That's a real difference from running a bare VPS, where renewal is a cron job you write, babysit, and get paged about when it silently fails.</p>
 
   <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/padlock.png) and a <figcaption> -->
+  <!-- IMAGE CAPTURE [browser-shot] #1
+SCREENSHOT NEEDED (do not generate this one).
+This slot shows a real browser window (address bar, devtools, or tabs), so an AI image would be inaccurate and a reader could tell.
+Capture: The browser address bar showing your own domain with the HTTPS padlock, the payoff shot for the whole guide.
+Note: Use a screenshot of your live site.
+Crop to 16:9, keep text legible at 1200px wide, and blur or fake any real credentials, tokens, IPs or customer data.
+-->
   <figure class="img-slot"><span><b>Add image</b><em>The browser address bar showing your own domain with the HTTPS padlock, the payoff shot for the whole guide.</em><small>Use a screenshot of your live site.</small></span></figure>
 
   <h2>Don't pay for a basic SSL certificate</h2>
@@ -155,17 +165,75 @@
   </ul>
 
   <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/ssl-install.png) and a <figcaption> -->
-  <figure class="img-slot"><span><b>Add image</b><em>The SSL screen showing a free Let's Encrypt certificate issued and active, with auto-renew on.</em></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "How to Add a Custom Domain and Free SSL to Your App".
+
+What it must show: The SSL screen showing a free Let's Encrypt certificate issued and active, with auto-renew on.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="The SSL screen showing a free Let's Encrypt certificate issued and active, with auto-renew on.">
+    <figcaption>Steps to get a free SSL certificate</figcaption>
+  </figure>
 
   <div class="note"><b>Running Cloudflare in front?</b> Two settings save a lot of head-scratching. While you issue your server's Let's Encrypt certificate, temporarily set the DNS record to "DNS only" (grey cloud) so the domain-control check reaches your server directly, then re-enable proxying. And set Cloudflare's SSL mode to "Full (strict)" so it validates your server's real certificate, never "Flexible," which leaves the hop between Cloudflare and your server unencrypted. Not using Cloudflare? A plain A record at your registrar is all you need. Ignore this.</div>
 
   <h2>What this does not cover</h2>
   <p>On Kloudbean, adding a domain and issuing a free Let's Encrypt certificate are console operations on your <strong>Linux</strong> server, and renewal is automatic. Two honest notes. Propagation time is inherent to DNS, so a short wait after you change records is normal, not a red flag. And your DNS records live at your registrar, not in the hosting console: the console tells the server which domains to answer for and handles the certificate, but the actual A and CNAME records are managed wherever the domain is registered. Get those two right and HTTPS for your deployed app is a few calm steps. If you built in a tool like Lovable, the whole deploy-then-domain path is in <a href="https://www.kloudbean.com/blog/deploy-lovable-app-to-your-own-server/">deploying a Lovable app to your own server</a>, and once the domain's live you'll want <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">auto-deploy from GitHub</a> so updates ship on every push.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Your address. The padlock. Done.</p>
-    <p style="margin:0">Point your domain and issue free SSL at <a href="https://www.kloudbean.com/">kloudbean.com</a>, with a free trial and your first migration done for you. The full deploy path is in the <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy guide</a>; server sizes are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+<div class="kbcta-sec-wrap">
+  <div class="kbcta-sec-overlay"></div>
+  <div class="kbcta-sec-content">
+    <div class="kbcta-sec-eyebrow">SECURITY &middot; HARDENED BY DEFAULT</div>
+    <p class="kbcta-sec-heading">Patched, firewalled, and backed up.</p>
+    <p class="kbcta-sec-description">The platform keeps the server, stack, SSL, and patching current, with automatic backups running. Application-level security stays yours, and that split is deliberate rather than hidden.</p>
+    <ul class="kbcta-sec-features">
+      <li>&#10003; Shorewall firewall</li>
+      <li>&#10003; Fail2ban</li>
+      <li>&#10003; OS patching handled</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; IP access control</li>
+      <li>&#10003; Automatic backups</li>
+    </ul>
+    <div class="kbcta-sec-buttons">
+      <a class="kbcta-sec-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-sec-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-sec: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-sec-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-sec-wrap *{box-sizing:border-box}
+.kbcta-sec-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-sec-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-sec-content{position:relative;z-index:3;max-width:700px}
+.kbcta-sec-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-sec-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-sec-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-sec-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-sec-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-sec-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-sec-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-sec-btn:hover,.kbcta-sec-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-sec-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-sec-link:hover,.kbcta-sec-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-sec-wrap{padding:36px 24px}
+  .kbcta-sec-heading{font-size:31px}
+  .kbcta-sec-description{font-size:16px}
+  .kbcta-sec-features li{white-space:normal}
+  .kbcta-sec-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-sec-btn{width:100%}
+  .kbcta-sec-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

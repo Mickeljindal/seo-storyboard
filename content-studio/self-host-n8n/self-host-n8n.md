@@ -58,7 +58,7 @@ The daily Slack post is nothing, about 30 executions a month. But the five-minut
 
 On a self-hosted box, that same trio costs exactly what the server costs. Add ten more like them and it still costs what the server costs. The executions you couldn't easily predict simply stop being a billing input. That's the move, in one paragraph.
 
-<!-- ADD IMAGE: The n8n workflow editor with a real automation, a schedule trigger feeding a couple of nodes into a Slack or HTTP action. -->
+![Confirms settings took effect](images/gen-3-terminal.png)
 
 ## The other reason people move: the data
 
@@ -80,7 +80,7 @@ Good news: n8n is light. It runs happily on a roughly **1 GB** server for person
 
 By default n8n stores everything in a SQLite file. Fine for testing. Wrong for anything you depend on, because it handles concurrent executions poorly and a single file is a fragile place to keep your automation history and credentials. For production you want **PostgreSQL** behind it, and on a managed platform that's a one-click launch:
 
-![The Kloudbean console Launch Database screen used to give n8n a managed PostgreSQL instead of the default SQLite file](../assets/console/launch-database.png)
+![The Kloudbean console Launch Database screen used to give n8n a managed PostgreSQL instead of the default SQLite file](../assets/console-real/shots/psql_launch_step_1.png)
 
 Spin up a managed Postgres and point n8n at it with a few environment variables (`DB_TYPE=postgresdb` and the connection details). Now your automation history and saved credentials sit in a real database that's backed up for you. The [managed database guide](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) covers the connection details, and there's a dedicated [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) page.
 
@@ -88,7 +88,7 @@ Spin up a managed Postgres and point n8n at it with a few environment variables 
 
 You don't have to hand-install anything. Add an application, choose n8n, and the platform stands it up on your server. The stack, the web layer, and a free SSL certificate come ready, so you're not configuring a reverse proxy by hand.
 
-![The Kloudbean console Add Application screen where n8n is deployed in one click onto your own server](../assets/console/add-application.png)
+![The Kloudbean console Add Application screen where n8n is deployed in one click onto your own server](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
 Four moves and you're done: launch a small server, deploy n8n in one click, give it managed Postgres, and reach it at `n8n.yourdomain.com` over HTTPS. Because n8n is so light, it can share that server with your other tools, which is the whole idea behind [hosting multiple apps on one server](https://www.kloudbean.com/blog/host-multiple-apps-one-server/).
 
@@ -101,7 +101,7 @@ Get these right on day one. They cause most of the "why is it broken?" moments i
 - **`N8N_ENCRYPTION_KEY`**: n8n encrypts your saved credentials with this key. Set it once and keep it safe. If it changes or gets lost, n8n can't decrypt your stored credentials and every connected account breaks at once. Treat it like a password you can never rotate casually.
 - **`WEBHOOK_URL`**: n8n needs to know its own public address to build webhook URLs that external services can reach. Set it to your real domain. Skip it and your webhooks point at the wrong place and fail silently, which is the worst kind of failure because nothing errors out.
 
-![The Kloudbean console Environment Variables screen where the n8n encryption key and webhook URL are set](../assets/console/env-vars.png)
+![The Kloudbean console Environment Variables screen where the n8n encryption key and webhook URL are set](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ```bash
 # Set these before you build important workflows
@@ -128,11 +128,21 @@ Most people never need this, and I'd rather you know that than over-build on day
 
 Self-hosting shifts a little responsibility onto you, and it's fair to name it. You own the n8n app: its occasional updates, and making sure its database is backed up. The platform keeps the server underneath healthy, which means the OS, the web stack, SSL, and server-level backups. It's a Linux app, which is exactly what n8n is built for, running on your box under your control. In return you get unlimited executions and data that never leaves your server. For anyone running real automation volume, that's barely a trade. Keep an eye on [backups](https://www.kloudbean.com/blog/server-backups-guide/) and you're set.
 
----
+<!-- cta:start -->
+**Take it off localhost for good.**
 
-**Unlimited executions. One flat bill.** Launch n8n in one click, give it a managed Postgres, and run every workflow you want on a server you own. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-One-click n8n · Managed PostgreSQL · Unlimited executions · Automatic backups · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

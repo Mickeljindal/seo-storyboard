@@ -42,7 +42,21 @@
   <p>The fix is old and boring and it works. Hand the slow work to a queue and return right away. The user gets a response in milliseconds. A separate process does the real work a moment later, retries if it fails, and no one's browser is held hostage while it happens.</p>
 
   <!-- Author: swap this placeholder for a real image. src -> images/504-timeout-log.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>App log showing a request that blew past the 30s worker timeout and returned a 504, the exact failure this article prevents.</em><small>A real screenshot beats a diagram here.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #1
+Create a left-to-right architecture / flow diagram for a technical blog post titled "Celery with Redis: Background Tasks in Python, Built for Production".
+
+What it must show: App log showing a request that blew past the 30s worker timeout and returned a 504, the exact failure this article prevents.
+Also: A real screenshot beats a diagram here.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-flow.png" alt="App log showing a request that blew past the 30s worker timeout and returned a 504, the exact failure this article prevents.">
+    <figcaption>Worker task exceeds timeout</figcaption>
+  </figure>
 
   <h2>Celery with Redis: how the pieces fit together</h2>
   <p>Celery is a task queue for Python. You write ordinary functions, mark them as tasks, and Celery arranges for them to run outside the request in a separate worker process. It needs somewhere to hold the messages while they wait for a worker. That place is the broker.</p>
@@ -147,7 +161,21 @@ celery -A app worker --loglevel=info --concurrency=4</code></pre>
   <div class="note"><b>Web app and worker are two separate processes.</b> Your app server (gunicorn, uvicorn) handles requests and enqueues jobs. The worker runs them. They never share memory, only the broker URL. So the worker has to be running for anything to happen. If nobody starts it, jobs just pile up in Redis and go nowhere.</div>
 
   <!-- Author: swap this placeholder for a real image. src -> images/worker-startup.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Terminal screenshot of the Celery worker booting: the startup banner, the broker line, the registered task list, and four ready processes.</em><small>Blur any real credentials in the broker URL.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #2
+Create a realistic terminal / command-line screenshot for a technical blog post titled "Celery with Redis: Background Tasks in Python, Built for Production".
+
+What it must show: Terminal screenshot of the Celery worker booting: the startup banner, the broker line, the registered task list, and four ready processes.
+Also: Blur any real credentials in the broker URL.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-terminal.png" alt="Terminal screenshot of the Celery worker booting: the startup banner, the broker line, the registered task list, and four ready processes.">
+    <figcaption>Real replies, not pseudo-code</figcaption>
+  </figure>
 
   <h2>Celery Beat: periodic tasks on a schedule</h2>
   <p>Plenty of work isn't triggered by a user at all. Nightly cleanups, a sync every five minutes, a Monday report. Celery Beat is the built-in scheduler for that. It's important to be clear about what Beat does: it doesn't run tasks, it enqueues them on a timer, and your normal worker picks them up. Same queue, same workers.</p>
@@ -217,7 +245,21 @@ celery -A app worker --pool=gevent --concurrency=200</code></pre>
   <p>A queue you can't see is a queue you can't trust. <strong>Flower</strong> is the usual answer, a small web dashboard that shows active workers, task rates, and which jobs succeeded, failed, or retried. Run it next to your worker (<code>celery -A app flower</code>) and put it behind auth. Beyond that, watch queue length in Redis. A number that only climbs means your workers can't keep up, and it's the earliest warning you'll get.</p>
 
   <!-- Author: swap this placeholder for a real image. src -> images/flower-dashboard.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Flower dashboard showing active workers, task throughput, and a mix of succeeded and retried tasks.</em><small>Or your own monitoring view if you use something else.</small></span></figure>
+  <!-- IMAGE GENERATE [graph] #3
+Create a clean line chart / time-series graph for a technical blog post titled "Celery with Redis: Background Tasks in Python, Built for Production".
+
+What it must show: Flower dashboard showing active workers, task throughput, and a mix of succeeded and retried tasks.
+Also: Or your own monitoring view if you use something else.
+
+Label both axes. Draw the trend the description implies. Add a dashed red threshold line only if a limit is being hit. Legible axis labels, no 3D, no gradient clutter.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-graph.png" alt="Flower dashboard showing active workers, task throughput, and a mix of succeeded and retried tasks.">
+    <figcaption>Task throughput increases</figcaption>
+  </figure>
 
   <h2>Deploy Celery and Redis on Kloudbean</h2>
   <p>Here's the part the tutorials skip: where does this actually run? On Kloudbean it's one server with a managed Redis beside your Python app, so the broker sits right next to your app, locked to your app server's IP, and the worker runs a hop away from the queue.</p>
@@ -226,7 +268,7 @@ celery -A app worker --pool=gevent --concurrency=200</code></pre>
     <li><strong>Launch a managed Redis.</strong> Open the DBS section and hit Launch Database. Redis is one of the managed engines, so it's provisioned, secured, backed up, and reachable only from your whitelisted app server's IP in a minute or two.</li>
   </ol>
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed Redis, the broker for Celery, from the list of managed database engines">
+    <img src="../assets/console-real/shots/redis_launch_step_1.png" alt="The Kloudbean console launching a managed Redis, the broker for Celery, from the list of managed database engines">
     <figcaption>DBS then Launch Database: Redis is one of seven managed engines, provisioned on your server and locked to your app server's IP.</figcaption>
   </figure>
 
@@ -239,7 +281,7 @@ CELERY_BROKER_URL=redis://:sup3r-secret@10.0.0.6:6379/0
 # result backend (optional): Redis DB 1, kept separate from the broker
 CELERY_RESULT_BACKEND=redis://:sup3r-secret@10.0.0.6:6379/1</code></pre>
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables screen, where CELERY_BROKER_URL is stored safely instead of in code">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean console Environment Variables screen, where CELERY_BROKER_URL is stored safely instead of in code">
     <figcaption>Runtime Configuration then Environment Variables: <code>CELERY_BROKER_URL</code> lives here, never in your repository.</figcaption>
   </figure>
   <p>That <code>10.0.0.6</code> is an internal address, and the password rides in the URL. Because it's an env var, you rotate it without touching code. There's a fuller treatment in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</p>
@@ -254,7 +296,21 @@ CELERY_RESULT_BACKEND=redis://:sup3r-secret@10.0.0.6:6379/1</code></pre>
   </figure>
 
   <!-- Author: swap this placeholder for a real image. src -> images/worker-process.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The worker running as a supervised long-lived process on the server, with its logs streaming.</em><small>Shows the "keep it alive" point better than prose.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #4
+Create a left-to-right architecture / flow diagram for a technical blog post titled "Celery with Redis: Background Tasks in Python, Built for Production".
+
+What it must show: The worker running as a supervised long-lived process on the server, with its logs streaming.
+Also: Shows the "keep it alive" point better than prose.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-4-flow.png" alt="The worker running as a supervised long-lived process on the server, with its logs streaming.">
+    <figcaption>Long-lived process on server</figcaption>
+  </figure>
 
   <h2>Keep Redis and your tasks secure</h2>
   <p>A broker holds your pending work, and sometimes that work carries sensitive arguments. Lock it down:</p>
@@ -268,11 +324,55 @@ CELERY_RESULT_BACKEND=redis://:sup3r-secret@10.0.0.6:6379/1</code></pre>
   <h2>Where this fits in your stack</h2>
   <p>A task queue rarely travels alone. The worker writes to a database, so a <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> usually sits next to Redis. The same Redis often caches your hot reads. And if part of your platform is a Node service instead of Python, the pattern is identical for a <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">Node app</a> with a queue like BullMQ, also backed by Redis. One dashboard, one server, one bill, and the slow work living where it belongs.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Move the slow work off the request.</p>
-    <p style="margin:0 0 .6em">Launch managed Redis as your Celery broker, deploy your Python app beside it, and run your worker on the same server. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">One-click managed Redis · Automatic backups · Free migration assistance · Free trial · Simple Git deploy</p>
+<div class="kbcta-db-wrap">
+  <div class="kbcta-db-overlay"></div>
+  <div class="kbcta-db-content">
+    <div class="kbcta-db-eyebrow">MANAGED DATABASES &middot; SEVEN ENGINES</div>
+    <p class="kbcta-db-heading">A database you can dump and take with you.</p>
+    <p class="kbcta-db-description">Seven managed engines, provisioned and patched for you, with access controlled and backups running automatically. Your schema, your queries, and your data stay exportable with the standard tools.</p>
+    <ul class="kbcta-db-features">
+      <li>&#10003; Seven managed engines</li>
+      <li>&#10003; One-click launch</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Controlled access</li>
+      <li>&#10003; Standard connection strings</li>
+      <li>&#10003; Free migration assistance</li>
+    </ul>
+    <div class="kbcta-db-buttons">
+      <a class="kbcta-db-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-db-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-db: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-db-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#04202B;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-db-wrap *{box-sizing:border-box}
+.kbcta-db-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #04202B 0%, #073947 55%, rgba(14,116,144,.62) 100%);pointer-events:none}
+.kbcta-db-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-db-content{position:relative;z-index:3;max-width:700px}
+.kbcta-db-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-db-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-db-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-db-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-db-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-db-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-db-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#064454;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-db-btn:hover,.kbcta-db-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-db-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-db-link:hover,.kbcta-db-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-db-wrap{padding:36px 24px}
+  .kbcta-db-heading{font-size:31px}
+  .kbcta-db-description{font-size:16px}
+  .kbcta-db-features li{white-space:normal}
+  .kbcta-db-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-db-btn{width:100%}
+  .kbcta-db-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

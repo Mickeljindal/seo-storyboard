@@ -32,7 +32,7 @@ Quick version, because another page owns the full argument. Your app's filesyste
 
 Postgres is the natural landing spot. It's strict where SQLite is loose, it handles real concurrency, and a managed one is a solved problem to run. If you're still deciding what belongs in a database versus object storage versus a cache, [persistent storage for AI apps](https://www.kloudbean.com/blog/persistent-storage-for-ai-apps/) sorts that out. Assuming you've decided, let's move.
 
-<!-- ADD IMAGE: side by side of app.db sitting on the app's local disk versus a managed Postgres running as its own service outside the app -->
+![Key differences for AI app](images/gen-1-comparison.png)
 
 ## The plan to migrate SQLite to PostgreSQL
 
@@ -150,7 +150,7 @@ CAST type integer to bigint,
 
 Notice `reset sequences` in there. That's pgloader handling gotcha number five for you, which is one big reason to prefer it over a hand-rolled dump. When it finishes it prints a summary table: rows read, rows loaded, and any that errored. Read that summary. If the counts don't match, something got rejected and you want to know before you cut over, not after.
 
-<!-- ADD IMAGE: a terminal showing pgloader's end-of-run summary table with rows read and rows loaded per table -->
+![pgloader's end-of-run summary: rows read and rows loaded per table](images/gen-2-terminal.png)
 
 pgloader isn't the answer for everyone. If your app already manages its schema through an ORM, running pgloader can leave the ORM's migration history out of step with reality. In that case, path B is cleaner.
 
@@ -195,7 +195,7 @@ Steps 4 and 5 are only calm if changing one environment variable is genuinely ea
 
 And here's the anti-pattern that catches people, because it looks like success. You repoint the app at a brand-new, empty Postgres and deploy before moving the data. The app boots. No errors. It "works." Except it's a fresh install with zero rows, and if any code path writes before you notice, you now have data split across two databases and a real mess to reconcile. An empty database that starts clean is not the same as a migrated one. Verify row counts before you trust a green deploy.
 
-<!-- ADD IMAGE: two count queries side by side, the same SELECT count of rows on SQLite and on Postgres, showing the totals match before cutover -->
+![Before cutover](images/gen-3-flow.png)
 
 Do the migration now, while the data is still small. That's the one strong opinion I'll push here. Every week you leave an AI app on SQLite in production, the dataset grows, more real users depend on it, and the cutover gets riskier. The migration you do at 200 rows is a coffee break. The one you keep putting off until 200,000 rows and paying customers is a maintenance window with your heart rate up. Small is easy. Waiting only makes it harder.
 
@@ -216,13 +216,20 @@ Be precise about that fourth item though, because a lot of writing on this is sl
 
 And the part no host fixes, ours included: nothing on this page happens automatically. No platform finds the row where a text value snuck into an integer column, decides whether your `created_at` strings are UTC, or resets `users_id_seq` for you. Provisioning is a few clicks anywhere decent. The cleanup is the migration, and it's yours. What managed hosting buys is that the database keeps existing after you're done, which is the whole reason you're here.
 
-## Move your AI app onto Postgres for good
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-**Provision a managed PostgreSQL that survives every redeploy, then bring your data across with free migration help.** One dashboard, a connection string, and your data finally lives somewhere a deploy can't wipe. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.
 
-Managed Postgres · Free migration assistance · Automatic backups · Free SSL · IP allow-listing · Git deploy · From $8/mo
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
 
-<!-- ADD IMAGE: the Kloudbean dashboard launching a managed PostgreSQL, showing the connection string and IP access control -->
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

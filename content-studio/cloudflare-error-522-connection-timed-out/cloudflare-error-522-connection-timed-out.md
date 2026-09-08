@@ -121,9 +121,20 @@ The boundary stays where it always is. The managed part is the machine and every
 
 Start at the [Cloudflare 5xx error codes](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/) overview if you're not certain which number you have. The nearest neighbours: [521 web server is down](https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/) for the refused case and the allowlist detail, [520](https://www.kloudbean.com/blog/cloudflare-error-520/) when the origin replies with something Cloudflare cannot parse, and [525 SSL handshake failed](https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/) when the connection succeeds and TLS does not. For the slow-response family, [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/) and [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/). At the browser layer the same refused-versus-ignored logic appears in [ERR_CONNECTION_RESET](https://www.kloudbean.com/blog/err-connection-reset/), and [this site can't be reached](https://www.kloudbean.com/blog/this-site-cant-be-reached/) maps every Chrome code to its layer.
 
-**See the firewall and the load in one place.** Managed servers across seven clouds, with Shorewall and Fail2ban configured by default, IP access rules and bans visible in the dashboard, and server health metrics beside them. Free SSL issued and renewed. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Deploys that tell you what broke.**
 
-Firewall configured · Visible bans · Server metrics · Free SSL · One dashboard
+Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.
+
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

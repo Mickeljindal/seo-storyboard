@@ -136,7 +136,21 @@
   <p>Some cPanel hosts bolt on a "set up Node app" feature through Passenger. It can start a small app, and that fools people into thinking the platform supports this. Then you hit the ceilings from the last section: little memory, no real process control, no worker, no database you can shape, and it topples the moment the app is more than a demo or the server restarts. It works just well enough to become your emergency later.</p>
 
   <!-- ADD IMAGE: swap this slot for a real screenshot. src -> images/passenger-500.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A cPanel Node setup screen or a browser showing the 500 / Passenger error when a client's app fails to start.</em><small>Author-supplied screenshot, shows the failure rather than describing it.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #1
+Create a left-to-right architecture / flow diagram for a technical blog post titled "Hosting AI-Built Apps for Clients: A WordPress Agency's New Job".
+
+What it must show: A cPanel Node setup screen or a browser showing the 500 / Passenger error when a client's app fails to start.
+Also: Author-supplied screenshot, shows the failure rather than describing it.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-flow.png" alt="A cPanel Node setup screen or a browser showing the 500 / Passenger error when a client's app fails to start.">
+    <figcaption>From cPanel to 500 / Passenger Error</figcaption>
+  </figure>
 
   <h2>What hosting AI-built apps for clients actually needs</h2>
   <p>Flip the capability gap into a shopping list. To host client apps properly, without the hacks, you want a server or managed cloud that gives you:</p>
@@ -186,11 +200,55 @@
   <p>Kloudbean is one option shaped like that. It runs WordPress plus Node, Python, Ruby, Java, static sites, and AI apps on managed servers across several clouds, from one dashboard, so the WordPress fleet and the new app work share a home. Per-client isolation comes from subusers and scoped User Access Control, and you get staging (for WordPress and Laravel), automatic backups, free SSL, managed databases, and Git-based deploys with build and live logs. Migration help is free if you're moving existing sites in, which the <a href="https://www.kloudbean.com/blog/migrate-wordpress-to-kloudbean/">WordPress migration guide</a> walks through, and standard plans start at $8/mo (check the pricing page for current numbers). If a client specifically wants to run their own model, that's the GPU case, and <a href="https://www.kloudbean.com/blog/self-host-an-llm/">self-hosting an LLM</a> covers the memory math behind it.</p>
   <p>One honest boundary, because it decides who owns what when you're the one being paid to keep it running: the managed part covers the server, the stack, TLS, backups, and patching. The client's app code and their data stay yours and the client's to own. That line is worth putting in the contract.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">You don't have to leave WordPress to take AI work.</p>
-    <p style="margin:0 0 .6em">Run the WordPress fleet and the new apps in one place at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.85">Runs WordPress and Node / Python &middot; Managed databases &middot; Staging &middot; Automatic backups &middot; Free SSL &middot; Free migration &middot; Free trial &middot; Simple Git deploy</p>
+<div class="kbcta-wp-wrap">
+  <div class="kbcta-wp-overlay"></div>
+  <div class="kbcta-wp-content">
+    <div class="kbcta-wp-eyebrow">MANAGED WORDPRESS &middot; ONE DASHBOARD</div>
+    <p class="kbcta-wp-heading">Let someone else patch the server.</p>
+    <p class="kbcta-wp-description">The stack, the patching, SSL, and backups are handled, so your work stays on the site rather than the box. Staging is one click, and the managed database sits right next to the app.</p>
+    <ul class="kbcta-wp-features">
+      <li>&#10003; Managed WordPress stack</li>
+      <li>&#10003; One-click staging</li>
+      <li>&#10003; Managed MySQL and MariaDB</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Built-in load balancer</li>
+    </ul>
+    <div class="kbcta-wp-buttons">
+      <a class="kbcta-wp-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-wp-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-wp: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-wp-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-wp-wrap *{box-sizing:border-box}
+.kbcta-wp-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-wp-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-wp-content{position:relative;z-index:3;max-width:700px}
+.kbcta-wp-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-wp-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-wp-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-wp-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-wp-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-wp-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-wp-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-wp-btn:hover,.kbcta-wp-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-wp-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-wp-link:hover,.kbcta-wp-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-wp-wrap{padding:36px 24px}
+  .kbcta-wp-heading{font-size:31px}
+  .kbcta-wp-description{font-size:16px}
+  .kbcta-wp-features li{white-space:normal}
+  .kbcta-wp-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-wp-btn{width:100%}
+  .kbcta-wp-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

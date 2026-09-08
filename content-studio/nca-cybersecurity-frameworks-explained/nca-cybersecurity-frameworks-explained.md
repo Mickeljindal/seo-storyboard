@@ -63,11 +63,21 @@ None of these frameworks is satisfied by hosting alone, and no honest provider c
 
 Go deep on whichever applies: [NCA ECC compliant hosting](https://www.kloudbean.com/blog/nca-ecc-compliant-hosting/), [the NCA CSCC guide](https://www.kloudbean.com/blog/nca-cscc-compliance-guide/), [the NCA CCC guide](https://www.kloudbean.com/blog/nca-ccc-cloud-cybersecurity-controls/), [PDPL compliant hosting](https://www.kloudbean.com/blog/pdpl-compliance-hosting/), and [SAMA-compliant hosting](https://www.kloudbean.com/blog/sama-csf-compliant-hosting/). For the hosting foundation underneath all of them, [cloud hosting in Saudi Arabia](https://www.kloudbean.com/blog/cloud-hosting-saudi-arabia/) and [data residency in Saudi Arabia](https://www.kloudbean.com/blog/data-residency-saudi-arabia/).
 
-## Map your frameworks, then build the shared controls once.
+<!-- cta:start -->
+**The technical controls, documented.**
 
-Whichever Saudi frameworks apply to you, the infrastructure half overlaps. Kloudbean delivers those shared controls on managed engagements, in-Kingdom on the Dammam region, with evidence as managed reports. Start the conversation at [kloudbean.com](https://www.kloudbean.com/), and see the foundation in [cloud hosting in Saudi Arabia](https://www.kloudbean.com/blog/cloud-hosting-saudi-arabia/).
+On managed enterprise engagements Kloudbean builds and maintains the infrastructure controls, with evidence delivered as managed reports and in-Kingdom hosting available. The policy, staffing, and application-layer work remains yours, which is the honest boundary.
 
-One control set, mapped to each framework · In-Kingdom Dammam region · Evidence as managed reports · Governance stays yours
+- In-Kingdom (Dammam) available
+- Centralised logging
+- Immutable log storage
+- Private database access
+- MFA and least privilege
+- Automatic backups
+- Evidence as managed reports
+
+[Start free](https://console.kloudbean.com/register) · [Talk to a cloud expert](https://calendly.com/kloudbean)
+<!-- cta:end -->
 
 ## FAQ
 

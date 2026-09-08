@@ -48,7 +48,21 @@ mysqldumpslow -s t -t 10 /var/log/mysql/slow.log</code></pre>
   <p>That's your ranked to-do list. Sort by total time, not just per-query time, so you also catch the query that's quick on its own but runs ten thousand times a minute.</p>
 
   <!-- Author: swap this slot for a real screenshot. src -> images/slow-query-log.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A mysqldumpslow ranking with the worst repeat offender at the top, Query_time and Rows_examined visible.</em><small>Blur any real table or column names first.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #1
+Create a side-by-side comparison table for a technical blog post titled "MySQL Performance Tuning for App Developers".
+
+What it must show: A mysqldumpslow ranking with the worst repeat offender at the top, Query_time and Rows_examined visible.
+Also: Blur any real table or column names first.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-comparison.png" alt="A mysqldumpslow ranking with the worst repeat offender at the top, Query_time and Rows_examined visible.">
+    <figcaption>mysqldumpslow output comparison</figcaption>
+  </figure>
 
   <h2>Read the EXPLAIN plan: the type column does most of the talking</h2>
   <p>Once you know the slow query, ask MySQL how it plans to run it. <code>EXPLAIN</code> shows the plan without executing the statement. On MySQL 8.0.18 and newer, <code>EXPLAIN ANALYZE</code> runs the query and prints real timings next to the estimates, worth using whenever the statement is safe to execute.</p>
@@ -145,7 +159,21 @@ EXPLAIN ANALYZE
 SELECT * FROM orders WHERE user_id = 42 AND created_at &gt; NOW() - INTERVAL 30 DAY;</code></pre>
 
   <!-- Author: swap this slot for a real screenshot. src -> images/explain-annotated.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>An EXPLAIN plan with callouts on the type field, the rows estimate, and the Extra column showing Using filesort.</em><small>Arrows help readers find each field fast.</small></span></figure>
+  <!-- IMAGE GENERATE [panel] #2
+Create a clean settings / configuration panel UI mockup for a technical blog post titled "MySQL Performance Tuning for App Developers".
+
+What it must show: An EXPLAIN plan with callouts on the type field, the rows estimate, and the Extra column showing Using filesort.
+Also: Arrows help readers find each field fast.
+
+A white card with a small uppercase section label, then labelled rows. Highlight the row that carries the point with a violet border. Optional green check line at the bottom confirming the result.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-panel.png" alt="An EXPLAIN plan with callouts on the type field, the rows estimate, and the Extra column showing Using filesort.">
+    <figcaption>Identify performance bottlenecks</figcaption>
+  </figure>
 
   <h2>MySQL performance tuning, ranked by payoff</h2>
   <p>Not every lever earns its keep. Some take five minutes and cut a query by 99 percent; others take an afternoon and buy you ten. Here's how I'd rank them for an app that isn't yet at web scale.</p>
@@ -191,7 +219,7 @@ WHERE created_at &gt;= '2024-01-01' AND created_at &lt; '2024-01-02'</code></pre
   <p>On a dedicated database box a common guideline is to give the buffer pool a large share of the machine's RAM, since little else runs there. That's why <code>innodb_buffer_pool_size</code> is the first memory setting anyone mentions. On managed MySQL the pool is sized to your plan, so the practical lever is the plan itself: when your working set outgrows the pool, you resize the server for more RAM instead of hand-editing a config file. More data in the pool means fewer trips to disk.</p>
   <p>That's worth knowing before you launch, not after. When MySQL is one of seven managed engines you provision in a click (alongside MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB), the plan you pick at launch is the buffer pool decision, made under a different name.</p>
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed MySQL database, where the plan you choose is what sizes the InnoDB buffer pool">
+    <img src="../assets/console-real/shots/mysql_launch_step_1.png" alt="The Kloudbean console launching a managed MySQL database, where the plan you choose is what sizes the InnoDB buffer pool">
     <figcaption>DBS then Launch Database. The plan you pick here is what the buffer pool gets, which is why sizing is a provisioning decision as much as a config one.</figcaption>
   </figure>
   <p>You can watch whether the pool is doing its job. If reads keep hitting disk while the box has spare CPU, your working set no longer fits, and more RAM is the honest answer:</p>
@@ -202,7 +230,21 @@ SHOW STATUS LIKE 'Innodb_buffer_pool_read%';
 SHOW ENGINE INNODB STATUS\G</code></pre>
 
   <!-- Author: swap this slot for a real screenshot. src -> images/buffer-pool-status.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Innodb_buffer_pool_reads climbing against Innodb_buffer_pool_read_requests, showing the working set spilling to disk.</em><small>A before and after around a resize tells the story well.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #3
+Create a side-by-side comparison table for a technical blog post titled "MySQL Performance Tuning for App Developers".
+
+What it must show: Innodb_buffer_pool_reads climbing against Innodb_buffer_pool_read_requests, showing the working set spilling to disk.
+Also: A before and after around a resize tells the story well.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-comparison.png" alt="Innodb_buffer_pool_reads climbing against Innodb_buffer_pool_read_requests, showing the working set spilling to disk.">
+    <figcaption>Before and after a resize</figcaption>
+  </figure>
 
   <h2>Connections and the "Too many connections" wall</h2>
   <p>Every MySQL connection is a thread with its own memory. That's lighter than a full process, but connections still aren't free, and <code>max_connections</code> is finite (the default often sits around 151). Cross that ceiling under load and every new request meets the error everyone hits eventually:</p>
@@ -214,7 +256,7 @@ SHOW STATUS LIKE 'Threads_connected';
 SHOW VARIABLES LIKE 'max_connections';</code></pre>
   <p>One practical detail: keep the pool size in the same environment variable that holds your connection string, not in code. On a managed database that means resizing the pool is a config change and a restart, not a deploy, which matters at 2am when you're trying to stop a connection storm rather than ship a release.</p>
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean console environment variables screen holding the MySQL connection string and pool size outside the codebase">
+    <img src="../assets/console-real/shots/nodespm_env_step_1.png" alt="The Kloudbean console environment variables screen holding the MySQL connection string and pool size outside the codebase">
     <figcaption>Runtime configuration then Environment Variables. Pool size lives here, so changing it is a restart rather than a release.</figcaption>
   </figure>
   <p>The full reasoning, with pool sizing math, is in <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>.</p>
@@ -223,7 +265,7 @@ SHOW VARIABLES LIKE 'max_connections';</code></pre>
   <p>Sometimes the answer really is more hardware. If CPU sits pinned near 100 percent, RAM is exhausted so the buffer pool can't hold your working set, or you're I/O bound after the queries are already tuned, then the box is the bottleneck. Sizing up is the one tuning move that's genuinely someone else's problem: on managed MySQL, vertical resize is self-serve, so more CPU and RAM is a click rather than a rebuild, and backups and patching keep running through it.</p>
   <p>The reason this section comes last is the graph below. Read CPU and RAM next to your slow query log findings, because the two answers look nothing alike. Slow pages while CPU idles is a query or index problem, and no amount of plan is going to help. Pinned CPU after you've already indexed is the honest case for a bigger box.</p>
   <figure>
-    <img src="../assets/console/server-health.png" alt="The Kloudbean console server health view showing CPU and RAM, the reading that decides between tuning a query and resizing the server">
+    <img src="../assets/console-real/shots/server_health_step_2.png" alt="The Kloudbean console server health view showing CPU and RAM, the reading that decides between tuning a query and resizing the server">
     <figcaption>Server health. Line the slow query log up against real CPU and RAM before deciding whether to index or to resize.</figcaption>
   </figure>
   <p>But tune queries and indexes first. Bad SQL scales badly no matter the hardware. A missing index that scans five million rows scans them a bit faster on a bigger box, then falls over at ten million. Doubling your server to paper over an N+1 loop is the most expensive way to not fix a bug. For read-heavy workloads, a <a href="https://www.kloudbean.com/blog/redis-caching-guide/">managed Redis cache</a> in front of your hottest reads often buys more headroom than a bigger database will.</p>
@@ -245,16 +287,74 @@ SHOW VARIABLES LIKE 'max_connections';</code></pre>
   </table>
 
   <!-- Author: swap this slot for a real screenshot. src -> images/before-after-timing.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The same query timed before and after the index, going from seconds to milliseconds.</em><small>A simple two-bar chart reads instantly.</small></span></figure>
+  <!-- IMAGE GENERATE [graph] #4
+Create a clean line chart / time-series graph for a technical blog post titled "MySQL Performance Tuning for App Developers".
+
+What it must show: The same query timed before and after the index, going from seconds to milliseconds.
+Also: A simple two-bar chart reads instantly.
+
+Label both axes. Draw the trend the description implies. Add a dashed red threshold line only if a limit is being hit. Legible axis labels, no 3D, no gradient clutter.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-comparison.png" alt="The same query timed before and after the index, going from seconds to milliseconds.">
+    <figcaption>Performance Impact of Index Optimization</figcaption>
+  </figure>
 
   <p>Two honest notes on that last column. No host fixes a missing index, ours included. A managed MySQL patches the engine, backs it up, and locks it to your app server's IP, and it will still cheerfully scan five million rows on your behalf at any plan size, forever. Managed means the box is looked after, not that your schema is.</p>
   <p>And resizing is a one-way street for disk. You can size a server up yourself, but you can't shrink a disk afterwards, so grow in steps instead of jumping to a number you're guessing at. On the backup half, <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups</a> covers the restore drill, and <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL hosting</a> covers what's handled for you versus what stays yours.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Make MySQL earn its keep.</p>
-    <p style="margin:0 0 .6em">Managed MySQL on Kloudbean gives you a real box locked to your app server's IP, automatic backups, and one-click provisioning, so the only thing left to tune is your own queries. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> and see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Managed MySQL and MariaDB · Automatic backups · Resize as you grow · Free migration · Free trial</p>
+<div class="kbcta-db-wrap">
+  <div class="kbcta-db-overlay"></div>
+  <div class="kbcta-db-content">
+    <div class="kbcta-db-eyebrow">MANAGED DATABASES &middot; SEVEN ENGINES</div>
+    <p class="kbcta-db-heading">Managed, backed up, and still yours.</p>
+    <p class="kbcta-db-description">Seven managed engines, provisioned and patched for you, with access controlled and backups running automatically. Your schema, your queries, and your data stay exportable with the standard tools.</p>
+    <ul class="kbcta-db-features">
+      <li>&#10003; Seven managed engines</li>
+      <li>&#10003; One-click launch</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Controlled access</li>
+      <li>&#10003; Standard connection strings</li>
+      <li>&#10003; Free migration assistance</li>
+    </ul>
+    <div class="kbcta-db-buttons">
+      <a class="kbcta-db-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-db-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-db: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-db-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#04202B;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-db-wrap *{box-sizing:border-box}
+.kbcta-db-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #04202B 0%, #073947 55%, rgba(14,116,144,.62) 100%);pointer-events:none}
+.kbcta-db-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-db-content{position:relative;z-index:3;max-width:700px}
+.kbcta-db-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-db-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-db-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-db-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-db-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-db-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-db-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#064454;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-db-btn:hover,.kbcta-db-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-db-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-db-link:hover,.kbcta-db-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-db-wrap{padding:36px 24px}
+  .kbcta-db-heading{font-size:31px}
+  .kbcta-db-description{font-size:16px}
+  .kbcta-db-features li{white-space:normal}
+  .kbcta-db-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-db-btn{width:100%}
+  .kbcta-db-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

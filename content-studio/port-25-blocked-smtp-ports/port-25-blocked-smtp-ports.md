@@ -146,11 +146,21 @@ The honest boundary: nobody can unblock port 25 on your behalf, and no host can 
 
 If the service you are sending through is Microsoft 365, its settings and the retirement of password-based SMTP AUTH are covered in [Office 365 SMTP settings](https://www.kloudbean.com/blog/office-365-smtp-settings/). For keeping credentials separated, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). On the DNS records above, [DNS explained](https://www.kloudbean.com/blog/dns-explained/). For the refused-versus-dropped distinction used in the diagnosis, [error 521](https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/). On sending mail from queued background work rather than inside a web request, [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/). When an outbound call has no timeout and stalls a request, [504 Gateway Timeout](https://www.kloudbean.com/blog/fix-504-gateway-timeout/). And for the WordPress side, [managed WordPress hosting](https://www.kloudbean.com/blog/managed-wordpress-hosting/).
 
-## Credentials that stay out of your repository
+<!-- cta:start -->
+**Own the server. Skip the server admin.**
 
-Managed servers across seven clouds with Shorewall configured, per-application environment variables, SSH access for real diagnostics, and free SSL, from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.
 
-7 clouds · Firewall configured · Per-app env vars · SSH access · Flat from $8/mo
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

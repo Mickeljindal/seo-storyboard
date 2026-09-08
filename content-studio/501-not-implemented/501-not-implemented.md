@@ -117,15 +117,20 @@ The line stays where it always is. Certificates, patches, backups and the stack 
 
 The twin you will confuse it with, [405 Method Not Allowed](https://www.kloudbean.com/blog/405-method-not-allowed/), where the verb is known and simply not allowed on that route. The generic crash it gets mistaken for, [500 Internal Server Error](https://www.kloudbean.com/blog/http-error-500-internal-server-error/), and the dead-upstream case, [502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/). For a wrong path rather than a wrong verb, [404 Not Found](https://www.kloudbean.com/blog/http-error-404-not-found/). On the layer that usually emits a 501, [nginx as a reverse proxy for Node](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/) and [nginx versus Apache](https://www.kloudbean.com/blog/nginx-vs-apache/). Its 5xx sibling that refuses the HTTP version rather than the method, [505 HTTP Version Not Supported](https://www.kloudbean.com/blog/505-http-version-not-supported/). At the edge, [Cloudflare's 5xx codes](https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/). And to make the logs worth reading, [structured logging in Node](https://www.kloudbean.com/blog/structured-logging-nodejs/).
 
----
+<!-- cta:start -->
+**Deploys that tell you what broke.**
 
-### A proxy that passes your methods through.
+Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.
 
-Managed servers across seven clouds with a managed, patched reverse proxy, plus application and server logs in the same dashboard as the server. Staging for WordPress and Laravel, automatic backups, free SSL issued and renewed. Free migration assistance included, standard plans from $8/mo. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
 
-Managed proxy · App and server logs · Staging · Automatic backups · Free SSL · One dashboard
-
----
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

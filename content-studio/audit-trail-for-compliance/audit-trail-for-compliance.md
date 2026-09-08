@@ -67,11 +67,21 @@ And the third piece, which no host and no product supplies: somebody actually re
 
 An audit trail is one control in a compliance program. See how it feeds [SOC 2 compliant hosting](https://www.kloudbean.com/blog/soc2-compliant-hosting/) and [ISO 27001 hosting](https://www.kloudbean.com/blog/iso-27001-hosting/), and how it sits alongside [encryption at rest and in transit](https://www.kloudbean.com/blog/data-encryption-at-rest-and-in-transit/) and access controls like [subusers and access control](https://www.kloudbean.com/blog/subuser-and-uac-guide/). The overview that ties the layers together is [secure and compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 
-## Evidence your own admins can't rewrite.
+<!-- cta:start -->
+**The technical controls, documented.**
 
-Kloudbean's enterprise Audit Trail gives you an immutable, searchable, account-wide record of activity with CSV export, on write-once storage with long retention, built for the frameworks that ask for it. For the direct comparison read [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/), or launch one from [kloudbean.com](https://www.kloudbean.com/).
+Kloudbean delivers the infrastructure alignment behind these controls on managed enterprise engagements: centralised logging, immutable retention, private database access, MFA, and in-Kingdom hosting where required. Certification is assessed against your organisation, so governance and application work stay with you.
 
-Immutable audit trail (Enterprise) · Write-once storage · Long retention · CSV export
+- In-Kingdom (Dammam) available
+- Centralised logging
+- Immutable log storage
+- Private database access
+- MFA and least privilege
+- Automatic backups
+- Evidence as managed reports
+
+[Start free](https://console.kloudbean.com/register) · [Talk to a cloud expert](https://calendly.com/kloudbean)
+<!-- cta:end -->
 
 ## FAQ
 

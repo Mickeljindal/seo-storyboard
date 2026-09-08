@@ -139,15 +139,21 @@ The boundary as usual. What is handled: the operating system, the stack, certifi
 
 If you are actually debugging rather than looking up a command: [ERR_NAME_NOT_RESOLVED](https://www.kloudbean.com/blog/err-name-not-resolved/) for a name that will not resolve, including why a record you just fixed can keep failing, and [fixing slow DNS lookups](https://www.kloudbean.com/blog/fix-slow-dns-lookup/) when resolution works but drags. For the concepts behind all of it, [DNS explained](https://www.kloudbean.com/blog/dns-explained/). For the cutover where TTL actually matters, [migrating hosting with zero downtime](https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/) and [pointing a custom domain at your app](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/). And when the name resolves fine but the server then fails, [500 Internal Server Error](https://www.kloudbean.com/blog/http-error-500-internal-server-error/).
 
----
+<!-- cta:start -->
+**One dashboard for the whole stack.**
 
-### Move a site without the propagation drama.
+Pick from seven clouds, run your app on a managed server you control, and keep databases, storage, and deploys in the same dashboard instead of four separate vendors.
 
-Managed hosting across seven clouds with free migration assistance, so the cutover sequence and the TTL step are handled with you. Staging for WordPress and Laravel to verify the new server before you touch a single DNS record. Free SSL issued and renewed. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
 
-Free migration assistance · Staging · Free SSL · Seven clouds · One dashboard
-
----
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

@@ -147,18 +147,63 @@ curl -sSI --resolve example.com:443:203.0.113.10 https://example.com/</code></pr
   <p>Where it does become visible is at the edge. Cloudflare is available as a paid add-on and free for enterprise accounts, and if you put an edge proxy in front of an origin, the SNI the proxy presents to your origin has to match a certificate the origin holds. That is the one place this stops being invisible, and it is worth knowing before you debug it.</p>
 
   <figure>
-    <img src="../assets/console/ssl-certificate.png" alt="SSL certificate management in the Kloudbean console">
+    <img src="../assets/console-real/shots/le_ssl_step_1.png" alt="SSL certificate management in the Kloudbean console">
     <figcaption>Several applications, several domains, one server, one address. Each gets its own certificate because the requested hostname arrives before the certificate is chosen.</figcaption>
   </figure>
 
   <h2>If SNI keeps coming back</h2>
   <p>For the wider picture, <a href="https://www.kloudbean.com/blog/ssl-tls-explained/">SSL and TLS explained</a> covers the handshake, termination, and why certificates expire. For diagnosis, <a href="https://www.kloudbean.com/blog/fix-ssl-certificate-errors/">fixing SSL certificate errors</a> handles validity and chain problems, <a href="https://www.kloudbean.com/blog/err-ssl-protocol-error/">ERR_SSL_PROTOCOL_ERROR</a> handles handshake failures, and <a href="https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/">Cloudflare 525</a> handles edge-to-origin TLS. On the DNS half of the privacy story, <a href="https://www.kloudbean.com/blog/fix-slow-dns-lookup/">DNS lookups</a>, and for HTTPS redirect loops caused by TLS termination, <a href="https://www.kloudbean.com/blog/err-too-many-redirects/">ERR_TOO_MANY_REDIRECTS</a>.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Certificates you never have to think about.</p>
-    <p style="margin:0 0 .6em">Free SSL issued and renewed automatically for every application and domain on your server, across seven clouds, with managed databases and automatic backups, from $8/mo. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">Free SSL, auto-renewed · 7 clouds · Many apps per server · Automatic backups · Flat from $8/mo</p>
+<div class="kbcta-run-wrap">
+  <div class="kbcta-run-overlay"></div>
+  <div class="kbcta-run-content">
+    <div class="kbcta-run-eyebrow">MANAGED CLOUD &middot; ONE DASHBOARD</div>
+    <p class="kbcta-run-heading">Ship the app, not the infrastructure.</p>
+    <p class="kbcta-run-description">Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.</p>
+    <ul class="kbcta-run-features">
+      <li>&#10003; Seven cloud providers</li>
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration assistance</li>
+    </ul>
+    <div class="kbcta-run-buttons">
+      <a class="kbcta-run-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-run-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-run: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-run-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-run-wrap *{box-sizing:border-box}
+.kbcta-run-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-run-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-run-content{position:relative;z-index:3;max-width:700px}
+.kbcta-run-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-run-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-run-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-run-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-run-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-run-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-run-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-run-btn:hover,.kbcta-run-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-run-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-run-link:hover,.kbcta-run-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-run-wrap{padding:36px 24px}
+  .kbcta-run-heading{font-size:31px}
+  .kbcta-run-description{font-size:16px}
+  .kbcta-run-features li{white-space:normal}
+  .kbcta-run-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-run-btn{width:100%}
+  .kbcta-run-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

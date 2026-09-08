@@ -106,11 +106,21 @@ Beyond that, the fix is a 303 in your route handler. That is a good outcome: a b
 
 For the connection-level browser errors that genuinely are transport problems, [ERR_CONNECTION_RESET](https://www.kloudbean.com/blog/err-connection-reset/). On caching more broadly, [clearing WordPress cache](https://www.kloudbean.com/blog/how-to-clear-wordpress-cache/), [CDN explained](https://www.kloudbean.com/blog/cdn-explained/), and [Redis caching patterns](https://www.kloudbean.com/blog/redis-caching-patterns/). On response headers, [the security headers guide](https://www.kloudbean.com/blog/security-headers-guide/). For request-level failures, [400 Bad Request](https://www.kloudbean.com/blog/400-bad-request/) and [fixing CORS errors](https://www.kloudbean.com/blog/fix-cors-error-node-production/). And for safe change management, [staging environments](https://www.kloudbean.com/blog/wordpress-staging-environment/).
 
-## Test header changes somewhere that is not production
+<!-- cta:start -->
+**Ship the app, not the infrastructure.**
 
-Managed hosting with one-click staging, automatic backups, and servers, apps, and databases in one dashboard, on a flat plan from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Pick from seven clouds, run your app on a managed server you control, and keep databases, storage, and deploys in the same dashboard instead of four separate vendors.
 
-Staging sites · Automatic backups · Managed servers · One dashboard · Flat from $8/mo
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

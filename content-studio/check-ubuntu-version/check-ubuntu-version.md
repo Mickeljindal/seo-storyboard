@@ -185,11 +185,21 @@ The honest boundary: managed means the server, stack, SSL, backups, and patching
 
 Once you know which distribution you are on, [extracting archives and the case against installing from a tarball](https://www.kloudbean.com/blog/extract-zip-and-tar-gz-on-linux/) depends on that answer, since the package manager differs. On keeping a server defensible, the [server hardening checklist](https://www.kloudbean.com/blog/server-hardening-checklist/) and [Fail2ban and Shorewall](https://www.kloudbean.com/blog/fail2ban-shorewall-hardening/). On who owns patching, [managed versus unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/). Before any upgrade, [server backups](https://www.kloudbean.com/blog/server-backups-guide/). On moving to a new server rather than upgrading in place, [zero downtime deployments](https://www.kloudbean.com/blog/zero-downtime-deployments/). And for connecting to the machine in the first place, [FTP versus SFTP](https://www.kloudbean.com/blog/ftp-vs-sftp/).
 
-## Somebody should be patching that OS.
+<!-- cta:start -->
+**Own the server. Skip the server admin.**
 
-Managed servers across seven clouds with the operating system and stack patched for you, free SSL, automatic backups, a firewall with intrusion prevention by default, and managed databases alongside your app. From $8/mo, with free migration assistance. Start at [kloudbean.com](https://www.kloudbean.com/).
+Pick from seven clouds, run your app on a managed server you control, and keep databases, storage, and deploys in the same dashboard instead of four separate vendors.
 
-Managed OS and stack patching · 7 clouds · Free SSL · Automatic backups · Flat from $8/mo
+- Seven cloud providers
+- Managed databases
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration assistance
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

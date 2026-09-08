@@ -76,11 +76,21 @@ The honest boundary, which matters for a tool chosen on compliance grounds: the 
 
 For the omnichannel alternative and the full comparison, [self-hosting Rocket.Chat](https://www.kloudbean.com/blog/self-host-rocketchat/). If you are assembling a self-hosted stack, see [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/). The database underneath is [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), kept safe with [server backups](https://www.kloudbean.com/blog/server-backups-guide/). If isolation is part of your requirement, [what a VPC is](https://www.kloudbean.com/blog/what-is-a-vpc/) explains private networking, and for the broader picture, [self-hosting Nextcloud](https://www.kloudbean.com/blog/self-host-nextcloud/) covers files with the same own-it logic.
 
-## Run team chat on infrastructure you control.
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-Host Mattermost as an app on a managed server across seven clouds, with managed PostgreSQL, free auto-renewing SSL, automatic backups, and IP allow-listing where access needs to stay tight. Your team's conversations stay on your side. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Managed server · Managed PostgreSQL · Free auto-renewing SSL available
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

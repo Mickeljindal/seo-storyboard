@@ -148,11 +148,20 @@ That bottom half happens to describe how Kloudbean is put together, which is the
 
 Where that stops, precisely: it removes infrastructure-shaped failures and leaves code-shaped ones exactly where they were. Private networking and a VPC are part of the Enterprise package, so on a standard plan the IP allow-list is the access model, not a private network. And if your app genuinely idles most of the day, scale-to-zero will cost you less than an always-on server, cold starts and all. The right answer depends on which half of that table your outage is coming from.
 
-## Fix the code half. Let the host cover the other one.
+<!-- cta:start -->
+**Fewer mysteries on the next deploy.**
 
-**Write the retries and the fallback yourself, then deploy somewhere the cold starts, the missing worker, and the unreachable database are not on your list.** Persistent processes, managed Redis for the queue, managed Postgres and MySQL beside the app, and runtime config you can read without SSH. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+Deploy from Git, watch the build output as it runs, and open the app error log when a process refuses to start. Managed processes restart on crash, and backups are automatic.
 
-Always-on (no cold starts) · Managed Redis + Postgres · Automatic backups · Free SSL · Git deploy · Free migration · IP allow-listing
+- Live build logs
+- Deployment history
+- Logs viewer
+- Managed process restarts
+- Automatic backups
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

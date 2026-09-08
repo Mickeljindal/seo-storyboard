@@ -54,7 +54,7 @@ The single most important zero-downtime trick happens *before* migration day, no
 
 Ten minutes of inventory here saves the "oh no, the cron jobs" moment on cutover day. And the TTL change genuinely has to happen first, because a TTL is a promise you made to the world's DNS caches yesterday. You can't shorten it retroactively.
 
-<!-- ADD IMAGE: your DNS provider's record editor with the TTL field set to 300 seconds -->
+![Prepare for a fast flip](images/gen-1-panel.png)
 
 ## Phase 1: Stand up the new host (in parallel)
 
@@ -62,13 +62,13 @@ Build the destination while the old site keeps running, untouched. Nothing here 
 
 - [ ] **Provision the new server** and deploy your application code by connecting your Git repository.
 
-![The Kloudbean console: connect a repo and deploy the app on the new host before cutover](../assets/console/git-deployment.png)
+![The Kloudbean console: connect a repo and deploy the app on the new host before cutover](../assets/console-real/shots/git_connect_step_4.png)
 
 - [ ] **Copy every environment variable and secret** to match the old host. This is the step most likely to be missed, and a missing secret is a silent failure you won't catch until something tries to use it.
 - [ ] **Recreate cron jobs and background workers** so scheduled tasks and queues exist on the new side too.
 - [ ] **Provision the database** at the matching engine and version, ready to receive data.
 
-![The Kloudbean console: setting environment variables on the new host to match the old one](../assets/console/env-vars.png)
+![The Kloudbean console: setting environment variables on the new host to match the old one](../assets/console-real/shots/nodespm_env_step_1.png)
 
 At the end of Phase 1 the new host is a complete, empty copy of your setup. Running, reachable by you, but not yet holding your data or seeing a single real visitor.
 
@@ -119,7 +119,7 @@ openssl s_client -connect example.com:443 -servername example.com </dev/null 2>/
 
 Only move on when the new host passes as if it were already live. This phase is your safety net. Setting up the domain and certificate is covered step by step in [custom domain and SSL for your app](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/).
 
-<!-- ADD IMAGE: a browser showing the new host under the real domain, via a hosts-file entry -->
+![Before public flip](images/gen-2-flow.png)
 
 ## Phase 4: The cutover
 
@@ -131,7 +131,7 @@ Now the actual switch. Because of your prep, it's quick and calm rather than a w
 
 There's no dark period. The old host answers until DNS moves each visitor over to the new one, which you already tested and know is ready.
 
-<!-- ADD IMAGE: the A record being repointed to the new server's IP at cutover -->
+![Low TTL for fast cutover](images/gen-3-flow.png)
 
 ## Phase 5: After the switch
 
@@ -170,11 +170,20 @@ A migration is a logistics exercise, not a lock-in trap. No good host holds your
 
 You can build the new home on any of **seven clouds** (AWS, Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, UpCloud), deploy from Git with live build logs, and provision a matching [managed database](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) with automatic [backups](https://www.kloudbean.com/blog/server-backups-guide/) and free SSL, all from one dashboard. And the honest headline for a migration article: **free migration assistance**. You don't have to solo the cutover. If a delta sync or a DNS flip makes you nervous, the team will run it with you. There's related reading in [what a cloud SLA really means](https://www.kloudbean.com/blog/cloud-sla-explained/) and the myths piece on [managed cloud hosting](https://www.kloudbean.com/blog/managed-cloud-hosting-myths/) if lock-in was the worry keeping you put.
 
----
+<!-- cta:start -->
+**A rehoming, not a rewrite.**
 
-**Test in private, cut over clean.** Stand up your new home on any of seven clouds, sync your data, and flip when you're ready, with free migration help so you don't do it alone. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+Migration assistance is free and there is a free trial to prove the setup first. You keep Git-based deploys, get managed databases beside the app, and pay a flat monthly price on the cloud you choose.
 
-Seven clouds · Managed databases · Automatic backups · Free migration · Free trial
+- Free migration assistance
+- Free trial
+- Seven cloud providers
+- Flat monthly price
+- Managed databases
+- Git deploy
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

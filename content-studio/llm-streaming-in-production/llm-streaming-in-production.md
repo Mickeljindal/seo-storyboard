@@ -226,11 +226,21 @@ Use `curl -N` rather than the browser for this. Browsers add their own buffering
 
 The part no host fixes, ours included: if your route awaits the whole completion and then returns it, every proxy on earth will deliver it in one lump, correctly, because that's not a stream. A managed platform can keep the pipe open, run your app as a process that stays alive, and honour the header your handler sets. It can't turn a blocking handler into a streaming one, and it can't know which of your routes stream, so those headers stay your call. That's the split worth remembering: the transport is buyable, the handler isn't.
 
-## Give your token stream a process that stays open
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-**Run your streaming LLM app on an always-on server (Node or Python), with the reverse proxy and SSL managed for you and deploys straight from Git.** No cold starts, no function timeout cutting your stream at 60 seconds, and a long-lived connection that has somewhere stable to live. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-Always-on (no cold starts) · Node and Python runtimes · Managed reverse proxy + SSL · Git deploy · Automatic backups · Free migration · IP allow-listing
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

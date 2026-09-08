@@ -83,7 +83,21 @@
   <p>You can watch this happen in about ten seconds. Most CDNs stamp a response header you can read. A value of <code>X-Cache: HIT</code> means the edge served it; <code>MISS</code> means it had to go back to origin. Run <code>curl -I</code> against the same asset twice and you'll usually see a miss, then a hit.</p>
 
   <!-- ADD IMAGE: browser DevTools Network tab (or a curl output) showing the X-Cache HIT response header on a cached asset. Swap for a real screenshot: src -> images/x-cache-header.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>DevTools Network tab (or a curl -I output) showing an X-Cache response header with a value of HIT on a cached file.</em><small>Proof the edge answered without touching your origin.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #1
+Create a realistic terminal / command-line screenshot for a technical blog post titled "CDN Explained: What a Content Delivery Network Actually Does".
+
+What it must show: DevTools Network tab (or a curl -I output) showing an X-Cache response header with a value of HIT on a cached file.
+Also: Proof the edge answered without touching your origin.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-terminal.png" alt="DevTools Network tab (or a curl -I output) showing an X-Cache response header with a value of HIT on a cached file.">
+    <figcaption>Proof the edge answered without touching your origin</figcaption>
+  </figure>
 
   <h2>TTL and cache headers: who decides how long a copy lives?</h2>
   <p>The origin stays in charge. It sends cache headers telling the edge how long a copy may live before checking back. That lifetime is the TTL, time to live, a number of seconds.</p>
@@ -104,7 +118,21 @@ ETag: "a1b2c3d4"
   <p>Set the TTL too short and the edge keeps re-fetching, so you throw away most of the benefit. Set it too long and visitors see stale content after you ship a change. The clean fix for that second problem is fingerprinting: build your files with a hash in the name, like <code>app.9f2c1.js</code>, so a new build gets a new URL. Then you can cache those assets almost forever, and the short-lived HTML that points to them is the only thing that needs to expire quickly.</p>
 
   <!-- ADD IMAGE: response headers for a static asset, showing Cache-Control with a max-age and an ETag. Swap for a real screenshot: src -> images/cache-headers.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Response headers for a static asset: Cache-Control with max-age and s-maxage, plus an ETag value.</em><small>Where the origin tells the edge how long to keep each copy.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "CDN Explained: What a Content Delivery Network Actually Does".
+
+What it must show: Response headers for a static asset: Cache-Control with max-age and s-maxage, plus an ETag value.
+Also: Where the origin tells the edge how long to keep each copy.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="Response headers for a static asset: Cache-Control with max-age and s-maxage, plus an ETag value.">
+    <figcaption>Edge to origin communication</figcaption>
+  </figure>
 
   <h2>What a CDN speeds up, and what it can't</h2>
   <p>A CDN is a caching layer. It's excellent at content that's the same for everyone and changes rarely. It does nothing for content that's unique to each request.</p>
@@ -124,7 +152,21 @@ ETag: "a1b2c3d4"
   <p>The classic mistake is caching HTML that has no business being cached. Cache a logged-in page too aggressively and the edge can hand User B a copy of User A's account page. That isn't a speed win, it's a data leak. Personalized responses belong at the origin, and you keep the edge off them with a header like <code>Cache-Control: private, no-store</code>. I've seen this exact bug ship to production more than once, and it's always because someone put a blanket cache rule on <code>/</code> without thinking about who's logged in.</p>
 
   <!-- ADD IMAGE: a CDN analytics view showing the share of requests served from cache vs the share that reached the origin. Swap for a real screenshot: src -> images/cache-analytics.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>A cache analytics panel: percentage of requests served from the edge versus those that fell through to the origin.</em><small>A healthy static site sits mostly on the cache-hit side.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #3
+Create a side-by-side comparison table for a technical blog post titled "CDN Explained: What a Content Delivery Network Actually Does".
+
+What it must show: A cache analytics panel: percentage of requests served from the edge versus those that fell through to the origin.
+Also: A healthy static site sits mostly on the cache-hit side.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-comparison.png" alt="A cache analytics panel: percentage of requests served from the edge versus those that fell through to the origin.">
+    <figcaption>Edge vs Origin Requests</figcaption>
+  </figure>
 
   <h2>CDN vs load balancer: not the same job</h2>
   <p>People blur these two together constantly, so let's split them apart. A CDN caches content at the edge and serves it from near the visitor. A load balancer spreads live requests across several backend servers for scale and redundancy. One is about distance and caching. The other is about capacity and survival.</p>
@@ -150,15 +192,60 @@ ETag: "a1b2c3d4"
   <p>The philosophy matches the rest of the platform: servers, managed databases, object storage, and the edge in front of them, from one dashboard instead of four vendors and four bills. Standard plans start from $8/mo, and Enterprise is custom pricing, so check the <a href="https://www.kloudbean.com/pricing/">pricing page</a> for current numbers. If you're weighing hosts, <a href="https://www.kloudbean.com/blog/best-managed-cloud-hosting/">what makes the best managed cloud hosting</a> lays out what actually matters.</p>
 
   <figure>
-    <img src="../assets/console/dashboard.png" alt="The Kloudbean dashboard showing servers, applications, databases, and storage in one place">
+    <img src="../assets/console-real/shots/dashboard.png" alt="The Kloudbean dashboard showing servers, applications, databases, and storage in one place">
     <figcaption>Origin and edge, servers and databases, all under one login instead of scattered across separate products.</figcaption>
   </figure>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Fix the origin, then make it global.</p>
-    <p style="margin:0 0 .6em">Run your app on a well-placed managed server, then put Cloudflare Enterprise edge caching in front of it, all from one dashboard. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> and compare plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">One dashboard · 7 clouds · Managed databases · Cloudflare edge caching · Free SSL · Automatic backups · Free migration</p>
+<div class="kbcta-run-wrap">
+  <div class="kbcta-run-overlay"></div>
+  <div class="kbcta-run-content">
+    <div class="kbcta-run-eyebrow">MANAGED CLOUD &middot; ONE DASHBOARD</div>
+    <p class="kbcta-run-heading">One dashboard for the whole stack.</p>
+    <p class="kbcta-run-description">Servers, managed databases, object storage, and a built-in load balancer live behind one login, on the cloud and region you pick. The stack, SSL, patching, and backups are handled for you.</p>
+    <ul class="kbcta-run-features">
+      <li>&#10003; Seven cloud providers</li>
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration assistance</li>
+    </ul>
+    <div class="kbcta-run-buttons">
+      <a class="kbcta-run-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-run-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-run: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-run-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-run-wrap *{box-sizing:border-box}
+.kbcta-run-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-run-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-run-content{position:relative;z-index:3;max-width:700px}
+.kbcta-run-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-run-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-run-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-run-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-run-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-run-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-run-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-run-btn:hover,.kbcta-run-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-run-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-run-link:hover,.kbcta-run-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-run-wrap{padding:36px 24px}
+  .kbcta-run-heading{font-size:31px}
+  .kbcta-run-description{font-size:16px}
+  .kbcta-run-features li{white-space:normal}
+  .kbcta-run-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-run-btn{width:100%}
+  .kbcta-run-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

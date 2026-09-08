@@ -62,11 +62,11 @@ One Symfony-specific speed trick worth knowing. If you use Symfony Flex (most mo
 composer dump-env prod
 ```
 
-![The Kloudbean console environment variables screen showing a Symfony app's APP_ENV, APP_SECRET and DATABASE_URL set on the server](../assets/console/env-vars.png)
+![The Kloudbean console environment variables screen showing a Symfony app's APP_ENV, APP_SECRET and DATABASE_URL set on the server](../assets/console-real/shots/nodespm_env_step_1.png)
 
 The deeper reasoning on keeping secrets out of code, and the mistakes people make rotating them, is in [environment variables, done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
-<!-- ADD IMAGE: The two env files side by side: safe placeholders in .env, the real secret in .env.local. -->
+![Which file to edit for secrets](images/gen-1-comparison.png)
 
 ## The production build: install without dev, then warm the cache
 
@@ -118,7 +118,7 @@ setfacl -dR -m u:www-data:rwX var
 
 On a managed PHP server this is handled for you: the deploy runs as the right system user and the web root already has the correct ownership, so the classic `var/` 500 mostly stops being your problem. Worth knowing why it happens anyway, because the day you SSH in and run a console command as the wrong user, you'll recognize the error on sight.
 
-<!-- ADD IMAGE: The var/cache permissions error in a log, next to the ACL fix that clears it. -->
+![Common first-deploy Symfony 500](images/gen-2-flow.png)
 
 ## Run Doctrine migrations on every deploy
 
@@ -150,7 +150,7 @@ Point that at a managed database rather than one you install and babysit yoursel
 
 One production note. PHP opens a database connection per request, so a busy app opens and closes a lot of them; watch your database's connection limit as traffic grows. And set `serverVersion` correctly in the URL, since Doctrine uses it to decide which SQL features are safe to emit.
 
-![The Kloudbean Launch Database screen: creating a managed PostgreSQL instance on the same server as a Symfony app](../assets/console/launch-database.png)
+![The Kloudbean Launch Database screen: creating a managed PostgreSQL instance on the same server as a Symfony app](../assets/console-real/shots/psql_launch_step_1.png)
 
 ## Point nginx at public/, never the project root
 
@@ -186,15 +186,15 @@ Symfony is a PHP application, and a managed PHP stack is exactly what it runs on
 
 Connect your Git repository under **Application Administration → Deploy Code → Git Deployment** and put the build sequence (Composer, cache warmup, migrations, assets) into the build step. The start side is PHP-FPM already serving `public/index.php`.
 
-![The Kloudbean Add Application screen: creating a PHP application to host a Symfony app on the managed stack](../assets/console/add-application.png)
+![The Kloudbean Add Application screen: creating a PHP application to host a Symfony app on the managed stack](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
-![The Kloudbean Deploy Code / Git Deployment screen with a Symfony repo connected and the Composer and console build sequence set](../assets/console/git-deployment.png)
+![The Kloudbean Deploy Code / Git Deployment screen with a Symfony repo connected and the Composer and console build sequence set](../assets/console-real/shots/git_connect_step_4.png)
 
 Push once to wire it up, then turn on auto-deploy so every push to your branch re-runs the build and applies new migrations. The live build log is the part I'd actually watch, because that's where a failed migration or a warmup error shows up first, in plain text, while it happens. More on the push-to-deploy loop is in [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/). And for a risky migration, deploy to a staging copy first, watch it, then promote to production.
 
 > **Running background work?** If your app uses Symfony Messenger for async jobs, that's a long-lived worker process, kept alive by the server and restarted on deploy so it picks up new code. This guide stays on the web-request path; the worker pattern deserves its own walkthrough.
 
-<!-- ADD IMAGE: The live build log during a deploy: composer install, cache warmup, then migrations running line by line. -->
+![Live build log during a deploy](images/gen-3-flow.png)
 
 ## When the first deploy goes sideways
 
@@ -213,7 +213,21 @@ Symfony is PHP, and PHP on Linux is what a managed server runs, so none of this 
 
 Building elsewhere in the same stack? The closest sibling is [deploy a Laravel app](https://www.kloudbean.com/blog/deploy-laravel-app/), the other big PHP framework, with its own set of production quirks around queues and the artisan sequence. Same platform, different sharp edges.
 
-**Warmed, migrated, and served from public/. That's a Symfony deploy.** Deploy your Symfony app on a server you own at [kloudbean.com](https://www.kloudbean.com/). Managed MySQL & PostgreSQL · Automatic backups · Free auto-renewing SSL · Git deploy with live build logs · Free migration · Free trial. Server sizes are on [pricing](https://www.kloudbean.com/pricing/).
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
+
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

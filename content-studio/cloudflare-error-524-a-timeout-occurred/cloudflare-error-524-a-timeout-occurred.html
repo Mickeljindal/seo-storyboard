@@ -59,7 +59,21 @@
   <p>Swap <code>ORIGIN_IP</code> for your server's real address and <code>/slow-path</code> for the URL that throws the 524. The <code>--resolve</code> flag sends the request straight to your origin with the correct Host header and SNI, so you're testing the same thing Cloudflare tests, minus the edge. The output is the total time and the status code. Now read it.</p>
 
   <!-- ADD IMAGE: src -> images/curl-timer.png · Terminal running the curl timer against the origin, with time_total climbing toward and past several seconds on the slow path. -->
-  <figure class="img-slot"><span><b>Add image</b><em>Terminal running the curl timer against the origin, with time_total climbing past several seconds on the slow path.</em><small>Your own screenshot.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #1
+Create a realistic terminal / command-line screenshot for a technical blog post titled "Error 524, A Timeout Occurred: Why Your Origin Went Quiet".
+
+What it must show: Terminal running the curl timer against the origin, with time_total climbing past several seconds on the slow path.
+Also: Your own screenshot.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-terminal.png" alt="Terminal running the curl timer against the origin, with time_total climbing past several seconds on the slow path.">
+    <figcaption>Time total climbs on slow path</figcaption>
+  </figure>
 
   <table class="cmp">
     <thead><tr><th>Direct curl result</th><th>What it means</th><th>Next step</th></tr></thead>
@@ -95,7 +109,21 @@ ORDER BY runtime DESC;</code></pre>
   <p>If a query has been active for tens of seconds, that's your 524. Index it, or cache the result, or, if it's genuinely heavy work, take it off the request path entirely. That last option is the one that actually fixes this class of bug for good.</p>
 
   <!-- ADD IMAGE: src -> images/slow-query.png · A slow query in the database slow-query log, or the endpoint's query shown with EXPLAIN and a large row estimate. -->
-  <figure class="img-slot"><span><b>Add image</b><em>A slow query in the slow-query log, or the endpoint's query run through EXPLAIN with a large row estimate.</em><small>Your own screenshot.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "Error 524, A Timeout Occurred: Why Your Origin Went Quiet".
+
+What it must show: A slow query in the slow-query log, or the endpoint's query run through EXPLAIN with a large row estimate.
+Also: Your own screenshot.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="A slow query in the slow-query log, or the endpoint's query run through EXPLAIN with a large row estimate.">
+    <figcaption>From slow query to timeout</figcaption>
+  </figure>
 
   <p>The worker-exhaustion case is sneakier, because there's nothing wrong with any single request. You have, say, four workers, and four slow requests arrive. Now request five has to wait for a worker to free up, and if that wait plus its own runtime crosses 100 seconds, it 524s while doing nothing at all. That's why 524s often appear only under load and vanish when traffic drops. It looks intermittent. It's really a capacity ceiling.</p>
 
@@ -155,7 +183,21 @@ app.post('/reports', async (req, res) =&gt; {
   <p>This is a bigger change than flipping a setting, and it's worth it. For the mechanics, <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">background jobs with BullMQ</a> walks through a real queue and worker, <a href="https://www.kloudbean.com/blog/deploy-long-running-ai-task-without-timeout/">running a long task without hitting a timeout</a> covers the return-immediately pattern end to end, and <a href="https://www.kloudbean.com/blog/run-ai-app-api-worker-database/">splitting an app into API, worker, and database</a> shows the architecture it leads to. The shape is the same whether the slow thing is a report, a video encode, or an AI call.</p>
 
   <!-- ADD IMAGE: src -> ../assets/console/cron-jobs.png · Scheduling recurring off-request work from the Cron Jobs screen. -->
-  <figure class="img-slot"><span><b>Add image</b><em>Scheduling recurring off-request work from the Cron Jobs screen, no SSH needed.</em><small>Kloudbean console: cron-jobs.png.</small></span></figure>
+  <!-- IMAGE GENERATE [terminal] #3
+Create a realistic terminal / command-line screenshot for a technical blog post titled "Error 524, A Timeout Occurred: Why Your Origin Went Quiet".
+
+What it must show: Scheduling recurring off-request work from the Cron Jobs screen, no SSH needed.
+Also: Kloudbean console: cron-jobs.png.
+
+Dark terminal window with a title bar. Monospaced text must be SHARP and SPELLED CORRECTLY. Show the real commands and realistic output. Colour-code: violet prompt, white commands, grey output, green success, red errors.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-terminal.png" alt="Scheduling recurring off-request work from the Cron Jobs screen, no SSH needed.">
+    <figcaption>Cron Jobs screen in Kloudbean console</figcaption>
+  </figure>
 
   <h2>Fixes that cannot work (skip these)</h2>
   <p>The 524 error attracts bad advice, mostly because the fixes are quick to try and satisfying to click. None of them touch a slow origin response.</p>
@@ -168,17 +210,75 @@ app.post('/reports', async (req, res) =&gt; {
   <p>That's mostly about visibility. On Kloudbean, application and server logs sit next to server health metrics, CPU, memory, and load, in one dashboard, which matters here because the intermittent 524 is a capacity story you can only read with load history. You line up the spike in 524s with the spike in load and the picture is obvious. Managed databases (MySQL, MariaDB, PostgreSQL, Redis, and more) give you a place to tune the slow query instead of guessing, and cron jobs run from the UI without SSH, which is handy for the scheduled side of moving work off the request path.</p>
   <p>One thing to be clear about: the background-job fix is your application design. You write the worker and the queue. Kloudbean runs the servers, the managed database, and the cron, and it won't magically move your work into the background or autoscale a standard app for you. What it removes is the server and stack maintenance around all of it, so you spend your time on the slow query rather than on the box it runs on. Seven cloud providers, one dashboard, free SSL, staging for WordPress and Laravel, automatic backups, and free migration assistance if you're moving something already running.</p>
 
-  <!-- ADD IMAGE: src -> ../assets/console/server-health.png · Server health metrics (CPU, memory, load) beside the app so a 524 spike lines up with a load spike. -->
-  <figure class="img-slot"><span><b>Add image</b><em>Server health metrics (CPU, memory, load) beside the app, so a spike in 524s lines up with a spike in load.</em><small>Kloudbean console: server-health.png.</small></span></figure>
+  <!-- ADD IMAGE: src -> ../assets/console-real/shots/server_health_step_2.png · Server health metrics (CPU, memory, load) beside the app so a 524 spike lines up with a load spike. -->
+  <!-- IMAGE GENERATE [graph] #4
+Create a clean line chart / time-series graph for a technical blog post titled "Error 524, A Timeout Occurred: Why Your Origin Went Quiet".
+
+What it must show: Server health metrics (CPU, memory, load) beside the app, so a spike in 524s lines up with a spike in load.
+Also: Kloudbean console: server-health.png.
+
+Label both axes. Draw the trend the description implies. Add a dashed red threshold line only if a limit is being hit. Legible axis labels, no 3D, no gradient clutter.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-graph.png" alt="Server health metrics (CPU, memory, load) beside the app, so a spike in 524s lines up with a spike in load.">
+    <figcaption>New 524s correlated with app load</figcaption>
+  </figure>
 
   <h2>If you are debugging more than one thing</h2>
   <p>If you're not sure which number you actually have, start at the <a href="https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/">Cloudflare 5xx error codes</a> overview. The nearest neighbours are <a href="https://www.kloudbean.com/blog/cloudflare-error-522-connection-timed-out/">522 connection timed out</a> for the handshake that never completes, <a href="https://www.kloudbean.com/blog/cloudflare-error-523-origin-is-unreachable/">523 origin is unreachable</a> when Cloudflare can't route to your address, and <a href="https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/">525 SSL handshake failed</a> when the connection works and TLS does not. For the same slow-response family from a different angle, <a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504 Gateway Timeout</a>. And for the fix itself, <a href="https://www.kloudbean.com/blog/deploy-long-running-ai-task-without-timeout/">running a long task without a timeout</a> and <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">background jobs with BullMQ</a>.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">See the slow request and the load in one place.</p>
-    <p style="margin:0 0 .6em">Managed servers across seven clouds, with application and server logs beside CPU, memory, and load metrics, so a 524 is something you can watch rather than guess at. Managed databases to tune the slow query, cron jobs from the UI, free SSL, and free migration assistance if you're moving something already running. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">Logs and metrics together · Managed databases · Cron from the UI · Free SSL · One dashboard</p>
+<div class="kbcta-fix-wrap">
+  <div class="kbcta-fix-overlay"></div>
+  <div class="kbcta-fix-content">
+    <div class="kbcta-fix-eyebrow">DEPLOY &middot; LOGS THAT TELL YOU WHY</div>
+    <p class="kbcta-fix-heading">Fewer mysteries on the next deploy.</p>
+    <p class="kbcta-fix-description">Build logs stream live in the console, deployment history keeps what happened, and the logs viewer separates app errors from web requests, so a failed start is a five-minute read rather than a guessing game.</p>
+    <ul class="kbcta-fix-features">
+      <li>&#10003; Live build logs</li>
+      <li>&#10003; Deployment history</li>
+      <li>&#10003; Logs viewer</li>
+      <li>&#10003; Managed process restarts</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Git deploy</li>
+    </ul>
+    <div class="kbcta-fix-buttons">
+      <a class="kbcta-fix-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-fix-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-fix: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-fix-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-fix-wrap *{box-sizing:border-box}
+.kbcta-fix-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-fix-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-fix-content{position:relative;z-index:3;max-width:700px}
+.kbcta-fix-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-fix-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-fix-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-fix-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-fix-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-fix-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-fix-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-fix-btn:hover,.kbcta-fix-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-fix-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-fix-link:hover,.kbcta-fix-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-fix-wrap{padding:36px 24px}
+  .kbcta-fix-heading{font-size:31px}
+  .kbcta-fix-description{font-size:16px}
+  .kbcta-fix-features li{white-space:normal}
+  .kbcta-fix-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-fix-btn{width:100%}
+  .kbcta-fix-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

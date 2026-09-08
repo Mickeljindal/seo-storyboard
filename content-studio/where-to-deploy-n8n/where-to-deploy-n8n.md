@@ -135,11 +135,21 @@ If you've decided to self-host, you still need somewhere to run it, and you don'
 
 None of this makes it a replacement for n8n Cloud. If a hands-off hosted service is what you want, n8n Cloud is the cleaner fit. This is simply one place to self-host if you've decided that's your path, and the general playbook for standing up a self-run app is in [deploy an AI-built app to production](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/).
 
----
+<!-- cta:start -->
+**You built the app. Give it a real home.**
 
-**Decided to self-host? Give it a soft landing.** Launch n8n in one click on a managed, always-on server, with a managed database, free SSL for the webhook URL, and automatic backups, your workflows and credentials staying yours. Start at [kloudbean.com](https://www.kloudbean.com/), or see plans on [pricing](https://www.kloudbean.com/pricing/).
+Run the app as an always-on process with managed databases, Redis, object storage, and automatic backups beside it. Deploy from Git with live build logs, and keep the infrastructure someone else's problem.
 
-One-click n8n · Managed PostgreSQL · Automatic backups · Free SSL · Free migration · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

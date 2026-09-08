@@ -124,9 +124,21 @@ The last three rows are the honest part, and they don't move. No host fixes them
 
 Everything above those rows, though, is genuinely tradeable, and that's the entire decision. Kloudbean holds the top six on any of seven clouds, AWS and Lightsail among them, which is why "not raw AWS" doesn't have to mean "not AWS." Migration onto a server above 4GB is free, and there's a 3-day trial for one service if you'd rather test the shape than read about it. And if you eventually want the AWS console in your own hands, the bottom three rows walk over with you, because they were always yours. The step-by-step of getting live either way is in [deploying an AI-built app to production](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/).
 
----
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-**Ship the product, not the infrastructure.** If you want a server, a managed database, backups, and SSL without assembling raw cloud yourself, that's what Kloudbean is for. See [kloudbean.com](https://www.kloudbean.com/) and [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
+
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

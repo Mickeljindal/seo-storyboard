@@ -52,7 +52,20 @@
   .cta{ margin:2.4em 0 0; padding:22px 24px; border-radius:16px; color:#fff; background:linear-gradient(135deg,var(--navy),#0a1f45); }
   .cta a{color:#c9b8ff; border-bottom-color:rgba(201,184,255,.4)}
   .byline{font-size:14px; color:var(--muted); border-top:1px solid var(--line); margin-top:2em; padding-top:14px}
-  /* image spacer: replace the whole <figure class="img-slot"> with a real <figure><img ...><figcaption>...</figcaption></figure> */
+  /* image spacer: replace the whole <!-- IMAGE GENERATE [flow] #1
+Create a left-to-right architecture / flow diagram for a technical blog post titled "Move Your Lovable App Off Vercel to Kloudbean (Migration Guide)".
+
+What it must show: 
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-flow.png" alt="">
+    <figcaption>Step-by-step process</figcaption>
+  </figure> */
   .img-slot{display:flex;align-items:center;justify-content:center;text-align:center;min-height:210px;margin:2em 0;padding:30px 24px;border:2px dashed #c9d0e3;border-radius:16px;background:repeating-linear-gradient(45deg,var(--bg-soft),var(--bg-soft) 14px,#eef1f8 14px,#eef1f8 28px);color:var(--muted)}
   .img-slot > span{display:block;max-width:80%}
   .img-slot b{display:block;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--purple);margin-bottom:8px}
@@ -134,7 +147,21 @@
   <p>One thing that does <em>not</em> move in this cutover: your Supabase backend. It keeps running exactly where it is, and the new frontend talks to it the same way the old one did. If you also want to pull Supabase onto your own server, that's a separate decision, and the <a href="https://www.kloudbean.com/blog/deploy-lovable-app-to-your-own-server/">deploy-a-Lovable-app guide</a> maps that Supabase coupling in full. For a clean flip, leave it in place. One less variable in flight.</p>
 
   <!-- ADD IMAGE: swap for a real <figure><img><figcaption> (src -> images/vercel-settings.png) -->
-  <figure class="img-slot"><span><b>Add image</b><em>The Vercel project's Settings, with Environment Variables and Domains open side by side.</em><small>This is the screen you inventory from. Author supplies.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #2
+Create a side-by-side comparison table for a technical blog post titled "Move Your Lovable App Off Vercel to Kloudbean (Migration Guide)".
+
+What it must show: The Vercel project's Settings, with Environment Variables and Domains open side by side.
+Also: This is the screen you inventory from. Author supplies.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-comparison.png" alt="The Vercel project's Settings, with Environment Variables and Domains open side by side.">
+    <figcaption>Environment Variables and Domains</figcaption>
+  </figure>
 
   <h2>Step 2: Lower your DNS TTL, two days before the flip</h2>
   <p>This is the step people skip, and it's the one that decides everything. TTL, time to live, is how long a DNS resolver is allowed to cache your record before checking again. If your domain's TTL is the common default of 3600 seconds, then after you change the record, resolvers around the world can keep sending users to the old Vercel deployment for up to an hour. Some longer.</p>
@@ -142,20 +169,34 @@
   <p>Here's the anti-pattern, and it's common: someone flips DNS with a 3600s or even 24-hour TTL still set, watches half their traffic keep hitting Vercel for the rest of the day, and concludes the migration "half worked." It worked fine. The record just hadn't expired from caches yet. Lower the TTL first and that whole class of confusion disappears.</p>
 
   <!-- ADD IMAGE: swap for a real <figure><img><figcaption> (src -> images/dns-ttl.png) -->
-  <figure class="img-slot"><span><b>Add image</b><em>Your DNS provider's record editor with the TTL field lowered to 300 seconds ahead of the cutover.</em><small>Shows the one field that makes the flip fast. Author supplies.</small></span></figure>
+  <!-- IMAGE GENERATE [panel] #3
+Create a clean settings / configuration panel UI mockup for a technical blog post titled "Move Your Lovable App Off Vercel to Kloudbean (Migration Guide)".
+
+What it must show: Your DNS provider's record editor with the TTL field lowered to 300 seconds ahead of the cutover.
+Also: Shows the one field that makes the flip fast. Author supplies.
+
+A white card with a small uppercase section label, then labelled rows. Highlight the row that carries the point with a violet border. Optional green check line at the bottom confirming the result.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-panel.png" alt="Your DNS provider's record editor with the TTL field lowered to 300 seconds ahead of the cutover.">
+    <figcaption>Lower TTL for faster propagation</figcaption>
+  </figure>
 
   <h2>Step 3: Stand up the new server and prove it on a temp URL</h2>
   <p>Now the part that feels like the migration but is actually the easy half. In the <a href="https://www.kloudbean.com/">Kloudbean</a> console, click <strong>Add Server</strong>, pick a <strong>Cloud Provider</strong>, choose <strong>Node.js</strong>, select the datacenter closest to your users, and give the build a size with 2 to 4 GB of headroom.</p>
 
   <figure>
-    <img src="../assets/console/add-server.png" alt="Kloudbean Add Server screen: choose a cloud provider, Node.js, a datacenter region, and a server size">
+    <img src="../assets/console-real/shots/launch_server_step_1.png" alt="Kloudbean Add Server screen: choose a cloud provider, Node.js, a datacenter region, and a server size">
     <figcaption>Add Server: pick the cloud, choose Node.js, and select the region nearest your users. About five minutes to a ready stack.</figcaption>
   </figure>
 
   <p>Open the app, go to <strong>Application Administration, Deploy Code</strong>, connect the GitHub repo Lovable syncs to, and set the runtime fields you wrote down in Step 1: app directory, port (your app listens on the assigned <code>process.env.PORT</code>), Node version, and your install, build, and start commands. Then <strong>Pull &amp; Deploy</strong>.</p>
 
   <figure>
-    <img src="../assets/console/git-deployment.png" alt="Kloudbean Deploy Code / Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy">
+    <img src="../assets/console-real/shots/git_connect_step_4.png" alt="Kloudbean Deploy Code / Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy">
     <figcaption>Deploy Code, then Git Deployment: connect the repo, set the runtime, Pull and Deploy, with the build log streaming live.</figcaption>
   </figure>
 
@@ -205,10 +246,55 @@ curl -sI https://yourdomain.com</code></pre>
   <h2>The trade-offs you are accepting</h2>
   <p>Kloudbean runs Linux web stacks: Node and the modern web toolkit (React, Next.js, Vue) plus PHP, Python, Ruby, and Java when you need them. That's exactly what Lovable produces, so you're in the right place. For .NET, Linux is enough. For Windows Server itself, look at Premium or Enterprise. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and automatic backups; you own the application and its data. And because it's a standard Linux box running standard code, you can move it again later. This migration off Vercel is the same move in reverse whenever you want it.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A rehoming, not a rebuild.</p>
-    <p style="margin:0">Move your app at <a href="https://www.kloudbean.com/">kloudbean.com</a>. One-click database launch · scheduled backups · allow-listed access · Git-based deploys. Fresh-deploy walkthrough <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">here</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+<div class="kbcta-move-wrap">
+  <div class="kbcta-move-overlay"></div>
+  <div class="kbcta-move-content">
+    <div class="kbcta-move-eyebrow">MIGRATE &middot; FLAT, PREDICTABLE PRICING</div>
+    <p class="kbcta-move-heading">Move it once. Own it after.</p>
+    <p class="kbcta-move-description">Standard code moves onto a standard Linux server, so this is a migration rather than a rewrite. Pick from seven clouds, keep push-to-deploy, and get help moving the first workload across.</p>
+    <ul class="kbcta-move-features">
+      <li>&#10003; Free migration assistance</li>
+      <li>&#10003; Free trial</li>
+      <li>&#10003; Seven cloud providers</li>
+      <li>&#10003; Flat monthly price</li>
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Git deploy</li>
+    </ul>
+    <div class="kbcta-move-buttons">
+      <a class="kbcta-move-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-move-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-move: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-move-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#0A0730;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-move-wrap *{box-sizing:border-box}
+.kbcta-move-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #0A0730 0%, #1B0F5A 58%, rgba(79,26,243,.55) 100%);pointer-events:none}
+.kbcta-move-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.28) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-move-content{position:relative;z-index:3;max-width:700px}
+.kbcta-move-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-move-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-move-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-move-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-move-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-move-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-move-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#2A0E7A;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-move-btn:hover,.kbcta-move-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-move-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-move-link:hover,.kbcta-move-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-move-wrap{padding:36px 24px}
+  .kbcta-move-heading{font-size:31px}
+  .kbcta-move-description{font-size:16px}
+  .kbcta-move-features li{white-space:normal}
+  .kbcta-move-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-move-btn{width:100%}
+  .kbcta-move-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

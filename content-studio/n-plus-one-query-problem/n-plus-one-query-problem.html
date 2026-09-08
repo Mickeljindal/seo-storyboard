@@ -85,7 +85,21 @@ LIMIT 50;</code></pre>
   <p>That dev-to-prod cliff is the whole story. The bug's cost is a function of row count and network distance, and both are tiny in dev. You can't feel N+1 on 5 rows. You feel it hard on 5,000. So it ships, quietly, over and over.</p>
 
   <!-- ADD IMAGE: a side-by-side of the same page on 5 seeded rows versus thousands of production rows, with the query count next to each. Swap for a real screenshot: src -> images/dev-vs-prod.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The same list page on 5 dev rows versus thousands of prod rows, with the query count beside each.</em><small>Shows why it passes locally and fails live.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #1
+Create a side-by-side comparison table for a technical blog post titled "The N+1 Query Problem: The Slow ORM Bug That Hides Until Production".
+
+What it must show: The same list page on 5 dev rows versus thousands of prod rows, with the query count beside each.
+Also: Shows why it passes locally and fails live.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-1-comparison.png" alt="The same list page on 5 dev rows versus thousands of prod rows, with the query count beside each.">
+    <figcaption>Query count and performance impact</figcaption>
+  </figure>
 
   <h2>Why do ORMs cause N+1 queries?</h2>
   <p>Because lazy loading is convenient, and convenience hides cost. An ORM lets you write <code>post.author.name</code> and it just works. You never wrote a query. That's the selling point. But behind that dot is a database round trip, and when the dot sits inside a loop, you've written N round trips without seeing a single line of SQL.</p>
@@ -253,7 +267,21 @@ LOGGING = {
   <p>Rails already logs every query in the dev console, and Sequelize logs by default (<code>logging: console.log</code>). Beyond raw logs, purpose-built tools make it obvious: <code>django-debug-toolbar</code> and <code>nplusone</code> for Django, the <code>bullet</code> gem for Rails, and any APM (the trace shows a waterfall of stacked identical queries). Whatever you use, the signal is the same. A wall of repeated single-row lookups.</p>
 
   <!-- ADD IMAGE: your ORM query log or an APM trace showing the same SELECT repeated once per row. Swap for a real screenshot: src -> images/query-log.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>An ORM query log or APM waterfall with the same single-row SELECT repeated dozens of times.</em><small>The visual signature of N+1.</small></span></figure>
+  <!-- IMAGE GENERATE [flow] #2
+Create a left-to-right architecture / flow diagram for a technical blog post titled "The N+1 Query Problem: The Slow ORM Bug That Hides Until Production".
+
+What it must show: An ORM query log or APM waterfall with the same single-row SELECT repeated dozens of times.
+Also: The visual signature of N+1.
+
+3 or 4 rounded boxes connected by arrows in real execution order. First box navy, middle boxes violet, last box green. Short label plus a small sub-label in each box. One short caption under the diagram.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-2-flow.png" alt="An ORM query log or APM waterfall with the same single-row SELECT repeated dozens of times.">
+    <figcaption>Repeated SELECTs in ORM logs</figcaption>
+  </figure>
 
   <h2>Is eager loading always the answer?</h2>
   <p>No. And this is where the good articles stop and the honest ones keep going.</p>
@@ -277,27 +305,86 @@ LOGGING = {
   <p>On Kloudbean you run a managed PostgreSQL or MySQL, and an N+1 storm shows up the way you'd expect: a spike in query volume and CPU on the database, right when a particular page gets traffic. The server health view is where you'd catch it.</p>
 
   <figure>
-    <img src="../assets/console/server-health.png" alt="The Kloudbean server health view showing a CPU spike and query volume from an N+1 query storm">
+    <img src="../assets/console-real/shots/server_health_step_2.png" alt="The Kloudbean server health view showing a CPU spike and query volume from an N+1 query storm">
     <figcaption>Server health: an N+1 page shows up as a query storm and CPU spike here. The metric points you at the symptom, then you fix the queries in your code.</figcaption>
   </figure>
 
   <p>The companion fixes live on the platform side and pair with the real fix in your code. An index on the foreign key so each lookup is cheap. Connection pooling so a burst of queries doesn't exhaust the ceiling. Managed Redis to cache repeated reads. A bigger database is a resize, not a migration, if you genuinely need more headroom.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="Launching a managed PostgreSQL or MySQL database in the Kloudbean console">
+    <img src="../assets/console-real/shots/psql_launch_step_1.png" alt="Launching a managed PostgreSQL or MySQL database in the Kloudbean console">
     <figcaption>DBS &rarr; Launch Database. Managed Postgres or MySQL with automatic backups, colocated with your app so they talk over a fast internal link.</figcaption>
   </figure>
 
   <!-- ADD IMAGE: a before-and-after of query count or CPU on the same page, once eager loading is in place. Swap for a real screenshot: src -> images/before-after-eager.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Query count or database CPU before and after adding eager loading, on the same page.</em><small>The payoff shot: 51 queries down to 2.</small></span></figure>
+  <!-- IMAGE GENERATE [comparison] #3
+Create a side-by-side comparison table for a technical blog post titled "The N+1 Query Problem: The Slow ORM Bug That Hides Until Production".
+
+What it must show: Query count or database CPU before and after adding eager loading, on the same page.
+Also: The payoff shot: 51 queries down to 2.
+
+Navy header row with white uppercase headings. Alternating light row stripes. Use green pills for good, red pills for bad, grey pills for it-depends. Text must be crisp and correctly spelled.
+Brand palette: deep navy #000f27 background, violet #4F1AF3 primary accent, green #40b75f for success or positive states. Clean modern editorial style, generous whitespace, flat vector look, no drop shadows, no stock-photo people, no watermark, no logos.
+Aspect ratio 16:9, high resolution, readable at 1200px wide.
+Everything shown must be technically accurate. Do not invent numbers, prices, or benchmarks.
+-->
+  <figure>
+    <img src="images/gen-3-comparison.png" alt="Query count or database CPU before and after adding eager loading, on the same page.">
+    <figcaption>Before and after adding eager loading</figcaption>
+  </figure>
 
   <p>Colocation matters more than it sounds here. When your app and database sit in the same account, right next to each other, even a chatty query pattern pays a tiny round trip instead of a public-internet one, so a mild N+1 hurts less while you fix it. The full walkthrough of wiring a database into an app is the pillar guide, <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">add a managed database to your app</a>, and the engine-specific view is <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a>.</p>
 
-  <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Fix the queries in code. Run the database on infrastructure that shows you the storm.</p>
-    <p style="margin:0 0 .6em">Launch managed PostgreSQL or MySQL, watch query volume and CPU in one dashboard, and pair eager loading with indexing, pooling, and managed Redis when you need them. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">Managed PostgreSQL &amp; MySQL &middot; Automatic backups &middot; IP allow-listing &middot; Resize on demand &middot; Free migration &middot; Free trial</p>
+<div class="kbcta-run-wrap">
+  <div class="kbcta-run-overlay"></div>
+  <div class="kbcta-run-content">
+    <div class="kbcta-run-eyebrow">MANAGED CLOUD &middot; ONE DASHBOARD</div>
+    <p class="kbcta-run-heading">Own the server. Skip the server admin.</p>
+    <p class="kbcta-run-description">Pick from seven clouds, run your app on a managed server you control, and keep databases, storage, and deploys in the same dashboard instead of four separate vendors.</p>
+    <ul class="kbcta-run-features">
+      <li>&#10003; Seven cloud providers</li>
+      <li>&#10003; Managed databases</li>
+      <li>&#10003; Object storage</li>
+      <li>&#10003; Automatic backups</li>
+      <li>&#10003; Free SSL</li>
+      <li>&#10003; Git deploy</li>
+      <li>&#10003; Free migration assistance</li>
+    </ul>
+    <div class="kbcta-run-buttons">
+      <a class="kbcta-run-btn" href="https://console.kloudbean.com/register">Start free &#8594;</a>
+      <a class="kbcta-run-link" href="https://www.kloudbean.com/pricing/">See plans</a>
+    </div>
   </div>
+</div>
+<style>
+/* kbcta-run: self-contained CTA. Scoped class names so nothing inherits from or
+   leaks into a theme's styles when this article is pasted into WordPress. */
+.kbcta-run-wrap{position:relative;overflow:hidden;width:100%;max-width:1140px;margin:50px auto;padding:60px;border-radius:22px;background:#000F27;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 45px rgba(0,0,0,.22);box-sizing:border-box;font-family:inherit}
+.kbcta-run-wrap *{box-sizing:border-box}
+.kbcta-run-overlay{position:absolute;inset:0;background:linear-gradient(105deg, #000F27 0%, #04142E 55%, rgba(4,20,46,.78) 100%);pointer-events:none}
+.kbcta-run-wrap::before{content:"";position:absolute;width:500px;height:500px;right:-150px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,rgba(79,26,243,.20) 0%,rgba(64,183,95,.08) 38%,transparent 70%);pointer-events:none}
+.kbcta-run-content{position:relative;z-index:3;max-width:700px}
+.kbcta-run-eyebrow{display:inline-flex;align-items:center;padding:8px 14px;margin-bottom:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.kbcta-run-heading{margin:0 0 18px;font-size:44px;font-weight:800;line-height:1.09;letter-spacing:-1px;color:#fff;font-family:inherit}
+.kbcta-run-description{margin:0 0 26px;max-width:680px;font-size:18px;line-height:1.72;color:rgba(255,255,255,.9)}
+.kbcta-run-features{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:32px;padding:0;list-style:none}
+.kbcta-run-features li{font-size:14px;font-weight:600;line-height:1.5;color:rgba(255,255,255,.94);white-space:nowrap}
+.kbcta-run-buttons{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.kbcta-run-btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 26px;background:#fff;color:#000F27;font-weight:700;border:1px solid #fff;border-radius:10px;text-decoration:none;transition:.25s}
+.kbcta-run-btn:hover,.kbcta-run-btn:focus-visible{background:transparent;color:#fff}
+.kbcta-run-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:5px}
+.kbcta-run-link:hover,.kbcta-run-link:focus-visible{opacity:.88}
+@media(max-width:768px){
+  .kbcta-run-wrap{padding:36px 24px}
+  .kbcta-run-heading{font-size:31px}
+  .kbcta-run-description{font-size:16px}
+  .kbcta-run-features li{white-space:normal}
+  .kbcta-run-buttons{flex-direction:column;align-items:stretch;gap:14px}
+  .kbcta-run-btn{width:100%}
+  .kbcta-run-link{text-align:center}
+}
+</style>
 
   <h2>FAQ</h2>
   <div class="faq">

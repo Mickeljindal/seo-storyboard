@@ -143,11 +143,20 @@ The boundary: nobody else can validate your tokens or write your refresh logic. 
 
 Its counterpart, [403 Forbidden](https://www.kloudbean.com/blog/403-forbidden-error/), plus [400 Bad Request](https://www.kloudbean.com/blog/400-bad-request/) and [429 Too Many Requests](https://www.kloudbean.com/blog/429-too-many-requests/). On credentials and configuration, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). For the proxy layer that strips headers, [the nginx reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/). On the WordPress side, [the WP REST API guide](https://www.kloudbean.com/blog/wp-rest-api-guide/). And for browser-side authentication failures on cross-origin calls, [fixing CORS errors](https://www.kloudbean.com/blog/fix-cors-error-node-production/) and [the security headers guide](https://www.kloudbean.com/blog/security-headers-guide/).
 
-## Credentials that stay in their own environment
+<!-- cta:start -->
+**The server layer, hardened for you.**
 
-Environment variables managed per application, nginx configured so your auth headers actually arrive, maintained servers including time synchronisation, and a basic auth gate when you want a 401 on purpose. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Every server ships with a Shorewall firewall and Fail2ban, free auto-renewing SSL, automatic backups, and OS patching handled. Add IP access control or a Basic Auth gate when a site should not be public.
 
-Per-app env vars · Managed nginx · Basic auth gate · IP access control · One dashboard
+- Shorewall firewall
+- Fail2ban
+- OS patching handled
+- Free SSL
+- IP access control
+- Automatic backups
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 

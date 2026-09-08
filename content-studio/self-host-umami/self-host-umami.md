@@ -77,7 +77,7 @@ Three ways to run Umami-style analytics, side by side. The hosted options win on
 
 If you want zero operations and you're tiny, Umami Cloud's free tier is a lovely place to start, and GA4 costs nothing. The moment data ownership, a predictable bill, or accurate high-volume counts matter more than a paste-and-forget setup, self-hosting is the better deal.
 
-<!-- ADD IMAGE: Your live Umami dashboard showing real visitor numbers, so readers see the payoff. -->
+![Real-time Umami dashboard shows increasing traffic](images/gen-1-graph.png)
 
 ## Deploy Umami on a managed Node server
 
@@ -87,21 +87,21 @@ Here's the production path end to end. Four steps, and the order matters: databa
 
 Start with the database, because Umami needs it before it'll boot. Provision a managed PostgreSQL instance, create a database named `umami`, and grab its internal host and credentials. Managed here means the engine is provisioned, patched, and backed up for you, and you whitelist your app server's IP so it can reach the database without exposing a public port.
 
-![The Kloudbean console Launch Database screen used to provision managed PostgreSQL for a self-hosted Umami analytics instance](../assets/console/launch-database.png)
+![The Kloudbean console Launch Database screen used to provision managed PostgreSQL for a self-hosted Umami analytics instance](../assets/console-real/shots/psql_launch_step_1.png)
 
 ### 2. Add the Umami Node app
 
 Next, add an application on the server as a Node app and point it at the Umami source (the official `umami-software/umami` repo, or your fork). This is where I want to be clear: there's no magic one-click Umami button here. You're running the real Umami Node app on a managed Node runtime, which is the honest version and the one that lets you update on your own terms. The [deploy a Node app](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) guide covers the general flow if you want the long form.
 
-![The Kloudbean console Add Application screen where the Umami Next.js Node app is added to a managed server](../assets/console/add-application.png)
+![The Kloudbean console Add Application screen where the Umami Next.js Node app is added to a managed server](../assets/console-real/shots/adding_app_from_apps_step_1.png)
 
-<!-- ADD IMAGE: The Umami GitHub repo page, or your fork, so readers know exactly what they're deploying. -->
+![Steps to deploy your own instance](images/gen-2-flow.png)
 
 ### 3. Set DATABASE_URL and APP_SECRET
 
 Umami is configured almost entirely through two environment variables. `DATABASE_URL` tells it where the database is, and `APP_SECRET` is the secret it uses to sign tokens. Set these in the console, not in a file you might commit.
 
-![The Kloudbean console Environment Variables screen where the Umami DATABASE_URL and APP_SECRET are configured](../assets/console/env-vars.png)
+![The Kloudbean console Environment Variables screen where the Umami DATABASE_URL and APP_SECRET are configured](../assets/console-real/shots/nodespm_env_step_1.png)
 
 ```bash
 # Umami needs a database and a secret, nothing exotic
@@ -131,7 +131,7 @@ If you ever need to apply the schema by hand (a fresh database, or a manual chec
 npx prisma migrate deploy
 ```
 
-![The Kloudbean console Git deployment screen building and deploying the Umami Node app from GitHub with live build logs](../assets/console/git-deployment.png)
+![The Kloudbean console Git deployment screen building and deploying the Umami Node app from GitHub with live build logs](../assets/console-real/shots/git_connect_step_4.png)
 
 When the build finishes, add your domain, let the platform issue free SSL, and open the app. You'll land on the Umami login. That leads straight to the one step nobody should skip. See [auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) for the full pipeline setup.
 
@@ -139,7 +139,7 @@ When the build finishes, add your domain, let the platform issue free SSL, and o
 
 Fresh Umami installs ship with a default account: username `admin`, password `umami`. That's public knowledge. If you leave it, anyone who finds your URL can walk into your dashboard. So the very first thing you do after the first successful login is change that password. This is the single most common self-hosted Umami mistake, and it takes about thirty seconds to avoid.
 
-<!-- ADD IMAGE: The Umami profile screen where you change the default admin password on first login. -->
+![First login security step](images/gen-3-flow.png)
 
 ## Add the Umami tracking script to your sites
 
@@ -179,11 +179,21 @@ The switch pays off when ownership, a flat bill, or accurate counts at real volu
 
 Umami is a good gateway into running your own tools. The [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup is worth a read, [self-hosting Supabase](https://www.kloudbean.com/blog/self-host-supabase/) is a natural next step for your backend, and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) covers what's running under Umami. If you want analytics that scale on ClickHouse with a more polished dashboard, [self-hosting Plausible](https://www.kloudbean.com/blog/self-host-plausible/) is the heavier-but-faster alternative.
 
----
+<!-- cta:start -->
+**Prototype to production, without the babysitting.**
 
-**Analytics that stay yours.** Run the Umami Node app on a managed server, back it with managed PostgreSQL, and keep every pageview in a database you own. The OS, SSL, and backups are handled. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+Move the whole thing onto a managed server you own: always-on processes, a managed database for real data, object storage for uploads, and Git deploys with live build logs.
 
-Managed Node runtime · Managed PostgreSQL · Automatic backups · Free SSL · Free migration · Free trial
+- Managed databases
+- Always-on processes
+- Object storage
+- Automatic backups
+- Free SSL
+- Git deploy
+- Free migration
+
+[Start free](https://console.kloudbean.com/register) · [See plans](https://www.kloudbean.com/pricing/)
+<!-- cta:end -->
 
 ## FAQ
 
