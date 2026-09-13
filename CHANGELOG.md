@@ -15,6 +15,16 @@ Status: Shipped | Beta | Planned · Visibility: Internal | Public
 
 ---
 
+## v1.13.0 — 2026-09-14 — Compliance slide in the company profile, and a PDF export that refuses to clip
+Status: Shipped · Visibility: Public
+- **New slide 10, `Compliance & Data Residency`.** The deck sold enterprise infrastructure and Saudi residency but never answered the question every regulated buyer asks first, which framework controls we map to. Six designed badges now cover **PDPL, NCA ECC, NCA CSCC, GDPR, SOC 2 and ISO 27001**, each marked **Aligned**, paired with a "what Kloudbean provides" and "what remains yours" split.
+- **The badges are typographic on purpose, not official certification marks.** Kloudbean is compliant-ready and aligned with these frameworks, and does not hold certification against them. The AICPA SOC mark and ISO certification marks may only be displayed by audited parties, so pulling the real logos off the web would have been both a false claim and a trademark problem. A designed badge that reads "Aligned" is honest and safe, and the reasoning is recorded in a comment above the CSS so nobody swaps them back in later.
+- **The honest boundary is stated on the slide, not buried.** Certification is assessed against the customer's organisation, not against their hosting provider. That line is the reason the rest of the slide is believable.
+- Slide 9's framework strip was extended to match: it listed GDPR, SOC 2 and ISO 27001, and now also carries PDPL, NCA ECC and NCA CSCC.
+- **Government trust signal on the portfolio slide, with no entity named.** A new band states that Kloudbean is trusted with government and public-sector workloads, including in the Kingdom of Saudi Arabia, and says plainly that entities are not named per engagement confidentiality terms. A ministry logo was requested and deliberately **not** added: naming or implying which government entity we serve breaks the confidentiality rule in `kloudbean-enterprise-compliance.md`, and one logo is worth less than the ability to keep winning that kind of work.
+- **New `scripts/export-company-profile.mjs`, with a clipped-content guard.** Slides are fixed 1280x720 boxes, so overflowing copy silently disappears instead of reflowing. The script now compares `scrollHeight` against `clientHeight` per slide and reports any overflow. It caught two real cases immediately: slide 10 was 155px over and slide 12 was 84px over, and the content being cut on slide 10 was the non-certification disclaimer, the one line that must never vanish. Fixed by trimming copy rather than adding a sixteenth slide.
+- Deck is now 15 slides; the page counter said `/ 14`.
+
 ## v1.11.0 — 2026-09-08 — Portable SEO engine bootstrap prompt
 Status: Shipped · Visibility: Internal
 - **`SEO-ENGINE-BOOTSTRAP-PROMPT.md`** — a product-agnostic, copy-paste prompt that rebuilds this engine's decision layer for a different digital service. Interview-first, so no copy gets written before a product-truth file exists.

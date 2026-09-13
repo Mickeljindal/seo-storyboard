@@ -1,0 +1,1164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kloudbean — Company Profile &amp; Selected Portfolio | 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+/* ==========================================================================
+   KLOUDBEAN COMPANY PROFILE — 10 slides, 16:9, built to export as a PDF.
+
+   HOW TO EXPORT: open in Chrome, Cmd+P, destination "Save as PDF",
+   paper "A4" with LANDSCAPE orientation, margins "None", and tick
+   "Background graphics". One slide per page, nothing clipped.
+
+   HOW TO EDIT: every slide is a <section class="slide">. Copy exactly and the
+   page counter keeps working, because it is driven by CSS counters rather than
+   hard-coded numbers.
+   ========================================================================== */
+
+:root{
+  --navy-900:#00081a;
+  --navy-800:#000f27;   /* Kloudbean brand navy */
+  --navy-700:#04173a;
+  --navy-600:#0a2050;
+  --line:rgba(255,255,255,.10);
+  --line-strong:rgba(255,255,255,.18);
+  --ink:#eef2fb;
+  --ink-soft:#a9b6d4;
+  --ink-mute:#7c8bb0;
+  --violet:#4f1af3;
+  --violet-soft:#7c4dff;
+  --cyan:#22d3ee;
+  --green:#40b75f;
+  --blue:#2f6bff;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{
+  font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:#05070f;color:var(--ink);
+  counter-reset:slide;
+}
+
+/* ---------- The slide frame ------------------------------------------------ */
+.deck{display:flex;flex-direction:column;align-items:center;gap:28px;padding:28px 16px 56px}
+
+.slide{
+  counter-increment:slide;
+  position:relative;
+  width:1280px;height:720px;           /* exact 16:9 */
+  flex:0 0 auto;overflow:hidden;
+  background:
+    radial-gradient(1100px 620px at 88% -12%, rgba(79,26,243,.30), transparent 62%),
+    radial-gradient(820px 520px at -8% 108%, rgba(34,211,238,.16), transparent 60%),
+    linear-gradient(160deg, var(--navy-800) 0%, var(--navy-900) 100%);
+  border:1px solid var(--line);border-radius:20px;
+  box-shadow:0 30px 80px rgba(0,0,0,.55);
+  padding:56px 64px;
+  display:flex;flex-direction:column;
+}
+
+/* A faint engineering grid. Subtle enough to read as texture, not decoration. */
+.slide::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,.028) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,.028) 1px, transparent 1px);
+  background-size:64px 64px;
+  mask-image:radial-gradient(1200px 700px at 50% 40%, #000 55%, transparent 100%);
+  -webkit-mask-image:radial-gradient(1200px 700px at 50% 40%, #000 55%, transparent 100%);
+}
+
+/* Discreet page number, driven by a counter so slides can be reordered. */
+.slide::after{
+  /* Update this total when a slide is added or removed. */
+  content:counter(slide) " / 15";
+  position:absolute;right:28px;bottom:20px;
+  font-size:11px;letter-spacing:.14em;color:var(--ink-mute);
+  font-variant-numeric:tabular-nums;
+}
+.slide.cover::after{content:none}
+
+.slide > *{position:relative;z-index:1}
+
+/* ---------- Shared type --------------------------------------------------- */
+.eyebrow{
+  font-size:11px;font-weight:700;letter-spacing:.20em;text-transform:uppercase;
+  color:var(--cyan);display:flex;align-items:center;gap:10px;margin-bottom:16px;
+}
+.eyebrow::before{content:"";width:22px;height:2px;background:var(--cyan);border-radius:2px;opacity:.9}
+
+h1{font-size:80px;line-height:.98;font-weight:800;letter-spacing:-.03em}
+h2{font-size:40px;line-height:1.14;font-weight:700;letter-spacing:-.022em;max-width:22ch}
+h2.wide{max-width:34ch}
+.lede{font-size:16.5px;line-height:1.62;color:var(--ink-soft);max-width:74ch}
+.small{font-size:13px;line-height:1.6;color:var(--ink-mute)}
+.tiny{font-size:10.5px;line-height:1.55;color:var(--ink-mute)}
+strong{font-weight:700;color:#fff}
+
+.brandmark{height:34px;width:auto;display:block}
+.brandmark--sm{height:22px;opacity:.92}
+
+/* Header used on every interior slide */
+.shead{display:flex;justify-content:space-between;align-items:flex-start;gap:32px}
+.shead .brandmark--sm{margin-top:4px}
+
+/* ---------- Cards --------------------------------------------------------- */
+.card{
+  background:linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.022));
+  border:1px solid var(--line);border-radius:14px;padding:20px 22px;
+}
+.card h3{font-size:15.5px;font-weight:700;letter-spacing:-.01em;margin-bottom:8px;color:#fff}
+.card p{font-size:12.8px;line-height:1.58;color:var(--ink-soft)}
+
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:22px}
+
+.icn{
+  width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
+  margin-bottom:12px;background:rgba(79,26,243,.18);border:1px solid rgba(124,77,255,.34);
+}
+.icn svg{width:17px;height:17px;stroke:var(--cyan);stroke-width:1.7;fill:none;
+  stroke-linecap:round;stroke-linejoin:round}
+
+.badges{display:flex;flex-wrap:wrap;gap:9px}
+.badge{
+  font-size:12.2px;font-weight:600;padding:8px 14px;border-radius:999px;
+  background:rgba(255,255,255,.05);border:1px solid var(--line-strong);color:var(--ink);
+}
+
+.note{
+  border-left:3px solid var(--cyan);background:rgba(34,211,238,.07);
+  border-radius:0 10px 10px 0;padding:14px 18px;font-size:13px;line-height:1.6;
+  color:var(--ink-soft);
+}
+.note strong{color:#fff}
+
+/* ---------- Slide 1: cover ------------------------------------------------ */
+.cover{justify-content:space-between}
+.cover h1{margin:0 0 18px}
+.cover .sub{font-size:22px;font-weight:600;color:#fff;letter-spacing:-.01em}
+.cover .supporting{font-size:15.5px;line-height:1.6;color:var(--ink-soft);max-width:56ch;margin-top:14px}
+.cover-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:48px;align-items:center;flex:1}
+.cover-foot{display:flex;justify-content:space-between;align-items:center;
+  border-top:1px solid var(--line);padding-top:18px;font-size:12px;color:var(--ink-mute);
+  letter-spacing:.06em}
+
+/* Abstract topology visual, all CSS + inline SVG so nothing is stock art. */
+.topology{position:relative;width:100%;aspect-ratio:1/1;max-height:430px}
+.topology svg{width:100%;height:100%;overflow:visible}
+.orb{
+  position:absolute;inset:14%;border-radius:50%;
+  background:radial-gradient(circle at 34% 30%, rgba(124,77,255,.42), transparent 58%),
+             radial-gradient(circle at 68% 72%, rgba(34,211,238,.30), transparent 56%);
+  filter:blur(24px);
+}
+
+/* ---------- Slide 4: architecture stack ---------------------------------- */
+.stack{display:flex;flex-direction:column;gap:8px}
+.layer{
+  display:flex;align-items:center;gap:14px;
+  border:1px solid var(--line);border-radius:11px;padding:11px 16px;
+  background:linear-gradient(90deg, rgba(255,255,255,.058), rgba(255,255,255,.016));
+}
+.layer .lbl{font-size:13px;font-weight:600;color:#fff;flex:1}
+.layer .tag{font-size:10.5px;color:var(--ink-mute);letter-spacing:.06em;text-transform:uppercase}
+.layer .dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.d-cyan{background:var(--cyan);box-shadow:0 0 12px rgba(34,211,238,.7)}
+.d-violet{background:var(--violet-soft);box-shadow:0 0 12px rgba(124,77,255,.7)}
+.d-green{background:var(--green);box-shadow:0 0 12px rgba(64,183,95,.7)}
+.d-blue{background:var(--blue);box-shadow:0 0 12px rgba(47,107,255,.7)}
+.flowline{height:14px;display:grid;place-items:center}
+.flowline span{width:1px;height:100%;background:linear-gradient(var(--line-strong),transparent)}
+
+.caps{display:grid;grid-template-columns:1fr 1fr;gap:10px 22px}
+.cap{display:flex;gap:9px;font-size:12.3px;line-height:1.45;color:var(--ink-soft);
+  padding:4px 0;align-items:flex-start}
+.cap::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--cyan);
+  margin-top:6px;flex:0 0 auto;opacity:.85}
+.capent{font-style:normal;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-mute);margin-left:8px;opacity:.75;white-space:nowrap}
+
+/* ---------- Slide 5: two columns + regions ------------------------------- */
+.collist{display:flex;flex-direction:column;gap:0}
+.collist li{list-style:none;font-size:13.2px;line-height:1.5;color:var(--ink-soft);
+  padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);display:flex;gap:10px}
+.collist li:last-child{border-bottom:0}
+/* Tighter rows for the compliance slide, which carries two lists plus the
+   non-certification disclaimer inside the same fixed 720px page. */
+.collist--tight li{padding:6px 0;font-size:12.8px;line-height:1.45}
+.collist li::before{content:"";width:5px;height:5px;border-radius:50%;
+  background:var(--violet-soft);margin-top:7px;flex:0 0 auto}
+.coltitle{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--cyan);margin-bottom:6px}
+
+.regions{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.region{font-size:11.6px;font-weight:600;padding:7px 13px;border-radius:8px;
+  background:rgba(34,211,238,.10);border:1px solid rgba(34,211,238,.28);color:#cdf3fa}
+.logopill{background:#000f27;border:1px solid var(--line-strong);border-radius:9px;padding:7px 14px;display:inline-flex;align-items:center;height:36px}
+.logopill img{height:20px;width:auto;display:block}
+
+/* ---------- Slide 7: logo wall -------------------------------------------
+   Each logo sits in its OWN light tile. That is not decoration: the supplied
+   logos are a mix of dark-text-on-transparent, white-text-on-transparent, and
+   solid coloured backgrounds. A dark slide would erase the dark-text ones
+   entirely, and a light slide would erase the white-text ones. Per-logo tiles
+   are the only treatment that shows all of them correctly and keeps the wall
+   visually even. ------------------------------------------------------------ */
+/* ---------------------------------------------------------------
+   COMPLIANCE BADGES
+   Deliberately typographic rather than official certification marks.
+   Kloudbean is ALIGNED with these frameworks, not certified against
+   them, and the AICPA SOC mark and ISO certification marks may only
+   be displayed by audited/certified parties. A designed badge that
+   says "Aligned" is both honest and legally safe.
+   --------------------------------------------------------------- */
+.cbadges{display:grid;grid-template-columns:repeat(6,1fr);gap:11px;margin-top:18px}
+.cbadge{
+  position:relative;border-radius:12px;padding:12px 10px 11px;text-align:center;
+  background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.025));
+  border:1px solid var(--line-strong);
+}
+.cbadge__mark{
+  width:28px;height:28px;margin:0 auto 7px;border-radius:8px;display:grid;place-items:center;
+  background:rgba(34,211,238,.13);border:1px solid rgba(34,211,238,.34);
+}
+.cbadge__name{font-size:14px;font-weight:750;color:#fff;line-height:1.15;letter-spacing:-.1px}
+.cbadge__org{font-size:9.6px;color:var(--ink-mute);margin-top:3px;line-height:1.3}
+.cbadge__state{
+  display:inline-block;margin-top:9px;font-size:8.6px;font-weight:800;letter-spacing:.13em;
+  text-transform:uppercase;color:#9ff3c4;padding:3px 8px;border-radius:999px;
+  background:rgba(64,183,95,.14);border:1px solid rgba(64,183,95,.34);
+}
+/* Government / public-sector band. Generic and plural on purpose: the
+   engagement terms do not permit naming a government client. */
+.govband{
+  display:flex;align-items:center;gap:16px;margin-top:16px;padding:13px 18px;
+  border-radius:12px;background:rgba(79,26,243,.10);border:1px solid rgba(124,77,255,.30);
+}
+.wall{display:grid;grid-template-columns:repeat(7,1fr);gap:12px}
+/* Portfolio slide carries the government band as well, so its tiles run shorter
+   to keep everything inside the fixed 720px page. */
+.wall--compact{gap:10px}
+.wall--compact .tile{height:68px;padding:11px 14px}
+.tile{
+  height:80px;border-radius:12px;display:grid;place-items:center;padding:15px 18px;
+  background:#fff;border:1px solid rgba(255,255,255,.14);overflow:hidden;
+}
+/* For logos whose artwork is white and would vanish on a white tile. */
+.tile--dark{background:#0b1430;border-color:var(--line-strong)}
+/* Cap logo height so colored/solid-background marks (Orange, F6S, Aqar360, etc.)
+   sit centered with even margin instead of filling the tile edge-to-edge. */
+.tile img{max-width:100%;max-height:44px;width:auto;height:auto;object-fit:contain;display:block}
+.pwall{display:flex;flex-wrap:wrap;justify-content:center;gap:18px}
+.pcard{width:calc(25% - 14px);height:116px;background:#fff;border-radius:14px;display:grid;place-items:center;padding:22px 32px;border:1px solid rgba(255,255,255,.14)}
+.pcard img{max-width:100%;max-height:54px;width:auto;height:auto;object-fit:contain;display:block}
+.segrow{margin-top:24px;text-align:center}
+.seglead{display:block;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan);margin-bottom:12px}
+.segchips{display:flex;flex-wrap:wrap;justify-content:center;gap:9px}
+.segchips span{font-size:13px;font-weight:600;color:#eaf0fb;padding:8px 16px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid var(--line-strong)}
+
+/* ---------- Slide 9: engagement flow ------------------------------------- */
+.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;position:relative}
+.step{border:1px solid var(--line);border-radius:12px;padding:15px 15px 16px;
+  background:linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.018))}
+.step .n{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--cyan);
+  letter-spacing:.1em;margin-bottom:9px}
+.step h4{font-size:14px;font-weight:700;color:#fff;margin-bottom:7px}
+.step p{font-size:11.6px;line-height:1.5;color:var(--ink-soft)}
+
+/* ---------- Slide 10: contact -------------------------------------------- */
+.cta{
+  display:inline-flex;align-items:center;gap:11px;
+  background:linear-gradient(100deg,var(--violet),var(--violet-soft));
+  color:#fff;font-size:15.5px;font-weight:700;padding:15px 28px;border-radius:11px;
+  box-shadow:0 14px 38px rgba(79,26,243,.42);letter-spacing:-.01em;
+}
+.cta svg{width:17px;height:17px;stroke:#fff;stroke-width:2;fill:none;
+  stroke-linecap:round;stroke-linejoin:round}
+.contact{display:grid;grid-template-columns:auto 1fr;gap:12px 16px;align-items:baseline}
+.contact dt{font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-mute);padding-top:3px}
+.contact dd{font-size:15px;font-weight:600;color:#fff}
+
+/* ---------- Print --------------------------------------------------------- */
+@page{size:1280px 720px;margin:0}
+@media print{
+  body{background:#fff}
+  .deck{gap:0;padding:0}
+  .slide{
+    border-radius:0;border:0;box-shadow:none;
+    width:1280px;height:720px;
+    break-after:page;page-break-after:always;
+  }
+  .slide:last-child{break-after:auto;page-break-after:auto}
+  .no-print{display:none!important}
+}
+.no-print{
+  max-width:1280px;margin:0 auto 4px;padding:14px 18px;border-radius:12px;
+  background:rgba(34,211,238,.07);border:1px solid rgba(34,211,238,.26);
+  font-size:12.5px;line-height:1.6;color:#cdf3fa;
+}
+.no-print b{color:#fff}
+
+/* ---------- Slide 1 cover: full-bleed dotted world map + icon hub -------- */
+.cover-stage{position:relative;flex:1;margin-top:6px;overflow:hidden;border-radius:12px;display:flex;align-items:center}
+.wm-dots,.wm-net{position:absolute;inset:0;width:100%;height:100%}
+.wm-dots{-webkit-mask-image:linear-gradient(90deg,transparent 5%,rgba(0,0,0,.22) 30%,#000 62%);mask-image:linear-gradient(90deg,transparent 5%,rgba(0,0,0,.22) 30%,#000 62%);opacity:.95}
+.cover-copy{position:relative;z-index:3;max-width:46%;padding-top:0}
+.cover-tags{display:flex;gap:9px;margin-top:26px;flex-wrap:wrap}
+.cover-tags span{font-size:12px;font-weight:600;color:#cdf3fa;padding:7px 14px;border-radius:999px;background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.26)}
+.cover-logo{height:32px;width:auto;display:block}
+.cover-h1{font-family:'Plus Jakarta Sans';font-size:40px;line-height:1.14;font-weight:800;letter-spacing:-.02em;color:#fff;max-width:15ch;margin:0 0 16px}
+
+
+/* enterprise additions */
+.statstrip{display:flex;gap:6px;justify-content:space-between;height:100%;align-items:center}
+.statstrip > div{flex:1;text-align:center}
+.statstrip b{display:block;font-family:'Plus Jakarta Sans';font-size:23px;font-weight:800;color:#fff;letter-spacing:-.02em}
+.statstrip span{font-size:10px;color:var(--ink-mute);letter-spacing:.03em}
+.ent-badge{display:inline-flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#ffd8a6;background:rgba(255,168,60,.10);border:1px solid rgba(255,168,60,.30);padding:5px 11px;border-radius:999px}
+.card .tag-ent{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#ffd8a6;margin-bottom:6px;display:block}
+
+.tycontact{display:inline-flex;flex-direction:column;font-size:15px;font-weight:600;color:#fff}
+.tycontact b{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mute);margin-bottom:3px}
+</style>
+</head>
+<body>
+
+<div class="no-print">
+  <b>To export as PDF:</b> Chrome &rarr; Cmd+P &rarr; Destination “Save as PDF” &rarr; Layout
+  <b>Landscape</b> &rarr; Margins <b>None</b> &rarr; tick <b>Background graphics</b>. Each slide
+  becomes one clean page. This banner does not print.
+</div>
+
+<div class="deck">
+
+<!-- ====================================================== 1. COVER ====== -->
+<section class="slide cover">
+  <img class="cover-logo" src="brand/Kloudbean_dark_logo.svg" alt="Kloudbean" />
+
+  <div class="cover-stage">
+      <svg class="wm-dots" viewBox="0 0 620 340" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs>
+          <linearGradient id="wmg" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="620" y2="340">
+            <stop offset="0%" stop-color="#22d3ee"/><stop offset="55%" stop-color="#3a7bff"/><stop offset="100%" stop-color="#7c4dff"/>
+          </linearGradient>
+        </defs>
+        <g fill="url(#wmg)"><circle cx="223.6" cy="22.9" r="1.7"/><circle cx="229.5" cy="22.9" r="1.7"/><circle cx="235.5" cy="22.9" r="1.7"/><circle cx="241.4" cy="22.9" r="1.7"/><circle cx="247.4" cy="22.9" r="1.7"/><circle cx="253.4" cy="22.9" r="1.7"/><circle cx="217.6" cy="29.4" r="1.7"/><circle cx="223.6" cy="29.4" r="1.7"/><circle cx="229.5" cy="29.4" r="1.7"/><circle cx="235.5" cy="29.4" r="1.7"/><circle cx="241.4" cy="29.4" r="1.7"/><circle cx="247.4" cy="29.4" r="1.7"/><circle cx="253.4" cy="29.4" r="1.7"/><circle cx="116.3" cy="36.0" r="1.7"/><circle cx="122.2" cy="36.0" r="1.7"/><circle cx="128.2" cy="36.0" r="1.7"/><circle cx="134.1" cy="36.0" r="1.7"/><circle cx="140.1" cy="36.0" r="1.7"/><circle cx="146.1" cy="36.0" r="1.7"/><circle cx="152.0" cy="36.0" r="1.7"/><circle cx="158.0" cy="36.0" r="1.7"/><circle cx="217.6" cy="36.0" r="1.7"/><circle cx="223.6" cy="36.0" r="1.7"/><circle cx="229.5" cy="36.0" r="1.7"/><circle cx="235.5" cy="36.0" r="1.7"/><circle cx="241.4" cy="36.0" r="1.7"/><circle cx="247.4" cy="36.0" r="1.7"/><circle cx="253.4" cy="36.0" r="1.7"/><circle cx="259.3" cy="36.0" r="1.7"/><circle cx="402.4" cy="36.0" r="1.7"/><circle cx="408.4" cy="36.0" r="1.7"/><circle cx="414.3" cy="36.0" r="1.7"/><circle cx="420.3" cy="36.0" r="1.7"/><circle cx="426.3" cy="36.0" r="1.7"/><circle cx="432.2" cy="36.0" r="1.7"/><circle cx="438.2" cy="36.0" r="1.7"/><circle cx="444.1" cy="36.0" r="1.7"/><circle cx="450.1" cy="36.0" r="1.7"/><circle cx="456.1" cy="36.0" r="1.7"/><circle cx="462.0" cy="36.0" r="1.7"/><circle cx="468.0" cy="36.0" r="1.7"/><circle cx="473.9" cy="36.0" r="1.7"/><circle cx="479.9" cy="36.0" r="1.7"/><circle cx="485.9" cy="36.0" r="1.7"/><circle cx="491.8" cy="36.0" r="1.7"/><circle cx="497.8" cy="36.0" r="1.7"/><circle cx="503.8" cy="36.0" r="1.7"/><circle cx="509.7" cy="36.0" r="1.7"/><circle cx="515.7" cy="36.0" r="1.7"/><circle cx="521.6" cy="36.0" r="1.7"/><circle cx="527.6" cy="36.0" r="1.7"/><circle cx="533.6" cy="36.0" r="1.7"/><circle cx="44.7" cy="42.5" r="1.7"/><circle cx="50.7" cy="42.5" r="1.7"/><circle cx="56.6" cy="42.5" r="1.7"/><circle cx="92.4" cy="42.5" r="1.7"/><circle cx="98.4" cy="42.5" r="1.7"/><circle cx="104.3" cy="42.5" r="1.7"/><circle cx="110.3" cy="42.5" r="1.7"/><circle cx="116.3" cy="42.5" r="1.7"/><circle cx="122.2" cy="42.5" r="1.7"/><circle cx="128.2" cy="42.5" r="1.7"/><circle cx="134.1" cy="42.5" r="1.7"/><circle cx="140.1" cy="42.5" r="1.7"/><circle cx="146.1" cy="42.5" r="1.7"/><circle cx="152.0" cy="42.5" r="1.7"/><circle cx="158.0" cy="42.5" r="1.7"/><circle cx="163.9" cy="42.5" r="1.7"/><circle cx="169.9" cy="42.5" r="1.7"/><circle cx="175.9" cy="42.5" r="1.7"/><circle cx="181.8" cy="42.5" r="1.7"/><circle cx="223.6" cy="42.5" r="1.7"/><circle cx="229.5" cy="42.5" r="1.7"/><circle cx="235.5" cy="42.5" r="1.7"/><circle cx="241.4" cy="42.5" r="1.7"/><circle cx="247.4" cy="42.5" r="1.7"/><circle cx="253.4" cy="42.5" r="1.7"/><circle cx="330.9" cy="42.5" r="1.7"/><circle cx="336.8" cy="42.5" r="1.7"/><circle cx="342.8" cy="42.5" r="1.7"/><circle cx="348.8" cy="42.5" r="1.7"/><circle cx="378.6" cy="42.5" r="1.7"/><circle cx="384.5" cy="42.5" r="1.7"/><circle cx="390.5" cy="42.5" r="1.7"/><circle cx="396.4" cy="42.5" r="1.7"/><circle cx="402.4" cy="42.5" r="1.7"/><circle cx="408.4" cy="42.5" r="1.7"/><circle cx="414.3" cy="42.5" r="1.7"/><circle cx="420.3" cy="42.5" r="1.7"/><circle cx="426.3" cy="42.5" r="1.7"/><circle cx="432.2" cy="42.5" r="1.7"/><circle cx="438.2" cy="42.5" r="1.7"/><circle cx="444.1" cy="42.5" r="1.7"/><circle cx="450.1" cy="42.5" r="1.7"/><circle cx="456.1" cy="42.5" r="1.7"/><circle cx="462.0" cy="42.5" r="1.7"/><circle cx="468.0" cy="42.5" r="1.7"/><circle cx="473.9" cy="42.5" r="1.7"/><circle cx="479.9" cy="42.5" r="1.7"/><circle cx="485.9" cy="42.5" r="1.7"/><circle cx="491.8" cy="42.5" r="1.7"/><circle cx="497.8" cy="42.5" r="1.7"/><circle cx="503.8" cy="42.5" r="1.7"/><circle cx="509.7" cy="42.5" r="1.7"/><circle cx="515.7" cy="42.5" r="1.7"/><circle cx="521.6" cy="42.5" r="1.7"/><circle cx="527.6" cy="42.5" r="1.7"/><circle cx="533.6" cy="42.5" r="1.7"/><circle cx="539.5" cy="42.5" r="1.7"/><circle cx="545.5" cy="42.5" r="1.7"/><circle cx="551.4" cy="42.5" r="1.7"/><circle cx="557.4" cy="42.5" r="1.7"/><circle cx="32.8" cy="49.0" r="1.7"/><circle cx="38.8" cy="49.0" r="1.7"/><circle cx="44.7" cy="49.0" r="1.7"/><circle cx="50.7" cy="49.0" r="1.7"/><circle cx="56.6" cy="49.0" r="1.7"/><circle cx="62.6" cy="49.0" r="1.7"/><circle cx="68.6" cy="49.0" r="1.7"/><circle cx="86.4" cy="49.0" r="1.7"/><circle cx="92.4" cy="49.0" r="1.7"/><circle cx="98.4" cy="49.0" r="1.7"/><circle cx="104.3" cy="49.0" r="1.7"/><circle cx="110.3" cy="49.0" r="1.7"/><circle cx="116.3" cy="49.0" r="1.7"/><circle cx="122.2" cy="49.0" r="1.7"/><circle cx="128.2" cy="49.0" r="1.7"/><circle cx="134.1" cy="49.0" r="1.7"/><circle cx="140.1" cy="49.0" r="1.7"/><circle cx="146.1" cy="49.0" r="1.7"/><circle cx="152.0" cy="49.0" r="1.7"/><circle cx="158.0" cy="49.0" r="1.7"/><circle cx="163.9" cy="49.0" r="1.7"/><circle cx="169.9" cy="49.0" r="1.7"/><circle cx="175.9" cy="49.0" r="1.7"/><circle cx="181.8" cy="49.0" r="1.7"/><circle cx="187.8" cy="49.0" r="1.7"/><circle cx="229.5" cy="49.0" r="1.7"/><circle cx="235.5" cy="49.0" r="1.7"/><circle cx="241.4" cy="49.0" r="1.7"/><circle cx="247.4" cy="49.0" r="1.7"/><circle cx="324.9" cy="49.0" r="1.7"/><circle cx="330.9" cy="49.0" r="1.7"/><circle cx="336.8" cy="49.0" r="1.7"/><circle cx="342.8" cy="49.0" r="1.7"/><circle cx="348.8" cy="49.0" r="1.7"/><circle cx="354.7" cy="49.0" r="1.7"/><circle cx="366.6" cy="49.0" r="1.7"/><circle cx="372.6" cy="49.0" r="1.7"/><circle cx="378.6" cy="49.0" r="1.7"/><circle cx="384.5" cy="49.0" r="1.7"/><circle cx="390.5" cy="49.0" r="1.7"/><circle cx="396.4" cy="49.0" r="1.7"/><circle cx="402.4" cy="49.0" r="1.7"/><circle cx="408.4" cy="49.0" r="1.7"/><circle cx="414.3" cy="49.0" r="1.7"/><circle cx="420.3" cy="49.0" r="1.7"/><circle cx="426.3" cy="49.0" r="1.7"/><circle cx="432.2" cy="49.0" r="1.7"/><circle cx="438.2" cy="49.0" r="1.7"/><circle cx="444.1" cy="49.0" r="1.7"/><circle cx="450.1" cy="49.0" r="1.7"/><circle cx="456.1" cy="49.0" r="1.7"/><circle cx="462.0" cy="49.0" r="1.7"/><circle cx="468.0" cy="49.0" r="1.7"/><circle cx="473.9" cy="49.0" r="1.7"/><circle cx="479.9" cy="49.0" r="1.7"/><circle cx="485.9" cy="49.0" r="1.7"/><circle cx="491.8" cy="49.0" r="1.7"/><circle cx="497.8" cy="49.0" r="1.7"/><circle cx="503.8" cy="49.0" r="1.7"/><circle cx="509.7" cy="49.0" r="1.7"/><circle cx="515.7" cy="49.0" r="1.7"/><circle cx="521.6" cy="49.0" r="1.7"/><circle cx="527.6" cy="49.0" r="1.7"/><circle cx="533.6" cy="49.0" r="1.7"/><circle cx="539.5" cy="49.0" r="1.7"/><circle cx="545.5" cy="49.0" r="1.7"/><circle cx="551.4" cy="49.0" r="1.7"/><circle cx="557.4" cy="49.0" r="1.7"/><circle cx="563.4" cy="49.0" r="1.7"/><circle cx="569.3" cy="49.0" r="1.7"/><circle cx="26.8" cy="55.6" r="1.7"/><circle cx="32.8" cy="55.6" r="1.7"/><circle cx="38.8" cy="55.6" r="1.7"/><circle cx="44.7" cy="55.6" r="1.7"/><circle cx="50.7" cy="55.6" r="1.7"/><circle cx="56.6" cy="55.6" r="1.7"/><circle cx="62.6" cy="55.6" r="1.7"/><circle cx="68.6" cy="55.6" r="1.7"/><circle cx="80.5" cy="55.6" r="1.7"/><circle cx="86.4" cy="55.6" r="1.7"/><circle cx="92.4" cy="55.6" r="1.7"/><circle cx="98.4" cy="55.6" r="1.7"/><circle cx="104.3" cy="55.6" r="1.7"/><circle cx="110.3" cy="55.6" r="1.7"/><circle cx="116.3" cy="55.6" r="1.7"/><circle cx="122.2" cy="55.6" r="1.7"/><circle cx="128.2" cy="55.6" r="1.7"/><circle cx="134.1" cy="55.6" r="1.7"/><circle cx="140.1" cy="55.6" r="1.7"/><circle cx="146.1" cy="55.6" r="1.7"/><circle cx="152.0" cy="55.6" r="1.7"/><circle cx="158.0" cy="55.6" r="1.7"/><circle cx="163.9" cy="55.6" r="1.7"/><circle cx="169.9" cy="55.6" r="1.7"/><circle cx="175.9" cy="55.6" r="1.7"/><circle cx="181.8" cy="55.6" r="1.7"/><circle cx="187.8" cy="55.6" r="1.7"/><circle cx="193.8" cy="55.6" r="1.7"/><circle cx="324.9" cy="55.6" r="1.7"/><circle cx="330.9" cy="55.6" r="1.7"/><circle cx="336.8" cy="55.6" r="1.7"/><circle cx="342.8" cy="55.6" r="1.7"/><circle cx="348.8" cy="55.6" r="1.7"/><circle cx="354.7" cy="55.6" r="1.7"/><circle cx="366.6" cy="55.6" r="1.7"/><circle cx="372.6" cy="55.6" r="1.7"/><circle cx="378.6" cy="55.6" r="1.7"/><circle cx="384.5" cy="55.6" r="1.7"/><circle cx="390.5" cy="55.6" r="1.7"/><circle cx="396.4" cy="55.6" r="1.7"/><circle cx="402.4" cy="55.6" r="1.7"/><circle cx="408.4" cy="55.6" r="1.7"/><circle cx="414.3" cy="55.6" r="1.7"/><circle cx="420.3" cy="55.6" r="1.7"/><circle cx="426.3" cy="55.6" r="1.7"/><circle cx="432.2" cy="55.6" r="1.7"/><circle cx="438.2" cy="55.6" r="1.7"/><circle cx="444.1" cy="55.6" r="1.7"/><circle cx="450.1" cy="55.6" r="1.7"/><circle cx="456.1" cy="55.6" r="1.7"/><circle cx="462.0" cy="55.6" r="1.7"/><circle cx="468.0" cy="55.6" r="1.7"/><circle cx="473.9" cy="55.6" r="1.7"/><circle cx="479.9" cy="55.6" r="1.7"/><circle cx="485.9" cy="55.6" r="1.7"/><circle cx="491.8" cy="55.6" r="1.7"/><circle cx="497.8" cy="55.6" r="1.7"/><circle cx="503.8" cy="55.6" r="1.7"/><circle cx="509.7" cy="55.6" r="1.7"/><circle cx="515.7" cy="55.6" r="1.7"/><circle cx="521.6" cy="55.6" r="1.7"/><circle cx="527.6" cy="55.6" r="1.7"/><circle cx="533.6" cy="55.6" r="1.7"/><circle cx="539.5" cy="55.6" r="1.7"/><circle cx="545.5" cy="55.6" r="1.7"/><circle cx="551.4" cy="55.6" r="1.7"/><circle cx="557.4" cy="55.6" r="1.7"/><circle cx="563.4" cy="55.6" r="1.7"/><circle cx="569.3" cy="55.6" r="1.7"/><circle cx="38.8" cy="62.1" r="1.7"/><circle cx="44.7" cy="62.1" r="1.7"/><circle cx="50.7" cy="62.1" r="1.7"/><circle cx="56.6" cy="62.1" r="1.7"/><circle cx="86.4" cy="62.1" r="1.7"/><circle cx="92.4" cy="62.1" r="1.7"/><circle cx="98.4" cy="62.1" r="1.7"/><circle cx="104.3" cy="62.1" r="1.7"/><circle cx="110.3" cy="62.1" r="1.7"/><circle cx="116.3" cy="62.1" r="1.7"/><circle cx="122.2" cy="62.1" r="1.7"/><circle cx="128.2" cy="62.1" r="1.7"/><circle cx="134.1" cy="62.1" r="1.7"/><circle cx="140.1" cy="62.1" r="1.7"/><circle cx="146.1" cy="62.1" r="1.7"/><circle cx="152.0" cy="62.1" r="1.7"/><circle cx="158.0" cy="62.1" r="1.7"/><circle cx="163.9" cy="62.1" r="1.7"/><circle cx="169.9" cy="62.1" r="1.7"/><circle cx="175.9" cy="62.1" r="1.7"/><circle cx="181.8" cy="62.1" r="1.7"/><circle cx="187.8" cy="62.1" r="1.7"/><circle cx="193.8" cy="62.1" r="1.7"/><circle cx="307.0" cy="62.1" r="1.7"/><circle cx="313.0" cy="62.1" r="1.7"/><circle cx="318.9" cy="62.1" r="1.7"/><circle cx="324.9" cy="62.1" r="1.7"/><circle cx="330.9" cy="62.1" r="1.7"/><circle cx="336.8" cy="62.1" r="1.7"/><circle cx="342.8" cy="62.1" r="1.7"/><circle cx="348.8" cy="62.1" r="1.7"/><circle cx="372.6" cy="62.1" r="1.7"/><circle cx="378.6" cy="62.1" r="1.7"/><circle cx="384.5" cy="62.1" r="1.7"/><circle cx="390.5" cy="62.1" r="1.7"/><circle cx="396.4" cy="62.1" r="1.7"/><circle cx="402.4" cy="62.1" r="1.7"/><circle cx="408.4" cy="62.1" r="1.7"/><circle cx="414.3" cy="62.1" r="1.7"/><circle cx="420.3" cy="62.1" r="1.7"/><circle cx="426.3" cy="62.1" r="1.7"/><circle cx="432.2" cy="62.1" r="1.7"/><circle cx="438.2" cy="62.1" r="1.7"/><circle cx="444.1" cy="62.1" r="1.7"/><circle cx="450.1" cy="62.1" r="1.7"/><circle cx="456.1" cy="62.1" r="1.7"/><circle cx="462.0" cy="62.1" r="1.7"/><circle cx="468.0" cy="62.1" r="1.7"/><circle cx="473.9" cy="62.1" r="1.7"/><circle cx="479.9" cy="62.1" r="1.7"/><circle cx="485.9" cy="62.1" r="1.7"/><circle cx="491.8" cy="62.1" r="1.7"/><circle cx="497.8" cy="62.1" r="1.7"/><circle cx="503.8" cy="62.1" r="1.7"/><circle cx="509.7" cy="62.1" r="1.7"/><circle cx="515.7" cy="62.1" r="1.7"/><circle cx="521.6" cy="62.1" r="1.7"/><circle cx="527.6" cy="62.1" r="1.7"/><circle cx="533.6" cy="62.1" r="1.7"/><circle cx="539.5" cy="62.1" r="1.7"/><circle cx="545.5" cy="62.1" r="1.7"/><circle cx="551.4" cy="62.1" r="1.7"/><circle cx="557.4" cy="62.1" r="1.7"/><circle cx="563.4" cy="62.1" r="1.7"/><circle cx="92.4" cy="68.7" r="1.7"/><circle cx="98.4" cy="68.7" r="1.7"/><circle cx="104.3" cy="68.7" r="1.7"/><circle cx="110.3" cy="68.7" r="1.7"/><circle cx="116.3" cy="68.7" r="1.7"/><circle cx="122.2" cy="68.7" r="1.7"/><circle cx="128.2" cy="68.7" r="1.7"/><circle cx="134.1" cy="68.7" r="1.7"/><circle cx="140.1" cy="68.7" r="1.7"/><circle cx="146.1" cy="68.7" r="1.7"/><circle cx="152.0" cy="68.7" r="1.7"/><circle cx="158.0" cy="68.7" r="1.7"/><circle cx="163.9" cy="68.7" r="1.7"/><circle cx="169.9" cy="68.7" r="1.7"/><circle cx="175.9" cy="68.7" r="1.7"/><circle cx="181.8" cy="68.7" r="1.7"/><circle cx="301.1" cy="68.7" r="1.7"/><circle cx="307.0" cy="68.7" r="1.7"/><circle cx="313.0" cy="68.7" r="1.7"/><circle cx="318.9" cy="68.7" r="1.7"/><circle cx="324.9" cy="68.7" r="1.7"/><circle cx="330.9" cy="68.7" r="1.7"/><circle cx="336.8" cy="68.7" r="1.7"/><circle cx="342.8" cy="68.7" r="1.7"/><circle cx="348.8" cy="68.7" r="1.7"/><circle cx="354.7" cy="68.7" r="1.7"/><circle cx="360.7" cy="68.7" r="1.7"/><circle cx="396.4" cy="68.7" r="1.7"/><circle cx="402.4" cy="68.7" r="1.7"/><circle cx="408.4" cy="68.7" r="1.7"/><circle cx="414.3" cy="68.7" r="1.7"/><circle cx="420.3" cy="68.7" r="1.7"/><circle cx="426.3" cy="68.7" r="1.7"/><circle cx="432.2" cy="68.7" r="1.7"/><circle cx="438.2" cy="68.7" r="1.7"/><circle cx="444.1" cy="68.7" r="1.7"/><circle cx="450.1" cy="68.7" r="1.7"/><circle cx="456.1" cy="68.7" r="1.7"/><circle cx="462.0" cy="68.7" r="1.7"/><circle cx="468.0" cy="68.7" r="1.7"/><circle cx="473.9" cy="68.7" r="1.7"/><circle cx="479.9" cy="68.7" r="1.7"/><circle cx="485.9" cy="68.7" r="1.7"/><circle cx="491.8" cy="68.7" r="1.7"/><circle cx="497.8" cy="68.7" r="1.7"/><circle cx="503.8" cy="68.7" r="1.7"/><circle cx="509.7" cy="68.7" r="1.7"/><circle cx="515.7" cy="68.7" r="1.7"/><circle cx="521.6" cy="68.7" r="1.7"/><circle cx="527.6" cy="68.7" r="1.7"/><circle cx="533.6" cy="68.7" r="1.7"/><circle cx="539.5" cy="68.7" r="1.7"/><circle cx="104.3" cy="75.2" r="1.7"/><circle cx="110.3" cy="75.2" r="1.7"/><circle cx="116.3" cy="75.2" r="1.7"/><circle cx="122.2" cy="75.2" r="1.7"/><circle cx="128.2" cy="75.2" r="1.7"/><circle cx="134.1" cy="75.2" r="1.7"/><circle cx="140.1" cy="75.2" r="1.7"/><circle cx="146.1" cy="75.2" r="1.7"/><circle cx="152.0" cy="75.2" r="1.7"/><circle cx="158.0" cy="75.2" r="1.7"/><circle cx="163.9" cy="75.2" r="1.7"/><circle cx="169.9" cy="75.2" r="1.7"/><circle cx="295.1" cy="75.2" r="1.7"/><circle cx="301.1" cy="75.2" r="1.7"/><circle cx="307.0" cy="75.2" r="1.7"/><circle cx="313.0" cy="75.2" r="1.7"/><circle cx="318.9" cy="75.2" r="1.7"/><circle cx="324.9" cy="75.2" r="1.7"/><circle cx="330.9" cy="75.2" r="1.7"/><circle cx="336.8" cy="75.2" r="1.7"/><circle cx="342.8" cy="75.2" r="1.7"/><circle cx="348.8" cy="75.2" r="1.7"/><circle cx="354.7" cy="75.2" r="1.7"/><circle cx="360.7" cy="75.2" r="1.7"/><circle cx="366.6" cy="75.2" r="1.7"/><circle cx="396.4" cy="75.2" r="1.7"/><circle cx="402.4" cy="75.2" r="1.7"/><circle cx="408.4" cy="75.2" r="1.7"/><circle cx="414.3" cy="75.2" r="1.7"/><circle cx="420.3" cy="75.2" r="1.7"/><circle cx="426.3" cy="75.2" r="1.7"/><circle cx="432.2" cy="75.2" r="1.7"/><circle cx="438.2" cy="75.2" r="1.7"/><circle cx="444.1" cy="75.2" r="1.7"/><circle cx="450.1" cy="75.2" r="1.7"/><circle cx="456.1" cy="75.2" r="1.7"/><circle cx="462.0" cy="75.2" r="1.7"/><circle cx="468.0" cy="75.2" r="1.7"/><circle cx="473.9" cy="75.2" r="1.7"/><circle cx="479.9" cy="75.2" r="1.7"/><circle cx="485.9" cy="75.2" r="1.7"/><circle cx="104.3" cy="81.7" r="1.7"/><circle cx="110.3" cy="81.7" r="1.7"/><circle cx="116.3" cy="81.7" r="1.7"/><circle cx="122.2" cy="81.7" r="1.7"/><circle cx="128.2" cy="81.7" r="1.7"/><circle cx="134.1" cy="81.7" r="1.7"/><circle cx="140.1" cy="81.7" r="1.7"/><circle cx="146.1" cy="81.7" r="1.7"/><circle cx="152.0" cy="81.7" r="1.7"/><circle cx="158.0" cy="81.7" r="1.7"/><circle cx="163.9" cy="81.7" r="1.7"/><circle cx="169.9" cy="81.7" r="1.7"/><circle cx="175.9" cy="81.7" r="1.7"/><circle cx="301.1" cy="81.7" r="1.7"/><circle cx="307.0" cy="81.7" r="1.7"/><circle cx="313.0" cy="81.7" r="1.7"/><circle cx="318.9" cy="81.7" r="1.7"/><circle cx="324.9" cy="81.7" r="1.7"/><circle cx="330.9" cy="81.7" r="1.7"/><circle cx="336.8" cy="81.7" r="1.7"/><circle cx="342.8" cy="81.7" r="1.7"/><circle cx="348.8" cy="81.7" r="1.7"/><circle cx="354.7" cy="81.7" r="1.7"/><circle cx="360.7" cy="81.7" r="1.7"/><circle cx="366.6" cy="81.7" r="1.7"/><circle cx="372.6" cy="81.7" r="1.7"/><circle cx="396.4" cy="81.7" r="1.7"/><circle cx="402.4" cy="81.7" r="1.7"/><circle cx="408.4" cy="81.7" r="1.7"/><circle cx="414.3" cy="81.7" r="1.7"/><circle cx="420.3" cy="81.7" r="1.7"/><circle cx="426.3" cy="81.7" r="1.7"/><circle cx="432.2" cy="81.7" r="1.7"/><circle cx="438.2" cy="81.7" r="1.7"/><circle cx="444.1" cy="81.7" r="1.7"/><circle cx="450.1" cy="81.7" r="1.7"/><circle cx="456.1" cy="81.7" r="1.7"/><circle cx="462.0" cy="81.7" r="1.7"/><circle cx="468.0" cy="81.7" r="1.7"/><circle cx="473.9" cy="81.7" r="1.7"/><circle cx="98.4" cy="88.3" r="1.7"/><circle cx="104.3" cy="88.3" r="1.7"/><circle cx="110.3" cy="88.3" r="1.7"/><circle cx="116.3" cy="88.3" r="1.7"/><circle cx="122.2" cy="88.3" r="1.7"/><circle cx="128.2" cy="88.3" r="1.7"/><circle cx="134.1" cy="88.3" r="1.7"/><circle cx="140.1" cy="88.3" r="1.7"/><circle cx="146.1" cy="88.3" r="1.7"/><circle cx="152.0" cy="88.3" r="1.7"/><circle cx="158.0" cy="88.3" r="1.7"/><circle cx="163.9" cy="88.3" r="1.7"/><circle cx="169.9" cy="88.3" r="1.7"/><circle cx="175.9" cy="88.3" r="1.7"/><circle cx="181.8" cy="88.3" r="1.7"/><circle cx="307.0" cy="88.3" r="1.7"/><circle cx="313.0" cy="88.3" r="1.7"/><circle cx="318.9" cy="88.3" r="1.7"/><circle cx="324.9" cy="88.3" r="1.7"/><circle cx="330.9" cy="88.3" r="1.7"/><circle cx="336.8" cy="88.3" r="1.7"/><circle cx="342.8" cy="88.3" r="1.7"/><circle cx="348.8" cy="88.3" r="1.7"/><circle cx="354.7" cy="88.3" r="1.7"/><circle cx="360.7" cy="88.3" r="1.7"/><circle cx="366.6" cy="88.3" r="1.7"/><circle cx="372.6" cy="88.3" r="1.7"/><circle cx="396.4" cy="88.3" r="1.7"/><circle cx="402.4" cy="88.3" r="1.7"/><circle cx="408.4" cy="88.3" r="1.7"/><circle cx="414.3" cy="88.3" r="1.7"/><circle cx="420.3" cy="88.3" r="1.7"/><circle cx="426.3" cy="88.3" r="1.7"/><circle cx="432.2" cy="88.3" r="1.7"/><circle cx="438.2" cy="88.3" r="1.7"/><circle cx="444.1" cy="88.3" r="1.7"/><circle cx="450.1" cy="88.3" r="1.7"/><circle cx="456.1" cy="88.3" r="1.7"/><circle cx="462.0" cy="88.3" r="1.7"/><circle cx="468.0" cy="88.3" r="1.7"/><circle cx="473.9" cy="88.3" r="1.7"/><circle cx="485.9" cy="88.3" r="1.7"/><circle cx="491.8" cy="88.3" r="1.7"/><circle cx="497.8" cy="88.3" r="1.7"/><circle cx="503.8" cy="88.3" r="1.7"/><circle cx="509.7" cy="88.3" r="1.7"/><circle cx="515.7" cy="88.3" r="1.7"/><circle cx="527.6" cy="88.3" r="1.7"/><circle cx="533.6" cy="88.3" r="1.7"/><circle cx="551.4" cy="88.3" r="1.7"/><circle cx="98.4" cy="94.8" r="1.7"/><circle cx="104.3" cy="94.8" r="1.7"/><circle cx="110.3" cy="94.8" r="1.7"/><circle cx="116.3" cy="94.8" r="1.7"/><circle cx="122.2" cy="94.8" r="1.7"/><circle cx="128.2" cy="94.8" r="1.7"/><circle cx="134.1" cy="94.8" r="1.7"/><circle cx="140.1" cy="94.8" r="1.7"/><circle cx="146.1" cy="94.8" r="1.7"/><circle cx="152.0" cy="94.8" r="1.7"/><circle cx="158.0" cy="94.8" r="1.7"/><circle cx="163.9" cy="94.8" r="1.7"/><circle cx="169.9" cy="94.8" r="1.7"/><circle cx="175.9" cy="94.8" r="1.7"/><circle cx="181.8" cy="94.8" r="1.7"/><circle cx="342.8" cy="94.8" r="1.7"/><circle cx="348.8" cy="94.8" r="1.7"/><circle cx="354.7" cy="94.8" r="1.7"/><circle cx="360.7" cy="94.8" r="1.7"/><circle cx="366.6" cy="94.8" r="1.7"/><circle cx="402.4" cy="94.8" r="1.7"/><circle cx="408.4" cy="94.8" r="1.7"/><circle cx="414.3" cy="94.8" r="1.7"/><circle cx="420.3" cy="94.8" r="1.7"/><circle cx="426.3" cy="94.8" r="1.7"/><circle cx="432.2" cy="94.8" r="1.7"/><circle cx="438.2" cy="94.8" r="1.7"/><circle cx="444.1" cy="94.8" r="1.7"/><circle cx="450.1" cy="94.8" r="1.7"/><circle cx="456.1" cy="94.8" r="1.7"/><circle cx="462.0" cy="94.8" r="1.7"/><circle cx="468.0" cy="94.8" r="1.7"/><circle cx="479.9" cy="94.8" r="1.7"/><circle cx="485.9" cy="94.8" r="1.7"/><circle cx="491.8" cy="94.8" r="1.7"/><circle cx="497.8" cy="94.8" r="1.7"/><circle cx="503.8" cy="94.8" r="1.7"/><circle cx="509.7" cy="94.8" r="1.7"/><circle cx="515.7" cy="94.8" r="1.7"/><circle cx="521.6" cy="94.8" r="1.7"/><circle cx="527.6" cy="94.8" r="1.7"/><circle cx="533.6" cy="94.8" r="1.7"/><circle cx="545.5" cy="94.8" r="1.7"/><circle cx="551.4" cy="94.8" r="1.7"/><circle cx="104.3" cy="101.3" r="1.7"/><circle cx="110.3" cy="101.3" r="1.7"/><circle cx="116.3" cy="101.3" r="1.7"/><circle cx="122.2" cy="101.3" r="1.7"/><circle cx="128.2" cy="101.3" r="1.7"/><circle cx="134.1" cy="101.3" r="1.7"/><circle cx="140.1" cy="101.3" r="1.7"/><circle cx="146.1" cy="101.3" r="1.7"/><circle cx="152.0" cy="101.3" r="1.7"/><circle cx="158.0" cy="101.3" r="1.7"/><circle cx="163.9" cy="101.3" r="1.7"/><circle cx="169.9" cy="101.3" r="1.7"/><circle cx="175.9" cy="101.3" r="1.7"/><circle cx="378.6" cy="101.3" r="1.7"/><circle cx="384.5" cy="101.3" r="1.7"/><circle cx="390.5" cy="101.3" r="1.7"/><circle cx="396.4" cy="101.3" r="1.7"/><circle cx="414.3" cy="101.3" r="1.7"/><circle cx="420.3" cy="101.3" r="1.7"/><circle cx="426.3" cy="101.3" r="1.7"/><circle cx="432.2" cy="101.3" r="1.7"/><circle cx="438.2" cy="101.3" r="1.7"/><circle cx="444.1" cy="101.3" r="1.7"/><circle cx="450.1" cy="101.3" r="1.7"/><circle cx="479.9" cy="101.3" r="1.7"/><circle cx="485.9" cy="101.3" r="1.7"/><circle cx="491.8" cy="101.3" r="1.7"/><circle cx="497.8" cy="101.3" r="1.7"/><circle cx="503.8" cy="101.3" r="1.7"/><circle cx="509.7" cy="101.3" r="1.7"/><circle cx="515.7" cy="101.3" r="1.7"/><circle cx="521.6" cy="101.3" r="1.7"/><circle cx="527.6" cy="101.3" r="1.7"/><circle cx="545.5" cy="101.3" r="1.7"/><circle cx="551.4" cy="101.3" r="1.7"/><circle cx="128.2" cy="107.9" r="1.7"/><circle cx="134.1" cy="107.9" r="1.7"/><circle cx="140.1" cy="107.9" r="1.7"/><circle cx="146.1" cy="107.9" r="1.7"/><circle cx="152.0" cy="107.9" r="1.7"/><circle cx="158.0" cy="107.9" r="1.7"/><circle cx="313.0" cy="107.9" r="1.7"/><circle cx="318.9" cy="107.9" r="1.7"/><circle cx="324.9" cy="107.9" r="1.7"/><circle cx="330.9" cy="107.9" r="1.7"/><circle cx="336.8" cy="107.9" r="1.7"/><circle cx="342.8" cy="107.9" r="1.7"/><circle cx="348.8" cy="107.9" r="1.7"/><circle cx="354.7" cy="107.9" r="1.7"/><circle cx="360.7" cy="107.9" r="1.7"/><circle cx="372.6" cy="107.9" r="1.7"/><circle cx="378.6" cy="107.9" r="1.7"/><circle cx="384.5" cy="107.9" r="1.7"/><circle cx="390.5" cy="107.9" r="1.7"/><circle cx="396.4" cy="107.9" r="1.7"/><circle cx="402.4" cy="107.9" r="1.7"/><circle cx="444.1" cy="107.9" r="1.7"/><circle cx="473.9" cy="107.9" r="1.7"/><circle cx="479.9" cy="107.9" r="1.7"/><circle cx="485.9" cy="107.9" r="1.7"/><circle cx="491.8" cy="107.9" r="1.7"/><circle cx="497.8" cy="107.9" r="1.7"/><circle cx="503.8" cy="107.9" r="1.7"/><circle cx="509.7" cy="107.9" r="1.7"/><circle cx="515.7" cy="107.9" r="1.7"/><circle cx="521.6" cy="107.9" r="1.7"/><circle cx="527.6" cy="107.9" r="1.7"/><circle cx="551.4" cy="107.9" r="1.7"/><circle cx="140.1" cy="114.4" r="1.7"/><circle cx="146.1" cy="114.4" r="1.7"/><circle cx="152.0" cy="114.4" r="1.7"/><circle cx="158.0" cy="114.4" r="1.7"/><circle cx="301.1" cy="114.4" r="1.7"/><circle cx="307.0" cy="114.4" r="1.7"/><circle cx="313.0" cy="114.4" r="1.7"/><circle cx="318.9" cy="114.4" r="1.7"/><circle cx="324.9" cy="114.4" r="1.7"/><circle cx="330.9" cy="114.4" r="1.7"/><circle cx="336.8" cy="114.4" r="1.7"/><circle cx="342.8" cy="114.4" r="1.7"/><circle cx="348.8" cy="114.4" r="1.7"/><circle cx="354.7" cy="114.4" r="1.7"/><circle cx="360.7" cy="114.4" r="1.7"/><circle cx="366.6" cy="114.4" r="1.7"/><circle cx="372.6" cy="114.4" r="1.7"/><circle cx="378.6" cy="114.4" r="1.7"/><circle cx="384.5" cy="114.4" r="1.7"/><circle cx="390.5" cy="114.4" r="1.7"/><circle cx="396.4" cy="114.4" r="1.7"/><circle cx="402.4" cy="114.4" r="1.7"/><circle cx="408.4" cy="114.4" r="1.7"/><circle cx="438.2" cy="114.4" r="1.7"/><circle cx="444.1" cy="114.4" r="1.7"/><circle cx="450.1" cy="114.4" r="1.7"/><circle cx="456.1" cy="114.4" r="1.7"/><circle cx="479.9" cy="114.4" r="1.7"/><circle cx="485.9" cy="114.4" r="1.7"/><circle cx="491.8" cy="114.4" r="1.7"/><circle cx="497.8" cy="114.4" r="1.7"/><circle cx="503.8" cy="114.4" r="1.7"/><circle cx="509.7" cy="114.4" r="1.7"/><circle cx="515.7" cy="114.4" r="1.7"/><circle cx="521.6" cy="114.4" r="1.7"/><circle cx="527.6" cy="114.4" r="1.7"/><circle cx="134.1" cy="121.0" r="1.7"/><circle cx="140.1" cy="121.0" r="1.7"/><circle cx="146.1" cy="121.0" r="1.7"/><circle cx="152.0" cy="121.0" r="1.7"/><circle cx="158.0" cy="121.0" r="1.7"/><circle cx="295.1" cy="121.0" r="1.7"/><circle cx="301.1" cy="121.0" r="1.7"/><circle cx="307.0" cy="121.0" r="1.7"/><circle cx="313.0" cy="121.0" r="1.7"/><circle cx="318.9" cy="121.0" r="1.7"/><circle cx="324.9" cy="121.0" r="1.7"/><circle cx="330.9" cy="121.0" r="1.7"/><circle cx="336.8" cy="121.0" r="1.7"/><circle cx="342.8" cy="121.0" r="1.7"/><circle cx="348.8" cy="121.0" r="1.7"/><circle cx="354.7" cy="121.0" r="1.7"/><circle cx="360.7" cy="121.0" r="1.7"/><circle cx="366.6" cy="121.0" r="1.7"/><circle cx="372.6" cy="121.0" r="1.7"/><circle cx="378.6" cy="121.0" r="1.7"/><circle cx="384.5" cy="121.0" r="1.7"/><circle cx="390.5" cy="121.0" r="1.7"/><circle cx="396.4" cy="121.0" r="1.7"/><circle cx="402.4" cy="121.0" r="1.7"/><circle cx="408.4" cy="121.0" r="1.7"/><circle cx="432.2" cy="121.0" r="1.7"/><circle cx="438.2" cy="121.0" r="1.7"/><circle cx="444.1" cy="121.0" r="1.7"/><circle cx="450.1" cy="121.0" r="1.7"/><circle cx="456.1" cy="121.0" r="1.7"/><circle cx="485.9" cy="121.0" r="1.7"/><circle cx="491.8" cy="121.0" r="1.7"/><circle cx="497.8" cy="121.0" r="1.7"/><circle cx="503.8" cy="121.0" r="1.7"/><circle cx="509.7" cy="121.0" r="1.7"/><circle cx="515.7" cy="121.0" r="1.7"/><circle cx="521.6" cy="121.0" r="1.7"/><circle cx="134.1" cy="127.5" r="1.7"/><circle cx="140.1" cy="127.5" r="1.7"/><circle cx="146.1" cy="127.5" r="1.7"/><circle cx="152.0" cy="127.5" r="1.7"/><circle cx="158.0" cy="127.5" r="1.7"/><circle cx="295.1" cy="127.5" r="1.7"/><circle cx="301.1" cy="127.5" r="1.7"/><circle cx="307.0" cy="127.5" r="1.7"/><circle cx="313.0" cy="127.5" r="1.7"/><circle cx="318.9" cy="127.5" r="1.7"/><circle cx="324.9" cy="127.5" r="1.7"/><circle cx="330.9" cy="127.5" r="1.7"/><circle cx="336.8" cy="127.5" r="1.7"/><circle cx="342.8" cy="127.5" r="1.7"/><circle cx="348.8" cy="127.5" r="1.7"/><circle cx="354.7" cy="127.5" r="1.7"/><circle cx="360.7" cy="127.5" r="1.7"/><circle cx="366.6" cy="127.5" r="1.7"/><circle cx="372.6" cy="127.5" r="1.7"/><circle cx="378.6" cy="127.5" r="1.7"/><circle cx="384.5" cy="127.5" r="1.7"/><circle cx="390.5" cy="127.5" r="1.7"/><circle cx="396.4" cy="127.5" r="1.7"/><circle cx="402.4" cy="127.5" r="1.7"/><circle cx="432.2" cy="127.5" r="1.7"/><circle cx="438.2" cy="127.5" r="1.7"/><circle cx="444.1" cy="127.5" r="1.7"/><circle cx="450.1" cy="127.5" r="1.7"/><circle cx="456.1" cy="127.5" r="1.7"/><circle cx="497.8" cy="127.5" r="1.7"/><circle cx="503.8" cy="127.5" r="1.7"/><circle cx="509.7" cy="127.5" r="1.7"/><circle cx="134.1" cy="134.0" r="1.7"/><circle cx="140.1" cy="134.0" r="1.7"/><circle cx="146.1" cy="134.0" r="1.7"/><circle cx="152.0" cy="134.0" r="1.7"/><circle cx="158.0" cy="134.0" r="1.7"/><circle cx="295.1" cy="134.0" r="1.7"/><circle cx="301.1" cy="134.0" r="1.7"/><circle cx="307.0" cy="134.0" r="1.7"/><circle cx="313.0" cy="134.0" r="1.7"/><circle cx="318.9" cy="134.0" r="1.7"/><circle cx="324.9" cy="134.0" r="1.7"/><circle cx="330.9" cy="134.0" r="1.7"/><circle cx="336.8" cy="134.0" r="1.7"/><circle cx="342.8" cy="134.0" r="1.7"/><circle cx="348.8" cy="134.0" r="1.7"/><circle cx="354.7" cy="134.0" r="1.7"/><circle cx="360.7" cy="134.0" r="1.7"/><circle cx="366.6" cy="134.0" r="1.7"/><circle cx="372.6" cy="134.0" r="1.7"/><circle cx="378.6" cy="134.0" r="1.7"/><circle cx="384.5" cy="134.0" r="1.7"/><circle cx="390.5" cy="134.0" r="1.7"/><circle cx="396.4" cy="134.0" r="1.7"/><circle cx="402.4" cy="134.0" r="1.7"/><circle cx="432.2" cy="134.0" r="1.7"/><circle cx="438.2" cy="134.0" r="1.7"/><circle cx="444.1" cy="134.0" r="1.7"/><circle cx="450.1" cy="134.0" r="1.7"/><circle cx="456.1" cy="134.0" r="1.7"/><circle cx="485.9" cy="134.0" r="1.7"/><circle cx="491.8" cy="134.0" r="1.7"/><circle cx="140.1" cy="140.6" r="1.7"/><circle cx="146.1" cy="140.6" r="1.7"/><circle cx="152.0" cy="140.6" r="1.7"/><circle cx="158.0" cy="140.6" r="1.7"/><circle cx="163.9" cy="140.6" r="1.7"/><circle cx="169.9" cy="140.6" r="1.7"/><circle cx="301.1" cy="140.6" r="1.7"/><circle cx="307.0" cy="140.6" r="1.7"/><circle cx="313.0" cy="140.6" r="1.7"/><circle cx="318.9" cy="140.6" r="1.7"/><circle cx="324.9" cy="140.6" r="1.7"/><circle cx="330.9" cy="140.6" r="1.7"/><circle cx="336.8" cy="140.6" r="1.7"/><circle cx="342.8" cy="140.6" r="1.7"/><circle cx="348.8" cy="140.6" r="1.7"/><circle cx="354.7" cy="140.6" r="1.7"/><circle cx="360.7" cy="140.6" r="1.7"/><circle cx="366.6" cy="140.6" r="1.7"/><circle cx="372.6" cy="140.6" r="1.7"/><circle cx="378.6" cy="140.6" r="1.7"/><circle cx="438.2" cy="140.6" r="1.7"/><circle cx="444.1" cy="140.6" r="1.7"/><circle cx="450.1" cy="140.6" r="1.7"/><circle cx="456.1" cy="140.6" r="1.7"/><circle cx="479.9" cy="140.6" r="1.7"/><circle cx="485.9" cy="140.6" r="1.7"/><circle cx="491.8" cy="140.6" r="1.7"/><circle cx="497.8" cy="140.6" r="1.7"/><circle cx="146.1" cy="147.1" r="1.7"/><circle cx="163.9" cy="147.1" r="1.7"/><circle cx="169.9" cy="147.1" r="1.7"/><circle cx="307.0" cy="147.1" r="1.7"/><circle cx="313.0" cy="147.1" r="1.7"/><circle cx="318.9" cy="147.1" r="1.7"/><circle cx="324.9" cy="147.1" r="1.7"/><circle cx="330.9" cy="147.1" r="1.7"/><circle cx="336.8" cy="147.1" r="1.7"/><circle cx="342.8" cy="147.1" r="1.7"/><circle cx="348.8" cy="147.1" r="1.7"/><circle cx="354.7" cy="147.1" r="1.7"/><circle cx="360.7" cy="147.1" r="1.7"/><circle cx="366.6" cy="147.1" r="1.7"/><circle cx="444.1" cy="147.1" r="1.7"/><circle cx="450.1" cy="147.1" r="1.7"/><circle cx="473.9" cy="147.1" r="1.7"/><circle cx="479.9" cy="147.1" r="1.7"/><circle cx="485.9" cy="147.1" r="1.7"/><circle cx="491.8" cy="147.1" r="1.7"/><circle cx="497.8" cy="147.1" r="1.7"/><circle cx="503.8" cy="147.1" r="1.7"/><circle cx="163.9" cy="153.7" r="1.7"/><circle cx="169.9" cy="153.7" r="1.7"/><circle cx="324.9" cy="153.7" r="1.7"/><circle cx="330.9" cy="153.7" r="1.7"/><circle cx="336.8" cy="153.7" r="1.7"/><circle cx="342.8" cy="153.7" r="1.7"/><circle cx="348.8" cy="153.7" r="1.7"/><circle cx="354.7" cy="153.7" r="1.7"/><circle cx="360.7" cy="153.7" r="1.7"/><circle cx="366.6" cy="153.7" r="1.7"/><circle cx="479.9" cy="153.7" r="1.7"/><circle cx="485.9" cy="153.7" r="1.7"/><circle cx="491.8" cy="153.7" r="1.7"/><circle cx="497.8" cy="153.7" r="1.7"/><circle cx="187.8" cy="160.2" r="1.7"/><circle cx="193.8" cy="160.2" r="1.7"/><circle cx="199.7" cy="160.2" r="1.7"/><circle cx="205.7" cy="160.2" r="1.7"/><circle cx="211.6" cy="160.2" r="1.7"/><circle cx="324.9" cy="160.2" r="1.7"/><circle cx="330.9" cy="160.2" r="1.7"/><circle cx="336.8" cy="160.2" r="1.7"/><circle cx="342.8" cy="160.2" r="1.7"/><circle cx="348.8" cy="160.2" r="1.7"/><circle cx="354.7" cy="160.2" r="1.7"/><circle cx="360.7" cy="160.2" r="1.7"/><circle cx="366.6" cy="160.2" r="1.7"/><circle cx="372.6" cy="160.2" r="1.7"/><circle cx="485.9" cy="160.2" r="1.7"/><circle cx="491.8" cy="160.2" r="1.7"/><circle cx="181.8" cy="166.7" r="1.7"/><circle cx="187.8" cy="166.7" r="1.7"/><circle cx="193.8" cy="166.7" r="1.7"/><circle cx="199.7" cy="166.7" r="1.7"/><circle cx="205.7" cy="166.7" r="1.7"/><circle cx="211.6" cy="166.7" r="1.7"/><circle cx="217.6" cy="166.7" r="1.7"/><circle cx="223.6" cy="166.7" r="1.7"/><circle cx="318.9" cy="166.7" r="1.7"/><circle cx="324.9" cy="166.7" r="1.7"/><circle cx="330.9" cy="166.7" r="1.7"/><circle cx="336.8" cy="166.7" r="1.7"/><circle cx="342.8" cy="166.7" r="1.7"/><circle cx="348.8" cy="166.7" r="1.7"/><circle cx="354.7" cy="166.7" r="1.7"/><circle cx="360.7" cy="166.7" r="1.7"/><circle cx="366.6" cy="166.7" r="1.7"/><circle cx="372.6" cy="166.7" r="1.7"/><circle cx="491.8" cy="166.7" r="1.7"/><circle cx="497.8" cy="166.7" r="1.7"/><circle cx="503.8" cy="166.7" r="1.7"/><circle cx="509.7" cy="166.7" r="1.7"/><circle cx="515.7" cy="166.7" r="1.7"/><circle cx="521.6" cy="166.7" r="1.7"/><circle cx="527.6" cy="166.7" r="1.7"/><circle cx="533.6" cy="166.7" r="1.7"/><circle cx="181.8" cy="173.3" r="1.7"/><circle cx="187.8" cy="173.3" r="1.7"/><circle cx="193.8" cy="173.3" r="1.7"/><circle cx="199.7" cy="173.3" r="1.7"/><circle cx="205.7" cy="173.3" r="1.7"/><circle cx="211.6" cy="173.3" r="1.7"/><circle cx="217.6" cy="173.3" r="1.7"/><circle cx="223.6" cy="173.3" r="1.7"/><circle cx="318.9" cy="173.3" r="1.7"/><circle cx="324.9" cy="173.3" r="1.7"/><circle cx="330.9" cy="173.3" r="1.7"/><circle cx="336.8" cy="173.3" r="1.7"/><circle cx="342.8" cy="173.3" r="1.7"/><circle cx="348.8" cy="173.3" r="1.7"/><circle cx="354.7" cy="173.3" r="1.7"/><circle cx="360.7" cy="173.3" r="1.7"/><circle cx="366.6" cy="173.3" r="1.7"/><circle cx="372.6" cy="173.3" r="1.7"/><circle cx="485.9" cy="173.3" r="1.7"/><circle cx="491.8" cy="173.3" r="1.7"/><circle cx="497.8" cy="173.3" r="1.7"/><circle cx="503.8" cy="173.3" r="1.7"/><circle cx="509.7" cy="173.3" r="1.7"/><circle cx="515.7" cy="173.3" r="1.7"/><circle cx="521.6" cy="173.3" r="1.7"/><circle cx="527.6" cy="173.3" r="1.7"/><circle cx="533.6" cy="173.3" r="1.7"/><circle cx="539.5" cy="173.3" r="1.7"/><circle cx="545.5" cy="173.3" r="1.7"/><circle cx="175.9" cy="179.8" r="1.7"/><circle cx="181.8" cy="179.8" r="1.7"/><circle cx="187.8" cy="179.8" r="1.7"/><circle cx="193.8" cy="179.8" r="1.7"/><circle cx="199.7" cy="179.8" r="1.7"/><circle cx="205.7" cy="179.8" r="1.7"/><circle cx="211.6" cy="179.8" r="1.7"/><circle cx="217.6" cy="179.8" r="1.7"/><circle cx="223.6" cy="179.8" r="1.7"/><circle cx="318.9" cy="179.8" r="1.7"/><circle cx="324.9" cy="179.8" r="1.7"/><circle cx="330.9" cy="179.8" r="1.7"/><circle cx="336.8" cy="179.8" r="1.7"/><circle cx="342.8" cy="179.8" r="1.7"/><circle cx="348.8" cy="179.8" r="1.7"/><circle cx="354.7" cy="179.8" r="1.7"/><circle cx="360.7" cy="179.8" r="1.7"/><circle cx="366.6" cy="179.8" r="1.7"/><circle cx="372.6" cy="179.8" r="1.7"/><circle cx="378.6" cy="179.8" r="1.7"/><circle cx="485.9" cy="179.8" r="1.7"/><circle cx="491.8" cy="179.8" r="1.7"/><circle cx="497.8" cy="179.8" r="1.7"/><circle cx="503.8" cy="179.8" r="1.7"/><circle cx="509.7" cy="179.8" r="1.7"/><circle cx="515.7" cy="179.8" r="1.7"/><circle cx="521.6" cy="179.8" r="1.7"/><circle cx="527.6" cy="179.8" r="1.7"/><circle cx="533.6" cy="179.8" r="1.7"/><circle cx="539.5" cy="179.8" r="1.7"/><circle cx="181.8" cy="186.3" r="1.7"/><circle cx="187.8" cy="186.3" r="1.7"/><circle cx="193.8" cy="186.3" r="1.7"/><circle cx="199.7" cy="186.3" r="1.7"/><circle cx="205.7" cy="186.3" r="1.7"/><circle cx="211.6" cy="186.3" r="1.7"/><circle cx="217.6" cy="186.3" r="1.7"/><circle cx="223.6" cy="186.3" r="1.7"/><circle cx="318.9" cy="186.3" r="1.7"/><circle cx="324.9" cy="186.3" r="1.7"/><circle cx="330.9" cy="186.3" r="1.7"/><circle cx="336.8" cy="186.3" r="1.7"/><circle cx="342.8" cy="186.3" r="1.7"/><circle cx="348.8" cy="186.3" r="1.7"/><circle cx="354.7" cy="186.3" r="1.7"/><circle cx="360.7" cy="186.3" r="1.7"/><circle cx="366.6" cy="186.3" r="1.7"/><circle cx="372.6" cy="186.3" r="1.7"/><circle cx="378.6" cy="186.3" r="1.7"/><circle cx="181.8" cy="192.9" r="1.7"/><circle cx="187.8" cy="192.9" r="1.7"/><circle cx="193.8" cy="192.9" r="1.7"/><circle cx="199.7" cy="192.9" r="1.7"/><circle cx="205.7" cy="192.9" r="1.7"/><circle cx="211.6" cy="192.9" r="1.7"/><circle cx="217.6" cy="192.9" r="1.7"/><circle cx="318.9" cy="192.9" r="1.7"/><circle cx="324.9" cy="192.9" r="1.7"/><circle cx="330.9" cy="192.9" r="1.7"/><circle cx="336.8" cy="192.9" r="1.7"/><circle cx="342.8" cy="192.9" r="1.7"/><circle cx="348.8" cy="192.9" r="1.7"/><circle cx="354.7" cy="192.9" r="1.7"/><circle cx="360.7" cy="192.9" r="1.7"/><circle cx="366.6" cy="192.9" r="1.7"/><circle cx="372.6" cy="192.9" r="1.7"/><circle cx="390.5" cy="192.9" r="1.7"/><circle cx="187.8" cy="199.4" r="1.7"/><circle cx="193.8" cy="199.4" r="1.7"/><circle cx="199.7" cy="199.4" r="1.7"/><circle cx="205.7" cy="199.4" r="1.7"/><circle cx="211.6" cy="199.4" r="1.7"/><circle cx="324.9" cy="199.4" r="1.7"/><circle cx="330.9" cy="199.4" r="1.7"/><circle cx="336.8" cy="199.4" r="1.7"/><circle cx="342.8" cy="199.4" r="1.7"/><circle cx="348.8" cy="199.4" r="1.7"/><circle cx="354.7" cy="199.4" r="1.7"/><circle cx="360.7" cy="199.4" r="1.7"/><circle cx="366.6" cy="199.4" r="1.7"/><circle cx="372.6" cy="199.4" r="1.7"/><circle cx="384.5" cy="199.4" r="1.7"/><circle cx="390.5" cy="199.4" r="1.7"/><circle cx="396.4" cy="199.4" r="1.7"/><circle cx="527.6" cy="199.4" r="1.7"/><circle cx="533.6" cy="199.4" r="1.7"/><circle cx="539.5" cy="199.4" r="1.7"/><circle cx="545.5" cy="199.4" r="1.7"/><circle cx="551.4" cy="199.4" r="1.7"/><circle cx="557.4" cy="199.4" r="1.7"/><circle cx="193.8" cy="206.0" r="1.7"/><circle cx="199.7" cy="206.0" r="1.7"/><circle cx="324.9" cy="206.0" r="1.7"/><circle cx="330.9" cy="206.0" r="1.7"/><circle cx="336.8" cy="206.0" r="1.7"/><circle cx="342.8" cy="206.0" r="1.7"/><circle cx="348.8" cy="206.0" r="1.7"/><circle cx="354.7" cy="206.0" r="1.7"/><circle cx="360.7" cy="206.0" r="1.7"/><circle cx="366.6" cy="206.0" r="1.7"/><circle cx="372.6" cy="206.0" r="1.7"/><circle cx="384.5" cy="206.0" r="1.7"/><circle cx="390.5" cy="206.0" r="1.7"/><circle cx="396.4" cy="206.0" r="1.7"/><circle cx="515.7" cy="206.0" r="1.7"/><circle cx="521.6" cy="206.0" r="1.7"/><circle cx="527.6" cy="206.0" r="1.7"/><circle cx="533.6" cy="206.0" r="1.7"/><circle cx="539.5" cy="206.0" r="1.7"/><circle cx="545.5" cy="206.0" r="1.7"/><circle cx="551.4" cy="206.0" r="1.7"/><circle cx="557.4" cy="206.0" r="1.7"/><circle cx="563.4" cy="206.0" r="1.7"/><circle cx="569.3" cy="206.0" r="1.7"/><circle cx="187.8" cy="212.5" r="1.7"/><circle cx="193.8" cy="212.5" r="1.7"/><circle cx="199.7" cy="212.5" r="1.7"/><circle cx="205.7" cy="212.5" r="1.7"/><circle cx="330.9" cy="212.5" r="1.7"/><circle cx="336.8" cy="212.5" r="1.7"/><circle cx="342.8" cy="212.5" r="1.7"/><circle cx="348.8" cy="212.5" r="1.7"/><circle cx="354.7" cy="212.5" r="1.7"/><circle cx="360.7" cy="212.5" r="1.7"/><circle cx="366.6" cy="212.5" r="1.7"/><circle cx="384.5" cy="212.5" r="1.7"/><circle cx="390.5" cy="212.5" r="1.7"/><circle cx="509.7" cy="212.5" r="1.7"/><circle cx="515.7" cy="212.5" r="1.7"/><circle cx="521.6" cy="212.5" r="1.7"/><circle cx="527.6" cy="212.5" r="1.7"/><circle cx="533.6" cy="212.5" r="1.7"/><circle cx="539.5" cy="212.5" r="1.7"/><circle cx="545.5" cy="212.5" r="1.7"/><circle cx="551.4" cy="212.5" r="1.7"/><circle cx="557.4" cy="212.5" r="1.7"/><circle cx="563.4" cy="212.5" r="1.7"/><circle cx="569.3" cy="212.5" r="1.7"/><circle cx="187.8" cy="219.0" r="1.7"/><circle cx="193.8" cy="219.0" r="1.7"/><circle cx="199.7" cy="219.0" r="1.7"/><circle cx="205.7" cy="219.0" r="1.7"/><circle cx="336.8" cy="219.0" r="1.7"/><circle cx="342.8" cy="219.0" r="1.7"/><circle cx="348.8" cy="219.0" r="1.7"/><circle cx="354.7" cy="219.0" r="1.7"/><circle cx="360.7" cy="219.0" r="1.7"/><circle cx="509.7" cy="219.0" r="1.7"/><circle cx="515.7" cy="219.0" r="1.7"/><circle cx="521.6" cy="219.0" r="1.7"/><circle cx="527.6" cy="219.0" r="1.7"/><circle cx="533.6" cy="219.0" r="1.7"/><circle cx="539.5" cy="219.0" r="1.7"/><circle cx="545.5" cy="219.0" r="1.7"/><circle cx="551.4" cy="219.0" r="1.7"/><circle cx="557.4" cy="219.0" r="1.7"/><circle cx="563.4" cy="219.0" r="1.7"/><circle cx="569.3" cy="219.0" r="1.7"/><circle cx="187.8" cy="225.6" r="1.7"/><circle cx="193.8" cy="225.6" r="1.7"/><circle cx="199.7" cy="225.6" r="1.7"/><circle cx="205.7" cy="225.6" r="1.7"/><circle cx="509.7" cy="225.6" r="1.7"/><circle cx="515.7" cy="225.6" r="1.7"/><circle cx="521.6" cy="225.6" r="1.7"/><circle cx="527.6" cy="225.6" r="1.7"/><circle cx="533.6" cy="225.6" r="1.7"/><circle cx="539.5" cy="225.6" r="1.7"/><circle cx="545.5" cy="225.6" r="1.7"/><circle cx="551.4" cy="225.6" r="1.7"/><circle cx="557.4" cy="225.6" r="1.7"/><circle cx="563.4" cy="225.6" r="1.7"/><circle cx="569.3" cy="225.6" r="1.7"/><circle cx="187.8" cy="232.1" r="1.7"/><circle cx="193.8" cy="232.1" r="1.7"/><circle cx="199.7" cy="232.1" r="1.7"/><circle cx="205.7" cy="232.1" r="1.7"/><circle cx="521.6" cy="232.1" r="1.7"/><circle cx="527.6" cy="232.1" r="1.7"/><circle cx="533.6" cy="232.1" r="1.7"/><circle cx="539.5" cy="232.1" r="1.7"/><circle cx="545.5" cy="232.1" r="1.7"/><circle cx="551.4" cy="232.1" r="1.7"/><circle cx="557.4" cy="232.1" r="1.7"/><circle cx="563.4" cy="232.1" r="1.7"/><circle cx="187.8" cy="238.7" r="1.7"/><circle cx="193.8" cy="238.7" r="1.7"/><circle cx="199.7" cy="238.7" r="1.7"/><circle cx="205.7" cy="238.7" r="1.7"/><circle cx="605.1" cy="238.7" r="1.7"/><circle cx="187.8" cy="245.2" r="1.7"/><circle cx="193.8" cy="245.2" r="1.7"/><circle cx="199.7" cy="245.2" r="1.7"/><circle cx="205.7" cy="245.2" r="1.7"/><circle cx="605.1" cy="245.2" r="1.7"/><circle cx="187.8" cy="251.7" r="1.7"/><circle cx="193.8" cy="251.7" r="1.7"/><circle cx="199.7" cy="251.7" r="1.7"/><circle cx="605.1" cy="251.7" r="1.7"/><circle cx="611.1" cy="251.7" r="1.7"/><circle cx="187.8" cy="258.3" r="1.7"/><circle cx="605.1" cy="258.3" r="1.7"/><circle cx="187.8" cy="264.8" r="1.7"/></g>
+      </svg>
+      <svg class="wm-net" viewBox="0 0 620 340" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs>
+          <linearGradient id="arcG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#22d3ee"/><stop offset="100%" stop-color="#7c4dff"/></linearGradient>
+          <radialGradient id="hubGlow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#4f1af3" stop-opacity=".38"/><stop offset="100%" stop-color="#4f1af3" stop-opacity="0"/></radialGradient>
+          <linearGradient id="hubEdge" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#22d3ee"/><stop offset="100%" stop-color="#7c4dff"/></linearGradient>
+          <clipPath id="kbClip"><rect x="279" y="104" width="92" height="92" rx="21"/></clipPath>
+        </defs>
+        <path d="M325 150 Q 237 63 150 60" fill="none" stroke="url(#arcG)" stroke-width="1.1" opacity=".55"/><path d="M325 150 Q 268 150 210 214" fill="none" stroke="url(#arcG)" stroke-width="1.1" opacity=".55"/><path d="M325 150 Q 335.0 62.0 345 58" fill="none" stroke="url(#arcG)" stroke-width="1.1" opacity=".55"/><path d="M325 150 Q 363.5 91.0 402 116" fill="none" stroke="url(#arcG)" stroke-width="1.1" opacity=".55"/><path d="M325 150 Q 415.0 93.0 505 120" fill="none" stroke="url(#arcG)" stroke-width="1.1" opacity=".55"/><path d="M325 150 Q 436.5 144.0 548 222" fill="none" stroke="url(#arcG)" stroke-width="1.1" opacity=".55"/>
+        <circle cx="150" cy="60" r="8" fill="none" stroke="#22d3ee" stroke-width="1" opacity=".35"/><circle cx="150" cy="60" r="3" fill="#22d3ee"/><circle cx="150" cy="60" r="3" fill="#22d3ee" opacity=".5"><animate attributeName="r" values="3;7;3" dur="3s" repeatCount="indefinite"/></circle><circle cx="210" cy="214" r="8" fill="none" stroke="#22d3ee" stroke-width="1" opacity=".35"/><circle cx="210" cy="214" r="3" fill="#22d3ee"/><circle cx="210" cy="214" r="3" fill="#22d3ee" opacity=".5"><animate attributeName="r" values="3;7;3" dur="3s" repeatCount="indefinite"/></circle><circle cx="345" cy="58" r="8" fill="none" stroke="#22d3ee" stroke-width="1" opacity=".35"/><circle cx="345" cy="58" r="3" fill="#22d3ee"/><circle cx="345" cy="58" r="3" fill="#22d3ee" opacity=".5"><animate attributeName="r" values="3;7;3" dur="3s" repeatCount="indefinite"/></circle><circle cx="402" cy="116" r="8" fill="none" stroke="#22d3ee" stroke-width="1" opacity=".35"/><circle cx="402" cy="116" r="3" fill="#22d3ee"/><circle cx="402" cy="116" r="3" fill="#22d3ee" opacity=".5"><animate attributeName="r" values="3;7;3" dur="3s" repeatCount="indefinite"/></circle><circle cx="505" cy="120" r="8" fill="none" stroke="#22d3ee" stroke-width="1" opacity=".35"/><circle cx="505" cy="120" r="3" fill="#22d3ee"/><circle cx="505" cy="120" r="3" fill="#22d3ee" opacity=".5"><animate attributeName="r" values="3;7;3" dur="3s" repeatCount="indefinite"/></circle><circle cx="548" cy="222" r="8" fill="none" stroke="#22d3ee" stroke-width="1" opacity=".35"/><circle cx="548" cy="222" r="3" fill="#22d3ee"/><circle cx="548" cy="222" r="3" fill="#22d3ee" opacity=".5"><animate attributeName="r" values="3;7;3" dur="3s" repeatCount="indefinite"/></circle>
+        <circle cx="325" cy="150" r="78" fill="url(#hubGlow)"/>
+        <rect x="278" y="103" width="94" height="94" rx="23" fill="#0a1226"/>
+        <image href="brand/kb-icon.png" x="279" y="104" width="92" height="92" preserveAspectRatio="xMidYMid slice" clip-path="url(#kbClip)"/>
+        <rect x="278" y="103" width="94" height="94" rx="23" fill="none" stroke="url(#hubEdge)" stroke-width="1.5" opacity=".55"/>
+      </svg>
+      <div class="cover-copy">
+        <h1 class="cover-h1">Managed Cloud Infrastructure, Hosting &amp; Application Operations</h1>
+        <p class="supporting">
+          Secure, scalable infrastructure for digital businesses, SaaS platforms, agencies,
+          and business-critical applications.
+        </p>
+        <div class="cover-tags">
+          <span>Deploy</span><span>Secure</span><span>Optimize</span><span>Scale</span>
+        </div>
+      </div>
+    </div>
+    
+
+  <div class="cover-foot">
+    <span>Managed Cloud Infrastructure, Hosting &amp; Application Operations</span>
+    <span>www.kloudbean.com</span>
+  </div>
+</section>
+
+<!-- =========================================== 2. COMPANY OVERVIEW ====== -->
+<section class="slide">
+  <div class="shead">
+    <div style="flex:1">
+      <div class="eyebrow">Company Overview</div>
+      <h2 class="wide">Infrastructure that helps digital businesses operate with confidence.</h2>
+    </div>
+    <img class="brandmark brandmark--sm" src="brand/Kloudbean_dark_logo.svg" alt="Kloudbean" />
+  </div>
+
+  <p class="lede" style="margin-top:26px">
+    Kloudbean is a managed cloud infrastructure and application operations company helping
+    businesses deploy, secure, optimize, and scale digital products. We support production
+    websites, SaaS applications, APIs, e-commerce stores, automation systems, AI tools,
+    databases, and business-critical workloads through managed hosting, cloud engineering,
+    DevOps, monitoring, backups, and responsive technical support. From simple deployments to
+    custom, enterprise-grade infrastructure for mission-critical systems.
+  </p>
+
+  <div style="margin-top:36px">
+    <div class="coltitle" style="margin-bottom:14px">Core Capabilities</div>
+    <div class="badges">
+      <span class="badge">Managed Cloud Hosting</span>
+      <span class="badge">Application Operations</span>
+      <span class="badge">DevOps &amp; Automation</span>
+      <span class="badge">Security &amp; Reliability</span>
+      <span class="badge">Performance Optimization</span>
+      <span class="badge">Migration &amp; Modernization</span>
+    </div>
+  </div>
+
+  <div style="margin-top:auto;display:flex;gap:20px;align-items:stretch">
+    <div class="note" style="flex:1.15">
+      <strong>Global delivery.</strong> Headquartered in Connecticut, USA, with core operations
+      and engineering support in India, and a globally distributed team delivering across time zones.
+    </div>
+    <div class="card statwrap" style="flex:1">
+      <div class="statstrip">
+        <div><b>17,000+</b><span>Active users</span></div>
+        <div><b>60+</b><span>Countries</span></div>
+        <div><b>76+</b><span>Data centers</span></div>
+        <div><b>7</b><span>Cloud providers</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================= 3. WHAT WE DO ====== -->
+<section class="slide">
+  <div class="shead">
+    <div style="flex:1">
+      <div class="eyebrow">What We Do</div>
+      <h2 class="wide">One technical partner from deployment to day-to-day operations.</h2>
+    </div>
+    <img class="brandmark brandmark--sm" src="brand/Kloudbean_dark_logo.svg" alt="Kloudbean" />
+  </div>
+
+  <div class="grid3" style="margin-top:32px">
+    <div class="card">
+      <div class="icn"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="7.5" cy="7" r=".6"/><circle cx="7.5" cy="12" r=".6"/><circle cx="7.5" cy="17" r=".6"/></svg></div>
+      <h3>Managed Cloud Hosting</h3>
+      <p>Production-ready cloud environments designed for performance, stability, security, and growth.</p>
+    </div>
+    <div class="card">
+      <div class="icn"><svg viewBox="0 0 24 24"><path d="M12 3v6M12 15v6M5 12H3M21 12h-2"/><rect x="8" y="9" width="8" height="6" rx="2"/><path d="M6.5 6.5 8 8M17.5 6.5 16 8"/></svg></div>
+      <h3>Application Deployment &amp; Operations</h3>
+      <p>Deployment and operational support for websites, SaaS products, APIs, dashboards, portals, and background services.</p>
+    </div>
+    <div class="card">
+      <div class="icn"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.4"/><circle cx="6" cy="18" r="2.4"/><circle cx="18" cy="12" r="2.4"/><path d="M6 8.4v7.2M8.4 6h4.2a3 3 0 0 1 3 3v.6M8.4 18h4.2a3 3 0 0 0 3-3v-.6"/></svg></div>
+      <h3>DevOps &amp; Automation</h3>
+      <p>Git-based workflows, CI/CD support, environment management, scheduled jobs, automation, and repeatable deployment processes.</p>
+    </div>
+    <div class="card">
+      <div class="icn"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.2-2.9 7.5-7 9-4.1-1.5-7-4.8-7-9V6z"/><path d="M9 12.2l2.2 2.2L15.5 10"/></svg></div>
+      <h3>Security &amp; Reliability</h3>
+      <p>SSL, access controls, hardening, patching, logging, monitoring, backups, and operational issue response.</p>
+    </div>
+    <div class="card">
+      <div class="icn"><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 4-6 5 5"/><path d="M3 21h18"/></svg></div>
+      <h3>Performance &amp; Cost Optimization</h3>
+      <p>Caching, server tuning, database optimization, CDN integration, resource monitoring, and infrastructure right-sizing.</p>
+    </div>
+    <div class="card">
+      <div class="icn"><svg viewBox="0 0 24 24"><path d="M4 8h11l-3-3M20 16H9l3 3"/><rect x="3" y="3" width="4" height="4" rx="1"/><rect x="17" y="17" width="4" height="4" rx="1"/></svg></div>
+      <h3>Migration &amp; Modernization</h3>
+      <p>Planned migration of applications, websites, databases, and servers with testing, validation, cutover, and post-launch support.</p>
+    </div>
+  </div>
+
+  <div style="margin-top:auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:16px">
+    <span class="coltitle" style="margin:0">The Kloudbean suite</span>
+    <span class="logopill"><img src="brand/kloudfox.png" alt="KloudFox" /></span>
+    <span style="font-size:12px;color:var(--ink-soft);max-width:40ch">Real-time uptime monitoring built in, with 30-second interval checks and custom alerts.</span>
+    <span class="region">Managed databases</span>
+    <span class="region">S3 object storage</span>
+    <span class="region">Flexible Load Balancer</span>
+  </div>
+</section>
+
+<!-- ====================================== 4. TECHNICAL CAPABILITIES ===== -->
+<section class="slide">
+  <div class="shead">
+    <div style="flex:1">
+      <div class="eyebrow">Technical Capabilities</div>
+      <h2 class="wide">Built for modern application workloads.</h2>
+    </div>
+    <img class="brandmark brandmark--sm" src="brand/Kloudbean_dark_logo.svg" alt="Kloudbean" />
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1.05fr;gap:38px;margin-top:26px;flex:1">
+    <!-- layered architecture -->
+    <div>
+      <div class="coltitle" style="margin-bottom:12px">Reference Architecture</div>
+      <div class="stack">
+        <div class="layer"><span class="dot d-cyan"></span><span class="lbl">Users &amp; Customers</span><span class="tag">Global</span></div>
+        <div class="flowline"><span></span></div>
+        <div class="layer"><span class="dot d-cyan"></span><span class="lbl">CDN &amp; SSL</span><span class="tag">Edge</span></div>
+        <div class="flowline"><span></span></div>
+        <div class="layer"><span class="dot d-violet"></span><span class="lbl">Load-balanced web / application layer</span><span class="tag">Compute</span></div>
+        <div class="flowline"><span></span></div>
+        <div class="layer"><span class="dot d-violet"></span><span class="lbl">Application services &amp; APIs</span><span class="tag">Services</span></div>
+        <div class="flowline"><span></span></div>
+        <div class="layer"><span class="dot d-blue"></span><span class="lbl">Databases &amp; caching</span><span class="tag">Data tier</span></div>
+        <div class="flowline"><span></span></div>
+        <div class="layer"><span class="dot d-green"></span><span class="lbl">Monitoring, backups, logging, automation</span><span class="tag">Operations</span></div>
+      </div>
+    </div>
+
+    <!-- capability groups -->
+    <div style="display:flex;flex-direction:column">
+      <div class="coltitle" style="margin-bottom:12px">Supported Technologies</div>
+      <div class="caps">
+        <span class="cap">Cloud &amp; Linux infrastructure</span>
+        <span class="cap">Custom cloud infrastructure implementations</span>
+        <span class="cap">Node.js, PHP, Laravel, Python, .NET</span>
+        <span class="cap">WordPress, Magento, Drupal</span>
+        <span class="cap">Docker &amp; containerized services</span>
+        <span class="cap">MySQL / MariaDB, PostgreSQL, Redis</span>
+        <span class="cap">Nginx and Apache web servers</span>
+        <span class="cap">REST APIs, webhooks, cron jobs</span>
+        <span class="cap">Background workers &amp; socket services</span>
+        <span class="cap">Git and deployment workflows</span>
+        <span class="cap">n8n and automation environments</span>
+        <span class="cap">Monitoring, alerting, backups, SSL</span>
+        <span class="cap">Kubernetes &amp; auto-scaling<i class="capent">Enterprise</i></span>
+        <span class="cap">Private VPC, VPN &amp; isolation<i class="capent">Enterprise</i></span>
+        <span class="cap">SAP HANA on SUSE (SLES)<i class="capent">Enterprise</i></span>
+        <span class="cap" style="grid-column:1/-1;color:#8fe6ff">&hellip; and much more &mdash; this list is representative, not the limit of what we run</span>
+      </div>
+
+      <div class="note" style="margin-top:auto">
+        Every environment is designed around the application, operational risk, performance
+        requirement, and growth stage. If it runs on Linux, we can host, deploy, secure, and
+        operate it. <strong>Not a one-size-fits-all hosting plan.</strong>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================= 5. WORKLOADS & INDUSTRIES ==== -->
+<section class="slide">
+  <div class="shead">
+    <div style="flex:1">
+      <div class="eyebrow">Workloads &amp; Industries</div>
+      <h2 class="wide">Supporting the systems behind modern businesses.</h2>
+    </div>
+    <img class="brandmark brandmark--sm" src="brand/Kloudbean_dark_logo.svg" alt="Kloudbean" />
+  </div>
+
+  <div class="grid2" style="margin-top:26px">
+    <div>
+      <div class="coltitle">Workloads</div>
+      <ul class="collist">
+        <li>Production websites and WordPress platforms</li>
+        <li>SaaS applications and customer dashboards</li>
+        <li>API-driven products and webhooks</li>
+        <li>E-commerce storefronts</li>
+        <li>Database-backed products</li>
+        <li>SAP, ERP, and mission-critical databases</li>
+        <li>Automation and integration platforms</li>
+        <li>AI tools and internal business systems</li>
+        <li>Development, staging, UAT, and production environments</li>
+      </ul>
+    </div>
+    <div>
+      <div class="coltitle">Industries</div>
+      <ul class="collist">
+        <li>SaaS and technology</li>
+        <li>Telecommunications and messaging</li>
+        <li>Government and public digital services</li>
+        <li>Finance, legal, and compliance-sensitive businesses</li>
+        <li>Education and EdTech</li>
+        <li>Healthcare and professional services</li>
+        <li>E-commerce and consumer brands</li>
+        <li>Marketing, creative, and web agencies</li>
+      </ul>
+    </div>
+  </div>
+
+  <div style="margin-top:auto;display:flex;align-items:center;gap:28px;
+              border-top:1px solid var(--line);padding-top:20px">
+    <div style="flex:0 0 auto">
+      <div class="coltitle" style="margin-bottom:9px">Regions Supported</div>
+      <div class="regions">
+        <span class="region">Middle East</span>
+        <span class="region">Europe</span>
+        <span class="region">United Kingdom</span>
+        <span class="region">Australia</span>
+        <span class="region">Asia-Pacific</span>
+        <span class="region">North America</span>
+      </div>
+    </div>
+    <!-- Abstract connectivity band rather than a literal map. -->
+    <svg viewBox="0 0 520 96" style="flex:1;height:88px;overflow:visible" aria-hidden="true">
+      <path d="M8 66 C 90 14, 170 14, 250 48 S 420 84, 512 30"
+            fill="none" stroke="rgba(34,211,238,.42)" stroke-width="1.3"/>
+      <path d="M8 32 C 110 78, 210 78, 300 40 S 440 8, 512 62"
+            fill="none" stroke="rgba(124,77,255,.34)" stroke-width="1.3"/>
+      <g fill="#22d3ee">
+        <circle cx="8" cy="66" r="3.6"/><circle cx="250" cy="48" r="3.6"/><circle cx="512" cy="30" r="3.6"/>
+      </g>
+      <g fill="#7c4dff">
+        <circle cx="118" cy="24" r="3"/><circle cx="300" cy="40" r="3"/><circle cx="420" cy="72" r="3"/>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<!-- ============================================== 6. WHY KLOUDBEAN ====== -->
+<section class="slide">
+  <div class="shead">
+    <div style="flex:1">
+      <div class="eyebrow">Why Kloudbean</div>
+      <h2 class="wide">Operational confidence without the complexity of managing everything yourself.</h2>
+    </div>
+    <img class="brandmark brandmark--sm" src="brand/Kloudbean_dark_logo.svg" alt="Kloudbean" />
+  </div>
+
+  <div class="grid3" style="margin-top:34px">
+    <div class="card">
+      <div class="icn"><svg viewBox="0 0 24 24"><path d="M9 18l-5-6 5-6M15 6l5 6-5 6"/></svg></div>
+      <h3>Engineering-Led Support</h3>
+      <p>Application-aware troubleshooting across infrastructure, deployments, databases, logs, and integrations.</p>
+    </div>
+    <div class="card">
+      <div class="icn"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h6v6H9z"/></svg></div>
+      <h3>Built Around Your Application</h3>
+      <p>Infrastructure decisions are based on workload needs, not generic hosting tiers.</p>
+    </div>
+    <div class="card">
+      <div class="icn"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h7"/><circle cx="18" cy="17" r="3"/></svg></div>
+      <h3>Modern Stack Support</h3>
+      <p>Support for websites, APIs, applications, containers, databases, automation, and AI workloads.</p>
+    </div>
+    <div class="card">
+      <div class="icn"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2.5"/><path d="M8.5 10V7.5a3.5 3.5 0 0 1 7 0V10"/><circle cx="12" cy="15" r="1.2"/></svg></div>
+      <h3>Security-Minded Operations</h3>
+      <p>Attention to access control, SSL, patching, backup planning, monitoring, and operational visibility.</p>
+    </div>
+    <div class="card">
+      <div class="icn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.6 2.4 14.4 0 17M12 3.5c-2.4 2.6-2.4 14.4 0 17"/></svg></div>
+      <h3>Global Client Delivery</h3>
+      <p>Coordination across international time zones for global customers and distributed teams.</p>
+    </div>
+    <div class="card">
+      <div class="icn"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19h-20"/></svg></div>
+      <h3>A Practical Growth Partner</h3>
+      <p>Support from migration and launch through performance optimization, scaling, and ongoing operations.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================================== 7. HOW YOU WORK WITH US ===== -->
+<section class="slide">
+  <div class="shead">
+    <div style="flex:1">
+      <div class="eyebrow">How You Work With Us</div>
+      <h2 class="wide">Self-serve it yourself, or hand us the keys.</h2>
+    </div>
+    <img class="brandmark brandmark--sm" src="brand/Kloudbean_dark_logo.svg" alt="Kloudbean" />
+  </div>
+
+  <p class="lede" style="margin-top:16px">
+    Not everyone needs hand-holding. The same platform runs a solo developer hosting one site and a
+    government running mission-critical systems, so you choose exactly how much we do. Start fully
+    self-service, and bring in our team whenever you want to.
+  </p>
+
+  <div class="grid3" style="margin-top:26px">
+    <div class="card">
+      <div class="coltitle" style="margin-bottom:10px">Self-Service &middot; Standard</div>
+      <div class="icn"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 8h18"/><path d="M12.5 11.5l4.5 4.5-2 .3-1 2z"/></svg></div>
+      <h3>Do it yourself, in minutes</h3>
+      <p>Spin up production hosting from a clean dashboard, with no command line and no DevOps team. Launch servers, apps, and managed databases yourself, with free SSL, automated backups, and simple Git deploys built in. Ideal for developers, startups, agencies, and small sites.</p>
+    </div>
+    <div class="card">
+      <div class="coltitle" style="margin-bottom:10px">Managed &middot; Premium</div>
+      <div class="icn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.8 5.8l2.1 2.1M16.1 16.1l2.1 2.1M18.2 5.8l-2.1 2.1M7.9 16.1l-2.1 2.1"/></svg></div>
+      <h3>We manage it with you</h3>
+      <p>Want a hand? Our team implements, monitors, and manages your infrastructure alongside your developers, working in your Slack or on WhatsApp, closer to an extended in-house ops team than a support queue.</p>
+    </div>
+    <div class="card">
+      <div class="coltitle" style="margin-bottom:10px">Fully Managed &middot; Enterprise</div>
+      <div class="icn"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="9" r="2.3"/><path d="M15 19a4.5 4.5 0 0 1 5.5-4.4"/></svg></div>
+      <h3>We run everything</h3>
+      <p>A dedicated DevOps engineer and account manager, private networking, and custom infrastructure, a complete white-glove engagement for mission-critical and regulated systems.</p>
+    </div>
+  </div>
+
+  <div class="note" style="margin-top:auto">
+    Same platform, same reliability, whichever way you start. <strong>Move up or down the spectrum as your needs change, without re-platforming.</strong>
+  </div>
+</section>
+
+<!-- ==================================== 8. ENTERPRISE INFRA ========= -->
+<section class="slide">
+  <div class="shead">
+    <div style="flex:1">
+      <div class="eyebrow">Enterprise-Grade Infrastructure &amp; Management</div>
+      <h2 class="wide">Run mission-critical systems with a team that operates as an extension of yours.</h2>
+    </div>
+    <img class="brandmark brandmark--sm" src="brand/Kloudbean_dark_logo.svg" alt="Kloudbean" />
+  </div>
+
+  <div class="grid3" style="margin-top:26px">
+    <div class="card">
+      <div class="icn"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="9" r="2.3"/><path d="M15 19a4.5 4.5 0 0 1 5.5-4.4"/></svg></div>
+      <h3>Dedicated DevOps &amp; Account Team</h3>
+      <p>A dedicated DevOps engineer and account manager run your environment with continuous, proactive monitoring and hands-on operational support.</p>
+    </div>
+    <div class="card">
+      <div class="icn"><svg viewBox="0 0 24 24"><path d="M5 6h6M5 12h14M5 18h9"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="18" r="2"/></svg></div>
+      <h3>Custom Cloud Infrastructure</h3>
+      <p>Infrastructure architected to your performance, security, and topology needs: custom features, integrations, bespoke network design, and demanding stacks such as SAP HANA on SUSE Linux Enterprise Server.</p>
+    </div>
+    <div class="card">
+      <div class="icn"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M8.5 9h7M8.5 12h7M8.5 15h4"/></svg></div>
+      <h3>Patching &amp; Vulnerability Management</h3>
+      <p>Ongoing OS and package patching, continuous vulnerability identification with prioritized fixes, and scheduled monthly and quarterly posture reports.</p>
+    </div>
+    <div class="card">
+      <div class="icn"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.2-2.9 7.5-7 9-4.1-1.5-7-4.8-7-9V6z"/><path d="M9 12h6M12 9v6"/></svg></div>
+      <h3>Private VPC, VPN &amp; Dedicated Resources</h3>
+      <p>A logically isolated private network with guaranteed dedicated compute, memory, and storage, reached through a fully configured, hardened VPN.</p>
+    </div>
+    <div class="card">
+      <div class="icn"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 1.5v3L12 9 9.4 7.5v-3z"/><path d="M4 9l2.6 1.5v3L4 15l-2-1.2M20 9l-2.6 1.5v3L20 15l2-1.2"/></svg></div>
+      <h3>Kubernetes, Auto-Scaling &amp; Zero-Downtime</h3>
+      <p>Container orchestration, automatic scaling, and zero-downtime deployments for variable, high-demand workloads, tuned by our engineers.</p>
+    </div>
+    <div class="card">
+      <div class="icn"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9.3 12l1.8 1.8L15 10"/></svg></div>
+      <h3>Resilience Backed by an SLA</h3>
+      <p>A 99.9% uptime SLA on Enterprise, automated backups and disaster recovery, unlimited business applications, and unlimited free migrations.</p>
+    </div>
+  </div>
+
+</section>
+
+<!-- ==================================== 8. ENTERPRISE SECURITY ====== -->
+<section class="slide">
+  <div class="shead">
+    <div style="flex:1">
+      <div class="eyebrow">Enterprise Security, SIEM &amp; Compliance</div>
+      <h2 class="wide">Prove your security posture, not just maintain it.</h2>
+    </div>
+    <img class="brandmark brandmark--sm" src="brand/Kloudbean_dark_logo.svg" alt="Kloudbean" />
+  </div>
+
+  <div class="grid2" style="margin-top:24px">
+    <div class="card">
+      <span class="tag-ent">SIEM &amp; Security Logging &middot; add-on</span>
+      <h3 style="margin-bottom:12px">Compliance-grade security monitoring</h3>
+      <ul class="collist">
+        <li>Centralized event logging: authentication, privileged activity, host audit trails, IPS, package changes, and network/firewall</li>
+        <li>File Integrity Monitoring across identity, SSH, PAM, scheduled tasks, boot, and system binaries</li>
+        <li>Tamper-proof WORM retention for 18+ months, with retention lock, RBAC, and separation of duties</li>
+        <li>Real-time alerting plus a compliance dashboard with exportable, audit-ready evidence</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="tag-ent">Mission-Critical Managed Databases &middot; add-on</span>
+      <h3 style="margin-bottom:12px">For data where downtime is not an option</h3>
+      <ul class="collist">
+        <li>Disaster recovery and point-in-time recovery, operated to your recovery objectives</li>
+        <li>256-bit AES encrypted, logically isolated backups, protected at rest and in transit, 35-day default retention</li>
+        <li>Regularly rehearsed recovery drills that feed directly into your compliance evidence</li>
+        <li>Strictly governed, securely managed access for regulated data in finance, healthcare, and transactional systems</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="note" style="margin-top:auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan)">Compliance-Ready</span>
+    <span class="region">PDPL</span>
+    <span class="region">NCA ECC</span>
+    <span class="region">NCA CSCC</span>
+    <span class="region">GDPR</span>
+    <span class="region">SOC 2</span>
+    <span class="region">ISO 27001</span>
+    <span style="flex:1;min-width:260px;font-size:12.5px;line-height:1.5;color:var(--ink-soft)">We align your infrastructure to your organization's control requirements, and to country or region-specific data-residency needs.</span>
+  </div>
+</section>
+
+<!-- ===================== COMPLIANCE & DATA RESIDENCY ===================== -->
+<section class="slide">
+  <div class="shead">
+    <div style="flex:1">
+      <div class="eyebrow">Compliance &amp; Data Residency</div>
+      <h2 class="wide" style="max-width:26ch">Aligned with the controls your auditors ask about.</h2>
+    </div>
+    <img class="brandmark brandmark--sm" src="brand/Kloudbean_dark_logo.svg" alt="Kloudbean" />
+  </div>
+
+  <div class="cbadges">
+    <div class="cbadge">
+      <div class="cbadge__mark">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 3.5v6c0 5-3.4 8.9-8 10.5-4.6-1.6-8-5.5-8-10.5v-6L12 2z" stroke="#22d3ee" stroke-width="1.7" fill="rgba(34,211,238,.13)"/></svg>
+      </div>
+      <div class="cbadge__name">PDPL</div>
+      <div class="cbadge__org">Personal Data Protection Law &middot; Saudi Arabia</div>
+      <span class="cbadge__state">Aligned</span>
+    </div>
+    <div class="cbadge">
+      <div class="cbadge__mark">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="3.5" width="17" height="17" rx="4" stroke="#22d3ee" stroke-width="1.7" fill="rgba(34,211,238,.13)"/><path d="M8 12.2l2.6 2.6L16 9.4" stroke="#22d3ee" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="cbadge__name">NCA ECC</div>
+      <div class="cbadge__org">Essential Cybersecurity Controls &middot; Saudi Arabia</div>
+      <span class="cbadge__state">Aligned</span>
+    </div>
+    <div class="cbadge">
+      <div class="cbadge__mark">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 3l7.5 3v5.6c0 4.6-3.1 8.3-7.5 9.8-4.4-1.5-7.5-5.2-7.5-9.8V6L12 3z" stroke="#22d3ee" stroke-width="1.7" fill="rgba(34,211,238,.13)"/><path d="M12 8.3v4.4M12 15.4v.9" stroke="#22d3ee" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </div>
+      <div class="cbadge__name">NCA CSCC</div>
+      <div class="cbadge__org">Critical Systems Controls &middot; Saudi Arabia</div>
+      <span class="cbadge__state">Aligned</span>
+    </div>
+    <div class="cbadge">
+      <div class="cbadge__mark">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#22d3ee" stroke-width="1.7" fill="rgba(34,211,238,.13)"/><circle cx="12" cy="12" r="3.1" fill="#22d3ee" opacity=".55"/></svg>
+      </div>
+      <div class="cbadge__name">GDPR</div>
+      <div class="cbadge__org">General Data Protection Regulation &middot; EU</div>
+      <span class="cbadge__state">Aligned</span>
+    </div>
+    <div class="cbadge">
+      <div class="cbadge__mark">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M5 6.5h14v11H5z" stroke="#22d3ee" stroke-width="1.7" fill="rgba(34,211,238,.13)"/><path d="M8.4 11.6h7.2M8.4 14.2h4.6" stroke="#22d3ee" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </div>
+      <div class="cbadge__name">SOC 2</div>
+      <div class="cbadge__org">Trust Services Criteria &middot; AICPA</div>
+      <span class="cbadge__state">Aligned</span>
+    </div>
+    <div class="cbadge">
+      <div class="cbadge__mark">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 2.8l2.7 2.1 3.4-.3.9 3.3 2.6 2.3-1.7 3 .5 3.4-3.3 1-2.2 2.6-3-1.3-3.1 1.3-2.2-2.6-3.3-1 .5-3.4L1.4 10.2 4 7.9l.9-3.3 3.4.3L12 2.8z" stroke="#22d3ee" stroke-width="1.5" fill="rgba(34,211,238,.13)"/></svg>
+      </div>
+      <div class="cbadge__name">ISO 27001</div>
+      <div class="cbadge__org">Information Security Management &middot; ISO/IEC</div>
+      <span class="cbadge__state">Aligned</span>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:16px">
+    <div class="card" style="padding:16px 18px">
+      <h3 style="margin-bottom:8px">What Kloudbean provides</h3>
+      <ul class="collist collist--tight">
+        <li>In-Kingdom residency on GCP Dammam (me-central2): servers, databases, backups and object storage pinned to your region</li>
+        <li>Immutable audit trail, 18-month WORM retention with retention lock and CSV export</li>
+        <li>AES-256 at rest, TLS 1.2+ in transit, customer-managed keys on request</li>
+        <li>CIS hardening, monthly patching, quarterly vulnerability assessments, VPC and VPN-only admin access on Enterprise</li>
+      </ul>
+    </div>
+    <div class="card" style="padding:16px 18px">
+      <h3 style="margin-bottom:8px">What remains yours</h3>
+      <ul class="collist collist--tight">
+        <li>Application-layer controls: input validation, session logic, API security, OWASP</li>
+        <li>Data classification and masking rules that depend on your business logic</li>
+        <li>Governance: strategy, policies, risk register, staff awareness</li>
+        <li>Commissioning penetration tests, and your PDPL duties as data controller</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="note" style="margin-top:auto;font-size:12.4px;line-height:1.55">
+    <strong style="color:#fff">The honest boundary.</strong> Kloudbean is compliant-ready and aligned with these frameworks; we do not hold certification against them, and certification is assessed against your organization, not your hosting provider. We provide the infrastructure alignment, controls and audit evidence that let you demonstrate your technical controls, with an Enterprise team working alongside yours.
+  </div>
+</section>
+
+<!-- ==================================== 10. OFFICIAL PARTNERS ======= -->
+<section class="slide">
+  <div class="shead">
+    <div style="flex:1">
+      <div class="eyebrow">Official Technology &amp; Cloud Partners</div>
+      <h2 class="wide">Built on official partnerships with the world's leading providers.</h2>
+    </div>
+    <img class="brandmark brandmark--sm" src="brand/Kloudbean_dark_logo.svg" alt="Kloudbean" />
+  </div>
+
+  <p class="lede" style="margin-top:16px">
+    We run your workloads on tier-1 cloud infrastructure through direct partnerships, with no vendor
+    lock-in, and layer in specialist security partners for defense in depth.
+  </p>
+
+  <div class="pwall" style="margin-top:auto;margin-bottom:auto">
+    <div class="pcard"><img src="partners/aws.svg" alt="Amazon Web Services" /></div>
+    <div class="pcard"><img src="partners/gcp.png" alt="Google Cloud" /></div>
+    <div class="pcard"><img src="partners/vultr.svg" alt="Linode" /></div>
+    <div class="pcard"><img src="partners/linode.svg" alt="Vultr" /></div>
+    <div class="pcard"><img src="partners/digitalocean.svg" alt="DigitalOcean" /></div>
+    <div class="pcard"><img src="partners/upcloud.svg" alt="UpCloud" /></div>
+    <div class="pcard"><img src="partners/cloudflare.png" alt="Cloudflare" /></div>
+    <div class="pcard"><img src="partners/bitninja-award.png" alt="BitNinja — Cybersecurity Excellence Award" /></div>
+  </div>
+</section>
+
+<!-- =========================================== 11. SELECTED PORTFOLIO === -->
+<section class="slide">
+  <div class="shead">
+    <div style="flex:1">
+      <div class="eyebrow">Selected Client Portfolio</div>
+      <h2 class="wide">Selected organizations and businesses supported.</h2>
+    </div>
+    <img class="brandmark brandmark--sm" src="brand/Kloudbean_dark_logo.svg" alt="Kloudbean" />
+  </div>
+
+  <div class="wall wall--compact" style="margin-top:18px">
+    <div class="tile"><img src="logos/alpha-bank.png" alt="Alpha Bank" /></div>
+    <div class="tile"><img src="logos/orange.png" alt="Orange" /></div>
+    <div class="tile"><img src="logos/earthlink.png" alt="EarthLink" /></div>
+    <div class="tile"><img src="logos/cellcast.png" alt="Cellcast" /></div>
+    <div class="tile"><img src="logos/berlingske-media.png" alt="Berlingske Media" /></div>
+    <div class="tile"><img src="logos/safra.png" alt="SAFRA" /></div>
+
+    <div class="tile"><img src="logos/f6s.png" alt="F6S" /></div>
+    <div class="tile"><img src="logos/scrubbed.png" alt="Scrubbed" /></div>
+    <div class="tile"><img src="logos/express-legal-funding.png" alt="Express Legal Funding" /></div>
+    <div class="tile"><img src="logos/apm.png" alt="American Property Management" /></div>
+    <div class="tile"><img src="logos/black-box.png" alt="Black Box" /></div>
+    <div class="tile"><img src="logos/sooma.png" alt="Sooma" /></div>
+    <div class="tile"><img src="logos/yoovet.png" alt="Yoovet" /></div>
+
+    <div class="tile"><img src="logos/pearl-lemon.png" alt="Pearl Lemon" /></div>
+    <div class="tile"><img src="logos/brain-pr.png" alt="Brain PR" /></div>
+    <div class="tile"><img src="logos/dactylo-communication.png" alt="Dactylo Communication" /></div>
+    <div class="tile"><img src="logos/dynamic-business-solutions.png" alt="Dynamic Business Solutions" /></div>
+    <div class="tile"><img src="logos/stepforth.png" alt="StepForth" /></div>
+    <div class="tile"><img src="logos/wildweb.png" alt="Wild Web" /></div>
+    <div class="tile"><img src="logos/mediatasks.png" alt="Mediatasks" /></div>
+
+    <div class="tile"><img src="logos/buch-und-berger.png" alt="Buch &amp; Berger" /></div>
+    <div class="tile"><img src="logos/abundant-designs.png" alt="Abundant Designs" /></div>
+    <div class="tile"><img src="logos/bwod.png" alt="BWOD" /></div>
+    <div class="tile"><img src="logos/aqar360.png" alt="Aqar360" /></div>
+    <!-- These two logos are white artwork, so they need a dark tile to be visible. -->
+    <div class="tile tile--dark"><img src="logos/decisive-design.png" alt="Decisive Design" /></div>
+    <div class="tile tile--dark"><img src="logos/pro-website-creators.png" alt="Pro Website Creators" /></div>
+    <div class="tile" style="background:rgba(255,255,255,.05);border-color:var(--line-strong)">
+      <span class="tiny" style="text-align:center;line-height:1.4">and other<br/>engagements</span>
+    </div>
+  </div>
+
+  <div class="segrow">
+    <span class="seglead">One platform for every kind of team</span>
+    <div class="segchips">
+      <span>Governments</span>
+      <span>Enterprises</span>
+      <span>SaaS &amp; Technology</span>
+      <span>Agencies</span>
+      <span>Startups</span>
+      <span>Developers</span>
+    </div>
+  </div>
+
+  <!-- Government trust, stated generically. The engagement terms behind our
+       public-sector work do not permit naming the entity, so this band carries
+       the signal without identifying a client. -->
+  <div class="govband">
+    <div style="width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:0 0 30px;background:rgba(124,77,255,.16);border:1px solid rgba(124,77,255,.36)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2.6l8.4 3.7v5.9c0 5.3-3.6 9.4-8.4 11.1-4.8-1.7-8.4-5.8-8.4-11.1V6.3L12 2.6z" stroke="#b9a6ff" stroke-width="1.6" fill="rgba(124,77,255,.14)"/>
+        <path d="M8.2 12.3l2.6 2.6 5-5.2" stroke="#b9a6ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div style="font-size:12.6px;line-height:1.5;color:var(--ink-soft)">
+      <strong style="color:#fff;font-weight:700">Trusted with government and public-sector workloads, including in the Kingdom of Saudi Arabia.</strong>
+      Dedicated cloud projects, in-Kingdom residency and control-mapped evidence. Entities are not named, per our engagement confidentiality terms.
+    </div>
+  </div>
+  <p class="tiny" style="margin-top:auto;padding-top:13px;border-top:1px solid var(--line);max-width:92ch">
+    References represent selected infrastructure, hosting, deployment, application operations,
+    or technology-support engagements. Client names and logos are shown subject to applicable
+    permissions.
+  </p>
+</section>
+
+<!-- ============================================ 8. SELECTED USE CASES == -->
+<section class="slide">
+  <div class="shead">
+    <div style="flex:1">
+      <div class="eyebrow">Selected Use Cases</div>
+      <h2 class="wide">Cloud operations across varied business-critical workloads.</h2>
+    </div>
+    <img class="brandmark brandmark--sm" src="brand/Kloudbean_dark_logo.svg" alt="Kloudbean" />
+  </div>
+
+  <div class="grid3" style="margin-top:30px">
+    <div class="card" style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <div class="icn"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 3z"/><path d="M8 9h8M8 12h5"/></svg></div>
+        <h3>Messaging &amp; Communications Platform</h3>
+      </div>
+      <div>
+        <div class="coltitle" style="font-size:9.5px;margin-bottom:4px">Challenge</div>
+        <p>Supporting a multi-service communications environment with public websites, application services, APIs, admin systems, status tooling, and development environments.</p>
+      </div>
+      <div>
+        <div class="coltitle" style="font-size:9.5px;margin-bottom:4px">Kloudbean Role</div>
+        <p>Production hosting, environment support, deployment operations, performance troubleshooting, monitoring, and ongoing infrastructure management.</p>
+      </div>
+      <div>
+        <div class="coltitle" style="font-size:9.5px;margin-bottom:4px">Workload</div>
+        <p>Public applications, APIs, background services, admin tools, staging and development systems.</p>
+      </div>
+    </div>
+
+    <div class="card" style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <div class="icn"><svg viewBox="0 0 24 24"><path d="M3 20h18M5 20V10l7-5 7 5v10"/><path d="M10 20v-6h4v6"/></svg></div>
+        <h3>Public-Sector Digital Services</h3>
+      </div>
+      <div>
+        <div class="coltitle" style="font-size:9.5px;margin-bottom:4px">Challenge</div>
+        <p>Supporting reliability-focused digital service workloads with controlled environments, secure access, operational visibility, and structured support.</p>
+      </div>
+      <div>
+        <div class="coltitle" style="font-size:9.5px;margin-bottom:4px">Kloudbean Role</div>
+        <p>Infrastructure operations, deployment support, monitoring, backup planning, access controls, and incident troubleshooting.</p>
+      </div>
+      <div>
+        <div class="coltitle" style="font-size:9.5px;margin-bottom:4px">Outcome</div>
+        <p>A managed operational foundation for public-facing digital services.</p>
+      </div>
+    </div>
+
+    <div class="card" style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <div class="icn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M6.2 6.2l2.1 2.1M15.7 15.7l2.1 2.1M17.8 6.2l-2.1 2.1M8.3 15.7l-2.1 2.1"/></svg></div>
+        <h3>AI, Automation &amp; SaaS Platform</h3>
+      </div>
+      <div>
+        <div class="coltitle" style="font-size:9.5px;margin-bottom:4px">Challenge</div>
+        <p>Operating customer-facing apps, APIs, databases, automation workflows, internal tooling, and modern developer services.</p>
+      </div>
+      <div>
+        <div class="coltitle" style="font-size:9.5px;margin-bottom:4px">Kloudbean Role</div>
+        <p>Managed deployments, application operations, database support, automation infrastructure, backup planning, logs, monitoring, and scaling support.</p>
+      </div>
+      <div>
+        <div class="coltitle" style="font-size:9.5px;margin-bottom:4px">Outcome</div>
+        <p>A repeatable and manageable foundation for continuous product delivery.</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="tiny" style="margin-top:auto;padding-top:16px;border-top:1px solid var(--line)">
+    Detailed technical case studies and reference conversations may be available upon request
+    and subject to confidentiality.
+  </p>
+</section>
+
+<!-- ============================ 9. SECURITY, RELIABILITY & ENGAGEMENT == -->
+<section class="slide">
+  <div class="shead">
+    <div style="flex:1">
+      <div class="eyebrow">Security, Reliability &amp; Engagement Model</div>
+      <h2 class="wide">Operate with visibility, resilience, and a clear delivery process.</h2>
+    </div>
+    <img class="brandmark brandmark--sm" src="brand/Kloudbean_dark_logo.svg" alt="Kloudbean" />
+  </div>
+
+  <div class="coltitle" style="margin-top:24px;margin-bottom:12px">Security &amp; Reliability</div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+    <div class="card" style="padding:16px 17px">
+      <h3 style="font-size:14px">Secure Access and SSL</h3>
+      <p style="font-size:12px">Controlled access, certificate management, secure credential handling, and environment hardening.</p>
+    </div>
+    <div class="card" style="padding:16px 17px">
+      <h3 style="font-size:14px">Monitoring and Observability</h3>
+      <p style="font-size:12px">Availability checks, resource monitoring, alerting, logs, and operational visibility.</p>
+    </div>
+    <div class="card" style="padding:16px 17px">
+      <h3 style="font-size:14px">Backup and Recovery Planning</h3>
+      <p style="font-size:12px">Scheduled backups, retention planning, restore procedures, and recovery readiness.</p>
+    </div>
+    <div class="card" style="padding:16px 17px">
+      <h3 style="font-size:14px">Controlled Releases</h3>
+      <p style="font-size:12px">Staging environments, deployment checks, rollout support, and post-release monitoring.</p>
+    </div>
+  </div>
+
+  <div class="coltitle" style="margin-top:28px;margin-bottom:12px">Engagement Model</div>
+  <div class="flow">
+    <div class="step">
+      <div class="n">01</div><h4>Discovery</h4>
+      <p>Review current environment, application stack, risks, integrations, and growth requirements.</p>
+    </div>
+    <div class="step">
+      <div class="n">02</div><h4>Architecture</h4>
+      <p>Define infrastructure, environments, monitoring, security, and backup approach.</p>
+    </div>
+    <div class="step">
+      <div class="n">03</div><h4>Migration / Setup</h4>
+      <p>Build, migrate, validate, test, and coordinate go-live.</p>
+    </div>
+    <div class="step">
+      <div class="n">04</div><h4>Operate</h4>
+      <p>Monitor, maintain, troubleshoot, support releases, and optimize.</p>
+    </div>
+    <div class="step">
+      <div class="n">05</div><h4>Scale</h4>
+      <p>Improve capacity, automation, performance, reliability, and security as needs evolve.</p>
+    </div>
+  </div>
+
+  <!-- Progress rail, so the five steps read as one continuous process. -->
+  <svg viewBox="0 0 1152 12" style="margin-top:14px;height:12px;width:100%" aria-hidden="true">
+    <line x1="6" y1="6" x2="1146" y2="6" stroke="rgba(255,255,255,.14)" stroke-width="1.4"/>
+    <g fill="none" stroke="url(#railGrad)" stroke-width="2.4">
+      <line x1="6" y1="6" x2="1146" y2="6"/>
+    </g>
+    <defs>
+      <linearGradient id="railGrad" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#4f1af3"/><stop offset="55%" stop-color="#7c4dff"/>
+        <stop offset="100%" stop-color="#22d3ee"/>
+      </linearGradient>
+    </defs>
+    <g fill="#0b1430" stroke="#22d3ee" stroke-width="1.6">
+      <circle cx="120" cy="6" r="4"/><circle cx="350" cy="6" r="4"/><circle cx="578" cy="6" r="4"/>
+      <circle cx="806" cy="6" r="4"/><circle cx="1034" cy="6" r="4"/>
+    </g>
+  </svg>
+</section>
+
+<!-- ================================================ 10. CONTACT / CTA == -->
+<section class="slide">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+    <img src="brand/kb-icon.png" alt="Kloudbean" style="width:88px;height:88px;border-radius:22px;margin-bottom:26px" />
+    <h1 style="font-family:'Plus Jakarta Sans';font-size:72px;line-height:1;font-weight:800;letter-spacing:-.03em;margin-bottom:18px">Thank you.</h1>
+    <p class="lede" style="max-width:60ch;margin:0 auto">
+      Kloudbean partners with founders, teams, agencies, and enterprises to deploy, secure, and
+      scale the infrastructure their business runs on. We would be glad to help with yours.
+    </p>
+    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px 30px;margin-top:36px">
+      <span class="tycontact"><b>Website</b>www.kloudbean.com</span>
+      <span class="tycontact"><b>Email</b>info@kloudbean.com</span>
+      <span class="tycontact"><b>Phone / WhatsApp</b>+1 203-667-7325</span>
+    </div>
+    <p class="small" style="margin-top:20px">
+      HQ in Connecticut, USA &middot; Operations &amp; support in India &middot; Globally distributed team
+    </p>
+  </div>
+
+
+
+  <div class="cover-foot" style="border-top:1px solid var(--line);padding-top:16px">
+    <span>Kloudbean&nbsp;&nbsp;|&nbsp;&nbsp;Managed Cloud Infrastructure, Hosting &amp; Application Operations</span>
+    <span>www.kloudbean.com</span>
+  </div>
+</section>
+
+</div>
+</body>
+</html>
