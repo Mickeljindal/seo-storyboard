@@ -118,7 +118,7 @@ My take after watching a lot of these builds: online store hosting in KSA isn't 
 
 **Give your Saudi shoppers a checkout that feels instant.**
 
-Launch a managed WooCommerce server and database in Google Cloud's Dammam region (me-central2), offload media to object storage, keep backups and SSL in-Kingdom, and switch on a load balancer before your next big sale. All from one dashboard. In-Kingdom plans start from $36/mo on Google Cloud Dammam, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
+Launch a managed WooCommerce server and database in Google Cloud's Dammam region (me-central2), offload media to object storage, keep backups and SSL in-Kingdom, and switch on a load balancer before your next big sale. All from one dashboard. An in-Kingdom stack starts at $36/mo in Dammam, with Enterprise priced on scope. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
 
 In-Kingdom Dammam region · Managed MySQL & MariaDB · Object storage · Built-in load balancer · Automatic backups · Free SSL · Free migration assistance · Free trial
 

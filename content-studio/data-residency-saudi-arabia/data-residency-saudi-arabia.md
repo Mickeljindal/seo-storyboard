@@ -105,7 +105,7 @@ My honest read after watching a lot of these reviews: most Saudi-facing teams do
 
 ---
 
-**Keep your data in the Kingdom, and be able to prove it.** Launch a managed server and database in Google Cloud's Dammam region (me-central2), keep backups in-region, and manage the whole stack from one dashboard, so "where is our data stored?" has a one-line answer. In-Kingdom plans start from $36/mo on Google Cloud Dammam, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
+**Keep your data in the Kingdom, and be able to prove it.** Launch a managed server and database in Google Cloud's Dammam region (me-central2), keep backups in-region, and manage the whole stack from one dashboard, so "where is our data stored?" has a one-line answer. In-region plans start at $36/mo in Dammam, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
 
 In-Kingdom GCP Dammam region · Managed database in-region · Automatic backups · Free migration assistance · Free trial
 

@@ -109,6 +109,8 @@ The limits, straight: Kloudbean runs Linux web stacks (Node, PHP, Python, Ruby, 
 
 Bring your backend, database, and auth under one roof at [kloudbean.com](https://www.kloudbean.com/). One-click databases, automatic backups, IP allow-listing, free migration, free trial, and git deploy. Plans on [pricing](https://www.kloudbean.com/pricing/).
 
+From $8/mo. Migration is free on servers above 4GB, and the trial runs 3 days on one service.
+
 ## FAQ
 
 **What's the best Netlify alternative for a full-stack app?**

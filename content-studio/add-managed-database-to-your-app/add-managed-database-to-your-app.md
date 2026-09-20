@@ -221,6 +221,8 @@ Kloudbean runs six managed engines, PostgreSQL, MySQL, MariaDB, Redis, Elasticse
 
 One-click databases · Automatic backups · Free migration · Free trial
 
+From $8/mo. Migration is free on servers above 4GB, and the trial runs 3 days on one service.
+
 ## FAQ
 
 **How do I add a database to my Lovable, Bolt, or Cursor app?**

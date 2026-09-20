@@ -146,6 +146,8 @@ Kloudbean runs Node on Linux managed cloud: provisioning, the runtime, the proce
 
 Deploy your Node app at [kloudbean.com](https://www.kloudbean.com/) with a free trial and the first migration on us. New to deploying? Start with the [deploy an app to production](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) walkthrough. Server sizes are on [pricing](https://www.kloudbean.com/pricing/).
 
+$8/mo for the entry server, which is sized on RAM first. Check current rates before you commit.
+
 ## FAQ
 
 **How do I deploy a Node.js app to the cloud?**

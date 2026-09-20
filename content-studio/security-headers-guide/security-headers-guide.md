@@ -141,6 +141,8 @@ Security headers are your policy to write, and that stays true anywhere. What a 
 
 **Turn that F into an A in one sitting.** Serve your site over HTTPS and set sensible security headers on a managed stack at [kloudbean.com](https://www.kloudbean.com/). Free SSL · HttpOnly cookie sessions · Managed, patched stack · Automatic backups · Free migration · Free trial. Plans on [pricing](https://www.kloudbean.com/pricing/).
 
+$8/mo to start, with the first migration handled for you on servers above 4GB.
+
 ## FAQ
 
 **What are HTTP security headers?**

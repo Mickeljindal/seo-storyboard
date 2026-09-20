@@ -123,6 +123,8 @@ Kloudbean runs **Linux** web stacks (Node, PHP, Python, and frameworks like Reac
 
 **One box. The whole stack. Yours.** Put your app, API, and database on one owned server at [kloudbean.com](https://www.kloudbean.com/), with a free trial and your first migration done for you. Check server sizes on [pricing](https://www.kloudbean.com/pricing/).
 
+Servers start at $8/mo, and one server runs as many apps as its RAM allows. There is no per-app charge.
+
 ## FAQ
 
 **Can I run my front end, API, and database on one server?**

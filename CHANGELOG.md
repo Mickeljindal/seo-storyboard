@@ -15,6 +15,16 @@ Status: Shipped | Beta | Planned · Visibility: Internal | Public
 
 ---
 
+## v1.14.0 — 2026-09-14 — Every published article now states a price
+Status: Shipped · Visibility: Public
+- **The 26 live articles with no price in their CTA now have one.** This closes the gap behind v1.13.1: the v1.12.0 pass upgraded 396 unpublished articles and skipped all 38 published ones, so the conversion work had landed entirely on pages earning no traffic. Every article in the library with a CTA now states what it costs.
+- **Their copy was left alone, deliberately.** These 26 carry hand-written CTAs, not the generated block, and they are genuinely varied: 24 distinct link lines and 18 distinct feature lines across 26 articles. Converting them to the generated shape would have replaced better copy with a template. So a price line was added and nothing else was touched.
+- **Region-aware, as it has to be.** `cscc-backup-disaster-recovery`, `hosting-ai-apps-saudi-arabia`, `managed-databases-saudi-data-sovereignty` and `nca-cscc-compliance-guide` show `$36/mo` for Google Cloud Dammam. The other 22 show `$8/mo`. Each price line also carries a real qualifier from the product truth rather than just a number: free migration above 4GB, the 3-day single-service trial, or the fact that one server runs as many apps as its RAM allows.
+- **Found an html/md desync while doing it.** `deploy-ai-built-app-to-production` stated `$8/mo` in its markdown and nothing in its HTML. Both now agree.
+- **The slop audit caught my own fix, which is the point of having it.** v1.13.1 replaced the wrong Saudi price with one byte-identical sentence across six articles, and `audit-template-slop.py` immediately flagged it as a 9-word-plus sentence in more than 3 articles. Correct on the facts, wrong for the library. The in-Kingdom CTA line is now per-slug: same price, same meaning, six different sentences. Library-wide the audit is back to **0 flagged headings and 0 flagged sentences across all 435 articles**.
+- New `scripts/add-price-to-live-ctas.py`, idempotent, with its target list embedded rather than discovered so a re-run cannot widen its own blast radius. Price copy rotates across 8 variants so no line lands on more than 3 articles.
+- **Not yet on the website.** All of this is repo-side. The 32 affected published pages still show the old CTAs until they are republished.
+
 ## v1.13.1 — 2026-09-14 — The $8 price was wrong on six live Saudi pages
 Status: Shipped · Visibility: Public
 - **Six published in-Kingdom articles quoted a price we cannot honour in Saudi Arabia.** `cloud-hosting-saudi-arabia`, `managed-hosting-ksa`, `hosting-for-saudi-ecommerce`, `arabic-wordpress-hosting`, `data-residency-saudi-arabia` and `pdpl-compliance-hosting` each pitched Google Cloud Dammam, printed the feature line "In-Kingdom GCP Dammam region", and then said "Plans start from $8/mo" in the same CTA. $8 is the Linode entry price and Linode has no Saudi data centre, so the price sat next to a badge contradicting it. Now $36/mo, per `kloudbean-facts.md`.

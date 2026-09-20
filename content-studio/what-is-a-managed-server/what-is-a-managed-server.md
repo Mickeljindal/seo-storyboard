@@ -132,6 +132,8 @@ Launch a managed server on the cloud you choose, hardened and backed up from min
 
 7 clouds · Free SSL · Automatic backups · Firewall + Fail2ban built in · One dashboard · Free migration · Free trial
 
+From $8/mo, and that price buys the server rather than each service running on it.
+
 ## FAQ
 
 **What is a managed server in simple terms?**

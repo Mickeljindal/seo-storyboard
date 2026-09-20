@@ -185,6 +185,8 @@ One cost note before you commit to any provider: serving files out of a bucket c
 
 S3-compatible buckets · Managed databases · Automatic backups · One dashboard · Free trial
 
+Servers start at $8/mo, and one server runs as many apps as its RAM allows. There is no per-app charge.
+
 ## FAQ
 
 **What is S3-compatible object storage?**

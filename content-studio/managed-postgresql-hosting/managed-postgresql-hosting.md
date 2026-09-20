@@ -127,6 +127,8 @@ The honest boundary, once: this is the open-source Postgres engine on a Linux st
 
 One-click PostgreSQL · Popular extensions · Automatic backups · Free migration · Free trial
 
+Starts at $8/mo. Free migration above 4GB, and a 3-day trial if you would rather test first.
+
 ## FAQ
 
 **Is PostgreSQL free?**

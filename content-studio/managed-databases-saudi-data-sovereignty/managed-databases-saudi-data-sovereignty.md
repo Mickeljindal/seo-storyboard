@@ -75,6 +75,8 @@ Run MySQL, PostgreSQL, MongoDB, Redis, and more as fully managed databases in th
 
 Seven managed engines · In-Kingdom Dammam region · Automatic backups · One dashboard
 
+$36/mo is the in-Kingdom entry price, because Dammam runs on Google Cloud. Our $8 plan is on Linode, which has no Saudi data centre.
+
 ## FAQ
 
 **What is the difference between data residency and data sovereignty in Saudi Arabia?**

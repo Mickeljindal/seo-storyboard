@@ -127,6 +127,8 @@ The honest boundary, once: managed Redis is a Linux-based service where the plat
 
 One-click Redis · IP allow-listing · Automatic backups · Free migration · Free trial
 
+$8/mo for the entry server, which is sized on RAM first. Check current rates before you commit.
+
 ## FAQ
 
 **What is managed Redis hosting used for?**

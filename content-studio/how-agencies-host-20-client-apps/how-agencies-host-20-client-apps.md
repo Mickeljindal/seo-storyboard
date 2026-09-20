@@ -148,6 +148,8 @@ Consolidation is a starting point, not a religion. Split a client onto its own s
 
 One console · Per-client isolation · Managed databases · Per-app backups · Git deploys · Free migration · Free trial
 
+$8/mo to start, with the first migration handled for you on servers above 4GB.
+
 ## FAQ
 
 **How many client apps can one server really host?**

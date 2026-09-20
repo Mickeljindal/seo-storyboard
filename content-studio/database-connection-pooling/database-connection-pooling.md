@@ -194,6 +194,8 @@ Run a managed PostgreSQL or MySQL on an always-on server, so your app's driver p
 
 Managed PostgreSQL & MySQL · Automatic backups · Resize on demand · Free migration · Free trial
 
+Entry plans are $8/mo. Cloud pricing moves, so confirm the current number on the pricing page.
+
 ## FAQ
 
 **What is database connection pooling, and when do I need it?**

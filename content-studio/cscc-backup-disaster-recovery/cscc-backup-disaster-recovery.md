@@ -83,6 +83,8 @@ Kloudbean runs managed enterprise engagements with multi-zone high availability,
 
 Multi-zone HA · Daily backups · Separate secured storage · Quarterly tested restores · In-Kingdom hosting available
 
+In-Kingdom hosting starts at $36/mo, since Dammam runs on Google Cloud. Enterprise engagements, where tested restores and multi-zone failover are managed for you, are priced on scope.
+
 ## FAQ
 
 **How often does NCA CSCC require backups?**

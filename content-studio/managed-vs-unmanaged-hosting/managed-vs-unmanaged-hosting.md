@@ -138,6 +138,8 @@ One boundary, whichever way you lean: this is the Linux world, not Windows or .N
 
 7 clouds · Free SSL · Automatic backups · Firewall + Fail2ban built in · Free migration help · Free trial
 
+From $8/mo. Worth knowing the entry plan already runs more than one app.
+
 ## FAQ
 
 **What's the difference between managed and unmanaged hosting?**

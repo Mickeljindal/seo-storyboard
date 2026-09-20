@@ -104,6 +104,8 @@ Here's the honest division, because "managed" isn't magic. The platform handles 
 
 One-line feature recap: Automatic backups · Off-server object storage · Managed database backups · Free migration · Free trial
 
+Entry plans are $8/mo. Cloud pricing moves, so confirm the current number on the pricing page.
+
 ## FAQ
 
 **How do I back up a server?**

@@ -141,6 +141,8 @@ This tree covers the overwhelming majority of post-deploy 503s on a **Linux** ap
 
 **The log already knows. Go read it.** Deploy with logs you can actually open at [kloudbean.com](https://www.kloudbean.com/), with a free trial and your first migration done for you. The full deploy flow is in the [AI-built app guide](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/), and server sizes are on [pricing](https://www.kloudbean.com/pricing/).
 
+From $8/mo. Migration is free on servers above 4GB, and the trial runs 3 days on one service.
+
 ## FAQ
 
 **Why does my app show a 503 right after deploying?**

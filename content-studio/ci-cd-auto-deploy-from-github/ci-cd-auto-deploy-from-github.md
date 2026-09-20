@@ -115,6 +115,8 @@ Automated deployment on Kloudbean runs on your **Linux** server: it pulls your b
 
 **Push. Build. Live.** Wire up auto deploy from GitHub at [kloudbean.com](https://www.kloudbean.com/) with a free trial and your first migration done for you. Add a custom domain and free SSL from the [domain and SSL guide](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/), and check server sizes on [pricing](https://www.kloudbean.com/pricing/).
 
+$8/mo to start, with the first migration handled for you on servers above 4GB.
+
 ## FAQ
 
 **How do I make my app deploy automatically on every push?**

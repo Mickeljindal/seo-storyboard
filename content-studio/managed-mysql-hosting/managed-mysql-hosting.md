@@ -146,6 +146,8 @@ The honest boundary, stated once: these are Linux-based managed engines. Managed
 
 One-click MySQL and MariaDB · Automatic backups · Free migration · Free trial
 
+From $8/mo, and that price buys the server rather than each service running on it.
+
 ## FAQ
 
 **What is managed MySQL hosting?**

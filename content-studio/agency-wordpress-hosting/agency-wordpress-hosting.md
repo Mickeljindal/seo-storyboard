@@ -104,6 +104,8 @@ One caveat, the same for any managed WordPress hosting. These are Linux stacks. 
 
 One console for every client · Per-site staging · Subusers and UAC · Automatic backups · Free migration · Free trial
 
+Servers start at $8/mo, and one server runs as many apps as its RAM allows. There is no per-app charge.
+
 ## FAQ
 
 **What is agency WordPress hosting?**

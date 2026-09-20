@@ -83,6 +83,8 @@ The honest boundary, because it builds trust: managed means the platform handles
 
 Managed database · Always-on (no cold starts) · Object storage · Automatic backups · Free SSL · Git deploy · Free migration
 
+Entry plans are $8/mo. Cloud pricing moves, so confirm the current number on the pricing page.
+
 ## FAQ
 
 **Where should I host an app I built with Lovable, Bolt, or Cursor?**

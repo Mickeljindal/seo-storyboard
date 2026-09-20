@@ -85,6 +85,8 @@ If you're scoping a critical system, Kloudbean runs managed enterprise engagemen
 
 In-Kingdom hosting · Network isolation · Immutable logs, 18-month retention · Tested restores · Multi-zone HA
 
+In-Kingdom hosting from $36/mo. Enterprise, where the audit trail, isolation and 18-month log retention sit, starts from $7,500/mo with custom pricing for wider scope.
+
 ## FAQ
 
 **What is NCA CSCC?**

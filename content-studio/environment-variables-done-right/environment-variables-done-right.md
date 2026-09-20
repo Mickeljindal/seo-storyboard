@@ -120,6 +120,8 @@ On Kloudbean, environment variables are stored for your app and injected at runt
 
 **Config outside the code. Secrets off the client.** Set your environment variables in the console at [kloudbean.com](https://www.kloudbean.com/), with a free trial and your first migration done for you. Wire up [push-to-deploy](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) next, and check server sizes on [pricing](https://www.kloudbean.com/pricing/).
 
+From $8/mo. Worth knowing the entry plan already runs more than one app.
+
 ## FAQ
 
 **Where should environment variables go for a deployed app?**

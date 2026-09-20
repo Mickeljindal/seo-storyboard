@@ -125,6 +125,8 @@ And the boundary, plainly. Managed means the server, the stack, SSL, backups, an
 
 In-Kingdom GCP Dammam region · 7 managed databases · pgvector embeddings · Object storage with no egress fees · Automatic backups · Free SSL · Git deploy
 
+From $36/mo for in-Kingdom Dammam hosting. GPU servers are sized and quoted per workload, so ask rather than guess.
+
 ## FAQ
 
 **Can I host an AI app in Saudi Arabia and keep the data in-Kingdom?**

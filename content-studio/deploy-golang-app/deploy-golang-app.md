@@ -150,6 +150,8 @@ None of this is magic. It's what a compiled language gives you. Kloudbean runs t
 
 **One binary. One server. Live.** Run your Go binary on a server you own at [kloudbean.com](https://www.kloudbean.com/). Managed Postgres & MySQL · Automatic backups · Free Let's Encrypt SSL · Free migration · Free trial. A small box goes a long way with Go. Sizes on [pricing](https://www.kloudbean.com/pricing/).
 
+Starts at $8/mo. Free migration above 4GB, and a 3-day trial if you would rather test first.
+
 ## FAQ
 
 **How do I deploy a Go app to production?**

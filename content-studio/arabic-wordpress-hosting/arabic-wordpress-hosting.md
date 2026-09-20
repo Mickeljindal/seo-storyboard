@@ -107,7 +107,7 @@ Running an Arabic store? The same rules apply with more at stake, since checkout
 
 **Arabic that renders right, served from inside the Kingdom.**
 
-Launch managed WordPress on Google Cloud's Dammam region (`me-central2`), on a database that speaks `utf8mb4` from the first post, with staging, backups, and free SSL handled. In-Kingdom plans start from $36/mo on Google Cloud Dammam, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
+Launch managed WordPress on Google Cloud's Dammam region (`me-central2`), on a database that speaks `utf8mb4` from the first post, with staging, backups, and free SSL handled. Hosting in the Dammam region starts from $36/mo, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
 
 In-Kingdom Dammam region · utf8mb4 managed databases · One-click staging · Automatic backups · Free auto-renewing SSL · Free migration assistance · Free trial
 

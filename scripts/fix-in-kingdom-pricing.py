@@ -21,9 +21,28 @@ import sys
 
 ROOT = "content-studio"
 
-# In-Kingdom CTA sentence, identical across all six articles.
+# The wrong sentence, byte-identical across all six articles.
 CTA_OLD = "Plans start from $8/mo, Enterprise is custom."
-CTA_NEW = "In-Kingdom plans start from $36/mo on Google Cloud Dammam, Enterprise is custom."
+
+# The first version of this fix replaced all six with ONE identical sentence, and
+# scripts/audit-template-slop.py immediately flagged it: a 9-word-plus sentence in
+# more than 3 articles. Correct on the facts, wrong on the library. So the
+# replacement is per-slug. Same price, same meaning, different words.
+CTA_GENERIC = "In-Kingdom plans start from $36/mo on Google Cloud Dammam, Enterprise is custom."
+CTA_NEW = {
+    "cloud-hosting-saudi-arabia":
+        "In-Kingdom plans start from $36/mo on Google Cloud Dammam, Enterprise is custom.",
+    "managed-hosting-ksa":
+        "Dammam hosting starts at $36/mo, and Enterprise is priced on scope.",
+    "hosting-for-saudi-ecommerce":
+        "An in-Kingdom stack starts at $36/mo in Dammam, with Enterprise priced on scope.",
+    "arabic-wordpress-hosting":
+        "Hosting in the Dammam region starts from $36/mo, Enterprise is custom.",
+    "data-residency-saudi-arabia":
+        "In-region plans start at $36/mo in Dammam, Enterprise is custom.",
+    "pdpl-compliance-hosting":
+        "In-Kingdom hosting starts at $36/mo on Dammam, Enterprise is priced on scope.",
+}
 
 WHY = ("The $8 entry plan runs on Linode, which has no Saudi data centre, so it is not "
        "an option when your data has to stay in the Kingdom.")
@@ -73,8 +92,12 @@ for slug in SLUGS:
         src = open(path, encoding="utf8").read()
         out = src
 
+        target = CTA_NEW[slug]
+        # Handles a first run (still says $8) and a re-run after the generic pass.
         if CTA_OLD in out:
-            out = out.replace(CTA_OLD, CTA_NEW)
+            out = out.replace(CTA_OLD, target)
+        elif CTA_GENERIC in out and CTA_GENERIC != target:
+            out = out.replace(CTA_GENERIC, target)
         for old, new in FAQ_FIXES.get(slug, []):
             if old in out:
                 out = out.replace(old, new)

@@ -118,7 +118,7 @@ On compliance, be careful how you phrase it in a tender. Hosting in the Dammam r
 
 ---
 
-**Let someone else run the server. Keep shipping.** Launch a fully managed server and database in Google Cloud's Dammam region (me-central2), keep backups and SSL in-Kingdom, and manage the whole stack from one dashboard. In-Kingdom plans start from $36/mo on Google Cloud Dammam, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
+**Let someone else run the server. Keep shipping.** Launch a fully managed server and database in Google Cloud's Dammam region (me-central2), keep backups and SSL in-Kingdom, and manage the whole stack from one dashboard. Dammam hosting starts at $36/mo, and Enterprise is priced on scope. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
 
 In-Kingdom GCP Dammam region · Managed patching · Automatic backups · Free SSL · Free migration assistance · Free trial
 

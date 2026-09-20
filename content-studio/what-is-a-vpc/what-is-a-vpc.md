@@ -105,6 +105,8 @@ Think of it as layered defence. A VPC handles one important layer very well. The
 
 IP allow-listing · Managed databases · Shorewall + Fail2ban · Automatic backups · Free migration · Free trial
 
+Starts at $8/mo. Free migration above 4GB, and a 3-day trial if you would rather test first.
+
 ## FAQ
 
 **What is a VPC in simple terms?**
