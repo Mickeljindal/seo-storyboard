@@ -39,8 +39,22 @@ export async function deletePendingJobs(batchId?: string): Promise<number> {
   return rows.length;
 }
 
+/**
+ * `runAfter` lets a job be booked for a future moment instead of "as soon as
+ * possible". claimJobs already filters on `run_after <= now()`, so the delay is
+ * enforced by Postgres rather than by a timer in this process. That matters for
+ * anything paced: a setInterval resets to zero on every deploy and runs twice if
+ * two instances boot, while a row with a future run_after survives restarts and
+ * can only be claimed once (claimJobs uses a conditional UPDATE).
+ */
 export async function enqueueJobs(
-  rows: { type: string; payload?: unknown; label?: string; maxAttempts?: number }[],
+  rows: {
+    type: string;
+    payload?: unknown;
+    label?: string;
+    maxAttempts?: number;
+    runAfter?: Date;
+  }[],
   batch?: { batchId: string; batchLabel: string },
 ): Promise<number> {
   if (!rows.length) return 0;
@@ -54,12 +68,60 @@ export async function enqueueJobs(
         label: r.label ?? null,
         maxAttempts: r.maxAttempts ?? 3,
         status: "pending",
+        // Omit rather than pass null, so the column default (now) still applies
+        // for every existing caller that does not schedule.
+        ...(r.runAfter ? { runAfter: r.runAfter } : {}),
         batchId: batch?.batchId ?? null,
         batchLabel: batch?.batchLabel ?? null,
       })),
     )
     .returning({ id: jobs.id });
   return inserted.length;
+}
+
+/**
+ * Is a job of this type already pending or running? The paced publisher must
+ * never end up with two future bookings, or it would publish two articles per
+ * interval and the cadence would silently double every time it was started
+ * again. Cheap guard, checked before booking the next run.
+ */
+export async function hasActiveJobOfType(type: string): Promise<boolean> {
+  const db = await getDb();
+  try {
+    const [r] = await db
+      .select({ c: count() })
+      .from(jobs)
+      .where(and(eq(jobs.type, type), inArray(jobs.status, ["pending", "running"])));
+    return Number(r?.c ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
+/** When is the next job of this type due? null when none is booked. */
+export async function nextRunAtForType(type: string): Promise<Date | null> {
+  const db = await getDb();
+  try {
+    const [r] = await db
+      .select({ runAfter: jobs.runAfter })
+      .from(jobs)
+      .where(and(eq(jobs.type, type), inArray(jobs.status, ["pending", "running"])))
+      .orderBy(jobs.runAfter)
+      .limit(1);
+    return r?.runAfter ? new Date(r.runAfter) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Cancel every pending job of one type. Used to stop a recurring cadence. */
+export async function cancelPendingJobsOfType(type: string): Promise<number> {
+  const db = await getDb();
+  const rows = await db
+    .delete(jobs)
+    .where(and(eq(jobs.type, type), eq(jobs.status, "pending")))
+    .returning({ id: jobs.id });
+  return rows.length;
 }
 
 /** Progress summary for one batch of jobs (drives the bulk-action progress bar). */

@@ -20,6 +20,19 @@ export type JobType =
    */
   | "distribute_article"
   /**
+   * THE PACED PUBLISHER. Publishes ONE article to WordPress, notifies the team,
+   * and books the next run for `now + PUBLISH_CADENCE_HOURS` before it finishes,
+   * so the cadence carries itself forward with no timer anywhere.
+   *
+   * It is a job rather than a setInterval on purpose: `run_after` keeps the
+   * spacing in Postgres, so it survives deploys, and claimJobs' conditional
+   * UPDATE means two server instances still publish one article, not two.
+   * maxAttempts is 1 — a retry storm here would publish several articles back to
+   * back, which is the one failure mode a paced publisher must not have.
+   * See publish-scheduler.ts.
+   */
+  | "publish_next_article"
+  /**
    * Growth autopilot work. All of it is gathering, scoring and drafting: none of
    * these jobs can post to a community or send an email. See growth-autopilot.ts.
    */
@@ -112,6 +125,16 @@ async function processJob(job: { id: string; type: string; payload: unknown }): 
       const repo = await import("@/server/db/repos/trends");
       const removed = await repo.pruneStaleTrends(14);
       return { ok: true, removed };
+    }
+
+    /* ------------------- the paced publisher ---------------------------- */
+    // Publishes one article, notifies, and books the next run. Rate-limit
+    // errors are rethrown from runPublishCadenceOnce so drainJobs defers the
+    // job (see isRateLimitError) instead of failing it.
+    case "publish_next_article": {
+      const { runPublishCadenceOnce } = await import("./publish-scheduler");
+      const r = await runPublishCadenceOnce();
+      return r;
     }
 
     /* ------------------- marketing command steps ------------------------ */
