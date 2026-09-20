@@ -119,7 +119,7 @@ And compliance stays shared. Hosting in the Kingdom is a strong, real foundation
 
 ---
 
-**Put your data inside the Kingdom, from day one.** Launch a managed server and database in Google Cloud's Dammam region (me-central2), keep backups and SSL in-Kingdom, and manage the whole stack from one dashboard. Plans start from $8/mo, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
+**Put your data inside the Kingdom, from day one.** Launch a managed server and database in Google Cloud's Dammam region (me-central2), keep backups and SSL in-Kingdom, and manage the whole stack from one dashboard. In-Kingdom plans start from $36/mo on Google Cloud Dammam, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
 
 In-Kingdom GCP Dammam region · Automatic backups · Free SSL · Free migration assistance · Free trial
 
@@ -147,7 +147,7 @@ Hosting in Europe puts a physical floor of tens of milliseconds on every round t
 Yes. WordPress, WooCommerce, and Arabic sites run on managed Linux servers in the Dammam region like any other stack. You get free auto-renewing SSL, automatic backups, and a managed database in the same region. It's a common choice for Saudi ecommerce, where checkout latency and customer-data residency both matter.
 
 ### How much does cloud hosting in Saudi Arabia cost?
-Standard plans start from $8 a month, and Enterprise is custom pricing depending on scale and requirements. In-Kingdom hosting on the Dammam region follows the same plan structure. Always check the current numbers on the pricing page, since cloud pricing changes and region choice can affect the underlying cost.
+In-Kingdom hosting in the Dammam region starts from $36 a month, because it runs on Google Cloud. The $8 entry plan runs on Linode, which has no Saudi data centre, so it is not an option when your data has to stay in the Kingdom. Enterprise is custom pricing depending on scale and requirements. Always check the current numbers on the pricing page, since cloud pricing changes and region choice can affect the underlying cost.
 
 ### Can you migrate my existing site into the Dammam region?
 Yes. Free migration assistance can move an existing site or app into the Dammam region with minimal downtime, and there's a free trial to test the setup first. Because the whole stack is managed from one dashboard, once you're in-Kingdom your server, database, backups, and SSL are all in the same region.

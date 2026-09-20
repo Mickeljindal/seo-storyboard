@@ -15,6 +15,14 @@ Status: Shipped | Beta | Planned · Visibility: Internal | Public
 
 ---
 
+## v1.13.1 — 2026-09-14 — The $8 price was wrong on six live Saudi pages
+Status: Shipped · Visibility: Public
+- **Six published in-Kingdom articles quoted a price we cannot honour in Saudi Arabia.** `cloud-hosting-saudi-arabia`, `managed-hosting-ksa`, `hosting-for-saudi-ecommerce`, `arabic-wordpress-hosting`, `data-residency-saudi-arabia` and `pdpl-compliance-hosting` each pitched Google Cloud Dammam, printed the feature line "In-Kingdom GCP Dammam region", and then said "Plans start from $8/mo" in the same CTA. $8 is the Linode entry price and Linode has no Saudi data centre, so the price sat next to a badge contradicting it. Now $36/mo, per `kloudbean-facts.md`.
+- **The pricing FAQ was worse than the CTA.** Four of them answered "how much does hosting in Saudi Arabia cost" with "In-Kingdom hosting on the Dammam region follows the same plan structure", which actively tells the reader the $8 plan is available in the Kingdom. Rewritten to give the real number and the reason: in-Kingdom runs on Google Cloud, and the $8 plan is on Linode, which has no Saudi data centre. That explanation is more useful than the number alone.
+- Fixed in the visible copy, the FAQ, and the FAQPage JSON-LD together, across both the `.html` and `.md` mirrors, so schema and visible text stay in parity. Verified after: all JSON-LD blocks parse, every schema question still matches a visible heading, no stale `$8` promise anywhere.
+- **New `scripts/fix-in-kingdom-pricing.py`, idempotent.** Its guard distinguishes offering $8 from explaining $8. The first version rejected its own fix because the replacement text mentions $8 to explain why it does not apply, which is exactly the sentence a reader needs.
+- **Why this survived the v1.12.0 CTA pass:** that pass covered the 396 unpublished articles and skipped all 38 live ones. Every article carrying the upgraded price-bearing CTA is unpublished; every published article was left on the older inline CTA. So the pricing work landed on pages earning no traffic and missed every page that is. 26 live articles still state no price at all.
+
 ## v1.13.0 — 2026-09-14 — Compliance slide in the company profile, and a PDF export that refuses to clip
 Status: Shipped · Visibility: Public
 - **New slide 10, `Compliance & Data Residency`.** The deck sold enterprise infrastructure and Saudi residency but never answered the question every regulated buyer asks first, which framework controls we map to. Six designed badges now cover **PDPL, NCA ECC, NCA CSCC, GDPR, SOC 2 and ISO 27001**, each marked **Aligned**, paired with a "what Kloudbean provides" and "what remains yours" split.
@@ -24,6 +32,18 @@ Status: Shipped · Visibility: Public
 - **Government trust signal on the portfolio slide, with no entity named.** A new band states that Kloudbean is trusted with government and public-sector workloads, including in the Kingdom of Saudi Arabia, and says plainly that entities are not named per engagement confidentiality terms. A ministry logo was requested and deliberately **not** added: naming or implying which government entity we serve breaks the confidentiality rule in `kloudbean-enterprise-compliance.md`, and one logo is worth less than the ability to keep winning that kind of work.
 - **New `scripts/export-company-profile.mjs`, with a clipped-content guard.** Slides are fixed 1280x720 boxes, so overflowing copy silently disappears instead of reflowing. The script now compares `scrollHeight` against `clientHeight` per slide and reports any overflow. It caught two real cases immediately: slide 10 was 155px over and slide 12 was 84px over, and the content being cut on slide 10 was the non-certification disclaimer, the one line that must never vanish. Fixed by trimming copy rather than adding a sixteenth slide.
 - Deck is now 15 slides; the page counter said `/ 14`.
+
+## v1.12.0 — 2026-09-08 — Category CTAs in the engine, real share cards, intent-tuned metadata
+Status: Shipped · Visibility: Public
+- **The audience-matched CTA is now part of writing an article, not a later script run.** The eleven variants, four themes, routing and the region-aware price note moved into `src/lib/cta-variants.ts`, and the content engine renders from that same table. A newly generated article ships with the CTA its topic deserves instead of a plain sign-off line.
+- The backfill script (`scripts/upgrade-article-ctas.ts`) imports the same module, so the writer and the backfill can no longer drift. Verified all 396 existing CTAs are identical to what the module produces.
+- `markdownToHtml` learned raw HTML blocks, which is what lets the styled CTA, the inline SVG diagrams and the callouts survive Markdown rendering instead of being wrapped line by line in `<p>`.
+- **The hero now reliably becomes the WordPress featured image and the social share card.** The publisher reads `og:image` from the head and uploads it even when the hero is not in the body, so an article can no longer publish with a blank card.
+- **The share card gets its own copy.** `og:title` and `og:description` were being read off disk and thrown away; they now reach AIOSEO as distinct social values, with an explicit `summary_large_image` Twitter card, plus Yoast and Rank Math social fallbacks in post meta.
+- The article's JSON-LD is finally shipped to WordPress. `extractJsonLd` existed but nothing called it, so the Article and FAQPage graph was stripped on publish.
+- **Intent-tuned search and social metadata across all 397 unpublished articles.** 133 titles brought inside the truncation budget by structural shortening, 377 descriptions tightened to fit a snippet, 386 share titles made distinct from the SEO title, 397 Twitter cards and focus keyphrases added.
+- Copy is selected and tightened from what each article already says (its title, TL;DR question and answer, byline dek and lead) rather than generated, so all 397 descriptions stay genuinely different: the audit reports zero duplicate titles, zero duplicate descriptions and zero repeated openings.
+- New `scripts/audit-article-meta.ts` reports per-article metadata health and, importantly, cross-article repetition, which no per-article check can see. 397 of 397 now pass.
 
 ## v1.11.0 — 2026-09-08 — Portable SEO engine bootstrap prompt
 Status: Shipped · Visibility: Internal

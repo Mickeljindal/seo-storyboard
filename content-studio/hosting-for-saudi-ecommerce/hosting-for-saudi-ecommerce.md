@@ -118,7 +118,7 @@ My take after watching a lot of these builds: online store hosting in KSA isn't 
 
 **Give your Saudi shoppers a checkout that feels instant.**
 
-Launch a managed WooCommerce server and database in Google Cloud's Dammam region (me-central2), offload media to object storage, keep backups and SSL in-Kingdom, and switch on a load balancer before your next big sale. All from one dashboard. Plans start from $8/mo, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
+Launch a managed WooCommerce server and database in Google Cloud's Dammam region (me-central2), offload media to object storage, keep backups and SSL in-Kingdom, and switch on a load balancer before your next big sale. All from one dashboard. In-Kingdom plans start from $36/mo on Google Cloud Dammam, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
 
 In-Kingdom Dammam region · Managed MySQL & MariaDB · Object storage · Built-in load balancer · Automatic backups · Free SSL · Free migration assistance · Free trial
 
@@ -149,7 +149,7 @@ Either works well, and both are available as managed engines. MySQL and MariaDB 
 In object storage, not on the app server's disk. Kloudbean includes S3-compatible buckets, so WooCommerce uploads can offload to a bucket using standard S3 plugins. That keeps the server and its backups lean, and public images can be cached at the edge. It's one of the highest-impact changes for backup speed and page weight on an image-heavy store.
 
 ### How much does ecommerce hosting in Saudi Arabia cost?
-Standard plans start from $8 a month, and Enterprise is custom pricing depending on scale and requirements. An in-Kingdom Dammam stack follows the same plan structure, and object storage, a load balancer, or a managed Redis cache are added as you need them. Always check current numbers on the pricing page, since cloud pricing and region choice can affect the underlying cost.
+An in-Kingdom Dammam stack starts from $36 a month, because it runs on Google Cloud. The $8 entry plan runs on Linode, which has no Saudi data centre, so it is not an option when your data has to stay in the Kingdom. Enterprise is custom pricing depending on scale and requirements, and object storage, a load balancer, or a managed Redis cache are added as you need them. Always check current numbers on the pricing page, since cloud pricing and region choice can affect the underlying cost.
 
 ### Can you migrate my existing WooCommerce store into the Dammam region?
 Yes. Free migration assistance can move an existing store and its database into the Dammam region with minimal downtime, and a free trial lets you test the setup first. Because the whole stack is managed from one dashboard, once you're in-Kingdom your server, database, media, backups, and SSL all sit in the same region.

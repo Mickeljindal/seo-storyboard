@@ -107,7 +107,7 @@ Running an Arabic store? The same rules apply with more at stake, since checkout
 
 **Arabic that renders right, served from inside the Kingdom.**
 
-Launch managed WordPress on Google Cloud's Dammam region (`me-central2`), on a database that speaks `utf8mb4` from the first post, with staging, backups, and free SSL handled. Plans start from $8/mo, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
+Launch managed WordPress on Google Cloud's Dammam region (`me-central2`), on a database that speaks `utf8mb4` from the first post, with staging, backups, and free SSL handled. In-Kingdom plans start from $36/mo on Google Cloud Dammam, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
 
 In-Kingdom Dammam region · utf8mb4 managed databases · One-click staging · Automatic backups · Free auto-renewing SSL · Free migration assistance · Free trial
 
@@ -138,7 +138,7 @@ Yes, with Polylang or WPML. Give each language its own URL, like /ar/ and /en/, 
 Yes. A page cache stores the finished HTML, and right-to-left is already baked into it, so direction makes no difference. A single-language Arabic site caches like any other. For multilingual sites, keep each language on its own URL and add a Redis object cache.
 
 **How much does Arabic WordPress hosting cost?**
-On Kloudbean, standard plans start from $8 a month, and Enterprise is custom pricing based on scale. An Arabic site follows the same plans as any WordPress site; the language doesn't change the price. Confirm current numbers on the pricing page before you commit.
+Hosting in the Dammam region starts from $36 a month, since in-Kingdom hosting runs on Google Cloud. The $8 entry plan runs on Linode, which has no Saudi data centre, so it is not an option when your data has to stay in the Kingdom. Enterprise is custom pricing based on scale. An Arabic site follows the same plans as any WordPress site; the language doesn't change the price. Confirm current numbers on the pricing page before you commit.
 
 **Can you migrate my existing Arabic WordPress site without breaking the text?**
 Yes, and the charset is the thing to watch. Export the database with utf8mb4 so the text isn't double-encoded, import onto the new host, and verify the Arabic on staging before switching DNS. Free migration assistance can handle it, so a mojibake site never goes live.

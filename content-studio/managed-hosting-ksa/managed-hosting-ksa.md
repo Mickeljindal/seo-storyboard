@@ -118,7 +118,7 @@ On compliance, be careful how you phrase it in a tender. Hosting in the Dammam r
 
 ---
 
-**Let someone else run the server. Keep shipping.** Launch a fully managed server and database in Google Cloud's Dammam region (me-central2), keep backups and SSL in-Kingdom, and manage the whole stack from one dashboard. Plans start from $8/mo, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
+**Let someone else run the server. Keep shipping.** Launch a fully managed server and database in Google Cloud's Dammam region (me-central2), keep backups and SSL in-Kingdom, and manage the whole stack from one dashboard. In-Kingdom plans start from $36/mo on Google Cloud Dammam, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
 
 In-Kingdom GCP Dammam region · Managed patching · Automatic backups · Free SSL · Free migration assistance · Free trial
 
@@ -149,7 +149,7 @@ Yes. When you launch the managed server in Google Cloud's Dammam region (me-cent
 No, not on its own. Hosting in-Kingdom gives you a strong foundation for the residency and infrastructure parts of PDPL and NCA ECC, but compliance is shared responsibility. The platform provides infrastructure controls; you own consent, lawful basis, retention, disclosures, and data-subject rights at the application level. Managed hosting is not a certificate, and no host grants you one.
 
 **How much does managed hosting in KSA cost?**
-Standard plans start from $8 a month, and Enterprise is custom pricing depending on scale and requirements. In-Kingdom hosting on the Dammam region follows the same plan structure. Cloud pricing changes and the region you pick can affect the underlying cost, so check the current numbers on the pricing page before you commit.
+In-Kingdom hosting in the Dammam region starts from $36 a month, because it runs on Google Cloud. The $8 entry plan runs on Linode, which has no Saudi data centre, so it is not an option when your data has to stay in the Kingdom. Enterprise is custom pricing depending on scale and requirements. Cloud pricing changes and the region you pick can affect the underlying cost, so check the current numbers on the pricing page before you commit.
 
 **Can you migrate my existing server to managed hosting in the Kingdom?**
 Yes. Free migration assistance can move an existing site or app onto a managed server in the Dammam region with minimal downtime, and there is a free trial to test the setup first. Your app and data are portable, so moving to managed hosting is a migration, not a rewrite.

@@ -147,7 +147,7 @@ Two lists, because PDPL is two jobs. The first is mostly a set of clicks. The se
 
 ---
 
-**Get the PDPL foundation right on day one.** Launch in Google Cloud's Dammam region, keep your database and backups in-Kingdom, and run the whole stack from one dashboard, so you can spend your effort on the data practices only you can own. Plans start from $8/mo, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/), and always verify current details there.
+**Get the PDPL foundation right on day one.** Launch in Google Cloud's Dammam region, keep your database and backups in-Kingdom, and run the whole stack from one dashboard, so you can spend your effort on the data practices only you can own. In-Kingdom plans start from $36/mo on Google Cloud Dammam, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/), and always verify current details there.
 
 In-Kingdom GCP Dammam region · Free auto-renewing SSL · Automatic backups · Free migration assistance · Free trial
 
