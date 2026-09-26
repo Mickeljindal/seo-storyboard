@@ -15,6 +15,13 @@ Status: Shipped | Beta | Planned · Visibility: Internal | Public
 
 ---
 
+## v1.15.1 — 2026-09-20 — An undo button, and one a day to start
+Status: Shipped · Visibility: Internal
+- **`npm run cadence:undo <slug>` pulls a published article back to draft.** The owner chose publish-straight-to-live over draft-and-approve, which is the faster call and the right one for 397 waiting articles. But it means the only thing standing between a bad article and the public is a gate that checks what a machine can check. So there is now a fast way back: the WordPress post flips to `draft`, the post and its media and its edit history all survive, and the engine forgets it was published so the cadence will offer it again once it is fixed. Not a delete, per the library rule that articles are only ever moved back or improved in place.
+- **`npm run cadence:recent`** lists what went live lately with URLs, so finding the slug to undo takes no digging. Running `undo` with no slug prints the recent list instead of an error.
+- **Default interval is now 24 hours, not 8.** Going from 38 live articles to three a day is a large, sudden change in publishing rate, and there is no reason to make that jump on day one. One a day is the cautious start; `PUBLISH_CADENCE_HOURS=8` raises it to three once indexing on the new articles looks healthy.
+- Verified: build passes, no new type or lint errors, `status` reports the 24h interval, `recent` returns real published URLs. The WordPress draft call itself is **not yet exercised against the live site**, since testing it means unpublishing a real article; it reuses the same `wpRequest` POST path as publishing.
+
 ## v1.15.0 — 2026-09-20 — Paced auto-publishing, with a gate and a team ping
 Status: Shipped · Visibility: Internal
 - **One article goes live every N hours, unattended.** `npm run cadence:start` arms it, `npm run cadence` shows what is booked and what is next, `npm run cadence:stop` cancels. Default interval 8 hours, set with `PUBLISH_CADENCE_HOURS`. It reuses the existing publish path (`publishContentStudioArticle`), so images, featured image, AIOSEO meta, JSON-LD, category, link deferral and healing, and the indexing ping all behave exactly as they do when a human clicks Publish.

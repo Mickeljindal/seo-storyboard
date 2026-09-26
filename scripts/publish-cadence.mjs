@@ -9,6 +9,8 @@
  *   node scripts/publish-cadence.mjs run         # run one cycle here, then rebook
  *   node scripts/publish-cadence.mjs dry         # pick + gate, publish NOTHING
  *   node scripts/publish-cadence.mjs gate <slug> # explain the gate for one article
+ *   node scripts/publish-cadence.mjs recent     # what went live lately
+ *   node scripts/publish-cadence.mjs undo <slug># THE UNDO: pull one back to draft
  *   node scripts/publish-cadence.mjs notify:test # prove the Slack/Pumble/WhatsApp wiring
  *
  * HOW THE CADENCE ACTUALLY RUNS. `start` writes one row into the durable `jobs`
@@ -167,6 +169,49 @@ try {
       break;
     }
 
+    case "recent": {
+      const { recentlyPublished } = await lib();
+      const rows = await recentlyPublished(Number(args[1]) || 10);
+      console.log(head("Recently published (newest first)"));
+      if (!rows.length) console.log(dim("  nothing published yet"));
+      for (const r of rows) {
+        console.log(`  ${dim(r.at)}  ${r.slug}`);
+        console.log(`      ${S.cyan}${r.url}${S.reset}`);
+      }
+      console.log(dim("\n  Pull one back with: npm run cadence:undo <slug>\n"));
+      break;
+    }
+
+    case "undo": {
+      const slug = args[1];
+      if (!slug) {
+        const { recentlyPublished } = await lib();
+        console.error("\nusage: node scripts/publish-cadence.mjs undo <slug>\n");
+        const rows = await recentlyPublished(5);
+        if (rows.length) {
+          console.error("Most recent:");
+          for (const r of rows) console.error(`  ${r.slug}`);
+          console.error("");
+        }
+        process.exit(2);
+      }
+      const { unpublishArticle } = await lib();
+      const r = await unpublishArticle(slug);
+      if (r.ok) {
+        console.log(
+          `\n${ok("pulled back to draft")}  ${slug}  ${dim(`(WP post ${r.postId})`)}\n` +
+            dim("  It is off the public site. The post, its images and its history are intact.\n") +
+            dim(
+              "  The cadence now treats it as unpublished, so fix it before it comes round again.\n",
+            ),
+        );
+      } else {
+        console.log(`\n${bad("could not undo")} ${slug}: ${r.error}\n`);
+        process.exit(1);
+      }
+      break;
+    }
+
     case "gate": {
       const slug = args[1];
       if (!slug) {
@@ -204,7 +249,9 @@ try {
 
     default:
       console.error(`unknown command: ${cmd}`);
-      console.error("try: status | start | stop | run | dry | gate <slug> | notify:test");
+      console.error(
+        "try: status | start | stop | run | dry | gate <slug> | recent | undo <slug> | notify:test",
+      );
       process.exit(2);
   }
 } catch (e) {

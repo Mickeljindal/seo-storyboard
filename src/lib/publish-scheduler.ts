@@ -59,7 +59,10 @@ export type CadenceConfig = {
 };
 
 export function getCadenceConfig(): CadenceConfig {
-  const hours = Number(process.env.PUBLISH_CADENCE_HOURS || 8);
+  // 24h by default, not 8. Going from 38 live articles to three a day is a large,
+  // sudden change in publishing rate. One a day is the cautious start; raise it
+  // with PUBLISH_CADENCE_HOURS once indexing looks healthy.
+  const hours = Number(process.env.PUBLISH_CADENCE_HOURS || 24);
   return {
     intervalMs: Math.max(5 * 60_000, hours * 3_600_000),
     minScore: Number(process.env.PUBLISH_CADENCE_MIN_SCORE || 0),
@@ -432,6 +435,85 @@ export async function runPublishCadenceOnce(
     if (reschedule) await bookNextRun(cfg.intervalMs).catch(() => null);
     return { ok: false, dryRun: cfg.dryRun, skipped, error: msg };
   }
+}
+
+/* ------------------------------------------------------------------ undo */
+
+/**
+ * Pull a published article back to draft. THE UNDO BUTTON.
+ *
+ * This exists because the cadence publishes straight to live. The gate catches
+ * what a machine can check, and nothing catches a problem only a human would
+ * spot, so there has to be a fast way back. Sets the WordPress post to `draft`
+ * (the post, its media and its edit history all survive), clears the engine's
+ * published state, and drops it from the manifest so the cadence treats it as
+ * unpublished again.
+ *
+ * Deliberately not a delete: the steering rule for this library is that articles
+ * are never deleted, only moved back or improved in place.
+ */
+export async function unpublishArticle(
+  slug: string,
+): Promise<{ ok: boolean; postId?: number; error?: string }> {
+  const repo = await import("@/server/db/repos/articles");
+  const article = await repo.getArticleBySlug(slug);
+  if (!article) return { ok: false, error: `no article found for "${slug}"` };
+
+  const { getWpConfig, getStoredWpPostId, wpRequest } = await import("./wordpress-client");
+  const { config, missing } = getWpConfig();
+  if (!config)
+    return { ok: false, error: `WordPress not connected. Add to .env: ${missing.join(", ")}.` };
+
+  const postId = getStoredWpPostId(article.performance_data);
+  if (!postId) return { ok: false, error: `no WordPress post id recorded for "${slug}"` };
+
+  const res = await wpRequest(config, `/posts/${postId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status: "draft" }),
+  });
+  if (!res.ok) return { ok: false, postId, error: res.error ?? `HTTP ${res.status}` };
+
+  await repo.updateArticle(article.id, {
+    published_url: null,
+    published_at: null,
+    status: "review",
+    approval_status: "none",
+  });
+
+  // Drop it from the manifest, or the cadence would still consider it live.
+  try {
+    const m = readManifest();
+    const before = m.published.length;
+    m.published = m.published.filter((p) => p.slug !== slug);
+    if (m.published.length !== before) {
+      m.count = m.published.length;
+      m.generated_at = new Date().toISOString();
+      fs.writeFileSync(manifestPath(), `${JSON.stringify(m, null, 2)}\n`, "utf8");
+    }
+  } catch (e) {
+    console.warn(`[cadence] manifest not updated for ${slug}:`, (e as Error)?.message);
+  }
+
+  return { ok: true, postId };
+}
+
+/** The most recently published articles, newest first. What `undo` offers to pull. */
+export async function recentlyPublished(
+  limit = 10,
+): Promise<{ slug: string; title: string; url: string; at: string }[]> {
+  const repo = await import("@/server/db/repos/articles");
+  const all = await repo.listArticles({ limit: 5000 });
+  return all
+    .filter((a) => a.published_at && a.published_url && a.url_slug)
+    .sort((a, b) => new Date(b.published_at!).getTime() - new Date(a.published_at!).getTime())
+    .slice(0, limit)
+    .map((a) => ({
+      slug: a.url_slug as string,
+      title: a.title,
+      url: a.published_url as string,
+      at: new Date(a.published_at as string).toISOString().replace("T", " ").slice(0, 16) + "Z",
+    }));
 }
 
 /* -------------------------------------------------------- start/stop/status */
